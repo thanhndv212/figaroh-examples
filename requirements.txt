@@ -1,0 +1,25 @@
+# Core FIGAROH package (install first)
+figaroh
+
+# Additional dependencies for examples
+opencv-python>=4.5.0
+opencv-contrib-python>=4.5.0
+pillow
+pyyaml
+tqdm
+plotly
+jupyter
+notebook
+ipywidgets
+
+# For specific examples
+transforms3d  # for rotation handling
+open3d       # for 3D visualization
+trimesh      # for mesh processing
+
+# Development and visualization
+ipympl       # for interactive matplotlib in jupyter
+seaborn      # for enhanced plotting
+
+# Note: Install these via conda for better compatibility:
+# conda install -c conda-forge pinocchio cyipopt

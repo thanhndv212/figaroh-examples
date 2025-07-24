@@ -1,0 +1,44 @@
+name: figaroh-examples
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.8
+  - pip
+  
+  # Core scientific computing
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  
+  # Robotics and optimization
+  - pinocchio
+  - cyipopt
+  
+  # Computer vision
+  - opencv
+  - pillow
+  
+  # Jupyter environment
+  - jupyter
+  - notebook
+  - ipywidgets
+  - ipympl
+  
+  # Additional scientific packages
+  - seaborn
+  - plotly
+  
+  # Install remaining via pip
+  - pip:
+    - figaroh
+    - numdifftools
+    - ndcurves
+    - meshcat
+    - rospkg
+    - quadprog
+    - transforms3d
+    - open3d
+    - trimesh
+    - tqdm
