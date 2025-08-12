@@ -11,6 +11,11 @@ plotly
 jupyter
 notebook
 ipywidgets
+viser
+numpy
+scipy
+matplotlib
+pandas
 
 # For specific examples
 transforms3d  # for rotation handling
