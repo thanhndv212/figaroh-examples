@@ -19,6 +19,10 @@ class ConfigPanel:
         self.config_widgets = {}
         self.current_example_path = ""
         self.setup_ui()
+
+        self.calib_param_folder = None
+        self.iden_param_folder = None
+        self.general_param_folder = None
     
     def setup_ui(self):
         """Setup the configuration panel UI components."""
@@ -51,7 +55,8 @@ class ConfigPanel:
             self.config_info = self.server.gui.add_text(
                 "Config Status",
                 initial_value="No configuration loaded",
-                disabled=True
+                disabled=True,
+                visible=False
             )
             
         except Exception as e:
@@ -191,13 +196,20 @@ class ConfigPanel:
             
             # Create widgets for calibration parameters
             if 'calibration' in self.current_config:
+                if self.calib_param_folder is not None:
+                    self.calib_param_folder.remove()
+
                 self._create_calibration_widgets()
             
             # Create widgets for identification parameters  
             if 'identification' in self.current_config:
+                if self.iden_param_folder is not None:
+                    self.iden_param_folder.remove()
                 self._create_identification_widgets()
-            
+
             # Create widgets for other top-level parameters
+            if self.general_param_folder is not None:
+                self.general_param_folder.remove()
             self._create_general_widgets()
             
         except Exception as e:
@@ -208,8 +220,8 @@ class ConfigPanel:
     def _create_calibration_widgets(self):
         """Create widgets for calibration parameters."""
         calib_config = self.current_config['calibration']
-        
-        with self.server.gui.add_folder("📏 Calibration Parameters"):
+        self.calib_param_folder = self.server.gui.add_folder("📏 Calibration Parameters")
+        with self.calib_param_folder:
             if 'calib_level' in calib_config:
                 self.config_widgets['calib_level'] = self.server.gui.add_dropdown(
                     "Calibration Level",
@@ -279,8 +291,8 @@ class ConfigPanel:
     def _create_identification_widgets(self):
         """Create widgets for identification parameters."""
         ident_config = self.current_config['identification']
-        
-        with self.server.gui.add_folder("🔍 Identification Parameters"):
+        self.iden_param_folder = self.server.gui.add_folder("🔍 Identification Parameters")
+        with self.iden_param_folder:
             if 'problem_params' in ident_config and ident_config['problem_params']:
                 prob_params = ident_config['problem_params'][0]
                 
@@ -303,7 +315,8 @@ class ConfigPanel:
     
     def _create_general_widgets(self):
         """Create widgets for general configuration parameters."""
-        with self.server.gui.add_folder("⚙️ General Parameters"):
+        self.general_param_folder = self.server.gui.add_folder("⚙️ General Parameters")
+        with self.general_param_folder:
             # Add widgets for other top-level config parameters
             for key, value in self.current_config.items():
                 if key not in ['calibration', 'identification'] and isinstance(value, (str, int, float, bool)):
