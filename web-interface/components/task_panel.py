@@ -45,7 +45,8 @@ class TaskPanel:
                     "identification",
                     "optimization",
                     "trajectory_generation",
-                    "execution"
+                    "execution",
+                    "generic"
                 ],
                 initial_value="Select task type...",
             )
@@ -381,7 +382,33 @@ class TaskPanel:
                 'filter_cutoff': getattr(self, 'filter_cutoff', None).value if hasattr(self, 'filter_cutoff') else 10.0
             })
             
-        # Add more task types as needed...
+        elif task_type == "optimization":
+            config.update({
+                'method': getattr(self, 'optim_method', None).value if hasattr(self, 'optim_method') else 'L-BFGS-B',
+                'max_iterations': getattr(self, 'max_iter', None).value if hasattr(self, 'max_iter') else 1000,
+                'use_bounds': getattr(self, 'use_bounds', None).value if hasattr(self, 'use_bounds') else True,
+                'ftol': getattr(self, 'ftol', None).value if hasattr(self, 'ftol') else 1e-9
+            })
+            
+        elif task_type == "trajectory_generation":
+            config.update({
+                'trajectory_type': getattr(self, 'traj_type', None).value if hasattr(self, 'traj_type') else 'Random',
+                'duration': getattr(self, 'duration', None).value if hasattr(self, 'duration') else 10.0,
+                'frequency': getattr(self, 'frequency', None).value if hasattr(self, 'frequency') else 1.0,
+                'joint_limits': getattr(self, 'joint_limits', None).value if hasattr(self, 'joint_limits') else True,
+                'smooth_trajectory': getattr(self, 'smooth_trajectory', None).value if hasattr(self, 'smooth_trajectory') else True
+            })
+            
+        elif task_type == "execution":
+            config.update({
+                'mode': getattr(self, 'execution_mode', None).value if hasattr(self, 'execution_mode') else 'Simulation',
+                'save_results': getattr(self, 'save_results', None).value if hasattr(self, 'save_results') else True
+            })
+            
+        elif task_type == "generic":
+            config.update({
+                'verbose': getattr(self, 'verbose', None).value if hasattr(self, 'verbose') else True
+            })
         
         return config
         
