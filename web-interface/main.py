@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--config", type=str, help="Configuration file path")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     parser.add_argument("--auto-reload", action="store_true", help="Auto-reload on file changes")
+    parser.add_argument("--classic", action="store_true", help="Use classic interface (default: streamlined)")
     
     args = parser.parse_args()
     
@@ -38,7 +39,8 @@ def main():
             models_path=args.models_path,
             config_path=args.config,
             debug=args.debug,
-            auto_reload=args.auto_reload
+            auto_reload=args.auto_reload,
+            use_streamlined=not args.classic
         )
         
         app.run()

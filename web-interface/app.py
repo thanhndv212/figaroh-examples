@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 import traceback
 
 from core.interface import FigarohWebInterface
+from core.streamlined_interface import StreamlinedFigarohInterface
 from core.example_loader import ExampleLoader
 from core.robot_manager import RobotManager
 from core.task_manager import TaskManager
@@ -24,12 +25,14 @@ class FigarohWebApp:
                  models_path: Optional[str] = None,
                  config_path: Optional[str] = None,
                  debug: bool = False,
-                 auto_reload: bool = False):
+                 auto_reload: bool = False,
+                 use_streamlined: bool = True):
         """Initialize the web application."""
         self.port = port
         self.host = host
         self.debug = debug
         self.auto_reload = auto_reload
+        self.use_streamlined = use_streamlined
         
         # Initialize paths
         self.examples_path = self._resolve_examples_path(examples_path)
@@ -95,14 +98,26 @@ class FigarohWebApp:
             self.session_manager = SessionManager()
             
             # Initialize main interface
-            self.interface = FigarohWebInterface(
-                server=self.server,
-                example_loader=self.example_loader,
-                robot_manager=self.robot_manager,
-                task_manager=self.task_manager,
-                session_manager=self.session_manager,
-                debug=self.debug
-            )
+            if self.use_streamlined:
+                self.interface = StreamlinedFigarohInterface(
+                    server=self.server,
+                    example_loader=self.example_loader,
+                    robot_manager=self.robot_manager,
+                    task_manager=self.task_manager,
+                    session_manager=self.session_manager,
+                    debug=self.debug
+                )
+                print("🎯 Using streamlined interface")
+            else:
+                self.interface = FigarohWebInterface(
+                    server=self.server,
+                    example_loader=self.example_loader,
+                    robot_manager=self.robot_manager,
+                    task_manager=self.task_manager,
+                    session_manager=self.session_manager,
+                    debug=self.debug
+                )
+                print("🔧 Using full interface")
             
             # Discover examples and models
             self.example_loader.discover_examples()
@@ -110,9 +125,20 @@ class FigarohWebApp:
             # Update the interface with discovered examples
             if hasattr(self, 'interface') and self.interface:
                 examples = self.example_loader.get_all_examples()
-                self.interface.config_panel.update_examples(examples)
-                self.interface.robot_panel.update_robot_examples(examples)
-                print(f"🔄 Updated interface with {len(examples)} examples")
+                
+                # Handle different interface types
+                if self.use_streamlined:
+                    # Streamlined interface uses setup_panel
+                    if hasattr(self.interface, 'setup_panel') and self.interface.setup_panel:
+                        self.interface.setup_panel.update_examples(examples)
+                        print(f"🔄 Updated streamlined interface with {len(examples)} examples")
+                else:
+                    # Classic interface uses config_panel and robot_panel
+                    if hasattr(self.interface, 'config_panel'):
+                        self.interface.config_panel.update_examples(examples)
+                    if hasattr(self.interface, 'robot_panel'):
+                        self.interface.robot_panel.update_robot_examples(examples)
+                    print(f"🔄 Updated classic interface with {len(examples)} examples")
             
             print(f"✅ Found {len(self.example_loader.get_all_examples())} examples")
             print(f"✅ Found {len(self.example_loader.get_robot_types())} robot types")
