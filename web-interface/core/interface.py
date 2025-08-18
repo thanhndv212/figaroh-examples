@@ -519,6 +519,7 @@ class FigarohWebInterface:
         # Data events
         self.data_panel.on_data_loaded = self.on_data_loaded
         self.data_panel.on_data_validated = self.on_data_validated
+        self.data_panel.on_data_selected = self.on_data_selected
         
         # Task events
         self.task_panel.on_task_start = self.on_task_start
@@ -619,11 +620,35 @@ class FigarohWebInterface:
             # Update task panel
             self.task_panel.set_data(data_info)
             
-            self.status_text.value = f"🟢 Data loaded: {data_info.get('name', 'Unknown')}"
+            success_count = data_info.get('success_count', 0)
+            total_count = data_info.get('total_count', 0)
+            self.status_text.value = f"🟢 Data loaded: {success_count}/{total_count} files"
             
         except Exception as e:
             self.status_text.value = f"🔴 Error handling data load: {str(e)}"
             if self.debug:
+                traceback.print_exc()
+    
+    def on_data_selected(self, selection_info):
+        """Handle data file selection changes."""
+        try:
+            action = selection_info.get('action', 'unknown')
+            selected_count = len(selection_info.get('selected_files', []))
+            
+            if action == 'added':
+                filename = selection_info.get('file', '')
+                self.status_text.value = f"📁 Added {filename} ({selected_count} files selected)"
+            elif action == 'removed':
+                filename = selection_info.get('file', '')
+                self.status_text.value = f"� Removed {filename} ({selected_count} files selected)"
+            elif action == 'cleared':
+                self.status_text.value = "📁 Cleared all selected files"
+            else:
+                self.status_text.value = f"📁 {selected_count} files selected"
+                
+        except Exception as e:
+            if self.debug:
+                print(f"Error handling data selection: {e}")
                 traceback.print_exc()
     
     def on_data_validated(self, validation_result):
