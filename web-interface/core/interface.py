@@ -61,7 +61,7 @@ class FigarohWebInterface:
         """Setup the main interface."""
         # Header
         self.server.gui.add_markdown(
-            "# 🤖 Figaroh Examples Web Interface\n"
+            "# 🤖 Figaroh\n"
             "Interactive robotics calibration and identification"
         )
         
@@ -85,37 +85,39 @@ class FigarohWebInterface:
         
     def setup_panels(self):
         """Setup all UI panels."""
-        # Robot Panel (with sub-panels)
-        with self.server.gui.add_folder("🤖 Robot"):
-            self.robot_panel = RobotPanel(
-                server=self.server,
-                example_loader=self.example_loader,
-                interface=self
-            )
             
-            # Path Selection Panel (as sub-panel under Robot)
-            with self.server.gui.add_folder("� Path Selection"):
-                self.setup_path_selection_panel()
-            
-            # Visualization Panel (as sub-panel under Robot)
-            with self.server.gui.add_folder("👁️ Visualization"):
-                self.visualization_panel = VisualizationPanel(
-                    server=self.server
+        with self.server.gui.add_folder("Setup"): 
+            # Configuration Panel
+            with self.server.gui.add_folder("📋 Project Setup"):
+                self.config_panel = ConfigPanel(
+                    server=self.server,
+                    example_loader=self.example_loader,
+                    debug=self.debug
                 )
-        
-        # Configuration Panel
-        with self.server.gui.add_folder("📋 Configuration"):
-            self.config_panel = ConfigPanel(
-                server=self.server,
-                example_loader=self.example_loader,
-                debug=self.debug
-            )
 
-        # Data Panel
-        with self.server.gui.add_folder("📊 Data"):
-            self.data_panel = DataPanel(
-                server=self.server
-            )
+            # Robot Panel (with sub-panels)
+            with self.server.gui.add_folder("🤖 Robot Loading"):
+                # Robot Panel
+                self.robot_panel = RobotPanel(
+                    server=self.server,
+                    example_loader=self.example_loader,
+                    interface=self
+                )
+                self.path_selection_folder = self.server.gui.add_folder("📁 Path Selection", visible=False)
+                # Path Selection Panel (as sub-panel under Robot)
+                with self.path_selection_folder:
+                    self.setup_path_selection_panel()
+
+                # Load Robot button
+                self.load_robot_button = self.server.gui.add_button("🤖 Load Robot")
+                self.load_robot_button.on_click(self._on_load_robot_from_interface)
+
+            # Data Panel
+            with self.server.gui.add_folder("📊 Data Management"):
+                self.data_panel = DataPanel(
+                    server=self.server,
+                    debug=self.debug
+                )
         
         # Task Panel
         with self.server.gui.add_folder("⚙️ Tasks"):
@@ -126,10 +128,16 @@ class FigarohWebInterface:
             )
         
         # Results Panel
-        with self.server.gui.add_folder("📈 Results"):
-            self.results_panel = ResultsPanel(
-                server=self.server
-            )
+        with self.server.gui.add_folder("Review"):
+            with self.server.gui.add_folder("📈 Results"):
+                self.results_panel = ResultsPanel(
+                    server=self.server
+                )
+            # Visualization Panel
+            with self.server.gui.add_folder("👁️ Visualization"):
+                self.visualization_panel = VisualizationPanel(
+                    server=self.server
+                )
     
     def setup_path_selection_panel(self):
         """Setup path selection panel for URDF and model paths."""
@@ -161,24 +169,16 @@ class FigarohWebInterface:
             initial_value=model_options[0],
         )
         
-        # Path info display
-        self.path_info = self.server.gui.add_text(
-            "Path Info",
-            initial_value=self._get_path_info(),
-            disabled=True
-        )
-        
         # Refresh button
         self.refresh_paths_button = self.server.gui.add_button("🔄 Refresh Paths")
         
-        # Load Robot button
-        self.load_robot_button = self.server.gui.add_button("🤖 Load Robot")
+        
         
         # Setup callbacks
         self.urdf_dropdown.on_update(self._on_urdf_path_changed)
         self.model_dropdown.on_update(self._on_model_path_changed)
         self.refresh_paths_button.on_click(self._on_refresh_paths)
-        self.load_robot_button.on_click(self._on_load_robot_from_interface)
+        
         
         # Update initial selection
         self._on_urdf_path_changed(None)
@@ -290,22 +290,6 @@ class FigarohWebInterface:
                     display_name = f"models/{model_name}"
                     self.available_model_paths[display_name] = model_dir
     
-    def _get_path_info(self):
-        """Get information about selected paths."""
-        info_lines = []
-        
-        if self.selected_urdf_path:
-            info_lines.append(f"URDF: {self.selected_urdf_path}")
-        else:
-            info_lines.append("URDF: None selected")
-        
-        if self.selected_model_path:
-            info_lines.append(f"Model: {self.selected_model_path}")
-        else:
-            info_lines.append("Model: None selected")
-        
-        return "\n".join(info_lines)
-    
     def _on_urdf_path_changed(self, _):
         """Handle URDF path selection change."""
         try:
@@ -385,14 +369,8 @@ class FigarohWebInterface:
     def _on_load_robot_from_interface(self, _):
         """Handle Load Robot button click from the interface."""
         try:
-            # Check if robot panel has the checkbox for local URDF loading
-            if hasattr(self.robot_panel, 'load_from_local_checkbox'):
-                if self.robot_panel.load_from_local_checkbox.value:
-                    # Load from selected paths
-                    self._load_robot_from_selected_paths()
-                else:
-                    # Use robot panel's regular loading method
-                    self.robot_panel.load_robot_combined()
+            if hasattr(self.robot_panel, 'loading_mode_dropdown'):
+                self.robot_panel.load_robot_combined()
             else:
                 # Fallback: try to load from selected paths
                 self._load_robot_from_selected_paths()

@@ -76,10 +76,11 @@ class RobotPanel:
                 initial_value=False,
             )
             
-            # Load from local URDF checkbox
-            self.load_from_local_checkbox = self.server.gui.add_checkbox(
-                "📁 Load from Local URDF",
-                initial_value=False,
+            # Loading mode dropdown (Auto/Manual)
+            self.loading_mode_dropdown = self.server.gui.add_dropdown(
+                "📁 Loading Mode",
+                options=["Auto", "Manual"],
+                initial_value="Auto",
             )
             
             # Robot info display
@@ -93,11 +94,12 @@ class RobotPanel:
             self.loader_info = self.server.gui.add_text(
                 "Loader Info",
                 initial_value=self._get_loader_info(self.loader_dropdown.value),
-                disabled=True
+                disabled=True,
+                visible=False,
             )
             
             # Setup callbacks
-            self.load_from_local_checkbox.on_update(self._on_local_urdf_toggle)
+            self.loading_mode_dropdown.on_update(self._on_loading_mode_changed)
             self.loader_dropdown.on_update(self._on_loader_changed)
             self.source_dropdown.on_update(self._on_source_selected)
             
@@ -177,7 +179,7 @@ class RobotPanel:
         try:
             selected_source = self.source_dropdown.value
             if selected_source != "None":
-                self.robot_info.value = f"Selected: {selected_source}\nClick 'Load Robot' to load"
+                self.robot_info.value = f"Selected: {selected_source} \n Click 'Load Robot' to load"
                 print(f"Robot source selected: {selected_source}")
             else:
                 self.robot_info.value = "No robot selected"
@@ -199,21 +201,22 @@ class RobotPanel:
         """Handle robot loading - either from selected method or from local paths."""
         self.load_robot_combined()
     
-    def _on_local_urdf_toggle(self, _):
-        """Handle toggle of local URDF loading option."""
+    def _on_loading_mode_changed(self, _):
+        """Handle toggle of loading mode option."""
         try:
-            is_local = self.load_from_local_checkbox.value
-            if is_local:
-                print("Local URDF loading enabled - Path Selection panel will be used")
+            loading_mode = self.loading_mode_dropdown.value
+            if loading_mode == "Manual":
+                print("Manual loading mode - Path Selection panel will be used")
+                visible = True
             else:
-                print("Local URDF loading disabled - Using loader methods")
-            
+                print("Auto loading mode - Using loader methods")
+                visible = False
             # Notify interface to show/hide path selection panel
             if self.interface and hasattr(self.interface, '_update_path_selection_visibility'):
-                self.interface._update_path_selection_visibility(is_local)
+                self.interface._update_path_selection_visibility(visible)
                 
         except Exception as e:
-            print(f"Error toggling local URDF option: {e}")
+            print(f"Error changing loading mode: {e}")
     
     # ============================================================================
     # ROBOT LOADING METHODS
@@ -222,11 +225,13 @@ class RobotPanel:
     
     def load_robot_combined(self):
         """Public method to handle robot loading - either from selected method or from local paths."""
+        
         try:
-            if self.load_from_local_checkbox.value:
+            if self.loading_mode_dropdown.value == "Manual":
                 # Load from selected local paths
+                print(f"***************Loading robot with mode: {self.loading_mode_dropdown.value}")
                 self._load_from_selected_paths()
-            else:
+            elif self.loading_mode_dropdown.value == "Auto":
                 # Load using selected loader method
                 selected_loader = self.loader_dropdown.value
                 selected_source = self.source_dropdown.value
@@ -296,7 +301,7 @@ class RobotPanel:
                 
                 # Adjust package directories for loader
                 package_dirs = self._adjust_package_dirs_for_loader(
-                    paths['package_dirs'] or "models", loader
+                    paths['package_dirs'], loader
                 )
                 
                 robot_obj = load_robot(
@@ -350,7 +355,7 @@ class RobotPanel:
             # Validate inputs
             self._validate_path_loading_inputs(urdf_path, model_path, selected_loader)
             
-            # Adjust package directories and load robot
+            # Adjust package directories and load robot for figaroh
             adjusted_model_path = self._adjust_package_dirs_for_loader(model_path, selected_loader)
             robot_obj = load_robot(
                 robot_urdf=urdf_path,
@@ -360,16 +365,16 @@ class RobotPanel:
             )
             
             # For figaroh, create separate visualization object
-            if selected_loader == "figaroh":
-                vis_obj = load_robot(
-                    robot_urdf=urdf_path,
-                    package_dirs=model_path,
-                    loader="yourdfpy",
-                    isFext=add_fext
-                )
-                self._visualize_loaded_robot(vis_obj, "yourdfpy", add_fext)
-            else:
-                self._visualize_loaded_robot(robot_obj, selected_loader, add_fext)
+            # if selected_loader == "figaroh":
+            #     vis_obj = load_robot(
+            #         robot_urdf=urdf_path,
+            #         package_dirs=model_path,
+            #         loader="yourdfpy",
+            #         isFext=add_fext
+            #     )
+            #     self._visualize_loaded_robot(vis_obj, "yourdfpy", add_fext)
+            # else:
+            self._visualize_loaded_robot(robot_obj, selected_loader, add_fext)
             
             # Store and update UI
             robot_name = os.path.basename(urdf_path).replace('.urdf', '')
