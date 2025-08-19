@@ -1,0 +1,24 @@
+# define parameters for calibration and identification process
+# robot: ur10
+---
+calibration:
+  calib_level: full_params # joint_offset, full_params
+  non_geom: False
+  base_frame: universe
+  tool_frame: wrist_3_link
+  markers:
+    - ref_joint: wrist_3_joint
+      measure: [True, True, True, True, True, True]
+  free_flyer: False
+  camera_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  tip_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  coeff_regularize: 0.001
+  outlier_eps: 0.02
+  data_file: data/calibration.csv
+  sample_configs_file: data/optimal_configs/ur10_optimal_configs.yaml
+  nb_sample: 29
+identification:
+  robot_params:
+    - q_lim_def: 1.57
+      fv : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      fs : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
