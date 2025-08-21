@@ -235,13 +235,31 @@ class TiagoIdentification(BaseIdentification):
             q, qd, qdd, self.model, self.data, self.params_settings
         )
         return regressor
-    """
-    Generate optimal trajectories for dynamic parameter identification.
-    """
-    def __init__(self, robot, config_file, active_joints):
-        self._robot = robot
-        self.model = self._robot.model
-        self.data = self._robot.data
+
+
+class TiagoOptimalCalibration(BaseOptimalCalibration):
+    """TIAGo-specific optimal configuration generation for calibration."""
+    
+    def __init__(self, robot, config_file="config/tiago_config.yaml"):
+        """Initialize TIAGo optimal calibration."""
+        super().__init__(robot, config_file)
+        print("TIAGo Optimal Calibration initialized")
+    
+    def load_candidate_configurations(self):
+        """Load candidate configurations from TIAGo YAML file.
+        
+        Note: This method satisfies the abstract base class requirement,
+        but actual data loading is handled in the base class load_data_set method.
+        """
+        return np.array([])
+    
+    def optimize_selection(self, subX_dict, nb_chosen):
+        """Optimize configuration selection using SOCP for TIAGo.
+        
+        Note: This method satisfies the abstract base class requirement,
+        but actual optimization is handled in the base class.
+        """
+        return [], []
         self.active_joints = active_joints
         self.load_param(config_file)
         
