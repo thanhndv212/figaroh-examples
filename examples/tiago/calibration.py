@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from utils.tiago_tools import TiagoCalibration, write_to_xacro
+from utils.tiago_tools import TiagoCalibration
 from figaroh.tools.robot import load_robot
-import argparse
 
 
 # load_by_urdf = False, load robot from rospy.get_param(/robot_description)
