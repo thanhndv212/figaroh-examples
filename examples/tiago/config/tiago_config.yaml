@@ -38,6 +38,12 @@ identification:
       dq_lim_def : [0.05009095, 0.05009095, 0.07504916, 0.0715585,  0.05585054, 0.12217305]
       ddq_lim_def : 20.0
       tau_lim_def : 4.0
+  trajectory_params:
+    - n_wps: 3          # number of waypoints (reduced from 5)
+      freq: 50          # frequency in Hz (reduced from 100)
+      t_s: 1.5          # window time between waypoints (reduced from 2)
+      soft_lim: 0.1     # joint limit discount (increased from 0.05)
+      max_attempts: 500 # maximum attempts to find feasible trajectory
   problem_params:
     - is_external_wrench : False
       is_joint_torques : True
