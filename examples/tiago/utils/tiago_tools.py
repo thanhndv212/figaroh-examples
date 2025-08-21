@@ -172,416 +172,69 @@ class TiagoCalibration(BaseCalibration):
             self.STATUS = "CALIBRATED"
 
 
-
-
-def write_to_xacro(tiago_calib, file_name=None, file_type="yaml"):
-    """
-    Write calibration result to xacro file.
-    """
-    assert tiago_calib.STATUS == "CALIBRATED", "Calibration not performed yet"
-    model = tiago_calib.model
-    calib_result = tiago_calib.calibrated_param
-    param = tiago_calib.param
-
-    calibration_parameters = {}
-    calibration_parameters["camera_position_x"] = float(calib_result["base_px"])
-    calibration_parameters["camera_position_y"] = float(calib_result["base_py"])
-    calibration_parameters["camera_position_z"] = float(calib_result["base_pz"])
-    calibration_parameters["camera_orientation_r"] = float(calib_result["base_phix"])
-    calibration_parameters["camera_orientation_p"] = float(calib_result["base_phiy"])
-    calibration_parameters["camera_orientation_y"] = float(calib_result["base_phiz"])
-
-    for idx in param["actJoint_idx"]:
-        joint = model.names[idx]
-        for key in calib_result.keys():
-            if joint in key and "torso" not in key:
-                calibration_parameters[joint + "_offset"] = float(calib_result[key])
-    if tiago_calib.param["measurability"][0:3] == [True, True, True]:
-        calibration_parameters["tip_position_x"] = float(calib_result["pEEx_1"])
-        calibration_parameters["tip_position_y"] = float(calib_result["pEEy_1"])
-        calibration_parameters["tip_position_z"] = float(calib_result["pEEz_1"])
-    if tiago_calib.param["measurability"][3:6] == [True, True, True]:
-        calibration_parameters["tip_orientation_r"] = float(calib_result["phiEEx_1"])
-        calibration_parameters["tip_orientation_p"] = float(calib_result["phiEEy_1"])
-        calibration_parameters["tip_orientation_y"] = float(calib_result["phiEEz_1"])
-
-    if file_type == "xacro":
-        if file_name is None:
-            path_save_xacro = abspath(
-                "data/calibration_paramters/tiago_master_calibration_{}.xacro".format(
-                    param["NbSample"]
-                )
-            )
-        else:
-            path_save_xacro = abspath("data/calibration_parameters/" + file_name)
-        with open(path_save_xacro, "w") as output_file:
-            for parameter in calibration_parameters.keys():
-                update_name = parameter
-                update_value = calibration_parameters[parameter]
-                update_line = '<xacro:property name="{}" value="{}" / >'.format(
-                    update_name, update_value
-                )
-                output_file.write(update_line)
-                output_file.write("\n")
-
-    elif file_type == "yaml":
-        if file_name is None:
-            path_save_yaml = abspath(
-                "data/calibration_parameters/tiago_master_calibration_{}.yaml".format(
-                    param["NbSample"]
-                )
-            )
-        else:
-            path_save_yaml = abspath("data/calibration_parameters/" + file_name)
-        with open(path_save_yaml, "w") as output_file:
-            # for parameter in calibration_parameters.keys():
-            #     update_name = parameter
-            #     update_value = calibration_parameters[parameter]
-            #     update_line = "{}:{}".format(update_name, update_value)
-            #     output_file.write(update_line)
-            #     output_file.write("\n")
-            try:
-                yaml.dump(
-                    calibration_parameters,
-                    output_file,
-                    sort_keys=False,
-                    default_flow_style=False,
-                )
-            except yaml.YAMLError as exc:
-                print(exc)
-
-
-class TiagoIdentification:
-    """
-    Class for dynamic parameter identification of the TIAGo robot.
-    """
-    def __init__(self, robot, config_file):
-        self._robot = robot
-        self.model = self._robot.model
-        self.data = self._robot.data
-        self.load_param(config_file)
-
-    def load_param(self, config_file, setting_type="identification"):
-        """Load the identification parameters from the yaml file."""
-        with open(config_file, "r") as f:
-            config = yaml.load(f, Loader=yaml.SafeLoader)
-        self.params_settings = get_param_from_yaml(self._robot, config[setting_type])
-
-    def load_csv_data(self):
-        """Load and process CSV data."""
-        import pandas as pd
-        ts = pd.read_csv(abspath(self.params_settings["pos_data"]), usecols=[0]).to_numpy()
-        pos = pd.read_csv(abspath(self.params_settings["pos_data"]))
-        vel = pd.read_csv(abspath(self.params_settings["vel_data"]))
-        eff = pd.read_csv(abspath(self.params_settings["torque_data"]))
-
-        cols = {"pos": [], "vel": [], "eff": []}
-        for jn in self.params_settings["active_joints"]:
-            cols["pos"].extend([col for col in pos.columns if jn in col])
-            cols["vel"].extend([col for col in vel.columns if jn in col])
-            cols["eff"].extend([col for col in eff.columns if jn in col])
-
-        q = pos[cols["pos"]].to_numpy()
-        dq = vel[cols["vel"]].to_numpy()
-        tau = eff[cols["eff"]].to_numpy()
-        return ts, q, dq, tau
-
-    def apply_filters(self, t, q, dq, nbutter=4, f_butter=2, med_fil=5, f_sample=100):
-        """Apply median and lowpass filters to position and velocity data."""
-        from scipy import signal
-        b1, b2 = signal.butter(nbutter, f_butter / (f_sample / 2), "low")
-
-        q_filtered = np.zeros(q.shape)
-        dq_filtered = np.zeros(dq.shape)
-
-        for j in range(dq.shape[1]):
-            q_med = signal.medfilt(q[:, j], med_fil)
-            q_filtered[:, j] = signal.filtfilt(
-                b1, b2, q_med, padtype="odd", padlen=3 * (max(len(b1), len(b2)) - 1)
-            )
-            dq_med = signal.medfilt(dq[:, j], med_fil)
-            dq_filtered[:, j] = signal.filtfilt(
-                b1, b2, dq_med, padtype="odd", padlen=3 * (max(len(b1), len(b2)) - 1)
-            )
-        return q_filtered, dq_filtered
-
-    def estimate_acceleration(self, t, dq_filtered):
-        """Estimate acceleration from filtered velocity."""
-        return np.array([
-            np.gradient(dq_filtered[:, j]) / np.gradient(t[:, 0])
-            for j in range(dq_filtered.shape[1])
-        ]).T
-
-    def build_full_configuration(self, q_f, dq_f, ddq_f, N_):
-        """Build full configuration arrays for position, velocity, and acceleration."""
-        p = np.tile(self._robot.q0, (N_, 1))
-        v = np.tile(self._robot.v0, (N_, 1))
-        a = np.tile(self._robot.v0, (N_, 1))
-
-        p[:, self.params_settings["act_idxq"]] = q_f
-        v[:, self.params_settings["act_idxv"]] = dq_f
-        a[:, self.params_settings["act_idxv"]] = ddq_f
-        return p, v, a
-
+class TiagoIdentification(BaseIdentification):
+    """TIAGo-specific dynamic parameter identification class."""
+    
+    def __init__(self, robot, config_file="config/tiago_config.yaml"):
+        """Initialize TIAGo identification with robot model and configuration.
+        
+        Args:
+            robot: TIAGo robot model loaded with FIGAROH
+            config_file: Path to TIAGo configuration YAML file
+        """
+        super().__init__(robot, config_file)
+        print("TiagoIdentification initialized for TIAGo robot")
+    
+    def get_standard_parameters(self):
+        """Get standard parameters for TIAGo robot."""
+        return get_standard_parameters(self.model, self.params_settings)
+    
     def process_torque_data(self, tau):
-        """Process torque data with reduction ratios and motor constants."""
+        """Process torque data with TIAGo-specific motor constants."""
         import pinocchio as pin
-        pin.computeSubtreeMasses(self._robot.model, self._robot.data)
+        
+        # Apply TIAGo-specific torque processing (reduction ratios, etc.)
+        pin.computeSubtreeMasses(self.robot.model, self.robot.data)
+        tau_processed = tau.copy()
+        
         for i, joint_name in enumerate(self.params_settings["active_joints"]):
             if joint_name == "torso_lift_joint":
-                tau[:, i] = (
+                tau_processed[:, i] = (
                     self.params_settings["reduction_ratio"][joint_name]
                     * self.params_settings["kmotor"][joint_name]
                     * tau[:, i]
-                    + 9.81 * self._robot.data.mass[self._robot.model.getJointId(joint_name)]
+                    + 9.81 * self.robot.data.mass[
+                        self.robot.model.getJointId(joint_name)
+                    ]
                 )
             else:
-                tau[:, i] = (
+                tau_processed[:, i] = (
                     self.params_settings["reduction_ratio"][joint_name]
                     * self.params_settings["kmotor"][joint_name]
                     * tau[:, i]
                 )
-        return tau
-
-    def process_data(self, truncate=True):
-        """Load and process data"""
-        t_, q_, dq_, tau_ = self.load_csv_data()
-
-        # Truncate data
-        if truncate:
-            n_i, n_f = 921, 6791
-            t_ = t_[n_i:n_f]
-            q_ = q_[n_i:n_f]
-            dq_ = dq_[n_i:n_f]
-            tau_ = tau_[n_i:n_f]
-
-        # Apply filters and estimate acceleration
-        q_filtered_, dq_filtered_ = self.apply_filters(t_, q_, dq_)
-        ddq_filtered_ = self.estimate_acceleration(t_, dq_filtered_)
-
-        # after processing, total number of samples
-        self.Nsample_ = q_filtered_.shape[0]
-
-        # Build full configuration
-        p_, v_, a_ = self.build_full_configuration(
-            q_filtered_, dq_filtered_, ddq_filtered_, self.Nsample_
-        )
-
-        # Process torque data
-        tau_prcd = self.process_torque_data(tau_)
-        self.processed_data = {
-            "t": t_,
-            "p": p_,
-            "v": v_,
-            "a": a_,
-            "tau": tau_prcd,
-        }
-
-    def calc_full_regressor(self):
-        """Build regressor matrix."""
-        self.W = build_regressor_basic(
-            self._robot,
-            self.processed_data["p"],
-            self.processed_data["v"],
-            self.processed_data["a"],
-            self.params_settings,
-        )
-        self.standard_parameter = get_standard_parameters(self.model, self.params_settings)
-        # joint torque estimated from p,v,a with std params
-        phi_ref = np.array(list(self.standard_parameter.values()))
-        tau_ref = np.dot(self.W, phi_ref)
-        self.tau_ref = tau_ref[range(len(self.params_settings["act_idxv"]) * self.Nsample_)]
-
-    def calc_baseparam(self, decimate=True, plotting=True, save_params=False):
-        """Calculate base parameters."""
-        # Eliminate zero columns
-        idx_e_, active_parameter_ = get_index_eliminate(
-            self.W, self.standard_parameter, tol_e=0.001
-        )
-        W_e_ = build_regressor_reduced(self.W, idx_e_)
-
-        # remove zero-crossing data
-        if decimate:
-            from scipy import signal
-            tau_dec = []
-            for i in range(len(self.params_settings["act_idxv"])):
-                tau_dec.append(signal.decimate(self.processed_data["tau"][:, i], q=10, zero_phase=True))
-
-            tau_rf = tau_dec[0]
-            for i in range(1, len(tau_dec)):
-                tau_rf = np.append(tau_rf, tau_dec[i])
-
-            # Process regressor similarly
-            W_list = []
-            for i in range(len(self.params_settings["act_idxv"])):
-                W_dec = []
-                for j in range(W_e_.shape[1]):
-                    W_dec.append(signal.decimate(
-                        W_e_[range(self.params_settings["act_idxv"][i] * self.Nsample_,
-                                  (self.params_settings["act_idxv"][i] + 1) * self.Nsample_), j],
-                        q=10, zero_phase=True
-                    ))
-
-                W_temp = np.zeros((W_dec[0].shape[0], len(W_dec)))
-                for k in range(len(W_dec)):
-                    W_temp[:, k] = W_dec[k]
-                W_list.append(W_temp)
-
-            W_rf = np.zeros((tau_rf.shape[0], W_list[0].shape[1]))
-            for i in range(len(W_list)):
-                W_rf[range(i * W_list[i].shape[0], (i + 1) * W_list[i].shape[0]), :] = W_list[i]
-        else:
-            tau_rf = self.processed_data["tau"]
-            W_rf = W_e_
-
-        # calculate base parameters
-        W_b, bp_dict, base_parameter, phi_b, phi_std = double_QR(
-            tau_rf, W_rf, active_parameter_, self.standard_parameter
-        )
-        rmse = np.linalg.norm(tau_rf - np.dot(W_b, phi_b)) / np.sqrt(tau_rf.shape[0])
-        std_xr_ols = relative_stdev(W_b, phi_b, tau_rf)
-
-        self.result = {
-            "base regressor": W_b,
-            "base parameters": bp_dict,
-            "condition number": np.linalg.cond(W_b),
-            "rmse norm (N/m)": rmse,
-            "torque estimated": np.dot(W_b, phi_b),
-            "std dev of estimated param": std_xr_ols,
-        }
-
-    def solve(self, truncate=True, decimate=True, plotting=True, save_params=False):
-        """Main solving method."""
-        self.process_data(truncate=truncate)
-        self.calc_full_regressor()
-        self.calc_baseparam(decimate=decimate, plotting=plotting, save_params=save_params)
-
-
-class TiagoOptimalCalibration(TiagoCalibration):
-    """
-    Generate optimal configurations for calibration.
-    """
-    def __init__(self, robot, config_file):
-        super().__init__(robot, config_file)
-        self._sampleConfigs_file = self.param["sample_configs_file"]
-        if self.param["calib_model"] == "full_params":
-            self.minNbChosen = (
-                int(len(self.param["actJoint_idx"]) * 6 / self.param["calibration_index"]) + 1
-            )
-        elif self.param["calib_model"] == "joint_offset":
-            self.minNbChosen = (
-                int(len(self.param["actJoint_idx"]) / self.param["calibration_index"]) + 1
-            )
-        else:
-            assert False, "Calibration model not supported."
-
-    def load_data_set(self):
-        """Load data from yaml file."""
-        import pandas as pd
-        if "yaml" in self._sampleConfigs_file:
-            with open(self._sampleConfigs_file, "r") as file:
-                self._configs = yaml.load(file, Loader=yaml.SafeLoader)
-
-            q_jointNames = self._configs["calibration_joint_names"]
-            q_jointConfigs = np.array(self._configs["calibration_joint_configurations"]).T
-
-            df = pd.DataFrame.from_dict(dict(zip(q_jointNames, q_jointConfigs)))
-
-            q = np.zeros([len(df), self._robot.q0.shape[0]])
-            for i in range(len(df)):
-                for j, name in enumerate(q_jointNames):
-                    jointidx = rank_in_configuration(self.model, name)
-                    q[i, jointidx] = df[name][i]
-            self.q_measured = q
-            self.param["NbSample"] = self.q_measured.shape[0]
-
-    def calculate_regressor(self):
-        """Calculate regressor."""
-        (Rrand_b, R_b, R_e, paramsrand_base, paramsrand_e) = calculate_base_kinematics_regressor(
-            self.q_measured, self.model, self.data, self.param
+        return tau_processed
+    
+    def calculate_regressor_matrix(self, q, qd, qdd):
+        """Calculate dynamic regressor matrix for TIAGo robot.
+        
+        Args:
+            q: Joint positions
+            qd: Joint velocities  
+            qdd: Joint accelerations
+            
+        Returns:
+            np.ndarray: Dynamic regressor matrix
+        """
+        from figaroh.identification.identification_tools import (
+            calculate_base_dynamic_regressor
         )
         
-        # Rearrange the kinematic regressor by sample numbered order
-        Rb_rearr = np.empty_like(R_b)
-        for i in range(self.param["calibration_index"]):
-            for j in range(self.param["NbSample"]):
-                Rb_rearr[j * self.param["calibration_index"] + i, :] = R_b[
-                    i * self.param["NbSample"] + j
-                ]
-        self.R_rearr = Rb_rearr
-        
-        # Create sub information matrices
-        subX_list = []
-        idex = self.param["calibration_index"]
-        for it in range(self.param["NbSample"]):
-            sub_R = self.R_rearr[it * idex : (it * idex + idex), :]
-            subX = np.matmul(sub_R.T, sub_R)
-            subX_list.append(subX)
-        subX_dict = dict(zip(np.arange(self.param["NbSample"]), subX_list))
-        
-        self._subX_dict = subX_dict
-        self._subX_list = subX_list
-        return True
-
-    def calculate_optimal_configurations(self):
-        """Calculate optimal configurations using SOCP."""
-        import picos as pc
-        
-        # SOCP formulation
-        problem = pc.Problem()
-        w = pc.RealVariable("w", self.param["NbSample"], lower=0)
-        t = pc.RealVariable("t", 1)
-        
-        # Constraints
-        Mw = pc.sum(w[i] * self._subX_dict[i] for i in range(self.param["NbSample"]))
-        problem.add_constraint(1 | w <= 1)
-        problem.add_constraint(t <= pc.DetRootN(Mw))
-        
-        # Objective
-        problem.set_objective("max", t)
-        
-        # Solve
-        solution = problem.solve(solver="cvxopt")
-        
-        w_list = [float(w.value[i]) for i in range(w.dim)]
-        w_dict = dict(zip(np.arange(self.param["NbSample"]), w_list))
-        w_dict_sort = dict(reversed(sorted(w_dict.items(), key=lambda item: item[1])))
-        
-        # Select optimal configurations
-        eps_opt = 1e-5
-        chosen_config = [i for i in w_dict_sort.keys() if w_dict_sort[i] > eps_opt]
-        
-        assert len(chosen_config) >= self.minNbChosen, "Infeasible design, try to increase NbSample."
-        
-        opt_configs_values = [
-            self._configs["calibration_joint_configurations"][opt_id] for opt_id in chosen_config
-        ]
-        self.opt_configs = self._configs.copy()
-        self.opt_configs["calibration_joint_configurations"] = list(opt_configs_values)
-        return True
-
-    def solve(self, file_name=None, write_file=False):
-        """Solve the optimization problem."""
-        self.load_data_set()
-        self.calculate_regressor()
-        self.calculate_optimal_configurations()
-        if write_file:
-            self.write_to_file(name_=file_name)
-
-    def write_to_file(self, name_=None):
-        """Write optimal configurations to file."""
-        if name_ is None:
-            path_save = "data/calibration/optimal_configurations/tiago_optimal_configurations.yaml"
-        else:
-            path_save = "data/calibration/optimal_configs/" + name_
-        with open(path_save, "w") as stream:
-            try:
-                yaml.dump(self.opt_configs, stream, sort_keys=False, default_flow_style=True)
-            except yaml.YAMLError as exc:
-                print(exc)
-
-
-class TiagoOptimalTrajectory:
+        # Use FIGAROH tools to calculate regressor for TIAGo
+        regressor, _ = calculate_base_dynamic_regressor(
+            q, qd, qdd, self.model, self.data, self.params_settings
+        )
+        return regressor
     """
     Generate optimal trajectories for dynamic parameter identification.
     """
