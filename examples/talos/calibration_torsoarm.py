@@ -38,8 +38,7 @@ from figaroh.calibration.calibration_tools import (
     add_pee_name,
     load_data,
     calculate_base_kinematics_regressor,
-    update_forward_kinematics_2,
-    update_forward_kinematics,
+    calc_updated_fkm,
     get_LMvariables,
 )
 
@@ -109,7 +108,7 @@ if dataSet == "sample":
     # create simulated end effector coordinates measures (PEEm)
     # PEEm_sample = get_PEE_fullvar(
     #     var_sample, q_sample, model, data, param)
-    PEEm_sample = update_forward_kinematics(model, data, var_sample, q_sample, param)
+    PEEm_sample = calc_updated_fkm(model, data, var_sample, q_sample, param)
     # print(np.linalg.norm(PEEm_sample-PEEm_sample_ud))
     q_LM = np.copy(q_sample)
     PEEm_LM = np.copy(PEEm_sample)
@@ -139,7 +138,7 @@ coeff = 1e-3
 
 
 def cost_func(var, coeff, q, model, data, param, PEEm):
-    PEEe = update_forward_kinematics(model, data, var, q, param)
+    PEEe = calc_updated_fkm(model, data, var, q, param)
 
     res_vect = np.append(
         (PEEm - PEEe), np.sqrt(coeff) * var[6 : -param["NbMarkers"] * 3]
@@ -169,7 +168,7 @@ LM_solve = least_squares(
 # 5/ Result analysis
 res = LM_solve.x
 # PEE estimated by solution
-PEEe_sol = update_forward_kinematics(model, data, res, q_LM, param, verbose=1)
+PEEe_sol = calc_updated_fkm(model, data, res, q_LM, param, verbose=1)
 
 # root mean square error
 rmse = np.sqrt(np.mean((PEEe_sol - PEEm_LM) ** 2))
@@ -183,7 +182,7 @@ res = LM_solve.x
 uncalib_res = var_0
 uncalib_res[:3] = res[:3]
 uncalib_res[-3:] = res[-3:]
-PEEe_uncalib = update_forward_kinematics(model, data, uncalib_res, q_LM, param)
+PEEe_uncalib = calc_updated_fkm(model, data, uncalib_res, q_LM, param)
 rmse_uncalib = np.sqrt(np.mean((PEEe_uncalib - PEEm_LM) ** 2))
 print("minimized cost function uncalib: ", rmse_uncalib)
 
