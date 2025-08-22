@@ -18,7 +18,7 @@ from utils.mate_tools import MateCalibration
 from pinocchio.visualize import GepettoVisualizer
 import time
 from figaroh.calibration.calibration_tools import (
-    update_forward_kinematics,
+    calc_updated_fkm,
     get_LMvariables,
 )
 from figaroh.tools.robot import load_robot
@@ -63,13 +63,13 @@ def cost_function(var, mate_x, mate_y, mate_z):
     """
     coeff_b = 0.01
     coeff_ee = 0.01
-    PEEe_x = update_forward_kinematics(
+    PEEe_x = calc_updated_fkm(
         model, data, var, mate_x.q_measured, mate_x.param
     )
-    PEEe_y = update_forward_kinematics(
+    PEEe_y = calc_updated_fkm(
         model, data, var, mate_y.q_measured, mate_y.param
     )
-    PEEe_z = update_forward_kinematics(
+    PEEe_z = calc_updated_fkm(
         model, data, var, mate_z.q_measured, mate_z.param
     )
     res_vect = np.append((mate_x.PEE_measured - PEEe_x), (mate_y.PEE_measured - PEEe_y))
@@ -86,13 +86,13 @@ def pee_error(var, mate_x, mate_y, mate_z):
     Cost function for the optimization problem.
     """
 
-    PEEe_x = update_forward_kinematics(
+    PEEe_x = calc_updated_fkm(
         model, data, var, mate_x.q_measured, mate_x.param
     )
-    PEEe_y = update_forward_kinematics(
+    PEEe_y = calc_updated_fkm(
         model, data, var, mate_y.q_measured, mate_y.param
     )
-    PEEe_z = update_forward_kinematics(
+    PEEe_z = calc_updated_fkm(
         model, data, var, mate_z.q_measured, mate_z.param
     )
     res_vect = np.append((mate_x.PEE_measured - PEEe_x), (mate_y.PEE_measured - PEEe_y))

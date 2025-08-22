@@ -15,14 +15,11 @@
 
 
 from os.path import abspath
-from scipy.optimize import least_squares
 import numpy as np
 import yaml
 
 from figaroh.calibration.calibration_tools import (
-    load_data,
     calc_updated_fkm,
-    get_LMvariables,
     BaseCalibration,
 )
 
@@ -33,115 +30,34 @@ class MateCalibration(BaseCalibration):
 
     def cost_function(self, var):
         """
-        Cost function for the optimization problem.
+        MATE-specific cost function for the optimization problem.
+        
+        Implements regularization for intermediate parameters to improve
+        numerical stability and convergence.
+        
+        Args:
+            var (ndarray): Parameter vector to evaluate
+            
+        Returns:
+            ndarray: Residual vector including regularization terms
         """
         coeff_ = self.param["coeff_regularize"]
-        PEEe = calc_updated_fkm(self.model, self.data, var, self.q_measured, self.param)
-        res_vect = np.append(
-            (self.PEE_measured - PEEe),
-            np.sqrt(coeff_)
-            * var[6 : -self.param["NbMarkers"] * self.param["calibration_index"]],
-        )
+        PEEe = calc_updated_fkm(self.model, self.data, var,
+                                self.q_measured, self.param)
+        
+        # Main residual: difference between measured and estimated poses
+        position_residuals = self.PEE_measured - PEEe
+        
+        # Regularization term for intermediate parameters (excludes base/tip)
+        n_base_params = 6  # Base frame parameters
+        n_tip_params = (self.param["NbMarkers"] *
+                        self.param["calibration_index"])
+        regularization_params = var[n_base_params : -n_tip_params]
+        regularization_residuals = np.sqrt(coeff_) * regularization_params
+        
+        # Combine residuals
+        res_vect = np.append(position_residuals, regularization_residuals)
         return res_vect
-
-    def solve_optimisation(self):
-        """
-        Solve the optimization problem.
-        """
-
-        # set initial guess
-        _var_0, _ = get_LMvariables(self.param, mode=0)
-        _var_0[0:6] = np.array(self.param["camera_pose"])
-        _var_0[-self.param["calibration_index"] :] = np.array(self.param["tip_pose"])[
-            : self.param["calibration_index"]
-        ]
-        self._var_0 = _var_0
-
-        # define solver parameters
-        iterate = True
-        iter_max = 10
-        count = 0
-        del_list_ = []
-        res = _var_0
-        outlier_eps = self.param["outlier_eps"]
-
-        while count < iter_max and iterate:
-            print("*" * 50)
-            print(
-                "{} iter guess".format(count),
-                dict(zip(self.param["param_name"], list(_var_0))),
-            )
-
-            # define solver
-            LM_solve = least_squares(
-                self.cost_function,
-                _var_0,
-                method="lm",
-                verbose=1,
-                args=(),
-            )
-
-            # solution
-            res = LM_solve.x
-            _PEEe_sol = calc_updated_fkm(
-                self.model, self.data, res, self.q_measured, self.param
-            )
-            rmse = np.sqrt(np.mean((_PEEe_sol - self.PEE_measured) ** 2))
-            mae = np.mean(np.abs(_PEEe_sol - self.PEE_measured))
-
-            print("solution of calibrated parameters: ")
-            for x_i, xname in enumerate(self.param["param_name"]):
-                print(x_i + 1, xname, list(res)[x_i])
-            print("position root-mean-squared error of end-effector: ", rmse)
-            print("position mean absolute error of end-effector: ", mae)
-            print("optimality: ", LM_solve.optimality)
-
-            # check for unrealistic values
-            delta_PEE = _PEEe_sol - self.PEE_measured
-            PEE_xyz = delta_PEE.reshape(
-                (
-                    self.param["NbMarkers"] * self.param["calibration_index"],
-                    self.param["NbSample"],
-                )
-            )
-            PEE_dist = np.zeros((self.param["NbMarkers"], self.param["NbSample"]))
-            for i in range(self.param["NbMarkers"]):
-                for j in range(self.param["NbSample"]):
-                    PEE_dist[i, j] = np.sqrt(
-                        PEE_xyz[i * 3, j] ** 2
-                        + PEE_xyz[i * 3 + 1, j] ** 2
-                        + PEE_xyz[i * 3 + 2, j] ** 2
-                    )
-            for i in range(self.param["NbMarkers"]):
-                for k in range(self.param["NbSample"]):
-                    if PEE_dist[i, k] > outlier_eps:
-                        del_list_.append((i, k))
-            print(
-                "indices of samples with >{} m deviation: ".format(outlier_eps),
-                del_list_,
-            )
-
-            # reset iteration with outliers removal
-            if len(del_list_) > 0 and count < iter_max:
-                self.PEE_measured, self.q_measured = load_data(
-                    self._data_path,
-                    self.model,
-                    self.param,
-                    self.del_list_ + del_list_,
-                )
-                self.param["NbSample"] = self.q_measured.shape[0]
-                count += 1
-                _var_0 = res + np.random.normal(0, 0.01, size=res.shape)
-            else:
-                iterate = False
-        self._PEE_dist = PEE_dist
-        param_values_ = [float(res_i_) for res_i_ in res]
-        self.calibrated_param = dict(zip(self.param["param_name"], param_values_))
-        self.LM_result = LM_solve
-        self.rmse = rmse
-        self.mae = mae
-        if self.LM_result.success:
-            self.STATUS = "CALIBRATED"
 
 
 
