@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from examples.tiago.utils.tiago_tools import TiagoOptimalCalibration
+from utils.tiago_tools import TiagoOptimalCalibration
 from figaroh.tools.robot import load_robot
 import argparse
 

@@ -35,7 +35,7 @@ The calibration process uses external position measurements (from cameras, laser
 
 **Mathematical Foundation**:
 ```
-P_measured = f_kinematics(q, θ_nominal + Δθ) + ε
+P_measured = forward_kinematics(q, θ_nominal + Δθ) + ε
 ```
 Where:
 - `P_measured`: Measured end-effector position
@@ -52,7 +52,7 @@ Where:
 
 ---
 
-### 2. Dynamic Parameter Identification Task (`identification_refactored.py`)
+### 2. Dynamic Parameter Identification Task (`identification.py`)
 
 #### Problem Statement
 Accurate dynamic models are essential for:
@@ -108,7 +108,7 @@ Where:
 
 ---
 
-### 3. Optimal Configuration Generation Task (`optimal_config_refactored.py`)
+### 3. Optimal Configuration Generation Task (`optimal_config.py`)
 
 #### Problem Statement
 Traditional calibration uses ad-hoc robot configurations (grid patterns, random poses, manual selection). This approach:
@@ -159,7 +159,7 @@ The optimization problem is formulated as:
 
 ---
 
-### 4. Optimal Trajectory Generation Task (`optimal_trajectory_refactored.py`)
+### 4. Optimal Trajectory Generation Task (`optimal_trajectory.py`)
 
 #### Problem Statement
 Dynamic parameter identification requires "exciting" trajectories that:
@@ -253,7 +253,7 @@ pip install -e .
 
 1. **Generate Optimal Calibration Configurations**:
    ```bash
-   python optimal_config_refactored.py -e hey5
+   python optimal_config.py -e hey5
    ```
    Output: `tiago_optimal_configurations_hey5.yaml`
 
@@ -270,7 +270,7 @@ pip install -e .
 
 4. **Generate Optimal Identification Trajectory**:
    ```bash
-   python optimal_trajectory_refactored.py
+   python optimal_trajectory.py
    ```
    Output: Optimal exciting trajectory
 
@@ -281,7 +281,7 @@ pip install -e .
 
 6. **Perform Dynamic Identification**:
    ```bash
-   python identification_refactored.py
+   python identification.py
    ```
    Output: Identified dynamic parameters
 
@@ -309,9 +309,9 @@ Standalone Classes:
 ```
 examples/tiago/
 ├── calibration.py                     # Main calibration script
-├── identification_refactored.py       # Refactored identification
-├── optimal_config_refactored.py       # Refactored optimal config
-├── optimal_trajectory_refactored.py   # Refactored optimal trajectory
+├── identification.py       # Refactored identification
+├── optimal_config.py       # Refactored optimal config
+├── optimal_trajectory.py   # Refactored optimal trajectory
 ├── utils/
 │   ├── tiago_tools.py                 # All TIAGo-specific classes
 │   ├── simplified_colission_model.py  # Collision geometry
@@ -358,7 +358,7 @@ examples/tiago/
 
 ## References
 
-- Nguyen et al. "Robot Calibration using the FIGAROH Framework" (2023)
+- Nguyen et al. "Improving Operational Accuracy of a Mobile Manipulator by Modeling Geometric and Non-Geometric Parameters" (2024)
 - Khalil & Dombre "Modeling, Identification and Control of Robots" (2002)
 - Swevers et al. "Optimal Robot Excitation and Identification" (1997)
 
