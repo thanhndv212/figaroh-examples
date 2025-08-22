@@ -32,7 +32,6 @@ from figaroh.calibration.calibration_tools import (
     get_LMvariables,
     calc_updated_fkm,
     calculate_base_kinematics_regressor,
-    update_forward_kinematics,
 )
 from figaroh.identification.identification_tools import (
     get_param_from_yaml as get_identification_param_from_yaml,
@@ -41,7 +40,7 @@ from figaroh.identification.identification_tools import (
     base_param_from_standard,
     calculate_standard_parameters,
 )
-from figaroh.tools.robot import Robot, load_robot
+
 from figaroh.tools.regressor import (
     build_regressor_basic,
     get_index_eliminate,
@@ -63,54 +62,22 @@ class UR10Calibration(BaseCalibration):
             config_file: Path to UR10 configuration YAML file
         """
         super().__init__(robot, config_file)
-        self.robot = robot
-        self.model = robot.model
-        self.data = robot.data
-        
+
         print("UR10 Calibration initialized")
         print(f"Total calibrating parameters: {len(self.param['param_name'])}")
-        
-    def calculate_base_regressor(self):
-        """Calculate base kinematic regressor for UR10."""
-        q_rand = []
-        self.Rrand_b, self.R_b, self.R_e, self.paramsrand_base, self.paramsrand_e = \
-            calculate_base_kinematics_regressor(q_rand, self.model, self.data, self.param)
-        
-    def load_experimental_data(self, data_source="experimental"):
-        """Load calibration data from file or generate sample data.
-        
-        Args:
-            data_source: "experimental" or "sample"
+    
+    def cost_function(self, var):
         """
-        if data_source == "sample":
-            # Create artificial offsets
-            var_sample, nvars_sample = get_LMvariables(self.param, mode=1)
-            print(f"{nvars_sample} var_sample: {var_sample}")
-            
-            # Create sample configurations
-            q_sample = np.empty((self.param["NbSample"], self.model.nq))
-            
-            for i in range(self.param["NbSample"]):
-                config = self.param["q0"]
-                config[self.param["config_idx"]] = pin.randomConfiguration(self.model)[
-                    self.param["config_idx"]
-                ]
-                q_sample[i, :] = config
-            
-            # Create simulated data
-            PEEm_sample = update_forward_kinematics(self.model, self.data, var_sample, q_sample, self.param)
-            
-            self.q_LM = np.copy(q_sample)
-            self.PEEm_LM = np.copy(PEEm_sample)
-            
-        elif data_source == "experimental":
-            # Load experimental data from path specified in config
-            filename = self._data_path
-            self.q_LM, self.PEEm_LM = load_data(
-                filename, self.model, self.param, []
-            )
-            
-        print(f"Loaded {len(self.q_LM)} configurations for calibration")
+        Cost function for the optimization problem - follows TIAGo pattern.
+        """
+        coeff_ = self.param["coeff_regularize"]
+        PEEe = calc_updated_fkm(self.model, self.data, var, self.q_measured, self.param)
+        res_vect = np.append(
+            (self.PEE_measured - PEEe),
+            np.sqrt(coeff_)
+            * var[6 : -self.param["NbMarkers"] * self.param["calibration_index"]],
+        )
+        return res_vect
     
     def solve(self):
         """Perform UR10 kinematic calibration using BaseCalibration's solve method."""
@@ -123,20 +90,20 @@ class UR10Calibration(BaseCalibration):
         """
         Solve the optimization problem - required by BaseCalibration.
         """
-        # Set initial guess like TIAGo
-        _var_0, _ = get_LMvariables(self.param, mode=0)
-        _var_0[0:6] = np.array(self.param["camera_pose"])
-        _var_0[-self.param["calibration_index"]:] = np.array(
-            self.param["tip_pose"]
-        )[:self.param["calibration_index"]]
-        self._var_0 = _var_0
+        # Set initial guess
+        initial_guess, _ = get_LMvariables(self.param, mode=0)
+        if self.param["camera_pose"] is not None:
+            initial_guess[0:6] = np.array(self.param["camera_pose"])
+        if self.param["tip_pose"] is not None:
+            initial_guess[-self.param["calibration_index"]:] = np.array(self.param["tip_pose"])[:self.param["calibration_index"]]
+        self.initial_guess = initial_guess
 
-        print(f"Starting optimization with {len(_var_0)} variables...")
+        print(f"Starting optimization with {len(initial_guess)} variables...")
         
-        # Run least squares optimization like TIAGo
+        # Run least squares optimization
         result = least_squares(
             self.cost_function,
-            _var_0,
+            initial_guess,
             method='lm',
             ftol=1e-12,
             xtol=1e-12,
@@ -152,60 +119,12 @@ class UR10Calibration(BaseCalibration):
         # Set status for BaseCalibration framework
         if result.success:
             self.STATUS = "CALIBRATED"
-
-    def cost_function(self, var):
-        """
-        Cost function for the optimization problem - follows TIAGo pattern.
-        """
-        coeff_ = self.param["coeff_regularize"]
-        PEEe = calc_updated_fkm(self.model, self.data, var, self.q_measured, self.param)
-        res_vect = np.append(
-            (self.PEE_measured - PEEe),
-            np.sqrt(coeff_)
-            * var[6 : -self.param["NbMarkers"] * self.param["calibration_index"]],
-        )
-        return res_vect
-        
-        return self.calibrated_params
-    
-    def plot_results(self):
-        """Plot calibration results."""
-        if not hasattr(self, 'calibrated_params'):
-            print("No calibration results to plot. Run solve() first.")
-            return
-        
-        # Plot parameter corrections
-        plt.figure(figsize=(12, 8))
-        
-        # Plot kinematic parameter corrections
-        plt.subplot(2, 1, 1)
-        kinematic_params = self.calibrated_params[:self.param["calibration_index"]]
-        param_names = self.param["param_name"][:self.param["calibration_index"]]
-        
-        plt.barh(range(len(kinematic_params)), kinematic_params, color='blue', alpha=0.7)
-        plt.yticks(range(len(kinematic_params)), param_names, rotation=45)
-        plt.xlabel('Parameter Correction')
-        plt.title('UR10 Kinematic Parameter Corrections')
-        plt.grid(True, alpha=0.3)
-        
-        # Plot marker corrections if present
-        if len(self.calibrated_params) > self.param["calibration_index"]:
-            plt.subplot(2, 1, 2)
-            marker_params = self.calibrated_params[self.param["calibration_index"]:]
-            marker_names = self.param["param_name"][self.param["calibration_index"]:]
-            
-            plt.barh(range(len(marker_params)), marker_params, color='orange', alpha=0.7)
-            plt.yticks(range(len(marker_params)), marker_names, rotation=45)
-            plt.xlabel('Parameter Correction')
-            plt.title('UR10 Marker Parameter Corrections')
-            plt.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.show()
+            param_values = [float(res_i_) for res_i_ in self.res]
+        self.calibrated_param = dict(zip(self.param["param_name"], param_values))
     
     def save_results(self, output_dir="results"):
         """Save calibration results to files."""
-        if not hasattr(self, 'calibrated_params'):
+        if not hasattr(self, 'calibrated_param'):
             print("No calibration results to save. Run solve() first.")
             return
         
@@ -213,7 +132,7 @@ class UR10Calibration(BaseCalibration):
         
         # Save calibrated parameters
         results_dict = {
-            'calibrated_parameters': self.calibrated_params.tolist(),
+            'calibrated_parameters': self.calibrated_param.tolist(),
             'parameter_names': self.param["param_name"],
             'rms_error': float(self.rms_error),
             'optimization_time': float(self.optimization_time),
