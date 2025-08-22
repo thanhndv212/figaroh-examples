@@ -34,7 +34,7 @@ from figaroh.tools.regressor import (
     get_index_eliminate,
     build_regressor_reduced,
 )
-from .dynamic_identification_utils import get_standard_parameters
+from figaroh.identification.identification_tools import get_standard_parameters
 
 
 class BaseIdentification(ABC):
@@ -89,7 +89,7 @@ class BaseIdentification(ABC):
         self.params_settings = get_identification_param_from_yaml(
             self._robot, config[setting_type]
         )
-        
+
     
     def load_csv_data(self):
         """Load and process CSV data (generic implementation)."""

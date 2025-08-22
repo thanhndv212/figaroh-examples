@@ -20,9 +20,7 @@ to use the generalized base classes.
 """
 
 import numpy as np
-import pandas as pd
 import yaml
-import time
 import logging
 from matplotlib import pyplot as plt
 from yaml.loader import SafeLoader
@@ -32,8 +30,7 @@ from scipy.optimize import least_squares
 from .base_identification import BaseIdentification
 from .base_optimal_calibration import BaseOptimalCalibration
 from figaroh.calibration.calibration_tools import BaseCalibration
-from .dynamic_identification_utils import get_standard_parameters
-from .simplified_colission_model import build_tiago_simplified
+from figaroh.identification.identification_tools import get_standard_parameters
 from figaroh.calibration.calibration_tools import (
     load_data,
     calc_updated_fkm,

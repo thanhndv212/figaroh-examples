@@ -28,7 +28,7 @@ from .robot_base_tools import (
     DetMax,
     SOCP
 )
-from .dynamic_identification_utils import get_standard_parameters
+from figaroh.identification.identification_tools import get_standard_parameters
 from figaroh.identification.identification_tools import (
     calculate_first_second_order_differentiation,
 )

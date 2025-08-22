@@ -28,7 +28,7 @@ from .robot_base_tools import (
     BaseOptimalTrajectory,
     SOCP
 )
-from .dynamic_identification_utils import get_standard_parameters
+from figaroh.identification.identification_tools import get_standard_parameters
 from .simplified_colission_model import build_tiago_simplified
 from figaroh.calibration.calibration_tools import BaseCalibration
 from figaroh.utils.cubic_spline import CubicSpline, WaypointsGeneration

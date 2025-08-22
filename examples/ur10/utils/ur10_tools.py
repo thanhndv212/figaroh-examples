@@ -48,7 +48,7 @@ from figaroh.tools.regressor import (
     build_regressor_reduced,
 )
 from figaroh.tools.qrdecomposition import get_baseParams
-from .dynamic_identification_utils import (
+from figaroh.identification.identification_tools import (
     get_standard_parameters,
 )
 
