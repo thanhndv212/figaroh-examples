@@ -48,6 +48,9 @@ def main():
     ur10_calib.solve()
     print("Calibration solved successfully!")
 
+    # Display results
+    ur10_calib.plot()
+
 
 if __name__ == "__main__":
     main()
