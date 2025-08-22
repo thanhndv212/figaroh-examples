@@ -907,9 +907,6 @@ class TiagoTrajectoryIPOPTProblem(BaseOptimizationProblem):
             config.print_level = 3  # Reduce output
             config.custom_options = {
                 b"mu_strategy": b"adaptive",
-                b"limited_memory_max_history": 12,
-                b"limited_memory_initialization": b"scalar1",
-                b"constraint_violation_norm_type": b"max"
             }
             solver = RobotIPOPTSolver(self, config)
             
