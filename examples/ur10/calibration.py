@@ -36,14 +36,14 @@ from figaroh.calibration.calibration_tools import (
     add_pee_name,
     load_data,
     calculate_base_kinematics_regressor,
-    update_forward_kinematics,
+    calc_updated_fkm,
     get_LMvariables,
 )
 from figaroh.tools.robot import load_robot
 
 # 1/ Load robot model and create a dictionary containing reserved constants
 robot = load_robot(
-    "data/robot.urdf",
+    "urdf/ur10_robot.urdf",
     package_dirs="models",
     load_by_urdf=True,
 )
@@ -92,7 +92,7 @@ if dataSet == "sample":
         q_sample[i, :] = config
 
     # create simulated data
-    PEEm_sample = update_forward_kinematics(model, data, var_sample, q_sample, param)
+    PEEm_sample = calc_updated_fkm(model, data, var_sample, q_sample, param)
 
     q_LM = np.copy(q_sample)
     PEEm_LM = np.copy(PEEm_sample)
@@ -125,7 +125,7 @@ coeff = 1e-3  # coefficient that regulates parameters
 
 
 def cost_func(var, coeff, q, model, data, param, PEEm):
-    PEEe = update_forward_kinematics(model, data, var, q, param)
+    PEEe = calc_updated_fkm(model, data, var, q, param)
     res_vect = np.append(
         (PEEm - PEEe),
         np.sqrt(coeff) * var[6 : -param["NbMarkers"] * param["calibration_index"]],
@@ -157,7 +157,7 @@ LM_solve = least_squares(
 # 5/ Result analysis
 res = LM_solve.x
 # PEE estimated by solution
-PEEe_sol = update_forward_kinematics(model, data, res, q_LM, param)
+PEEe_sol = calc_updated_fkm(model, data, res, q_LM, param)
 # root mean square error
 rmse_pos = np.sqrt(
     np.mean((PEEe_sol[: 3 * param["NbSample"]] - PEEm_LM[: 3 * param["NbSample"]]) ** 2)

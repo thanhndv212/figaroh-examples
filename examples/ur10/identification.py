@@ -28,6 +28,7 @@ from figaroh.identification.identification_tools import (
     calculate_first_second_order_differentiation,
     base_param_from_standard,
     calculate_standard_parameters,
+    get_standard_parameters
 )
 import matplotlib.pyplot as plt
 import pprint
@@ -36,7 +37,7 @@ from yaml.loader import SafeLoader
 
 # 1/ Load robot model and create a dictionary containing reserved constants
 robot = load_robot(
-    "data/robot.urdf",
+    "urdf/ur10_robot.urdf",
     package_dirs="models",
     load_by_urdf=True,
 )
@@ -51,7 +52,7 @@ identif_data = config["identification"]
 params_settings = get_param_from_yaml(robot, identif_data)
 print(params_settings)
 
-params_standard_u = robot.get_standard_parameters(params_settings)
+params_standard_u = get_standard_parameters(model, params_settings)
 print(params_standard_u)
 
 # Print out the placement of each joint of the kinematic tree
@@ -60,7 +61,7 @@ for name, oMi in zip(model.names, data.oMi):
     print(("{:<24} : {: .2f} {: .2f} {: .2f}".format(name, *oMi.translation.T.flat)))
 
 # generate a list containing the full set of standard parameters
-params_standard = robot.get_standard_parameters(params_settings)
+params_standard = get_standard_parameters(model, params_settings)
 
 # 1. First we build the structural base identification model, i.e. the one that can
 # be observed, using random samples

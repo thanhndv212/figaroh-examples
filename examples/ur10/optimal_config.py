@@ -169,7 +169,7 @@ class SOCP:
 
 # # 1/ Load robot model and create a dictionary containing reserved constants
 robot = load_robot(
-    "data/robot.urdf",
+    "urdf/ur10_robot.urdf",
     package_dirs="models",
     load_by_urdf=True,
 )
