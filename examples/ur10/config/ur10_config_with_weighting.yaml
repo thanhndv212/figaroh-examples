@@ -1,0 +1,67 @@
+# UR10 Robot Calibration Configuration with Unit-Aware Weighting
+# This example shows how to configure measurement weighting for proper
+# handling of position (meters) vs orientation (radians) units
+
+calibration:
+  # Marker configuration
+  markers:
+    - measure: [true, true, true, true, true, true]  # 6-DOF measurement
+  
+  # Calibration model and frames
+  calib_level: "full_params"
+  base_frame: "universe"
+  tool_frame: "wrist_3_link"
+  free_flyer: false
+  non_geom: false
+  nb_sample: 50
+  
+  # Data file path
+  data_file: "data/calibration.csv"
+  
+  # Regularization coefficient
+  coeff_regularize: 1e-6
+  
+  # Frame knowledge flags
+  known_baseframe: false
+  known_tipframe: false
+  
+  # Measurement uncertainty configuration (for unit-aware weighting)
+  measurement_std:
+    position: 0.001      # 1mm standard deviation for position measurements
+    orientation: 0.01    # ~0.57° standard deviation for orientation measurements
+  
+  # Alternative: Direct weight specification (overrides measurement_std if present)
+  # measurement_weights:
+  #   position: 1000.0     # Weight = 1/std = 1/0.001 = 1000
+  #   orientation: 100.0   # Weight = 1/std = 1/0.01 = 100
+  
+  # Plotting configuration
+  PLOT: 1
+
+# Alternative weighting strategies (choose one approach):
+
+# Strategy 1: Precision-based (RECOMMENDED)
+# Uses measurement precision to determine weights
+# measurement_std:
+#   position: 0.001    # 1mm precision
+#   orientation: 0.01  # 0.01 rad (~0.57°) precision
+
+# Strategy 2: Physical scaling  
+# Scales orientation errors by typical robot arm length
+# measurement_scaling:
+#   position_scale: 1.0      # Keep position in meters
+#   orientation_scale: 1.0   # Scale orientation by arm length (meters)
+#   arm_length: 1.0          # Typical UR10 reach
+
+# Strategy 3: Equal contribution
+# Adjusts weights so typical errors contribute equally to cost function
+# measurement_weights:
+#   position: 1000.0    # Make 1mm position error = 1 cost unit
+#   orientation: 57.3   # Make 1° orientation error = 1 cost unit (57.3 = 180/π)
+
+# Notes on choosing weights:
+# 1. Position precision: Typical vision systems achieve 0.1-1mm precision
+# 2. Orientation precision: Typical systems achieve 0.1-1° precision  
+# 3. Balance: Weights should make typical errors contribute equally
+# 4. Units: Position in meters, orientation in radians
+# 5. Conversion: 1 radian = 57.3 degrees
