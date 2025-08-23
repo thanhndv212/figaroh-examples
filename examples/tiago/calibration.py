@@ -35,4 +35,4 @@ print(tiago_calib.param["param_name"])
 # solve least_squares estimation
 tiago_calib.solve()
 
-# tiago_calib.plot()
+tiago_calib.plot()
