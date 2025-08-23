@@ -23,13 +23,11 @@ import yaml
 from yaml.loader import SafeLoader
 import pprint
 import picos as pc
-from scipy.optimize import least_squares
 
 import pinocchio as pin
 from figaroh.calibration.calibration_tools import (
     BaseCalibration,
     load_data,
-    get_LMvariables,
     calc_updated_fkm,
     calculate_base_kinematics_regressor,
 )
@@ -52,98 +50,63 @@ from figaroh.identification.identification_tools import (
 )
 
 class UR10Calibration(BaseCalibration):
-    """UR10-specific calibration class extending BaseCalibration."""
+    """
+    Class for calibrating the UR10 robot.
     
-    def __init__(self, robot, config_file="config/ur10_config.yaml"):
+    This class provides UR10-specific calibration functionality by extending
+    the BaseCalibration class with robot-specific cost functions and
+    initialization parameters.
+    """
+    
+    def __init__(self, robot, config_file="config/ur10_config.yaml",
+                 del_list=[]):
         """Initialize UR10 calibration with robot model and configuration.
         
         Args:
             robot: UR10 robot model loaded with FIGAROH
             config_file: Path to UR10 configuration YAML file
+            del_list: List of sample indices to exclude from calibration
         """
-        super().__init__(robot, config_file)
+        super().__init__(robot, config_file, del_list)
 
-        print("UR10 Calibration initialized")
-        print(f"Total calibrating parameters: {len(self.param['param_name'])}")
-    
     def cost_function(self, var):
         """
-        Cost function for the optimization problem - follows TIAGo pattern.
+        UR10-specific cost function for the optimization problem.
+        
+        Implements proper handling of position/orientation units and
+        regularization for intermediate parameters to improve numerical
+        stability and convergence.
+        
+        Args:
+            var (ndarray): Parameter vector to evaluate
+            
+        Returns:
+            ndarray: Weighted residual vector including regularization terms
         """
         coeff_ = self.param["coeff_regularize"]
-        PEEe = calc_updated_fkm(self.model, self.data, var, self.q_measured, self.param)
-        res_vect = np.append(
-            (self.PEE_measured - PEEe),
-            np.sqrt(coeff_)
-            * var[6 : -self.param["NbMarkers"] * self.param["calibration_index"]],
-        )
+        PEEe = calc_updated_fkm(self.model, self.data, var,
+                                self.q_measured, self.param)
+        
+        # Main residual: difference between measured and estimated poses
+        raw_residuals = self.PEE_measured - PEEe
+        
+        # Apply unit-aware weighting using BaseCalibration utility method
+        # This handles position (meters) vs orientation (radians) properly
+        weighted_residuals = self.apply_measurement_weighting(
+            raw_residuals, pos_weight=1.0, orient_weight=0.5)
+        
+        # Regularization term for intermediate parameters (excludes base/tip)
+        # This helps stabilize optimization for UR10's 6-DOF kinematic chain
+        n_base_params = 6  # Base frame parameters
+        n_markers = self.param["NbMarkers"]
+        n_tip_params = n_markers * self.param["calibration_index"]
+        regularization_params = var[n_base_params:-n_tip_params]
+        regularization_residuals = np.sqrt(coeff_) * regularization_params
+        
+        # Combine residuals
+        res_vect = np.append(weighted_residuals, regularization_residuals)
         return res_vect
     
-    def solve(self):
-        """Perform UR10 kinematic calibration using BaseCalibration's solve method."""
-        print("Starting UR10 kinematic calibration...")
-        
-        # Use BaseCalibration's solve method which handles everything correctly
-        super().solve()
-
-    def solve_optimisation(self):
-        """
-        Solve the optimization problem - required by BaseCalibration.
-        """
-        # Set initial guess
-        initial_guess, _ = get_LMvariables(self.param, mode=0)
-        if self.param["camera_pose"] is not None:
-            initial_guess[0:6] = np.array(self.param["camera_pose"])
-        if self.param["tip_pose"] is not None:
-            initial_guess[-self.param["calibration_index"]:] = np.array(self.param["tip_pose"])[:self.param["calibration_index"]]
-        self.initial_guess = initial_guess
-
-        print(f"Starting optimization with {len(initial_guess)} variables...")
-        
-        # Run least squares optimization
-        result = least_squares(
-            self.cost_function,
-            initial_guess,
-            method='lm',
-            ftol=1e-12,
-            xtol=1e-12,
-            gtol=1e-12,
-            max_nfev=1000
-        )
-        
-        self.res = result.x
-        self.LM_result = result  # Store result for BaseCalibration framework
-        print(f"Optimization completed: {result.message}")
-        print(f"Final cost: {result.cost}")
-        
-        # Set status for BaseCalibration framework
-        if result.success:
-            self.STATUS = "CALIBRATED"
-            param_values = [float(res_i_) for res_i_ in self.res]
-        self.calibrated_param = dict(zip(self.param["param_name"], param_values))
-    
-    def save_results(self, output_dir="results"):
-        """Save calibration results to files."""
-        if not hasattr(self, 'calibrated_param'):
-            print("No calibration results to save. Run solve() first.")
-            return
-        
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Save calibrated parameters
-        results_dict = {
-            'calibrated_parameters': self.calibrated_param.tolist(),
-            'parameter_names': self.param["param_name"],
-            'rms_error': float(self.rms_error),
-            'optimization_time': float(self.optimization_time),
-            'success': bool(self.optimization_result.success)
-        }
-        
-        with open(os.path.join(output_dir, "ur10_calibration_results.yaml"), "w") as f:
-            yaml.dump(results_dict, f, default_flow_style=False)
-        
-        print(f"Results saved to {output_dir}/ur10_calibration_results.yaml")
-
 
 class UR10Identification:
     """UR10-specific dynamic parameter identification class."""
