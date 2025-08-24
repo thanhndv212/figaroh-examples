@@ -106,10 +106,6 @@ class TiagoIdentification(BaseIdentification):
         super().__init__(robot, config_file)
         print("TiagoIdentification initialized for TIAGo robot")
     
-    def get_standard_parameters(self):
-        """Get standard parameters for TIAGo robot."""
-        return get_standard_parameters(self.model, self.params_settings)
-    
     def process_torque_data(self, tau):
         """Process torque data with TIAGo-specific motor constants."""
         import pinocchio as pin

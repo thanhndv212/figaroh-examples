@@ -72,12 +72,14 @@ ps["pos_data"] = "data/identification/dynamic/tiago_position.csv"
 ps["vel_data"] = "data/identification/dynamic/tiago_velocity.csv"
 ps["torque_data"] = "data/identification/dynamic/tiago_effort.csv"
 
-# Solve identification
+# Initialize identification process
 # Note: truncate parameter now accepts:
 # - None: no truncation
 # - (start, end): custom truncation indices
+tiago_iden.initialize(truncate=(921, 6791))
+
+# Solve identification
 tiago_iden.solve(
-    truncate=(921, 6791),  # Use specific truncation indices
     decimate=True,
     plotting=True,
     save_params=False,

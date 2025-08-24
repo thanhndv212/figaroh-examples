@@ -60,17 +60,12 @@ class BaseIdentification(ABC):
         # Load configuration using the TIAGo-style approach
         self.load_param(config_file)
         
-        # Initialize attributes for identification results (TIAGo-style)
+        # Initialize attributes for identification results
         self.W = None
         self.standard_parameter = None
         self.params_base = None
-        self.idx_base = None
-        self.idx_e = None
-        self.params_r = None
         self.W_base = None
         self.phi_base = None
-        self.phi_standard = None
-        self.phi_ref = None
         self.rms_error = None
         self.correlation = None
         self.processed_data = None
@@ -81,6 +76,32 @@ class BaseIdentification(ABC):
         self.tau_noised = None
         
         print(f"{self.__class__.__name__} initialized")
+
+    def initialize(self, truncate=None):
+        self.process_data(truncate=truncate)
+        self.calculate_full_regressor()
+
+    def solve(self, decimate=True, plotting=True, save_params=False):
+        """Main solving method for dynamic parameter identification.
+        
+        Args:
+            truncate: None for no truncation, or tuple/list (start, end) 
+                     for custom truncation indices
+            decimate: Whether to apply decimation to reduce data size
+            plotting: Whether to show plots
+            save_params: Whether to save parameters to file
+        """
+        print(f"Starting {self.__class__.__name__} dynamic parameter identification...")
+        
+        self.calculate_baseparam(decimate=decimate, plotting=plotting, save_params=save_params)
+        
+        print(f"Dynamic identification completed")
+        print(f"RMS error: {self.rms_error:.6f}")
+        print(f"Correlation: {self.correlation:.4f}")
+        print(f"Condition number: {self.result['condition number']:.2e}")
+        print(f"{len(self.params_base)} base parameters identified")
+        
+        return self.phi_base
     
     def load_param(self, config_file, setting_type="identification"):
         """Load the identification parameters from the yaml file."""
@@ -90,7 +111,6 @@ class BaseIdentification(ABC):
             self._robot, config[setting_type]
         )
 
-    
     def load_csv_data(self):
         """Load and process CSV data (generic implementation)."""
         ts = pd.read_csv(
@@ -189,7 +209,11 @@ class BaseIdentification(ABC):
             "tau": tau_prcd,
         }
 
-    def calc_full_regressor(self):
+    def get_standard_parameters(self):
+        """Get standard parameters for TIAGo robot."""
+        return get_standard_parameters(self.model, self.params_settings)
+    
+    def calculate_full_regressor(self):
         """Build regressor matrix."""
         self.W = build_regressor_basic(
             self._robot,
@@ -204,109 +228,365 @@ class BaseIdentification(ABC):
         tau_ref = np.dot(self.W, phi_ref)
         self.tau_ref = tau_ref[range(len(self.params_settings["act_idxv"]) * self.Nsample_)]
 
-    def calc_baseparam(self, decimate=True, plotting=True, save_params=False):
-        """Calculate base parameters."""
+    def calculate_baseparam(self, decimate=True, decimation_factor=10, 
+                       zero_tolerance=0.001, plotting=True, save_params=False):
+        """Calculate base parameters using QR decomposition.
+        
+        This method implements the complete base parameter identification
+        workflow including column elimination, optional decimation, QR
+        decomposition, and quality metric computation.
+        
+        Args:
+            decimate (bool): Whether to apply decimation to reduce data size
+            decimation_factor (int): Factor for signal decimation (default: 10)
+            zero_tolerance (float): Tolerance for eliminating zero columns
+            plotting (bool): Whether to generate plots (unused in base class)
+            save_params (bool): Whether to save parameters (unused in base class)
+            
+        Returns:
+            dict: Results dictionary containing base parameters and metrics
+            
+        Raises:
+            AssertionError: If prerequisites not met (W, standard_parameter)
+            ValueError: If data shapes are incompatible
+            np.linalg.LinAlgError: If QR decomposition fails
+            
+        Side Effects:
+            - Updates self.result with complete results dictionary
+            - Updates self.W_base, self.phi_base, self.params_base
+            - Updates self.tau_identif, self.tau_noised
+            - Updates self.rms_error, self.correlation
+        """
+        self._validate_prerequisites()
+        
+        # Step 1: Eliminate zero columns
+        regressor_reduced, active_params = self._eliminate_zero_columns(
+            zero_tolerance)
+        
+        # Step 2: Apply decimation if requested
+        if decimate:
+            tau_processed, W_processed = self._apply_decimation(
+                regressor_reduced, decimation_factor)
+        else:
+            tau_processed, W_processed = self._prepare_undecimated_data(
+                regressor_reduced)
+        
+        # Step 3: Calculate base parameters
+        results = self._calculate_base_parameters(
+            tau_processed, W_processed, active_params)
+        
+        # Step 4: Store results and compute quality metrics
+        self._store_results(results)
+        self._compute_quality_metrics()
+        
+        # Step 5: Optional plotting
+        if plotting:
+            self._plot_identification_results()
+        
+        # Step 6: Optional parameter saving
+        if save_params:
+            self._save_parameters_to_file()
+        
+        return self.result
+
+    def _validate_prerequisites(self):
+        """Validate that required data is available for calculation.
+        
+        Raises:
+            AssertionError: If required attributes are not set
+        """
+        assert hasattr(self, 'W') and self.W is not None, \
+               "Regressor matrix W not calculated. " \
+               "Call calculate_full_regressor() first."
+        assert hasattr(self, 'standard_parameter') and \
+               self.standard_parameter is not None, \
+               "Standard parameters not loaded. " \
+               "Call calculate_full_regressor() first."
+        assert hasattr(self, 'processed_data') and \
+               self.processed_data is not None, \
+               "Data not processed. Call process_data() first."
+
+    def _eliminate_zero_columns(self, zero_tolerance):
+        """Eliminate columns with near-zero values from regressor matrix.
+        
+        Args:
+            zero_tolerance (float): Tolerance for considering columns as zero
+            
+        Returns:
+            tuple: (regressor_reduced, active_parameters)
+        """
+        idx_eliminated, active_parameters = get_index_eliminate(
+            self.W, self.standard_parameter, tol_e=zero_tolerance
+        )
+        regressor_reduced = build_regressor_reduced(self.W, idx_eliminated)
+        return regressor_reduced, active_parameters
+
+    def _apply_decimation(self, regressor_reduced, decimation_factor):
+        """Apply signal decimation to reduce data size.
+        
+        Args:
+            regressor_reduced (ndarray): Reduced regressor matrix
+            decimation_factor (int): Factor for decimation
+            
+        Returns:
+            tuple: (tau_decimated, regressor_decimated)
+        """
+        from scipy import signal
+        
+        # Decimate torque data
+        tau_decimated_list = []
+        num_joints = len(self.params_settings["act_idxv"])
+        
+        for i in range(num_joints):
+            tau_joint = self.processed_data["tau"][:, i]
+            tau_dec = signal.decimate(tau_joint, q=decimation_factor,
+                                      zero_phase=True)
+            tau_decimated_list.append(tau_dec)
+
+        # Concatenate decimated torque data
+        tau_decimated = tau_decimated_list[0]
+        for i in range(1, len(tau_decimated_list)):
+            tau_decimated = np.append(tau_decimated, tau_decimated_list[i])
+
+        # Decimate regressor matrix
+        regressor_decimated = self._decimate_regressor_matrix(
+            regressor_reduced, decimation_factor)
+        
+        return tau_decimated, regressor_decimated
+
+    def _decimate_regressor_matrix(self, regressor_reduced, decimation_factor):
+        """Decimate the regressor matrix by joints.
+        
+        Args:
+            regressor_reduced (ndarray): Reduced regressor matrix
+            decimation_factor (int): Decimation factor
+            
+        Returns:
+            ndarray: Decimated regressor matrix
+        """
+        from scipy import signal
+        
+        num_joints = len(self.params_settings["act_idxv"])
+        regressor_list = []
+        
+        for i in range(num_joints):
+            # Extract rows corresponding to joint i
+            start_idx = self.params_settings["act_idxv"][i] * self.Nsample_
+            end_idx = (self.params_settings["act_idxv"][i] + 1) * self.Nsample_
+            
+            joint_regressor_decimated = []
+            for j in range(regressor_reduced.shape[1]):
+                column_data = regressor_reduced[start_idx:end_idx, j]
+                decimated_column = signal.decimate(
+                    column_data, q=decimation_factor, zero_phase=True)
+                joint_regressor_decimated.append(decimated_column)
+
+            # Reconstruct matrix for this joint
+            joint_matrix = np.zeros((len(joint_regressor_decimated[0]),
+                                     len(joint_regressor_decimated)))
+            for k, column in enumerate(joint_regressor_decimated):
+                joint_matrix[:, k] = column
+            regressor_list.append(joint_matrix)
+
+        # Concatenate all joint matrices
+        total_rows = sum(matrix.shape[0] for matrix in regressor_list)
+        regressor_decimated = np.zeros((total_rows,
+                                        regressor_list[0].shape[1]))
+        
+        current_row = 0
+        for matrix in regressor_list:
+            next_row = current_row + matrix.shape[0]
+            regressor_decimated[current_row:next_row, :] = matrix
+            current_row = next_row
+            
+        return regressor_decimated
+
+    def _prepare_undecimated_data(self, regressor_reduced):
+        """Prepare data without decimation.
+        
+        Args:
+            regressor_reduced (ndarray): Reduced regressor matrix
+            
+        Returns:
+            tuple: (tau_flattened, regressor_reduced)
+        """
+        tau_data = self.processed_data["tau"]
+        if hasattr(tau_data, 'flatten'):
+            tau_flattened = tau_data.flatten()
+        else:
+            tau_flattened = tau_data
+        return tau_flattened, regressor_reduced
+
+    def _calculate_base_parameters(self, tau_processed, regressor_processed,
+                                   active_parameters):
+        """Calculate base parameters using QR decomposition.
+        
+        Args:
+            tau_processed (ndarray): Processed torque data
+            regressor_processed (ndarray): Processed regressor matrix
+            active_parameters (dict): Active parameter dictionary
+            
+        Returns:
+            dict: Results from QR decomposition
+        """
         from figaroh.tools.qrdecomposition import double_QR
         from figaroh.identification.identification_tools import relative_stdev
         
-        # Eliminate zero columns
-        idx_e_, active_parameter_ = get_index_eliminate(
-            self.W, self.standard_parameter, tol_e=0.001
-        )
-        W_e_ = build_regressor_reduced(self.W, idx_e_)
+        # Perform QR decomposition
+        W_base, base_param_dict, base_parameters, phi_base, phi_std = \
+            double_QR(tau_processed, regressor_processed, active_parameters,
+                      self.standard_parameter)
+        
+        # Calculate torque estimation (avoid redundant computation)
+        tau_estimated = np.dot(W_base, phi_base)
+        
+        # Calculate quality metrics
+        rmse = np.linalg.norm(tau_processed - tau_estimated) / np.sqrt(
+            tau_processed.shape[0])
+        std_relative = relative_stdev(W_base, phi_base, tau_processed)
 
-        # remove zero-crossing data
-        if decimate:
-            from scipy import signal
-            tau_dec = []
-            for i in range(len(self.params_settings["act_idxv"])):
-                tau_dec.append(signal.decimate(self.processed_data["tau"][:, i], q=10, zero_phase=True))
+        return {
+            "base_regressor": W_base,
+            "base_param_dict": base_param_dict,
+            "base_parameters": base_parameters,
+            "phi_base": phi_base,
+            "tau_estimated": tau_estimated,
+            "tau_processed": tau_processed,
+            "rmse": rmse,
+            "std_relative": std_relative
+        }
 
-            tau_rf = tau_dec[0]
-            for i in range(1, len(tau_dec)):
-                tau_rf = np.append(tau_rf, tau_dec[i])
-
-            # Process regressor similarly
-            W_list = []
-            for i in range(len(self.params_settings["act_idxv"])):
-                W_dec = []
-                for j in range(W_e_.shape[1]):
-                    W_dec.append(signal.decimate(
-                        W_e_[range(self.params_settings["act_idxv"][i] * self.Nsample_,
-                                  (self.params_settings["act_idxv"][i] + 1) * self.Nsample_), j],
-                        q=10, zero_phase=True
-                    ))
-
-                W_temp = np.zeros((W_dec[0].shape[0], len(W_dec)))
-                for k in range(len(W_dec)):
-                    W_temp[:, k] = W_dec[k]
-                W_list.append(W_temp)
-
-            W_rf = np.zeros((tau_rf.shape[0], W_list[0].shape[1]))
-            for i in range(len(W_list)):
-                W_rf[range(i * W_list[i].shape[0], (i + 1) * W_list[i].shape[0]), :] = W_list[i]
-        else:
-            tau_rf = self.processed_data["tau"].flatten() if hasattr(self.processed_data["tau"], 'flatten') else self.processed_data["tau"]
-            W_rf = W_e_
-
-        # calculate base parameters
-        W_b, bp_dict, base_parameter, phi_b, phi_std = double_QR(
-            tau_rf, W_rf, active_parameter_, self.standard_parameter
-        )
-        rmse = np.linalg.norm(tau_rf - np.dot(W_b, phi_b)) / np.sqrt(tau_rf.shape[0])
-        std_xr_ols = relative_stdev(W_b, phi_b, tau_rf)
-
+    def _store_results(self, calculation_results):
+        """Store calculation results in instance attributes.
+        
+        Args:
+            calculation_results (dict): Results from base parameter calculation
+        """
+        W_base = calculation_results["base_regressor"]
+        phi_base = calculation_results["phi_base"]
+        base_param_dict = calculation_results["base_param_dict"]
+        tau_estimated = calculation_results["tau_estimated"]
+        
         self.result = {
-            "base regressor": W_b,
-            "base parameters": bp_dict,
-            "condition number": np.linalg.cond(W_b),
-            "rmse norm (N/m)": rmse,
-            "torque estimated": np.dot(W_b, phi_b),
-            "std dev of estimated param": std_xr_ols,
+            "base regressor": W_base,
+            "base parameters": base_param_dict,
+            "condition number": np.linalg.cond(W_base),
+            "rmse norm (N/m)": calculation_results["rmse"],
+            "torque estimated": tau_estimated,
+            "std dev of estimated param": calculation_results["std_relative"],
         }
         
         # Store key results for backward compatibility
-        self.W_base = W_b
-        self.phi_base = phi_b
-        self.params_base = list(bp_dict.keys())
-        self.tau_identif = np.dot(W_b, phi_b)
-        self.tau_noised = tau_rf
-            
-        # Calculate quality metrics
+        self.W_base = W_base
+        self.phi_base = phi_base
+        self.params_base = list(base_param_dict.keys())
+        self.tau_identif = tau_estimated
+        self.tau_noised = calculation_results["tau_processed"]
+
+    def _compute_quality_metrics(self):
+        """Compute quality metrics for the identification.
+        
+        Side Effects:
+            - Updates self.rms_error
+            - Updates self.correlation
+        """
         residuals = self.tau_noised - self.tau_identif
         self.rms_error = np.sqrt(np.mean(residuals**2))
+        
         if len(self.tau_noised) > 1 and len(self.tau_identif) > 1:
             try:
-                correlation_matrix = np.corrcoef(self.tau_noised, self.tau_identif)
+                correlation_matrix = np.corrcoef(self.tau_noised,
+                                                 self.tau_identif)
                 self.correlation = correlation_matrix[0, 1]
-            except:
+            except (np.linalg.LinAlgError, ValueError):
                 self.correlation = 1.0
         else:
             self.correlation = 1.0
 
-    def solve(self, truncate=None, decimate=True, plotting=True, save_params=False):
-        """Main solving method for dynamic parameter identification.
+    def _plot_identification_results(self):
+        """Plot identification results if plotting is enabled.
         
-        Args:
-            truncate: None for no truncation, or tuple/list (start, end) 
-                     for custom truncation indices
-            decimate: Whether to apply decimation to reduce data size
-            plotting: Whether to show plots
-            save_params: Whether to save parameters to file
+        Creates visualizations of:
+        - Estimated vs measured torques
+        - Parameter estimation quality
         """
-        print(f"Starting {self.__class__.__name__} dynamic parameter identification...")
+        try:
+            import matplotlib.pyplot as plt
+            
+            fig, axes = plt.subplots(2, 1, figsize=(12, 8))
+            
+            # Plot torque comparison
+            time_vector = np.arange(len(self.tau_noised))
+            axes[0].plot(time_vector, self.tau_noised, 'b-',
+                         label='Measured torques', linewidth=1)
+            axes[0].plot(time_vector, self.tau_identif, 'r--',
+                         label='Estimated torques', linewidth=1)
+            axes[0].set_xlabel('Sample')
+            axes[0].set_ylabel('Torque (N⋅m)')
+            axes[0].set_title('Torque Identification Results')
+            axes[0].legend()
+            axes[0].grid(True, alpha=0.3)
+            
+            # Plot residuals
+            residuals = self.tau_noised - self.tau_identif
+            axes[1].plot(time_vector, residuals, 'g-', linewidth=1)
+            axes[1].set_xlabel('Sample')
+            axes[1].set_ylabel('Residual (N⋅m)')
+            axes[1].set_title(f'Residuals (RMSE: {self.rms_error:.4f} N⋅m)')
+            axes[1].grid(True, alpha=0.3)
+            
+            plt.tight_layout()
+            plt.show()
+            
+        except ImportError:
+            print("Warning: matplotlib not available for plotting")
+        except Exception as e:
+            print(f"Warning: Plotting failed: {e}")
+
+    def _save_parameters_to_file(self):
+        """Save identified parameters to file.
         
-        self.process_data(truncate=truncate)
-        self.calc_full_regressor()
-        self.calc_baseparam(decimate=decimate, plotting=plotting, save_params=save_params)
-        
-        print(f"Dynamic identification completed")
-        print(f"RMS error: {self.rms_error:.6f}")
-        print(f"Correlation: {self.correlation:.4f}")
-        print(f"Condition number: {self.result['condition number']:.2e}")
-        print(f"{len(self.params_base)} base parameters identified")
-        
-        return self.phi_base
+        Saves base parameters and quality metrics to a JSON file
+        in the same directory as the identification results.
+        """
+        try:
+            import json
+            import os
+            from datetime import datetime
+            
+            # Create results directory if it doesn't exist
+            results_dir = os.path.join(os.getcwd(), 'identification_results')
+            os.makedirs(results_dir, exist_ok=True)
+            
+            # Prepare data for saving
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"base_parameters_{timestamp}.json"
+            filepath = os.path.join(results_dir, filename)
+            
+            # Convert numpy arrays to lists for JSON serialization
+            save_data = {
+                "timestamp": timestamp,
+                "base_parameters": {
+                    name: float(value) if hasattr(value, 'item') else value
+                    for name, value in self.result["base parameters"].items()
+                },
+                "quality_metrics": {
+                    "condition_number": float(self.result["condition number"]),
+                    "rmse_norm": float(self.result["rmse norm (N/m)"]),
+                    "correlation": float(self.correlation),
+                    "rms_error": float(self.rms_error)
+                },
+                "regressor_shape": list(self.result["base regressor"].shape),
+                "num_parameters": len(self.result["base parameters"])
+            }
+            
+            with open(filepath, 'w') as f:
+                json.dump(save_data, f, indent=2)
+            
+            print(f"Parameters saved to: {filepath}")
+            
+        except Exception as e:
+            print(f"Warning: Failed to save parameters: {e}")
     
     def plot_results(self):
         """Plot identification results."""
