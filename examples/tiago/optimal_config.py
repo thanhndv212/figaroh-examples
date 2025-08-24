@@ -53,7 +53,7 @@ def main():
     
     # Solve for optimal configurations  
     print(f"Generating optimal configurations for TIAGo with {args.end_effector} end effector...")
-    tiago_optcalib.solve(write_file=False)  # Skip writing to file for now
+    tiago_optcalib.solve(save_file=False)  # Skip writing to file for now
 
 
 if __name__ == "__main__":

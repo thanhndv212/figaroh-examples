@@ -165,22 +165,7 @@ class TiagoOptimalCalibration(BaseOptimalCalibration):
         """Initialize TIAGo optimal calibration."""
         super().__init__(robot, config_file)
         print("TIAGo Optimal Calibration initialized")
-    
-    def load_candidate_configurations(self):
-        """Load candidate configurations from TIAGo YAML file.
-        
-        Note: This method satisfies the abstract base class requirement,
-        but actual data loading is handled in the base class load_data_set method.
-        """
-        return np.array([])
-    
-    def optimize_selection(self, subX_dict, nb_chosen):
-        """Optimize configuration selection using SOCP for TIAGo.
-        
-        Note: This method satisfies the abstract base class requirement,
-        but actual optimization is handled in the base class.
-        """
-        return [], []
+
 
 
 # Configuration and trajectory optimization classes
