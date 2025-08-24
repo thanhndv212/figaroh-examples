@@ -29,10 +29,12 @@ tiago = load_robot(
 tiago_calib = TiagoCalibration(tiago, "config/tiago_config.yaml", del_list=[])
 tiago_calib.param["known_baseframe"] = False
 tiago_calib.param["known_tipframe"] = False
+
 # load data file and determine parameters to be calibrated
 tiago_calib.initialize()
-print(tiago_calib.param["param_name"])
+
 # solve least_squares estimation
 tiago_calib.solve()
 
+# display results
 tiago_calib.plot()

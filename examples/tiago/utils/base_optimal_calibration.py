@@ -406,8 +406,6 @@ class BaseOptimalCalibration(ABC):
         ) = calculate_base_kinematics_regressor(
             self.q_measured, self.model, self.data, self.param
         )
-        for ii, param_b in enumerate(paramsrand_base):
-            print(ii + 1, param_b)
 
         # Rearrange the kinematic regressor by sample numbered order
         self.R_rearr = self.rearrange_rb(R_b, self.param)
