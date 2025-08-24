@@ -418,3 +418,236 @@ class SOCPOptimizer:
         w_dict = dict(zip(np.arange(self.param["NbSample"]), w_list))
         w_dict_sort = dict(reversed(sorted(w_dict.items(), key=lambda item: item[1])))
         return w_list, w_dict_sort
+
+
+# DetMax Optimizer class
+class Detmax:
+    """Determinant Maximization optimizer using greedy exchange algorithm.
+    
+    This class implements a heuristic optimization algorithm for D-optimal
+    experimental design that uses a greedy exchange strategy to find
+    near-optimal configuration subsets. Unlike the SOCP approach, this
+    method provides a combinatorial solution that directly selects
+    discrete configurations.
+    
+    Algorithm Overview:
+        The DetMax algorithm uses an iterative exchange procedure:
+        1. Initialize with a random subset of configurations
+        2. Iteratively add the configuration that maximally improves
+           the determinant criterion
+        3. Remove the configuration whose absence minimally degrades
+           the determinant criterion
+        4. Repeat until convergence (no beneficial exchanges)
+    
+    Mathematical Background:
+        The algorithm maximizes det(Σᵢ∈S Xᵢ)^(1/n) where:
+        - S is the selected configuration subset
+        - Xᵢ are information matrices for configurations
+        - n is the matrix dimension
+        
+        This is a discrete optimization problem (vs continuous SOCP).
+    
+    Advantages:
+        - Provides exact discrete solution (no weight thresholding)
+        - Computationally efficient for small to medium problems
+        - Intuitive greedy strategy with good convergence properties
+        - No external optimization solvers required
+        
+    Limitations:
+        - May converge to local optima (not globally optimal)
+        - Performance depends on random initialization
+        - Computational complexity grows with candidate pool size
+    
+    Attributes:
+        pool (dict): Dictionary of information matrices indexed by config ID
+        nd (int): Number of configurations to select
+        cur_set (list): Current configuration subset being evaluated
+        fail_set (list): Configurations that failed selection criteria
+        opt_set (list): Final optimal configuration subset
+        opt_critD (list): Evolution of determinant criterion during
+                        optimization
+        
+    Example:
+        >>> # Create DetMax optimizer
+        >>> detmax = Detmax(subX_dict, num_configs=12)
+        >>>
+        >>> # Run optimization
+        >>> criterion_history = detmax.main_algo()
+        >>>
+        >>> # Get selected configurations
+        >>> selected_configs = detmax.cur_set
+        >>> final_criterion = criterion_history[-1]
+        >>>
+        >>> print(f"Selected {len(selected_configs)} configurations")
+        >>> print(f"Final D-optimality: {final_criterion:.4f}")
+        
+    See Also:
+        SOCPOptimizer: Alternative SOCP-based optimization approach
+        BaseOptimalCalibration: Main calibration framework
+    """
+    
+    def __init__(self, candidate_pool, NbChosen):
+        """Initialize DetMax optimizer with candidate pool and target size.
+        
+        Sets up the determinant maximization optimizer with the candidate
+        configuration pool and specifies the number of configurations to
+        select in the final optimal subset.
+        
+        Args:
+            candidate_pool (dict): Dictionary mapping configuration indices
+                                 to their corresponding information matrices.
+                                 Keys are configuration IDs, values are
+                                 symmetric positive definite matrices.
+            NbChosen (int): Number of configurations to select in the optimal
+                          subset. Must be less than total candidates and
+                          sufficient for parameter identifiability.
+                          
+        Raises:
+            ValueError: If NbChosen exceeds candidate pool size
+            TypeError: If candidate_pool is not a dictionary
+            
+        Side Effects:
+            - Initializes internal tracking lists (cur_set, fail_set, etc.)
+            - Stores candidate pool and selection target
+            
+        Example:
+            >>> # Information matrices dict
+            >>> info_matrices = {0: X0, 1: X1, 2: X2, ...}
+            >>> optimizer = Detmax(info_matrices, NbChosen=10)
+        """
+        self.pool = candidate_pool
+        self.nd = NbChosen
+        self.cur_set = []
+        self.fail_set = []
+        self.opt_set = []
+        self.opt_critD = []
+
+    def get_critD(self, set):
+        """Calculate D-optimality criterion for configuration subset.
+        
+        Computes the determinant root of the Fisher Information Matrix
+        formed by summing the information matrices of configurations
+        in the specified subset. This serves as the objective function
+        for the determinant maximization algorithm.
+        
+        Args:
+            set (list): List of configuration indices from the candidate
+                       pool to include in the criterion calculation
+                       
+        Returns:
+            float: D-optimality criterion value (determinant root)
+                  Higher values indicate better parameter identifiability
+                  
+        Raises:
+            AssertionError: If any configuration index not in candidate pool
+            
+        Mathematical Details:
+            For subset S, computes: det(Σᵢ∈S Xᵢ)^(1/n)
+            where Xᵢ are information matrices and n is matrix dimension
+            
+        Example:
+            >>> subset = [0, 5, 12, 18]  # Configuration indices
+            >>> criterion = optimizer.get_critD(subset)
+            >>> print(f"D-optimality: {criterion:.6f}")
+        """
+        import picos as pc
+        infor_mat = 0
+        for idx in set:
+            assert idx in self.pool.keys(), \
+                   "chosen sample not in candidate pool"
+            infor_mat += self.pool[idx]
+        return float(pc.DetRootN(infor_mat))
+
+    def main_algo(self):
+        """Execute the main determinant maximization algorithm.
+        
+        Implements the greedy exchange algorithm for D-optimal experimental
+        design. The algorithm alternates between adding configurations that
+        maximally improve the determinant and removing configurations whose
+        absence minimally degrades the determinant.
+        
+        Algorithm Steps:
+        1. Initialize random subset of target size from candidate pool
+        2. Exchange Loop:
+           a. ADD PHASE: Find configuration that maximally improves criterion
+           b. REMOVE PHASE: Find configuration whose removal minimally hurts
+           c. Update current subset and criterion value
+        3. Repeat until convergence (no beneficial exchanges)
+        4. Return optimization history
+        
+        Convergence Condition:
+            The algorithm stops when the optimal configuration to add
+            equals the optimal configuration to remove, indicating no
+            further improvement is possible.
+        
+        Returns:
+            list: History of D-optimality criterion values throughout
+                 the optimization process. Last value is final criterion.
+                 
+        Side Effects:
+            - Updates self.cur_set with final optimal configuration subset
+            - Updates self.opt_critD with complete optimization history
+            - Uses random initialization (results may vary between runs)
+            
+        Complexity:
+            O(max_iterations × candidate_pool_size × target_subset_size)
+            where max_iterations depends on problem structure and
+            initialization
+            
+        Example:
+            >>> optimizer = Detmax(info_matrices, NbChosen=10)
+            >>> history = optimizer.main_algo()
+            >>> print(f"Converged after {len(history)} iterations")
+            >>> print(f"Final subset: {optimizer.cur_set}")
+            >>> print(f"Final criterion: {history[-1]:.6f}")
+            
+        Note:
+            The algorithm may converge to different local optima depending
+            on random initialization. For critical applications, consider
+            running multiple times with different seeds.
+        """
+        import random
+        # get all indices in the pool
+        pool_idx = tuple(self.pool.keys())
+
+        # initialize a random set
+        cur_set = random.sample(pool_idx, self.nd)
+        updated_pool = list(set(pool_idx) - set(self.cur_set))
+
+        # adding samples from remaining pool: k = 1
+        opt_k = updated_pool[0]
+        opt_critD = self.get_critD(cur_set)
+        init_set = set(cur_set)
+        fin_set = set([])
+        rm_j = cur_set[0]
+
+        while opt_k != rm_j:
+
+            # add
+            for k in updated_pool:
+                cur_set.append(k)
+                cur_critD = self.get_critD(cur_set)
+                if opt_critD < cur_critD:
+                    opt_critD = cur_critD
+                    opt_k = k
+                cur_set.remove(k)
+            cur_set.append(opt_k)
+            opt_critD = self.get_critD(cur_set)
+
+            # remove
+            delta_critD = opt_critD
+            rm_j = cur_set[0]
+            for j in cur_set:
+                rm_set = cur_set.copy()
+                rm_set.remove(j)
+                cur_delta_critD = opt_critD - self.get_critD(rm_set)
+
+                if cur_delta_critD < delta_critD:
+                    delta_critD = cur_delta_critD
+                    rm_j = j
+            cur_set.remove(rm_j)
+            opt_critD = self.get_critD(cur_set)
+            fin_set = set(cur_set)
+
+            self.opt_critD.append(opt_critD)
+        return self.opt_critD
