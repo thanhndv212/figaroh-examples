@@ -28,31 +28,126 @@ from abc import ABC, abstractmethod
 from yaml.loader import SafeLoader
 
 # FIGAROH imports
-from figaroh.calibration.calibration_tools import BaseCalibration
+from figaroh.calibration.calibration_tools import (
+    load_data,
+    get_param_from_yaml,
+    calculate_base_kinematics_regressor,
+)
 
 
 class BaseOptimalCalibration(ABC):
-    """
-    Base class for robot optimal configuration generation for calibration.
+    """Base class for robot optimal configuration generation for calibration.
     
-    Provides common functionality for all robots while allowing
-    robot-specific implementations of optimization strategies.
+    This class implements the framework for generating optimal robot
+    configurations that maximize the observability of kinematic parameters
+    during calibration. It uses Second-Order Cone Programming (SOCP) to
+    solve the D-optimal design problem for parameter estimation.
+    
+    The class provides a Template Method pattern where the main workflow
+    is defined, but specific optimization strategies can be customized
+    by derived classes for different robot types.
+    
+    Workflow:
+        1. Load candidate configurations from file (CSV or YAML)
+        2. Calculate kinematic regressors for all candidates
+        3. Compute information matrices for each configuration
+        4. Solve SOCP optimization to find optimal subset
+        5. Select configurations with significant weights
+        6. Visualize and save results
+    
+    Key Features:
+        - D-optimal experimental design for calibration
+        - Support for multiple calibration models (full_params, joint_offset)
+        - Automatic minimum configuration calculation
+        - SOCP-based optimization with convex relaxation
+        - Comprehensive visualization and analysis tools
+        - File I/O for configuration management
+    
+    Mathematical Background:
+        The method maximizes the determinant of the Fisher Information Matrix:
+        max det(Σᵢ wᵢ Rᵢᵀ Rᵢ) subject to Σᵢ wᵢ ≤ 1, wᵢ ≥ 0
+        
+        Where:
+        - Rᵢ is the kinematic regressor for configuration i
+        - wᵢ is the weight assigned to configuration i
+        - The objective maximizes parameter estimation precision
+    
+    Attributes:
+        robot: Robot model instance loaded with FIGAROH
+        model: Pinocchio robot model
+        data: Pinocchio robot data
+        param (dict): Calibration parameters from configuration file
+        optimal_configurations (dict): Selected optimal configurations
+        optimal_weights (ndarray): Weights assigned to configurations
+        minNbChosen (int): Minimum number of configurations required
+        
+        # Internal computation attributes
+        R_rearr (ndarray): Rearranged kinematic regressor matrix
+        detroot_whole (float): Determinant root of full information matrix
+        w_list (list): Solution weights from SOCP optimization
+        w_dict_sort (dict): Sorted weights by configuration index
+        
+    Example:
+        >>> # Basic usage for TIAGo robot
+        >>> from figaroh.robots import TiagoRobot
+        >>> robot = TiagoRobot()
+        >>>
+        >>> # Create optimal calibration instance
+        >>> opt_calib = TiagoOptimalCalibration(robot, "config/tiago.yaml")
+        >>>
+        >>> # Generate optimal configurations
+        >>> opt_calib.solve(save_file=True)
+        >>>
+        >>> # Access results
+        >>> print(f"Selected {len(opt_calib.optimal_configurations)} configs")
+        >>> print(f"Minimum required: {opt_calib.minNbChosen}")
+        
+    See Also:
+        BaseCalibration: Main calibration framework
+        SOCPOptimizer: Second-order cone programming solver
+        TiagoOptimalCalibration: TIAGo-specific implementation
+        UR10OptimalCalibration: UR10-specific implementation
     """
     
     def __init__(self, robot, config_file="config/robot_config.yaml"):
         """Initialize optimal calibration with robot model and configuration.
         
+        Sets up the optimal calibration framework by loading robot parameters,
+        initializing optimization attributes, and calculating the minimum
+        number of configurations required based on the calibration model.
+        
+        The minimum number of configurations is computed to ensure the
+        optimization problem is well-posed and identifiable:
+        - For full_params: considers all kinematic parameters
+        - For joint_offset: considers only joint offset parameters
+        
         Args:
-            robot: Robot model loaded with FIGAROH
-            config_file: Path to robot configuration YAML file
+            robot: Robot model instance loaded with FIGAROH. Must have
+                  'model' and 'data' attributes for Pinocchio integration.
+            config_file (str): Path to YAML configuration file containing
+                             calibration parameters, sample file paths, and
+                             optimization settings. Defaults to standard path.
+                             
+        Raises:
+            FileNotFoundError: If config_file does not exist
+            KeyError: If required parameters missing from configuration
+            ValueError: If calibration model type is unsupported
+            
+        Side Effects:
+            - Loads and stores calibration parameters in self.param
+            - Calculates minimum required configurations (self.minNbChosen)
+            - Initializes optimization result attributes to None
+            - Prints initialization confirmation message
+            
+        Example:
+            >>> robot = TiagoRobot()
+            >>> opt_calib = BaseOptimalCalibration(robot, "config/tiago.yaml")
+            TiagoOptimalCalibration initialized
         """
         self.robot = robot
         self.model = robot.model
         self.data = robot.data
-        
-        # Create a BaseCalibration object to get parameters
-        calib_obj = BaseCalibration(robot, config_file)
-        self.param = calib_obj.param
+        self.load_param(config_file)
         
         # Initialize attributes for optimal calibration
         self.optimal_configurations = None
@@ -74,41 +169,173 @@ class BaseOptimalCalibration(ABC):
                 int(len(self.param["actJoint_idx"]) / self.param["calibration_index"])
                 + 1
             )
-        else:
-            self.minNbChosen = 10  # Default fallback
         
         print(f"{self.__class__.__name__} initialized")
     
     def initialize(self):
-        """Initialize the generation process."""
-        self.load_data_set()
+        """Initialize the optimization process by preparing all required data.
+        
+        This method orchestrates the initialization sequence required before
+        optimization can begin. It ensures all mathematical components are
+        properly computed and cached for efficient optimization.
+        
+        The initialization sequence:
+        1. Load candidate configurations from external files
+        2. Calculate kinematic regressors for all configurations
+        3. Compute determinant root of the full information matrix
+        
+        Prerequisites:
+            - Robot model and parameters must be loaded
+            - Configuration file must specify valid sample data paths
+            
+        Side Effects:
+            - Sets self.q_measured with candidate joint configurations
+            - Sets self.R_rearr with rearranged kinematic regressor
+            - Sets self._subX_dict and self._subX_list with info matrices
+            - Sets self.detroot_whole with full matrix determinant root
+            
+        Raises:
+            ValueError: If sample configuration file is invalid or missing
+            AssertionError: If regressor calculation fails
+            
+        See Also:
+            load_candidate_configurations: Configuration data loading
+            calculate_regressor: Kinematic regressor computation
+            calculate_detroot_whole: Information matrix analysis
+        """
+        self.load_candidate_configurations()
         self.calculate_regressor()
         self.calculate_detroot_whole()
     
-    def solve(self, file_name=None, write_file=False):
-        """Solve the optimization problem."""
+    def solve(self, save_file=False):
+        """Solve the optimal configuration selection problem.
+        
+        This is the main entry point that orchestrates the complete optimal
+        configuration generation workflow. It automatically handles
+        initialization if not already performed, solves the SOCP optimization,
+        and provides comprehensive results analysis.
+        
+        The method implements the complete D-optimal design workflow:
+        1. Initialize data and regressors (if needed)
+        2. Solve SOCP optimization for optimal weights
+        3. Select configurations with significant weights
+        4. Optionally save results to files
+        5. Generate visualization plots
+        
+        Args:
+            save_file (bool): Whether to save optimal configurations to YAML
+                            file in results directory. Default False.
+                            
+        Side Effects:
+            - Updates self.optimal_configurations with selected configs
+            - Updates self.optimal_weights with optimization weights
+            - Creates visualization plots
+            - May create output files if save_file=True
+            - Prints progress and results to console
+            
+        Raises:
+            AssertionError: If minimum configuration requirement not met
+            ValueError: If optimization problem is infeasible
+            IOError: If file saving fails (logged as warning)
+            
+        Example:
+            >>> opt_calib = TiagoOptimalCalibration(robot)
+            >>> opt_calib.solve(save_file=True)
+            12 configs are chosen: [0, 5, 12, 18, ...]
+            Optimal configurations written to file successfully
+            
+        See Also:
+            initialize: Data preparation workflow
+            calculate_optimal_configurations: Core optimization solver
+            plot: Results visualization
+            save_results: File output management
+        """
         if not hasattr(self, 'R_rearr'):
             self.initialize()
         self.calculate_optimal_configurations()
-        if write_file:
+        if save_file:
             try:
-                self.write_to_file(name_=file_name)
+                self.save_results()
                 print("Optimal configurations written to file successfully")
             except Exception as e:
                 print(f"Warning: Could not write to file: {e}")
         self.plot()
     
-    def load_data_set(self):
-        """Load data from yaml file."""
-        import yaml
+    def load_param(self, config_file, setting_type="calibration"):
+        """Load optimization parameters from YAML configuration file.
+        
+        Reads and parses calibration configuration from YAML file, extracting
+        robot-specific parameters needed for optimal configuration generation.
+        The configuration supports multiple setting types within the same file.
+        
+        Args:
+            config_file (str): Path to YAML configuration file containing
+                             optimization and calibration parameters
+            setting_type (str): Configuration section to load. Options include
+                              "calibration", "identification", or custom
+                              section names. Default "calibration".
+                              
+        Side Effects:
+            - Updates self.param with loaded configuration dictionary
+            - Overwrites any existing parameter settings
+            
+        Raises:
+            FileNotFoundError: If config_file does not exist
+            yaml.YAMLError: If YAML parsing fails
+            KeyError: If setting_type section not found in config
+            
+        Example:
+            >>> opt_calib.load_param("config/tiago_optimal.yaml")
+            >>> print(opt_calib.param["calib_model"])  # "full_params"
+            >>> print(opt_calib.param["NbSample"])     # 1000
+        """
+        with open(config_file, "r") as f:
+            config = yaml.load(f, Loader=SafeLoader)
+        calib_data = config[setting_type]
+        self.param = get_param_from_yaml(self.robot, calib_data)
+
+    def load_candidate_configurations(self):
+        """Load candidate joint configurations from external data files.
+        
+        Reads robot joint configurations from CSV or YAML files that serve
+        as the candidate pool for optimization. The method supports multiple
+        file formats and automatically updates the sample count parameter.
+        
+        Supported formats:
+        - CSV: Standard measurement data format with joint configurations
+        - YAML: Structured format with named joints and configurations
+        
+        The YAML format expects:
+        ```yaml
+        calibration_joint_names: [joint1, joint2, ...]
+        calibration_joint_configurations: [[q1_1, q1_2, ...], [q2_1, ...]]
+        ```
+        
+        Side Effects:
+            - Sets self.q_measured with loaded joint configurations
+            - Updates self.param["NbSample"] with actual sample count
+            - May load self._configs for YAML format data
+            
+        Raises:
+            ValueError: If sample_configs_file not specified in configuration
+                       or if file format is not supported
+            FileNotFoundError: If specified data file does not exist
+            
+        Example:
+            >>> # Assuming config specifies "data/candidate_configs.yaml"
+            >>> opt_calib.load_candidate_configurations()
+            >>> print(opt_calib.q_measured.shape)  # (1000, 7) for TIAGo
+        """
         from figaroh.calibration.calibration_tools import rank_in_configuration
         
         if self._sampleConfigs_file is None:
-            raise ValueError("sample_configs_file not specified in configuration")
+            raise ValueError("sample_configs_file not specified in "
+                             "configuration")
         
         if "csv" in self._sampleConfigs_file:
-            # For CSV files, use the BaseCalibration load_data_set method
-            super().load_data_set()
+            _, self.q_measured = load_data(
+                self._data_path, self.model, self.param, []
+            )
         elif "yaml" in self._sampleConfigs_file:
             with open(self._sampleConfigs_file, "r") as file:
                 self._configs = yaml.load(file, Loader=yaml.SafeLoader)
@@ -133,9 +360,43 @@ class BaseOptimalCalibration(ABC):
             raise ValueError("Data file format not supported. Use CSV or YAML format.")
     
     def calculate_regressor(self):
-        """Calculate regressor."""
-        from figaroh.calibration.calibration_tools import calculate_base_kinematics_regressor
+        """Calculate kinematic regressors and information matrices.
         
+        Computes the kinematic regressor matrices that relate kinematic
+        parameter variations to end-effector pose changes. This is the
+        mathematical foundation for the optimization problem.
+        
+        The method performs several key computations:
+        1. Calculate base kinematic regressors for all configurations
+        2. Rearrange regressor matrix by sample order for efficiency
+        3. Compute individual information matrices for each configuration
+        4. Store results for optimization access
+        
+        Mathematical Background:
+            For each configuration i, the regressor Rᵢ satisfies:
+            δx = Rᵢ δθ
+            where δx is pose variation and δθ is parameter variation.
+            
+            The information matrix is: Xᵢ = RᵢᵀRᵢ
+        
+        Side Effects:
+            - Sets self.R_rearr with rearranged kinematic regressor
+            - Sets self._subX_list with list of information matrices
+            - Sets self._subX_dict with indexed information matrices
+            - Prints parameter names for verification
+            
+        Returns:
+            bool: True if calculation successful
+            
+        Prerequisites:
+            - Joint configurations must be loaded (self.q_measured)
+            - Robot model and parameters must be initialized
+            
+        See Also:
+            calculate_base_kinematics_regressor: Core regressor computation
+            rearrange_rb: Matrix rearrangement for optimization
+            sub_info_matrix: Information matrix decomposition
+        """
         (
             Rrand_b,
             R_b,
@@ -156,15 +417,141 @@ class BaseOptimalCalibration(ABC):
         return True
     
     def calculate_detroot_whole(self):
-        """Calculate detrootn of whole matrix"""
+        """Calculate determinant root of complete information matrix.
+        
+        Computes the determinant root of the full Fisher Information Matrix
+        formed by all candidate configurations. This serves as the theoretical
+        upper bound for the D-optimality criterion and is used for
+        performance comparison.
+        
+        Mathematical Background:
+            M_full = R^T R  (full regressor)
+            detroot_whole = det(M_full)^(1/n) / sqrt(n)
+            
+            This represents the geometric mean of eigenvalues, normalized
+            by matrix dimension for scale independence.
+        
+        Side Effects:
+            - Sets self.detroot_whole with computed determinant root
+            - Prints the computed value for verification
+            
+        Prerequisites:
+            - Kinematic regressor must be calculated (self.R_rearr)
+            - Requires picos library for determinant computation
+            
+        Raises:
+            AssertionError: If regressor calculation not performed first
+            ImportError: If picos library not available
+            
+        See Also:
+            calculate_regressor: Prerequisites for this computation
+            plot: Uses this value for performance comparison
+        """
         import picos as pc
         assert self.calculate_regressor(), "Calculate regressor first."
         M_whole = np.matmul(self.R_rearr.T, self.R_rearr)
         self.detroot_whole = pc.DetRootN(M_whole) / np.sqrt(M_whole.shape[0])
         print("detrootn of whole matrix:", self.detroot_whole)
 
+    def rearrange_rb(self, R_b, param):
+        """rearrange the kinematic regressor by sample numbered order"""
+        Rb_rearr = np.empty_like(R_b)
+        for i in range(param["calibration_index"]):
+            for j in range(param["NbSample"]):
+                Rb_rearr[j * param["calibration_index"] + i, :] = R_b[
+                    i * param["NbSample"] + j
+                ]
+        return Rb_rearr
+
+    def sub_info_matrix(self, R, param):
+        """Decompose regressor into individual configuration info matrices.
+        
+        Creates separate information matrices for each configuration by
+        extracting the corresponding rows from the full regressor matrix.
+        This decomposition enables individual configuration evaluation
+        in the optimization process.
+        
+        Args:
+            R (ndarray): Full rearranged kinematic regressor matrix
+            param (dict): Calibration parameters including sample count
+                         and calibration index
+                         
+        Returns:
+            tuple: (subX_list, subX_dict) where:
+                - subX_list: List of information matrices (RᵢᵀRᵢ)
+                - subX_dict: Dictionary mapping config index to matrix
+                
+        Mathematical Details:
+            For configuration i:
+            Rᵢ = R[i*idx:(i+1)*idx, :]  (extract rows)
+            Xᵢ = RᵢᵀRᵢ  (information matrix)
+            
+        Example:
+            >>> R_full = np.random.rand(6000, 42)  # 1000 configs, 6 DOF
+            >>> subX_list, subX_dict = self.sub_info_matrix(R_full, param)
+            >>> print(len(subX_list))  # 1000
+            >>> print(subX_dict[0].shape)  # (42, 42)
+        """
+        subX_list = []
+        idex = param["calibration_index"]
+        for it in range(param["NbSample"]):
+            sub_R = R[it * idex : (it * idex + idex), :]
+            subX = np.matmul(sub_R.T, sub_R)
+            subX_list.append(subX)
+        subX_dict = dict(
+            zip(
+                np.arange(
+                    param["NbSample"],
+                ),
+                subX_list,
+            )
+        )
+        return subX_list, subX_dict
+    
     def calculate_optimal_configurations(self):
-        """Calculate optimal configurations using SOCP optimization."""
+        """Solve SOCP optimization to find optimal configuration subset.
+        
+        This is the core optimization method that solves the D-optimal
+        experimental design problem using Second-Order Cone Programming.
+        The method finds weights for each candidate configuration that
+        maximize the determinant of the Fisher Information Matrix.
+        
+        Optimization Problem:
+            maximize det(Σᵢ wᵢ Xᵢ)^(1/n)
+            subject to: Σᵢ wᵢ ≤ 1, wᵢ ≥ 0
+            
+            Where Xᵢ are information matrices and wᵢ are configuration weights.
+        
+        Selection Process:
+            1. Solve SOCP optimization for optimal weights
+            2. Select configurations with weights > eps_opt (1e-5)
+            3. Verify minimum configuration requirement is met
+            4. Store selected configurations and weights
+        
+        Side Effects:
+            - Sets self.w_list with optimization solution weights
+            - Sets self.w_dict_sort with sorted weight dictionary
+            - Sets self.optimal_configurations with selected configs
+            - Sets self.optimal_weights with final weight values
+            - Sets self.nb_chosen with number of selected configurations
+            - Prints timing information and selection results
+            
+        Returns:
+            bool: True if optimization successful and feasible
+            
+        Raises:
+            AssertionError: If regressor not calculated or if insufficient
+                          configurations selected (infeasible design)
+                          
+        Example:
+            >>> opt_calib.calculate_optimal_configurations()
+            solve time of socp: 2.35 seconds
+            12 configs are chosen: [0, 5, 12, 18, 23, ...]
+            
+        See Also:
+            SOCPOptimizer: The optimization solver implementation
+            calculate_regressor: Required prerequisite computation
+        """
         import time
         assert self.calculate_regressor(), "Calculate regressor first."
 
@@ -188,50 +575,69 @@ class BaseOptimalCalibration(ABC):
 
         print(len(chosen_config), "configs are chosen: ", chosen_config)
         self.nb_chosen = len(chosen_config)
+
+        # Store optimal configurations and weights
         opt_ids = chosen_config
         opt_configs_values = []
         for opt_id in opt_ids:
             opt_configs_values.append(
                 self._configs["calibration_joint_configurations"][opt_id]
             )
-        self.opt_configs = self._configs.copy()
-        self.opt_configs["calibration_joint_configurations"] = list(opt_configs_values)
-        self.optimal_configurations = opt_configs_values
+        self.optimal_configurations = self._configs.copy()
+        self.optimal_configurations["calibration_joint_configurations"] = list(
+            opt_configs_values)
         self.optimal_weights = self.w_list
         return True
 
-    def write_to_file(self, name_=None):
-        """Write optimal configurations to file."""
-        import yaml
-        assert (
-            self.calculate_optimal_configurations()
-        ), "Calculate optimal configurations first."
-        
-        if name_ is None:
-            path_save = "data/optimal_configurations/optimal_configurations.yaml"
-        else:
-            path_save = "data/optimal_configs/" + name_
-            
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(path_save), exist_ok=True)
-        
-        with open(path_save, "w") as stream:
-            try:
-                yaml.dump(
-                    self.opt_configs,
-                    stream,
-                    sort_keys=False,
-                    default_flow_style=True,
-                )
-            except yaml.YAMLError as exc:
-                print(exc)
-        return True
-
     def plot(self):
-        """Plot results."""
-        import picos as pc
-        import matplotlib.pyplot as plt
+        """Generate comprehensive visualization of optimization results.
         
+        Creates dual-panel plots that provide insight into the optimization
+        quality and configuration selection process. The visualizations help
+        assess the efficiency of the selected configuration subset.
+        
+        Plot Components:
+        1. D-optimality criterion vs. number of configurations
+           - Shows how information matrix determinant improves with
+             additional configurations
+           - Normalized against theoretical maximum (all configurations)
+           - Helps identify diminishing returns point
+           
+        2. Configuration weights in logarithmic scale
+           - Displays weight assigned to each candidate configuration
+           - Configurations above threshold (eps_opt) are selected
+           - Shows selection boundary and weight distribution
+        
+        Prerequisites:
+            - Optimization must be completed (optimal_configurations available)
+            - Information matrices must be computed
+            
+        Side Effects:
+            - Creates matplotlib figure with two subplots
+            - Displays plots using plt.show()
+            - May block execution until plots are closed
+            
+        Returns:
+            bool: True if plotting successful
+            
+        Mathematical Details:
+            D-optimality ratio = detroot_whole / det(selected_subset)
+            This ratio approaches 1.0 as selected subset approaches optimality.
+            
+        Example:
+            >>> opt_calib.solve()
+            >>> # Plot is automatically generated, or call manually:
+            >>> opt_calib.plot()
+            
+        See Also:
+            calculate_optimal_configurations: Generates data for plotting
+            calculate_detroot_whole: Provides normalization reference
+        """
+        import picos as pc
+        assert hasattr(self, 'optimal_configurations') and \
+               self.optimal_configurations is not None, \
+               "Calculate optimal configurations first."
+
         # Plotting
         det_root_list = []
         n_key_list = []
@@ -274,89 +680,6 @@ class BaseOptimalCalibration(ABC):
 
         return True
     
-    def rearrange_rb(self, R_b, param):
-        """rearrange the kinematic regressor by sample numbered order"""
-        Rb_rearr = np.empty_like(R_b)
-        for i in range(param["calibration_index"]):
-            for j in range(param["NbSample"]):
-                Rb_rearr[j * param["calibration_index"] + i, :] = R_b[
-                    i * param["NbSample"] + j
-                ]
-        return Rb_rearr
-
-    def sub_info_matrix(self, R, param):
-        """Returns a list of sub info matrices (product of transpose of regressor and regressor)
-        which corresponds to each data sample
-        """
-        subX_list = []
-        idex = param["calibration_index"]
-        for it in range(param["NbSample"]):
-            sub_R = R[it * idex : (it * idex + idex), :]
-            subX = np.matmul(sub_R.T, sub_R)
-            subX_list.append(subX)
-        subX_dict = dict(
-            zip(
-                np.arange(
-                    param["NbSample"],
-                ),
-                subX_list,
-            )
-        )
-        return subX_list, subX_dict
-    
-    @abstractmethod
-    def load_candidate_configurations(self):
-        """Load candidate configurations for optimization (robot-specific implementation).
-        
-        Returns:
-            np.ndarray: Array of candidate joint configurations
-        """
-        pass
-    
-    @abstractmethod
-    def optimize_selection(self, subX_dict, nb_chosen):
-        """Optimize configuration selection (robot-specific implementation).
-        
-        Args:
-            subX_dict: Dictionary of sub information matrices
-            nb_chosen: Number of configurations to select
-            
-        Returns:
-            tuple: (optimal_configs, optimal_weights)
-        """
-        pass
-    
-    def plot_results(self):
-        """Plot optimal configuration results."""
-        if not hasattr(self, 'optimal_configurations') or self.optimal_configurations is None:
-            print("No optimal configuration results to plot. Run solve() first.")
-            return
-        
-        # Plot weight distribution
-        plt.figure(figsize=(10, 6))
-        
-        if hasattr(self, 'optimal_weights') and self.optimal_weights is not None:
-            plt.subplot(1, 2, 1)
-            plt.bar(range(len(self.optimal_weights)), self.optimal_weights)
-            plt.xlabel('Configuration Index')
-            plt.ylabel('Weight')
-            plt.title(f'{self.__class__.__name__} Configuration Weights')
-            plt.grid(True, alpha=0.3)
-        
-        # Plot configuration distribution (if joint space is low dimensional)
-        if len(self.optimal_configurations) > 0 and self.optimal_configurations[0].shape[0] <= 3:
-            plt.subplot(1, 2, 2)
-            configs = np.array(self.optimal_configurations)
-            if configs.shape[1] >= 2:
-                plt.scatter(configs[:, 0], configs[:, 1])
-                plt.xlabel('Joint 1 (rad)')
-                plt.ylabel('Joint 2 (rad)')
-                plt.title(f'{self.__class__.__name__} Optimal Configurations')
-                plt.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.show()
-    
     def save_results(self, output_dir="results"):
         """Save optimal configuration results to files."""
         if not hasattr(self, 'optimal_configurations') or self.optimal_configurations is None:
@@ -366,26 +689,58 @@ class BaseOptimalCalibration(ABC):
         os.makedirs(output_dir, exist_ok=True)
         
         # Save optimal configurations
-        results_dict = {
-            'optimal_configurations': [config.tolist() for config in self.optimal_configurations],
-            'number_selected': len(self.optimal_configurations)
-        }
-        
-        if hasattr(self, 'optimal_weights') and self.optimal_weights is not None:
-            results_dict['optimal_weights'] = self.optimal_weights.tolist()
-        
-        robot_name = self.__class__.__name__.lower().replace('optimalcalibration', '')
+        robot_name = self.param["robot_name"] if "robot_name" in self.param else self.model.name
         filename = f"{robot_name}_optimal_configurations.yaml"
-        
-        with open(os.path.join(output_dir, filename), "w") as f:
-            yaml.dump(results_dict, f, default_flow_style=False)
-        
+
+        with open(os.path.join(output_dir, filename), "w") as stream:
+            try:
+                yaml.dump(
+                    self.optimal_configurations,
+                    stream,
+                    sort_keys=False,
+                    default_flow_style=True,
+                )
+            except yaml.YAMLError as exc:
+                print(exc)
         print(f"Results saved to {output_dir}/{filename}")
 
 
 # SOCP Optimizer class used by BaseOptimalCalibration
 class SOCPOptimizer:
-    """Second-Order Cone Programming optimizer for optimal configuration selection."""
+    """Second-Order Cone Programming optimizer for configuration selection.
+    
+    Implements the mathematical optimization for D-optimal experimental design
+    using Second-Order Cone Programming (SOCP). This class formulates and
+    solves the convex optimization problem that maximizes the determinant
+    of the Fisher Information Matrix.
+    
+    Mathematical Formulation:
+        maximize t
+        subject to: t ≤ det(Σᵢ wᵢ Xᵢ)^(1/n)
+                   Σᵢ wᵢ ≤ 1
+                   wᵢ ≥ 0
+                   
+        Where:
+        - t is auxiliary variable for objective
+        - wᵢ are configuration weights
+        - Xᵢ are information matrices
+        - n is matrix dimension
+    
+    The problem is solved using the CVXOPT solver with picos interface.
+    
+    Attributes:
+        pool (dict): Dictionary of information matrices indexed by config ID
+        param (dict): Calibration parameters including sample count
+        problem: Picos optimization problem instance
+        w: Decision variable for configuration weights
+        t: Auxiliary variable for determinant objective
+        solution: Optimization solution object
+        
+    Example:
+        >>> optimizer = SOCPOptimizer(subX_dict, param)
+        >>> weights, sorted_weights = optimizer.solve()
+        >>> print(f"Optimization status: {optimizer.solution.status}")
+    """
     
     def __init__(self, subX_dict, param):
         import picos as pc
