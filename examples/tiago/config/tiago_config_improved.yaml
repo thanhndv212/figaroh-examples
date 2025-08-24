@@ -1,0 +1,139 @@
+# FIGAROH Configuration for TIAGo Robot
+# Four main tasks: calibration, optimal_configuration, identification, optimal_trajectory
+# Tasks inherit from their base counterparts for modularity
+---
+# Base configuration for calibration tasks
+calibration:
+  calib_level: full_params # joint_offset, full_params
+  non_geom: False
+  base_frame: universe
+  tool_frame: wrist_ft_tool_link
+  markers:
+    - ref_joint: arm_7_joint
+      measure: [True, True, True, False, False, False]
+  free_flyer: False
+  camera_pose: [0.0908, 0.08, 0.0, -1.57, 0.0, 0.0]
+  tip_pose: [0.2163, 0.03484, 0.004, 0.0, -1.57, -1.57]
+  coeff_regularize: 0.01
+  outlier_eps: 0.05 # meter
+  data_file: data/calibration/mocap/qualysis_base_hand_calibration.csv
+  sample_configs_file: data/optimal_configs/eye_hand_calibration_tiago_hey5_100.yaml
+  nb_sample: 500
+
+# Optimal configuration task - inherits from calibration + specific parameters
+optimal_configuration:
+  # Inherits all calibration parameters
+  inherit_from: calibration
+  # Override specific parameters
+  nb_sample: 100  # Fewer samples for configuration optimization
+  # Specific parameters for optimal configuration
+  sample_configs_file: data/optimal_configs/eye_hand_calibration_tiago_hey5_100.yaml
+  objectives: None
+  constraints:
+    joint_limits: True
+    collision_avoidance: True
+    workspace_limits: True
+    minimum_distance: 0.1  # meters
+  output:
+    save_configs: True
+    config_file: data/optimal_configs/calibration_configs.yaml
+    visualization: True
+    plot_metrics: True
+
+# Base configuration for identification tasks
+identification:
+  robot_params:
+    q_lim_def: 1.57
+    fv: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    fs: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    Ia: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    offset: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    Iam6: 0
+    fvm6: 0
+    fsm6: 0
+    N: [32.0, 32.0, 45.0, -48.0, 45.0, 32.0]
+    ratio_essential: 30.0
+    dq_lim_def: [0.05009095, 0.05009095, 0.07504916, 0.0715585, 0.05585054, 0.12217305]
+    ddq_lim_def: 20.0
+    tau_lim_def: 4.0
+  trajectory_params:
+    n_wps: 3          # number of waypoints
+    freq: 50          # frequency in Hz
+    t_s: 1.5          # window time between waypoints
+    soft_lim: 0.1     # joint limit discount
+    max_attempts: 500 # maximum attempts to find feasible trajectory
+  problem_params:
+    is_external_wrench: False
+    is_joint_torques: True
+    force_torque: None
+    external_wrench_offsets: False
+    has_friction: True
+    has_joint_offset: True
+    has_actuator_inertia: True
+    is_static_regressor: True
+    is_inertia_regressor: True
+    has_coupled_wrist: True
+    embedded_forces: False
+    active_joints: ["torso_lift_joint",
+                   "arm_1_joint",
+                   "arm_2_joint",
+                   "arm_3_joint",
+                   "arm_4_joint",
+                   "arm_5_joint",
+                   "arm_6_joint",
+                   "arm_7_joint"]
+  processing_params:
+    cut_off_frequency_butterworth: 100.0
+    ts: 0.0002
+  tls_params:
+    mass_load: 0.0
+    which_body_loaded: 0.0
+    sync_joint_motion: False
+
+# Optimal trajectory task - inherits from identification + specific parameters
+optimal_trajectory:
+  # Inherits all identification parameters
+  inherit_from: identification
+  # Override specific parameters for trajectory optimization
+  trajectory_params:
+    n_wps: 5          # More waypoints for trajectory optimization
+    freq: 100         # Higher frequency for better resolution
+    t_s: 2.0          # Longer time between waypoints
+    soft_lim: 0.05    # Tighter joint limits
+    max_attempts: 1000 # More attempts for optimization
+  # Specific parameters for optimal trajectory generation
+  objectives: None
+  constraints:
+    joint_limits: True
+    velocity_limits: True
+    acceleration_limits: True
+    jerk_limits: True
+    collision_avoidance: True
+    maximum_jerk: 50.0  # rad/s³
+    trajectory_duration: [5.0, 30.0]  # seconds [min, max]
+  output:
+    save_trajectory: True
+    trajectory_file: data/trajectories/optimal_trajectory.yaml
+    save_metrics: True
+    metrics_file: data/trajectories/trajectory_metrics.yaml
+    visualization: True
+    plot_joints: True
+    plot_cartesian: True
+
+# Common parameters shared across all tasks
+common:
+  robot_name: tiago
+  robot_description: tiago_description
+  
+  # Logging and debugging
+  logging:
+    level: INFO  # DEBUG, INFO, WARNING, ERROR
+    log_file: logs/figaroh.log
+    console_output: True
+    detailed_timing: False
+
+  # Data management
+  data:
+    base_directory: data/
+    backup_results: True
+...
