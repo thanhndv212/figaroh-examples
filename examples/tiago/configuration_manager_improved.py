@@ -28,7 +28,7 @@ This module implements an enhanced configuration architecture supporting:
 import yaml
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 from enum import Enum
 from yaml.loader import SafeLoader
 import copy
@@ -40,30 +40,6 @@ class TaskType(Enum):
     OPTIMAL_CONFIGURATION = "optimal_configuration"
     IDENTIFICATION = "identification"
     OPTIMAL_TRAJECTORY = "optimal_trajectory"
-
-
-@dataclass
-class ConstraintsConfig:
-    """Configuration for optimization constraints."""
-    joint_limits: bool = True
-    collision_avoidance: bool = True
-    workspace_limits: bool = True
-    velocity_limits: bool = True
-    acceleration_limits: bool = True
-    jerk_limits: bool = True
-    minimum_distance: float = 0.1
-    maximum_jerk: Optional[float] = None
-    trajectory_duration: Optional[List[float]] = None
-    
-    def __post_init__(self):
-        """Validate constraints configuration."""
-        if self.minimum_distance < 0:
-            raise ValueError("minimum_distance must be non-negative")
-        if self.trajectory_duration is not None:
-            if len(self.trajectory_duration) != 2:
-                raise ValueError(
-                    "trajectory_duration must have exactly 2 values [min, max]"
-                )
 
 
 @dataclass
@@ -382,18 +358,6 @@ class ConfigurationManager:
             enhanced_config, "tolerance", default=1e-6, task_name=task_name
         )
         
-        # Handle constraints configuration (optional)
-        if "constraints" not in enhanced_config:
-            self.logger.info(
-                f"No constraints configuration in {task_name}. "
-                f"Using default constraint settings."
-            )
-            enhanced_config["constraints"] = {
-                "joint_limits": True,
-                "collision_avoidance": True,
-                "workspace_limits": True
-            }
-        
         # Handle optimization bounds (optional parameters)
         try:
             parameter_bounds = enhanced_config["parameter_bounds"]
@@ -517,40 +481,6 @@ class ConfigurationManager:
         
         return flattened_config
     
-    def load_common_config(self) -> Dict[str, Any]:
-        """Load common configuration shared across all tasks."""
-        if "common" not in self.config:
-            return {}
-        return copy.deepcopy(self.config["common"])
-    
-    def get_constraints_config(self, task_type: TaskType) -> ConstraintsConfig:
-        """Get validated constraints configuration for a task.
-        
-        Args:
-            task_type: Type of task
-            
-        Returns:
-            Validated constraints configuration
-        """
-        task_config = self.load_task_config(task_type)
-        
-        if "constraints" not in task_config:
-            return ConstraintsConfig()  # Return defaults
-        
-        const_data = task_config["constraints"]
-        
-        return ConstraintsConfig(
-            joint_limits=const_data.get("joint_limits", True),
-            collision_avoidance=const_data.get("collision_avoidance", True),
-            workspace_limits=const_data.get("workspace_limits", True),
-            velocity_limits=const_data.get("velocity_limits", True),
-            acceleration_limits=const_data.get("acceleration_limits", True),
-            jerk_limits=const_data.get("jerk_limits", True),
-            minimum_distance=const_data.get("minimum_distance", 0.1),
-            maximum_jerk=const_data.get("maximum_jerk"),
-            trajectory_duration=const_data.get("trajectory_duration")
-        )
-    
     def get_output_config(self, task_type: TaskType) -> OutputConfig:
         """Get output configuration for a task.
         
@@ -615,7 +545,8 @@ class ConfigurationManager:
         """
         try:
             # Use the appropriate loading method for each task type
-            if task_type in [TaskType.IDENTIFICATION, TaskType.OPTIMAL_TRAJECTORY]:
+            if task_type in [TaskType.IDENTIFICATION,
+                             TaskType.OPTIMAL_TRAJECTORY]:
                 # Use flattened config for identification tasks
                 if task_type == TaskType.IDENTIFICATION:
                     task_config = self.load_identification_config()
@@ -625,16 +556,7 @@ class ConfigurationManager:
                 # Use regular config for calibration tasks
                 task_config = self.load_task_config(task_type)
             
-            # Validate constraints config if present
-            if "constraints" in task_config:
-                try:
-                    self.get_constraints_config(task_type)
-                except Exception as e:
-                    self.logger.warning(
-                        f"Constraints validation failed for {task_type.value}: {e}"
-                    )
-            
-            # Validate output config if present  
+            # Validate output config if present
             if "output" in task_config:
                 try:
                     self.get_output_config(task_type)
@@ -663,111 +585,6 @@ class ConfigurationManager:
                     f"Validation failed for {task_type.value}: {e}"
                 )
     
-    def get_task_legacy_dict(
-        self, task_type: TaskType, robot_name: str = None
-    ) -> Dict[str, Any]:
-        """Convert task config to legacy dictionary format.
-        
-        Provides backward compatibility with legacy methods.
-        
-        Args:
-            task_type: Type of task
-            robot_name: Robot name (uses common config if not provided)
-            
-        Returns:
-            Legacy format dictionary
-        """
-        task_config = self.load_task_config(task_type)
-        
-        if robot_name is None:
-            common_config = self.load_common_config()
-            robot_name = common_config.get("robot_name", "unknown")
-        
-        # Add robot_name to the config
-        legacy_config = copy.deepcopy(task_config)
-        legacy_config["robot_name"] = robot_name
-        
-        return legacy_config
-    
-    def log_configuration_summary(
-        self, task_type: Optional[TaskType] = None
-    ) -> None:
-        """Log summary of configuration.
-        
-        Args:
-            task_type: Specific task to summarize (all tasks if None)
-        """
-        self.logger.info("Configuration Summary:")
-        self.logger.info(f"  - Config file: {self.config_file}")
-        
-        if task_type is None:
-            # Log summary for all tasks
-            for task in TaskType:
-                self._log_task_summary(task)
-        else:
-            self._log_task_summary(task_type)
-    
-    def _log_task_summary(self, task_type: TaskType) -> None:
-        """Log summary for a specific task."""
-        try:
-            task_config = self.load_task_config(task_type)
-            self.logger.info(f"  - Task: {task_type.value}")
-            
-            # Log inheritance info
-            original_config = self.config.get(task_type.value, {})
-            if "inherit_from" in original_config:
-                inherit_from = original_config['inherit_from']
-                self.logger.info(f"    - Inherits from: {inherit_from}")
-            
-            # Log key parameters based on task type
-            calibration_tasks = [
-                TaskType.CALIBRATION, 
-                TaskType.OPTIMAL_CONFIGURATION
-            ]
-            if task_type in calibration_tasks:
-                if "calib_level" in task_config:
-                    level = task_config['calib_level']
-                    self.logger.info(f"    - Calibration model: {level}")
-                if "nb_sample" in task_config:
-                    samples = task_config['nb_sample']
-                    self.logger.info(f"    - Samples: {samples}")
-            
-            identification_tasks = [
-                TaskType.IDENTIFICATION, 
-                TaskType.OPTIMAL_TRAJECTORY
-            ]
-            if task_type in identification_tasks:
-                # Handle flattened configs - check direct access first
-                if task_type == TaskType.IDENTIFICATION or task_type == TaskType.OPTIMAL_TRAJECTORY:
-                    flattened_config = self._get_flattened_config(task_type)
-                    if "ts" in flattened_config:
-                        ts = flattened_config.get("ts", 0.0002)
-                        self.logger.info(f"    - Sample rate: {1 / ts:.0f} Hz")
-                    if "active_joints" in flattened_config:
-                        active_joints = flattened_config.get("active_joints", [])
-                        self.logger.info(f"    - Active joints: {len(active_joints)}")
-                else:
-                    # Fallback to nested structure for validation/summary
-                    if "processing_params" in task_config:
-                        ts = task_config["processing_params"].get("ts", 0.0002)
-                        self.logger.info(f"    - Sample rate: {1 / ts:.0f} Hz")
-                    if "problem_params" in task_config:
-                        problem_params = task_config["problem_params"]
-                        active_joints = problem_params.get("active_joints", [])
-                        self.logger.info(f"    - Active joints: {len(active_joints)}")
-                
-        except Exception as e:
-            self.logger.warning(f"  - {task_type.value} config error: {e}")
-    
-    def _get_flattened_config(self, task_type: TaskType) -> Dict[str, Any]:
-        """Get flattened configuration for identification tasks."""
-        if task_type == TaskType.IDENTIFICATION:
-            return self.load_identification_config()
-        elif task_type == TaskType.OPTIMAL_TRAJECTORY:
-            return self.load_optimal_trajectory_config()
-        else:
-            return self.load_task_config(task_type)
-    
     def _get_config_value(self, config: Dict[str, Any], key: str,
                           default: Any = None, task_name: str = None) -> Any:
         """Get configuration value with missing key handling.
@@ -791,44 +608,6 @@ class ConfigurationManager:
                 f"Auto-assigning default value: {default}"
             )
             return default
-    
-    def _get_nested_config_value(self, config: Dict[str, Any],
-                                 nested_key: str, key: str,
-                                 default: Any = None,
-                                 task_name: str = None) -> Any:
-        """Get nested configuration value with missing key handling.
-        
-        Args:
-            config: Configuration dictionary
-            nested_key: Parent key (e.g., 'problem_params')
-            key: Nested key to retrieve
-            default: Default value if key is missing
-            task_name: Task name for warning context
-            
-        Returns:
-            Configuration value or default/None if missing
-        """
-        if nested_key not in config:
-            task_context = f" in {task_name}" if task_name else ""
-            self.logger.warning(
-                f"Missing configuration section '{nested_key}'{task_context}. "
-                f"Auto-assigning empty dict."
-            )
-            config[nested_key] = {}
-        
-        nested_config = config[nested_key]
-        if key in nested_config:
-            return nested_config[key]
-        else:
-            task_context = f" in {task_name}" if task_name else ""
-            nested_key_key = f"{nested_key}.{key}"
-            self.logger.warning(
-                f"Missing configuration key '{nested_key_key}'{task_context}. "
-                f"Auto-assigning default value: {default}"
-            )
-            nested_config[key] = default
-            return default
-
 
 # Factory functions for easy instantiation
 def create_configuration_manager(
@@ -846,9 +625,6 @@ def create_configuration_manager(
     
     # Validate all configurations
     manager.validate_all_configs()
-    
-    # Log summary
-    manager.log_configuration_summary()
     
     return manager
 

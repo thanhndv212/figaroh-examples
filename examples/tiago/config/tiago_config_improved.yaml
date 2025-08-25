@@ -29,11 +29,6 @@ optimal_configuration:
   # Specific parameters for optimal configuration
   sample_configs_file: data/optimal_configs/eye_hand_calibration_tiago_hey5_100.yaml
   objectives: None
-  constraints:
-    joint_limits: True
-    collision_avoidance: True
-    workspace_limits: True
-    minimum_distance: 0.1  # meters
   output:
     save_configs: True
     config_file: data/optimal_configs/calibration_configs.yaml
@@ -103,14 +98,6 @@ optimal_trajectory:
     max_attempts: 1000 # More attempts for optimization
   # Specific parameters for optimal trajectory generation
   objectives: None
-  constraints:
-    joint_limits: True
-    velocity_limits: True
-    acceleration_limits: True
-    jerk_limits: True
-    collision_avoidance: True
-    maximum_jerk: 50.0  # rad/s³
-    trajectory_duration: [5.0, 30.0]  # seconds [min, max]
   output:
     save_trajectory: True
     trajectory_file: data/trajectories/optimal_trajectory.yaml
