@@ -127,7 +127,7 @@ class UR10Identification:
             self.config = yaml.load(f, Loader=SafeLoader)
         
         self.identif_data = self.config["identification"]
-        self.params_settings = get_identification_param_from_yaml(robot, self.identif_data)
+        self.identif_config = get_identification_param_from_yaml(robot, self.identif_data)
         
         print("UR10 Dynamic Identification initialized")
         
@@ -136,7 +136,7 @@ class UR10Identification:
         print("Calculating structural base parameters...")
         
         # Generate random samples for structural analysis
-        nb_samples_structural = 10 * self.params_settings["nb_samples"]
+        nb_samples_structural = 10 * self.identif_config["nb_samples"]
         q_rand = np.random.uniform(
             low=-np.pi, high=np.pi, 
             size=(nb_samples_structural, self.model.nq)
@@ -152,14 +152,14 @@ class UR10Identification:
         
         # Build regressor matrix
         W = build_regressor_basic(
-            self.robot, q_rand, dq_rand, ddq_rand, self.params_settings
+            self.robot, q_rand, dq_rand, ddq_rand, self.identif_config
         )
         
         # Calculate standard parameters using FIGAROH function
         # For now, create a dummy standard parameter dict similar to TIAGo
         # This should ideally come from the URDF or robot definition
         num_standard_params = W.shape[1]
-        self.params_standard = get_standard_parameters(self.model, self.params_settings)
+        self.params_standard = get_standard_parameters(self.model, self.identif_config)
         
         # Remove zero columns and build reduced regressor
         self.idx_e, self.params_r = get_index_eliminate(W, self.params_standard, 1e-6)
@@ -192,13 +192,13 @@ class UR10Identification:
         print(f"Loaded {len(q_raw)} samples from CSV files")
         
         # Limit samples if needed
-        max_samples = min(len(q_raw), self.params_settings.get("nb_samples", 100))
+        max_samples = min(len(q_raw), self.identif_config.get("nb_samples", 100))
         q_raw = q_raw[:max_samples, :]
         tau_raw = tau_raw[:max_samples, :]
         
         # Calculate velocities and accelerations using FIGAROH function
         self.q, self.dq, self.ddq = calculate_first_second_order_differentiation(
-            self.model, q_raw, self.params_settings
+            self.model, q_raw, self.identif_config
         )
         
         # Reshape torque data for identification (concatenate all joints)
@@ -217,7 +217,7 @@ class UR10Identification:
         self.load_trajectory_data()
         
         # Build regressor matrix for identification
-        W = build_regressor_basic(self.robot, self.q, self.dq, self.ddq, self.params_settings)
+        W = build_regressor_basic(self.robot, self.q, self.dq, self.ddq, self.identif_config)
         
         # Select only columns corresponding to base parameters
         self.W_base = W[:, self.idx_base]
@@ -248,7 +248,7 @@ class UR10Identification:
         try:
             self.phi_standard, self.phi_ref = calculate_standard_parameters(
                 self.robot, W, self.tau_noised, COM_max, COM_min, 
-                self.params_settings
+                self.identif_config
             )
         except Exception as e:
             print(f"Warning: Could not calculate standard parameters: {e}")
@@ -624,7 +624,7 @@ class UR10OptimalTrajectory:
             self.config = yaml.load(f, Loader=SafeLoader)
         
         self.identif_data = self.config["identification"]
-        self.params_settings = get_identification_param_from_yaml(robot, self.identif_data)
+        self.identif_config = get_identification_param_from_yaml(robot, self.identif_data)
         
         # Trajectory parameters
         self.n_waypoints = 10
@@ -647,7 +647,7 @@ class UR10OptimalTrajectory:
         )
         
         # Build regressor matrix
-        W = build_regressor_basic(self.robot, q_rand, dq_rand, ddq_rand, self.params_settings)
+        W = build_regressor_basic(self.robot, q_rand, dq_rand, ddq_rand, self.identif_config)
         
         # Create dummy standard parameters
         num_standard_params = W.shape[1]
@@ -742,7 +742,7 @@ class UR10OptimalTrajectory:
             float: Condition number of the regressor matrix
         """
         # Build regressor matrix for this trajectory
-        W = build_regressor_basic(self.robot, q, dq, ddq, self.params_settings)
+        W = build_regressor_basic(self.robot, q, dq, ddq, self.identif_config)
         
         # Select base parameters
         W_base = W[:, self.idx_base]

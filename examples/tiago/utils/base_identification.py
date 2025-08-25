@@ -107,21 +107,21 @@ class BaseIdentification(ABC):
         """Load the identification parameters from the yaml file."""
         with open(config_file, "r") as f:
             config = yaml.load(f, Loader=yaml.SafeLoader)
-        self.params_settings = get_identification_param_from_yaml(
+        self.identif_config = get_identification_param_from_yaml(
             self._robot, config[setting_type]
         )
 
     def load_csv_data(self):
         """Load and process CSV data (generic implementation)."""
         ts = pd.read_csv(
-            abspath(self.params_settings["pos_data"]), usecols=[0]
+            abspath(self.identif_config["pos_data"]), usecols=[0]
         ).to_numpy()
-        pos = pd.read_csv(abspath(self.params_settings["pos_data"]))
-        vel = pd.read_csv(abspath(self.params_settings["vel_data"]))
-        eff = pd.read_csv(abspath(self.params_settings["torque_data"]))
+        pos = pd.read_csv(abspath(self.identif_config["pos_data"]))
+        vel = pd.read_csv(abspath(self.identif_config["vel_data"]))
+        eff = pd.read_csv(abspath(self.identif_config["torque_data"]))
 
         cols = {"pos": [], "vel": [], "eff": []}
-        for jn in self.params_settings["active_joints"]:
+        for jn in self.identif_config["active_joints"]:
             cols["pos"].extend([col for col in pos.columns if jn in col])
             cols["vel"].extend([col for col in vel.columns if jn in col])
             cols["eff"].extend([col for col in eff.columns if jn in col])
@@ -163,9 +163,9 @@ class BaseIdentification(ABC):
         v = np.tile(self._robot.v0, (N_, 1))
         a = np.tile(self._robot.v0, (N_, 1))
 
-        p[:, self.params_settings["act_idxq"]] = q_f
-        v[:, self.params_settings["act_idxv"]] = dq_f
-        a[:, self.params_settings["act_idxv"]] = ddq_f
+        p[:, self.identif_config["act_idxq"]] = q_f
+        v[:, self.identif_config["act_idxv"]] = dq_f
+        a[:, self.identif_config["act_idxv"]] = ddq_f
         return p, v, a
     
     def process_torque_data(self, tau):
@@ -211,7 +211,7 @@ class BaseIdentification(ABC):
 
     def get_standard_parameters(self):
         """Get standard parameters for TIAGo robot."""
-        return get_standard_parameters(self.model, self.params_settings)
+        return get_standard_parameters(self.model, self.identif_config)
     
     def calculate_full_regressor(self):
         """Build regressor matrix."""
@@ -220,13 +220,13 @@ class BaseIdentification(ABC):
             self.processed_data["p"],
             self.processed_data["v"],
             self.processed_data["a"],
-            self.params_settings,
+            self.identif_config,
         )
         self.standard_parameter = self.get_standard_parameters()
         # joint torque estimated from p,v,a with std params
         phi_ref = np.array(list(self.standard_parameter.values()))
         tau_ref = np.dot(self.W, phi_ref)
-        self.tau_ref = tau_ref[range(len(self.params_settings["act_idxv"]) * self.Nsample_)]
+        self.tau_ref = tau_ref[range(len(self.identif_config["act_idxv"]) * self.Nsample_)]
 
     def calculate_baseparam(self, decimate=True, decimation_factor=10, 
                        zero_tolerance=0.001, plotting=True, save_params=False):
@@ -335,7 +335,7 @@ class BaseIdentification(ABC):
         
         # Decimate torque data
         tau_decimated_list = []
-        num_joints = len(self.params_settings["act_idxv"])
+        num_joints = len(self.identif_config["act_idxv"])
         
         for i in range(num_joints):
             tau_joint = self.processed_data["tau"][:, i]
@@ -366,13 +366,13 @@ class BaseIdentification(ABC):
         """
         from scipy import signal
         
-        num_joints = len(self.params_settings["act_idxv"])
+        num_joints = len(self.identif_config["act_idxv"])
         regressor_list = []
         
         for i in range(num_joints):
             # Extract rows corresponding to joint i
-            start_idx = self.params_settings["act_idxv"][i] * self.Nsample_
-            end_idx = (self.params_settings["act_idxv"][i] + 1) * self.Nsample_
+            start_idx = self.identif_config["act_idxv"][i] * self.Nsample_
+            end_idx = (self.identif_config["act_idxv"][i] + 1) * self.Nsample_
             
             joint_regressor_decimated = []
             for j in range(regressor_reduced.shape[1]):

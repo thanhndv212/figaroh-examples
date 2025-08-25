@@ -114,11 +114,11 @@ class TiagoIdentification(BaseIdentification):
         pin.computeSubtreeMasses(self.robot.model, self.robot.data)
         tau_processed = tau.copy()
         
-        for i, joint_name in enumerate(self.params_settings["active_joints"]):
+        for i, joint_name in enumerate(self.identif_config["active_joints"]):
             if joint_name == "torso_lift_joint":
                 tau_processed[:, i] = (
-                    self.params_settings["reduction_ratio"][joint_name]
-                    * self.params_settings["kmotor"][joint_name]
+                    self.identif_config["reduction_ratio"][joint_name]
+                    * self.identif_config["kmotor"][joint_name]
                     * tau[:, i]
                     + 9.81 * self.robot.data.mass[
                         self.robot.model.getJointId(joint_name)
@@ -126,8 +126,8 @@ class TiagoIdentification(BaseIdentification):
                 )
             else:
                 tau_processed[:, i] = (
-                    self.params_settings["reduction_ratio"][joint_name]
-                    * self.params_settings["kmotor"][joint_name]
+                    self.identif_config["reduction_ratio"][joint_name]
+                    * self.identif_config["kmotor"][joint_name]
                     * tau[:, i]
                 )
         return tau_processed
@@ -149,7 +149,7 @@ class TiagoIdentification(BaseIdentification):
         
         # Use FIGAROH tools to calculate regressor for TIAGo
         regressor, _ = calculate_base_dynamic_regressor(
-            q, qd, qdd, self.model, self.data, self.params_settings
+            q, qd, qdd, self.model, self.data, self.identif_config
         )
         return regressor
 
@@ -205,9 +205,9 @@ class ConfigurationManager:
 class BaseParameterComputer:
     """Handles base parameter computation and indexing."""
     
-    def __init__(self, robot, params_settings, active_joints, soft_lim_pool):
+    def __init__(self, robot, identif_config, active_joints, soft_lim_pool):
         self.robot = robot
-        self.params_settings = params_settings
+        self.identif_config = identif_config
         self.active_joints = active_joints
         self.soft_lim_pool = soft_lim_pool
         
@@ -244,9 +244,9 @@ class BaseParameterComputer:
     
     def _get_idx_from_random(self, q, v, a) -> Tuple[np.ndarray, np.ndarray]:
         """Get indices of eliminate and base parameters."""
-        W = build_regressor_basic(self.robot, q, v, a, self.params_settings)
+        W = build_regressor_basic(self.robot, q, v, a, self.identif_config)
         params_std = get_standard_parameters(
-            self.robot.model, self.params_settings
+            self.robot.model, self.identif_config
         )
         idx_e_, par_r_ = get_index_eliminate(W, params_std, tol_e=0.001)
         W_e_ = build_regressor_reduced(W, idx_e_)
@@ -257,12 +257,12 @@ class BaseParameterComputer:
 class TrajectoryConstraintManager:
     """Manages trajectory constraints and bounds."""
     
-    def __init__(self, robot, CB, traj_params, params_settings):
+    def __init__(self, robot, CB, traj_params, identif_config):
         self.robot = robot
         self.CB = CB
         self.n_wps = traj_params['n_wps']
         self.freq = traj_params['freq']
-        self.params_settings = params_settings
+        self.identif_config = identif_config
         self.collision_wrapper = CollisionWrapper(robot=robot, viz=None)
     
     def get_variable_bounds(self) -> Tuple[List[float], List[float]]:
@@ -316,7 +316,7 @@ class TrajectoryConstraintManager:
             
             # Compute joint torques
             tau = calc_torque(
-                p_f.shape[0], self.robot, p_f, v_f, a_f, self.params_settings
+                p_f.shape[0], self.robot, p_f, v_f, a_f, self.identif_config
             )
             
             # Evaluate individual constraint types
@@ -403,7 +403,7 @@ class OptimalTrajectoryIPOPT:
         
         # Load configuration
         self.traj_params, identif_data = ConfigurationManager.load_from_yaml(config_file)
-        self.params_settings = get_param_from_yaml(robot, identif_data)
+        self.identif_config = get_param_from_yaml(robot, identif_data)
         
         # Initialize components
         self._initialize_components()
@@ -437,16 +437,16 @@ class OptimalTrajectoryIPOPT:
         
         # Initialize specialized components
         self.base_computer = BaseParameterComputer(
-            self.robot, self.params_settings, self.active_joints, self.soft_lim_pool
+            self.robot, self.identif_config, self.active_joints, self.soft_lim_pool
         )
         self.constraint_manager = TrajectoryConstraintManager(
-            self.robot, self.CB, self.traj_params, self.params_settings
+            self.robot, self.CB, self.traj_params, self.identif_config
         )
     
     def build_base_regressor(self, q, v, a, W_stack=None) -> np.ndarray:
         """Build base regressor matrix."""
         try:
-            W = build_regressor_basic(self.robot, q, v, a, self.params_settings)
+            W = build_regressor_basic(self.robot, q, v, a, self.identif_config)
             W_e_ = build_regressor_reduced(W, self.idx_e)
             W_b_ = build_baseRegressor(W_e_, self.idx_b)
             
@@ -512,7 +512,7 @@ class OptimalTrajectoryIPOPT:
                 
                 # Compute torques and check constraints
                 tau_i = calc_torque(
-                    p_i.shape[0], self.robot, p_i, v_i, a_i, self.params_settings
+                    p_i.shape[0], self.robot, p_i, v_i, a_i, self.identif_config
                 )
                 tau_i = np.reshape(tau_i, (v_i.shape[1], v_i.shape[0])).transpose()
                 is_constr_violated = self.CB.check_cfg_constraints(p_i, v_i, tau_i)

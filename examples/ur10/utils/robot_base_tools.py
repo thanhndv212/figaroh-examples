@@ -76,7 +76,7 @@ class BaseIdentification(ABC):
             self.config = yaml.load(f, Loader=SafeLoader)
         
         self.identif_data = self.config["identification"]
-        self.params_settings = get_identification_param_from_yaml(robot, self.identif_data)
+        self.identif_config = get_identification_param_from_yaml(robot, self.identif_data)
         
         # Initialize attributes
         self.params_standard = None
@@ -98,7 +98,7 @@ class BaseIdentification(ABC):
         print("Calculating structural base parameters...")
         
         # Generate random samples for structural analysis
-        nb_samples_structural = 10 * self.params_settings["nb_samples"]
+        nb_samples_structural = 10 * self.identif_config["nb_samples"]
         q_rand = np.random.uniform(
             low=-np.pi, high=np.pi, 
             size=(nb_samples_structural, self.model.nq)
@@ -114,7 +114,7 @@ class BaseIdentification(ABC):
         
         # Build regressor matrix
         W = build_regressor_basic(
-            self.robot, q_rand, dq_rand, ddq_rand, self.params_settings
+            self.robot, q_rand, dq_rand, ddq_rand, self.identif_config
         )
         
         # Get standard parameters (robot-specific implementation)
@@ -165,7 +165,7 @@ class BaseIdentification(ABC):
         self.load_trajectory_data()
         
         # Build regressor matrix for identification
-        W = build_regressor_basic(self.robot, self.q, self.dq, self.ddq, self.params_settings)
+        W = build_regressor_basic(self.robot, self.q, self.dq, self.ddq, self.identif_config)
         
         # Select only columns corresponding to base parameters
         self.W_base = W[:, self.idx_base]
@@ -211,10 +211,10 @@ class BaseIdentification(ABC):
         
         try:
             # Build full regressor for standard parameter calculation
-            W_full = build_regressor_basic(self.robot, self.q, self.dq, self.ddq, self.params_settings)
+            W_full = build_regressor_basic(self.robot, self.q, self.dq, self.ddq, self.identif_config)
             self.phi_standard, self.phi_ref = calculate_standard_parameters(
                 self.robot, W_full, self.tau_noised, COM_max, COM_min, 
-                self.params_settings
+                self.identif_config
             )
         except Exception as e:
             print(f"Warning: Could not calculate standard parameters: {e}")
@@ -482,7 +482,7 @@ class BaseOptimalTrajectory(ABC):
             self.config = yaml.load(f, Loader=SafeLoader)
         
         self.identif_data = self.config["identification"]
-        self.params_settings = get_identification_param_from_yaml(robot, self.identif_data)
+        self.identif_config = get_identification_param_from_yaml(robot, self.identif_data)
         
         # Initialize attributes
         self.params_base = None
@@ -533,7 +533,7 @@ class BaseOptimalTrajectory(ABC):
     
     def build_base_regressor(self, q, v, a, W_stack=None):
         """Build base regressor for given data."""
-        W = build_regressor_basic(self.robot, q, v, a, self.params_settings)
+        W = build_regressor_basic(self.robot, q, v, a, self.identif_config)
         W_e_ = build_regressor_reduced(W, self.idx_e)
         
         # Build base regressor using base parameter indices

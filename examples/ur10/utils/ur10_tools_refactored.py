@@ -65,7 +65,7 @@ class UR10Identification(BaseIdentification):
     
     def get_standard_parameters(self):
         """Get standard parameters for UR10 robot."""
-        return get_standard_parameters(self.model, self.params_settings)
+        return get_standard_parameters(self.model, self.identif_config)
     
     def load_trajectory_data(self):
         """Load trajectory data from UR10 CSV files."""
@@ -82,13 +82,13 @@ class UR10Identification(BaseIdentification):
         print(f"Loaded {len(q_raw)} samples from CSV files")
         
         # Limit samples if needed
-        max_samples = min(len(q_raw), self.params_settings.get("nb_samples", 100))
+        max_samples = min(len(q_raw), self.identif_config.get("nb_samples", 100))
         q_raw = q_raw[:max_samples, :]
         tau_raw = tau_raw[:max_samples, :]
         
         # Calculate velocities and accelerations using FIGAROH function
         self.q, self.dq, self.ddq = calculate_first_second_order_differentiation(
-            self.model, q_raw, self.params_settings
+            self.model, q_raw, self.identif_config
         )
         
         # Reshape torque data for identification
@@ -151,8 +151,8 @@ class UR10OptimalTrajectory(BaseOptimalTrajectory):
             size=(n_samples, self.model.nv)
         )
         
-        W = build_regressor_basic(self.robot, q_rand, dq_rand, ddq_rand, self.params_settings)
-        params_std = get_standard_parameters(self.model, self.params_settings)
+        W = build_regressor_basic(self.robot, q_rand, dq_rand, ddq_rand, self.identif_config)
+        params_std = get_standard_parameters(self.model, self.identif_config)
         
         from figaroh.tools.regressor import get_index_eliminate, build_regressor_reduced
         from figaroh.tools.qrdecomposition import get_baseIndex

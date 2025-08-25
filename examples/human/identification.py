@@ -75,8 +75,8 @@ with open("examples/human/config/human_config.yaml", "r") as f:
 
 identif_data = config["identification"]
 
-params_settings = get_param_from_yaml(robot_mocap, identif_data)
-params_settings["ts"] = 0.02
+identif_config = get_param_from_yaml(robot_mocap, identif_data)
+identif_config["ts"] = 0.02
 
 # LOAD KINEMATICS DATA
 
@@ -146,14 +146,14 @@ with open(path_mocap_data, newline="") as csvfile:
 for ii in range(forces_trajectories_mocap.shape[1]):
     if ii == 0:
         forces_trajectories_mocap_filt = low_pass_filter_data(
-            forces_trajectories_mocap[:, ii], params_settings, 5
+            forces_trajectories_mocap[:, ii], identif_config, 5
         )
     else:
         forces_trajectories_mocap_filt = np.column_stack(
             (
                 forces_trajectories_mocap_filt,
                 low_pass_filter_data(
-                    forces_trajectories_mocap[:, ii], params_settings, 5
+                    forces_trajectories_mocap[:, ii], identif_config, 5
                 ),
             )
         )
@@ -340,10 +340,10 @@ rotvec_nofilt = np.array(rotvec_list)
 
 for ii in range(rotvec_nofilt.shape[1]):
     if ii == 0:
-        rotvec = low_pass_filter_data(rotvec_nofilt[:, ii], params_settings, 5)
+        rotvec = low_pass_filter_data(rotvec_nofilt[:, ii], identif_config, 5)
     else:
         rotvec = np.column_stack(
-            (rotvec, low_pass_filter_data(rotvec_nofilt[:, ii], params_settings, 5))
+            (rotvec, low_pass_filter_data(rotvec_nofilt[:, ii], identif_config, 5))
         )
 
 quat_filt = np.zeros((rotvec.shape[0], 4))
@@ -365,10 +365,10 @@ for ii in range(rotvec.shape[0]):
 
 for ii in range(model_mocap.nq):
     if ii == 0:
-        q_m = low_pass_filter_data(q_mocap[:, ii], params_settings, 5)
+        q_m = low_pass_filter_data(q_mocap[:, ii], identif_config, 5)
     else:
         q_m = np.column_stack(
-            (q_m, low_pass_filter_data(q_mocap[:, ii], params_settings, 5))
+            (q_m, low_pass_filter_data(q_mocap[:, ii], identif_config, 5))
         )
 
 q_m[:, 3:7] = quat_filt
@@ -376,7 +376,7 @@ q_m[:, 3:7] = quat_filt
 # Identif
 
 # generate a list containing the full set of standard parameters
-params_standard_mocap = robot_mocap.get_standard_parameters(params_settings)
+params_standard_mocap = robot_mocap.get_standard_parameters(identif_config)
 
 # 1. First we build the structural base identification model, i.e. the one that can
 # be observed, using random samples
@@ -385,14 +385,14 @@ q_rand = []
 dq_rand = []
 ddq_rand = []
 
-for ii in range(params_settings["nb_samples"] + 2):
+for ii in range(identif_config["nb_samples"] + 2):
     q_rand.append(pin.randomConfiguration(model_mocap))
 
-for ii in range(params_settings["nb_samples"] + 1):
+for ii in range(identif_config["nb_samples"] + 1):
     dq_rand.append(pin.difference(model_mocap, q_rand[ii + 1], q_rand[ii]))
 
-for ii in range(params_settings["nb_samples"]):
-    ddq_rand.append(dq_rand[ii + 1] - dq_rand[ii] / params_settings["ts"])
+for ii in range(identif_config["nb_samples"]):
+    ddq_rand.append(dq_rand[ii + 1] - dq_rand[ii] / identif_config["ts"])
 
 q_rand = np.array(q_rand[:-2])
 dq_rand = np.array(dq_rand[:-1])
@@ -400,7 +400,7 @@ ddq_rand = np.array(ddq_rand)
 
 nb_samples = len(q_rand)
 
-W = build_regressor_basic(robot_mocap, q_rand, dq_rand, ddq_rand, params_settings)
+W = build_regressor_basic(robot_mocap, q_rand, dq_rand, ddq_rand, identif_config)
 
 # remove zero cols and build a zero columns free regressor matrix
 idx_e, params_r = get_index_eliminate(W, params_standard_mocap, 1e-6)
@@ -422,7 +422,7 @@ for ii in range(len(params_base)):
 # Identif with real data
 
 q_m, dq_m, ddq_m = calculate_first_second_order_differentiation(
-    model_mocap, q_m, params_settings
+    model_mocap, q_m, identif_config
 )
 
 nb_samples = len(q_m)
@@ -452,7 +452,7 @@ for ii in range(nb_samples):
         )
         tau_meast_mocap[j * nb_samples + ii] = tau_temp_sub[j]
 
-W_mocap = build_regressor_basic(robot_mocap, q_m, dq_m, ddq_m, params_settings)
+W_mocap = build_regressor_basic(robot_mocap, q_m, dq_m, ddq_m, identif_config)
 
 # remove zero cols and build a zero columns free regressor matrix
 W_e_mocap = build_regressor_reduced(W_mocap, idx_e)

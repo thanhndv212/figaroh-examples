@@ -88,7 +88,7 @@ class UR10Identification:
 class UR10Identification(BaseIdentification):
     def get_standard_parameters(self):
         # Only robot-specific method needed
-        return get_standard_parameters(self.model, self.params_settings)
+        return get_standard_parameters(self.model, self.identif_config)
     
     def load_trajectory_data(self):
         # Only robot-specific data loading needed

@@ -49,10 +49,10 @@ with open("config/ur10_config.yaml", "r") as f:
     pprint.pprint(config)
 
 identif_data = config["identification"]
-params_settings = get_param_from_yaml(robot, identif_data)
-print(params_settings)
+identif_config = get_param_from_yaml(robot, identif_data)
+print(identif_config)
 
-params_standard_u = get_standard_parameters(model, params_settings)
+params_standard_u = get_standard_parameters(model, identif_config)
 print(params_standard_u)
 
 # Print out the placement of each joint of the kinematic tree
@@ -61,24 +61,24 @@ for name, oMi in zip(model.names, data.oMi):
     print(("{:<24} : {: .2f} {: .2f} {: .2f}".format(name, *oMi.translation.T.flat)))
 
 # generate a list containing the full set of standard parameters
-params_standard = get_standard_parameters(model, params_settings)
+params_standard = get_standard_parameters(model, identif_config)
 
 # 1. First we build the structural base identification model, i.e. the one that can
 # be observed, using random samples
 
 q_rand = np.random.uniform(
-    low=-6, high=6, size=(10 * params_settings["nb_samples"], model.nq)
+    low=-6, high=6, size=(10 * identif_config["nb_samples"], model.nq)
 )
 
 dq_rand = np.random.uniform(
-    low=-6, high=6, size=(10 * params_settings["nb_samples"], model.nv)
+    low=-6, high=6, size=(10 * identif_config["nb_samples"], model.nv)
 )
 
 ddq_rand = np.random.uniform(
-    low=-6, high=6, size=(10 * params_settings["nb_samples"], model.nv)
+    low=-6, high=6, size=(10 * identif_config["nb_samples"], model.nv)
 )
 
-W = build_regressor_basic(robot, q_rand, dq_rand, ddq_rand, params_settings)
+W = build_regressor_basic(robot, q_rand, dq_rand, ddq_rand, identif_config)
 
 # remove zero cols and build a zero columns free regressor matrix
 idx_e, params_r = get_index_eliminate(W, params_standard, 1e-6)
@@ -117,9 +117,9 @@ with open("data/identification_q_simulation.csv", "r") as f:
             )
         ii += 1
 
-q, dq, ddq = calculate_first_second_order_differentiation(model, q, params_settings)
+q, dq, ddq = calculate_first_second_order_differentiation(model, q, identif_config)
 
-W = build_regressor_basic(robot, q, dq, ddq, params_settings)
+W = build_regressor_basic(robot, q, dq, ddq, identif_config)
 # select only the columns of the regressor corresponding to the structural base
 # parameters
 W_base = W[:, idx_base]
@@ -169,7 +169,7 @@ COM_max = np.ones((6 * 3, 1))  # subject to be more adapted
 COM_min = -np.ones((6 * 3, 1))
 
 phi_standard, phi_ref = calculate_standard_parameters(
-    robot, W, tau_noised, COM_max, COM_min, params_settings
+    robot, W, tau_noised, COM_max, COM_min, identif_config
 )
 
 print(phi_standard)

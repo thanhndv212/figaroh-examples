@@ -55,13 +55,13 @@ with open("config/TX40_config.yaml", "r") as f:
 
 identif_data = config["identification"]
 
-params_settings = get_param_from_yaml(robot, identif_data)
-params_std = robot.get_standard_parameters(params_settings)
+identif_config = get_param_from_yaml(robot, identif_data)
+params_std = robot.get_standard_parameters(identif_config)
 
-if params_settings["has_coupled_wrist"]:  # self.isCoupling:
-    params_std["Iam6"] = params_settings["Iam6"]
-    params_std["fvm6"] = params_settings["fvm6"]
-    params_std["fsm6"] = params_settings["fsm6"]
+if identif_config["has_coupled_wrist"]:  # self.isCoupling:
+    params_std["Iam6"] = identif_config["Iam6"]
+    params_std["fvm6"] = identif_config["fvm6"]
+    params_std["fsm6"] = identif_config["fsm6"]
 
 active_joints = [
     "joint_1",
@@ -72,20 +72,20 @@ active_joints = [
     "joint_6",
 ]
 idx_act_joints = [robot.model.getJointId(i) - 1 for i in active_joints]
-params_settings["idx_act_joints"] = idx_act_joints
+identif_config["idx_act_joints"] = idx_act_joints
 
 q_rand = np.random.uniform(
-    low=-6, high=6, size=(10 * params_settings["nb_samples"], model.nq)
+    low=-6, high=6, size=(10 * identif_config["nb_samples"], model.nq)
 )
 
 dq_rand = np.random.uniform(
-    low=-10, high=10, size=(10 * params_settings["nb_samples"], model.nv)
+    low=-10, high=10, size=(10 * identif_config["nb_samples"], model.nv)
 )
 
 ddq_rand = np.random.uniform(
-    low=-30, high=30, size=(10 * params_settings["nb_samples"], model.nv)
+    low=-30, high=30, size=(10 * identif_config["nb_samples"], model.nv)
 )
-W = build_regressor_basic(robot, q_rand, dq_rand, ddq_rand, params_settings)
+W = build_regressor_basic(robot, q_rand, dq_rand, ddq_rand, identif_config)
 W = add_coupling_TX40(
     W, model, data, len(q_rand), nq, nv, njoints, q_rand, dq_rand, ddq_rand
 )
@@ -102,13 +102,13 @@ print("The structural base parameters are: ")
 for ii in range(len(params_base)):
     print(params_base[ii])
 
-f_sample = 1 / params_settings["ts"]
+f_sample = 1 / identif_config["ts"]
 
 curr_data = pd.read_csv("data/curr_data.csv").to_numpy()
 pos_data = pd.read_csv("data/pos_read_data.csv").to_numpy()
 # Nyquist freq/0.5*sampling rate fs = 0.5 *5 kHz
 
-N_robot = params_settings["N"]
+N_robot = identif_config["N"]
 
 # cut off tail and head
 head = int(0.1 * f_sample)
@@ -131,10 +131,10 @@ nbord = 5 * nbutter
 
 for ii in range(model.nq):
     if ii == 0:
-        q = low_pass_filter_data(q_nofilt[:, ii], params_settings, nbutter)
+        q = low_pass_filter_data(q_nofilt[:, ii], identif_config, nbutter)
     else:
         q = np.column_stack(
-            (q, low_pass_filter_data(q_nofilt[:, ii], params_settings, nbutter))
+            (q, low_pass_filter_data(q_nofilt[:, ii], identif_config, nbutter))
         )
 
 
@@ -142,7 +142,7 @@ for ii in range(model.nq):
 q[:, 1] += -np.pi / 2
 q[:, 2] += np.pi / 2
 
-q, dq, ddq = calculate_first_second_order_differentiation(model, q, params_settings)
+q, dq, ddq = calculate_first_second_order_differentiation(model, q, identif_config)
 
 # fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
 # fig.suptitle('Verif q')
@@ -164,7 +164,7 @@ qd = dq
 qdd = ddq
 N = q.shape[0]
 
-W = build_regressor_basic(robot, q, qd, qdd, params_settings)
+W = build_regressor_basic(robot, q, qd, qdd, identif_config)
 W = add_coupling_TX40(W, model, data, N, nq, nv, njoints, q, qd, qdd)
 
 # calculate joint torques = reduction gear ratio matrix*motor_torques
@@ -208,7 +208,7 @@ for i in range(len(W_list)):
     idx_qd_cross_zero = []
     for j in range(W_list[i].shape[0]):
         if (
-            abs(W_list[i][j, i * 14 + 11]) < params_settings["dq_lim_def"][i]
+            abs(W_list[i][j, i * 14 + 11]) < identif_config["dq_lim_def"][i]
         ):  # check columns of fv_i
             idx_qd_cross_zero.append(j)
     # indices with vels around zero
@@ -248,8 +248,8 @@ tau_ref = np.dot(W_, phi_ref)
 print(tau_dec.shape, tau_base.shape, tau_ref.shape)
 cur_t = 0
 plot2 = plt.figure(2)
-axs2 = plot2.subplots(len(params_settings["idx_act_joints"]), 1)
-for i in range(len(params_settings["idx_act_joints"])):
+axs2 = plot2.subplots(len(identif_config["idx_act_joints"]), 1)
+for i in range(len(identif_config["idx_act_joints"])):
     next_t = cur_t + t_sample[i]
     range_t = range(cur_t, next_t)
     cur_t = next_t
@@ -356,7 +356,7 @@ max_std_e = max(std_xr)
 std_xr_e = std_xr
 params_essential = params_base
 W_essential = W_b
-while not (max_std_e < params_settings["ratio_essential"] * min_std_e):
+while not (max_std_e < identif_config["ratio_essential"] * min_std_e):
     (i,) = np.where(np.isclose(std_xr_e, max_std_e))
     del params_essential[int(i)]
     W_essential = np.delete(W_essential, i, 1)

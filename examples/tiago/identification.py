@@ -28,7 +28,7 @@ tiago = load_robot(
 tiago_iden = TiagoIdentification(tiago, "config/tiago_config.yaml")
 
 # Define additional parameters excluded from yaml files
-ps = tiago_iden.params_settings
+ps = tiago_iden.identif_config
 ps["reduction_ratio"] = {
     "torso_lift_joint": 1,
     "arm_1_joint": 100,
