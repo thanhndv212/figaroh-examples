@@ -309,7 +309,7 @@ class BaseOptimalCalibration(ABC):
         
         # Create a BaseCalibration object to get parameters
         calib_obj = BaseCalibration(robot, config_file)
-        self.param = calib_obj.param
+        self.calib_config = calib_obj.calib_config
         
         # Initialize attributes
         self.optimal_configurations = None
@@ -317,20 +317,20 @@ class BaseOptimalCalibration(ABC):
         
         print(f"{self.__class__.__name__} initialized")
     
-    def rearrange_rb(self, R_b, param):
+    def rearrange_rb(self, R_b, calib_config):
         """Rearrange the kinematic regressor by sample numbered order."""
         Rb_rearr = np.empty_like(R_b)
-        for i in range(param["calibration_index"]):
-            for j in range(param["NbSample"]):
-                Rb_rearr[param["NbSample"] * i + j, :] = R_b[param["calibration_index"] * j + i, :]
+        for i in range(calib_config["calibration_index"]):
+            for j in range(calib_config["NbSample"]):
+                Rb_rearr[calib_config["NbSample"] * i + j, :] = R_b[calib_config["calibration_index"] * j + i, :]
         return Rb_rearr
     
-    def sub_info_matrix(self, R, param):
+    def sub_info_matrix(self, R, calib_config):
         """Returns a list of sub info matrices (product of transpose of regressor and regressor)."""
         subX_dict = {}
-        for i in range(param["NbSample"]):
-            start_idx = i * param["calibration_index"]
-            end_idx = (i + 1) * param["calibration_index"]
+        for i in range(calib_config["NbSample"]):
+            start_idx = i * calib_config["calibration_index"]
+            end_idx = (i + 1) * calib_config["calibration_index"]
             R_i = R[start_idx:end_idx, :]
             subX_dict[i] = R_i.T @ R_i
         return subX_dict
@@ -368,7 +368,7 @@ class BaseOptimalCalibration(ABC):
         # Calculate base kinematic regressor
         q_rand = []
         Rrand_b, R_b, R_e, paramsrand_base, paramsrand_e = calculate_base_kinematics_regressor(
-            q_rand, self.model, self.data, self.param
+            q_rand, self.model, self.data, self.calib_config
         )
         
         # Load candidate configurations
@@ -377,8 +377,8 @@ class BaseOptimalCalibration(ABC):
         print(f"Loaded {len(q_candidates)} candidate configurations")
         
         # Calculate regressor for all candidates
-        R_candidates = np.zeros((len(q_candidates) * self.param["calibration_index"], 
-                               self.param["calibration_index"]))
+        R_candidates = np.zeros((len(q_candidates) * self.calib_config["calibration_index"], 
+                               self.calib_config["calibration_index"]))
         
         for i, q in enumerate(q_candidates):
             # Calculate kinematic regressor for this configuration
@@ -386,10 +386,10 @@ class BaseOptimalCalibration(ABC):
             pass
         
         # Rearrange regressor
-        R_rearranged = self.rearrange_rb(R_candidates, self.param)
+        R_rearranged = self.rearrange_rb(R_candidates, self.calib_config)
         
         # Build sub-information matrices
-        subX_dict = self.sub_info_matrix(R_rearranged, self.param)
+        subX_dict = self.sub_info_matrix(R_rearranged, self.calib_config)
         
         # Apply optimization for optimal selection
         optimal_configs, optimal_weights = self.optimize_selection(subX_dict, nb_chosen)

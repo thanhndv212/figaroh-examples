@@ -23,13 +23,13 @@ import time
 robot = load_robot("urdf/mate.urdf", package_dirs="models", load_by_urdf=True)
 
 robot_calib = MateCalibration(robot, "config/mate.yaml", del_list=[])
-robot_calib.param["known_baseframe"] = False
-robot_calib.param["known_tipframe"] = False
+robot_calib.calib_config["known_baseframe"] = False
+robot_calib.calib_config["known_tipframe"] = False
 # # load data file and determine parameters to be calibrated
 robot_calib.load_data_set()
 
 robot_calib.create_param_list()
-# print(robot_calib.param['param_name'])
+# print(robot_calib.calib_config['param_name'])
 robot_calib.solve()
 robot_calib.plot()
 

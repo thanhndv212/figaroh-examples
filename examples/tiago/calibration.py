@@ -27,8 +27,8 @@ tiago = load_robot(
 # create a calibration object from config file
 # del_list=[(0, 1)], 0: numbered marker, 1: numbered sample will be removed
 tiago_calib = TiagoCalibration(tiago, "config/tiago_config.yaml", del_list=[])
-tiago_calib.param["known_baseframe"] = False
-tiago_calib.param["known_tipframe"] = False
+tiago_calib.calib_config["known_baseframe"] = False
+tiago_calib.calib_config["known_tipframe"] = False
 
 # load data file and determine parameters to be calibrated
 tiago_calib.initialize()

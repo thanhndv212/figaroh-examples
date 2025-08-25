@@ -46,7 +46,7 @@ class UR10Calibration(BaseCalibration):
         """Initialize UR10 calibration with robot model and configuration."""
         super().__init__(robot, config_file)
         print(f"UR10 Calibration initialized")
-        print(f"Total calibrating parameters: {len(self.param['param_name'])}")
+        print(f"Total calibrating parameters: {len(self.calib_config['param_name'])}")
     
     # Robot-specific implementations of abstract methods from BaseCalibration
     def cost_function(self, var):
@@ -103,7 +103,7 @@ class UR10OptimalCalibration(BaseOptimalCalibration):
     def load_candidate_configurations(self):
         """Load candidate configurations from UR10 calibration data."""
         filename = "data/calibration.csv"
-        q_candidates, _ = load_data(filename, self.model, self.param, [])
+        q_candidates, _ = load_data(filename, self.model, self.calib_config, [])
         return q_candidates
     
     def optimize_selection(self, subX_dict, nb_chosen):

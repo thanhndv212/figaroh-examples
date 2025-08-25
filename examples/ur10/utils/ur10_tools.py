@@ -83,9 +83,9 @@ class UR10Calibration(BaseCalibration):
         Returns:
             ndarray: Weighted residual vector including regularization terms
         """
-        coeff_ = self.param["coeff_regularize"]
+        coeff_ = self.calib_config["coeff_regularize"]
         PEEe = calc_updated_fkm(self.model, self.data, var,
-                                self.q_measured, self.param)
+                                self.q_measured, self.calib_config)
         
         # Main residual: difference between measured and estimated poses
         raw_residuals = self.PEE_measured - PEEe
@@ -98,8 +98,8 @@ class UR10Calibration(BaseCalibration):
         # Regularization term for intermediate parameters (excludes base/tip)
         # This helps stabilize optimization for UR10's 6-DOF kinematic chain
         n_base_params = 6  # Base frame parameters
-        n_markers = self.param["NbMarkers"]
-        n_tip_params = n_markers * self.param["calibration_index"]
+        n_markers = self.calib_config["NbMarkers"]
+        n_tip_params = n_markers * self.calib_config["calibration_index"]
         regularization_params = var[n_base_params:-n_tip_params]
         regularization_residuals = np.sqrt(coeff_) * regularization_params
         
@@ -342,26 +342,26 @@ class UR10OptimalCalibration:
         
         # Create a BaseCalibration object to get parameters
         calib_obj = BaseCalibration(robot, config_file)
-        self.param = calib_obj.param
+        self.calib_config = calib_obj.calib_config
         
         print("UR10 Optimal Calibration initialized")
     
-    def rearrange_rb(self, R_b, param):
+    def rearrange_rb(self, R_b, calib_config):
         """Rearrange the kinematic regressor by sample numbered order."""
         Rb_rearr = np.empty_like(R_b)
-        for i in range(param["calibration_index"]):
-            for j in range(param["NbSample"]):
-                Rb_rearr[j * param["calibration_index"] + i, :] = R_b[
-                    i * param["NbSample"] + j
+        for i in range(calib_config["calibration_index"]):
+            for j in range(calib_config["NbSample"]):
+                Rb_rearr[j * calib_config["calibration_index"] + i, :] = R_b[
+                    i * calib_config["NbSample"] + j
                 ]
         return Rb_rearr
     
-    def sub_info_matrix(self, R, param):
+    def sub_info_matrix(self, R, calib_config):
         """Returns a list of sub info matrices (product of transpose of regressor and regressor)."""
         subX_dict = {}
-        for i in range(param["NbSample"]):
-            start_idx = i * param["calibration_index"]
-            end_idx = (i + 1) * param["calibration_index"]
+        for i in range(calib_config["NbSample"]):
+            start_idx = i * calib_config["calibration_index"]
+            end_idx = (i + 1) * calib_config["calibration_index"]
             R_i = R[start_idx:end_idx, :]
             subX_dict[i] = R_i.T @ R_i
         return subX_dict
@@ -377,33 +377,33 @@ class UR10OptimalCalibration:
         # Calculate base kinematic regressor
         q_rand = []
         Rrand_b, R_b, R_e, paramsrand_base, paramsrand_e = calculate_base_kinematics_regressor(
-            q_rand, self.model, self.data, self.param
+            q_rand, self.model, self.data, self.calib_config
         )
         
         # Load candidate configurations from the calibration data
         filename = "data/calibration.csv"  # Use existing calibration data
         q_candidates, _ = load_data(
-            filename, self.model, self.param, []
+            filename, self.model, self.calib_config, []
         )
         
         print(f"Loaded {len(q_candidates)} candidate configurations")
         
         # Calculate regressor for all candidates
-        R_candidates = np.zeros((len(q_candidates) * self.param["calibration_index"], 
-                               self.param["calibration_index"]))
+        R_candidates = np.zeros((len(q_candidates) * self.calib_config["calibration_index"], 
+                               self.calib_config["calibration_index"]))
         
         for i, q in enumerate(q_candidates):
             # Calculate regressor for this configuration
             # This is a simplified version - in practice you'd use the full kinematic regressor
-            start_idx = i * self.param["calibration_index"]
-            end_idx = (i + 1) * self.param["calibration_index"]
-            R_candidates[start_idx:end_idx, :] = np.eye(self.param["calibration_index"])
+            start_idx = i * self.calib_config["calibration_index"]
+            end_idx = (i + 1) * self.calib_config["calibration_index"]
+            R_candidates[start_idx:end_idx, :] = np.eye(self.calib_config["calibration_index"])
         
         # Rearrange regressor
-        R_rearranged = self.rearrange_rb(R_candidates, self.param)
+        R_rearranged = self.rearrange_rb(R_candidates, self.calib_config)
         
         # Build sub-information matrices
-        subX_dict = self.sub_info_matrix(R_rearranged, self.param)
+        subX_dict = self.sub_info_matrix(R_rearranged, self.calib_config)
         
         # Apply SOCP optimization for optimal selection
         print("Applying SOCP optimization...")

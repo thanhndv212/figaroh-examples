@@ -35,31 +35,31 @@ from figaroh.calibration.calibration_tools import (
 from figaroh.tools.robot import Robot, load_robot
 
 
-def rearrange_rb(R_b, param):
+def rearrange_rb(R_b, calib_config):
     """rearrange the kinematic regressor by sample numbered order"""
     Rb_rearr = np.empty_like(R_b)
-    for i in range(param["calibration_index"]):
-        for j in range(param["NbSample"]):
-            Rb_rearr[j * param["calibration_index"] + i, :] = R_b[
-                i * param["NbSample"] + j
+    for i in range(calib_config["calibration_index"]):
+        for j in range(calib_config["NbSample"]):
+            Rb_rearr[j * calib_config["calibration_index"] + i, :] = R_b[
+                i * calib_config["NbSample"] + j
             ]
     return Rb_rearr
 
 
-def sub_info_matrix(R, param):
+def sub_info_matrix(R, calib_config):
     """Returns a list of sub infor matrices (product of transpose of regressor and regressor)
     which corresponds to each data sample
     """
     subX_list = []
-    idex = param["calibration_index"]
-    for it in range(param["NbSample"]):
+    idex = calib_config["calibration_index"]
+    for it in range(calib_config["NbSample"]):
         sub_R = R[it * idex : (it * idex + idex), :]
         subX = np.matmul(sub_R.T, sub_R)
         subX_list.append(subX)
     subX_dict = dict(
         zip(
             np.arange(
-                param["NbSample"],
+                calib_config["NbSample"],
             ),
             subX_list,
         )
@@ -134,15 +134,15 @@ class Detmax:
 
 
 class SOCP:
-    def __init__(self, subX_dict, param):
+    def __init__(self, subX_dict, calib_config):
         self.pool = subX_dict
-        self.param = param
+        self.calib_config = calib_config
         self.problem = pc.Problem()
-        self.w = pc.RealVariable("w", self.param["NbSample"], lower=0)
+        self.w = pc.RealVariable("w", self.calib_config["NbSample"], lower=0)
         self.t = pc.RealVariable("t", 1)
 
     def add_constraints(self):
-        Mw = pc.sum(self.w[i] * self.pool[i] for i in range(self.param["NbSample"]))
+        Mw = pc.sum(self.w[i] * self.pool[i] for i in range(self.calib_config["NbSample"]))
         wgt_cons = self.problem.add_constraint(1 | self.w <= 1)
         det_root_cons = self.problem.add_constraint(self.t <= pc.DetRootN(Mw))
 
@@ -162,7 +162,7 @@ class SOCP:
         print("sum of all element in vector solution: ", sum(w_list))
 
         # to dict
-        w_dict = dict(zip(np.arange(self.param["NbSample"]), w_list))
+        w_dict = dict(zip(np.arange(self.calib_config["NbSample"]), w_list))
         w_dict_sort = dict(reversed(sorted(w_dict.items(), key=lambda item: item[1])))
         return w_list, w_dict_sort
 
@@ -180,21 +180,21 @@ with open("config/ur10_config.yaml", "r") as f:
     config = yaml.load(f, Loader=SafeLoader)
     pprint.pprint(config)
 calib_data = config["calibration"]
-param = get_param_from_yaml(robot, calib_data)
+calib_config = get_param_from_yaml(robot, calib_data)
 
 # read sample configuration pool from file, otherwise random configs are generated
 q = []
 
 Rrand_b, R_b, R_e, paramsrand_base, paramsrand_e = calculate_base_kinematics_regressor(
-    q, model, data, param
+    q, model, data, calib_config
 )
-R_rearr = rearrange_rb(R_b, param)
-subX_list, subX_dict = sub_info_matrix(R_rearr, param)
+R_rearr = rearrange_rb(R_b, calib_config)
+subX_list, subX_dict = sub_info_matrix(R_rearr, calib_config)
 
 ##find optimal combination of data samples from  a candidate pool (combinatorial optimization)
 
 # required minimum number of configurations
-NbChosen = int(param["NbJoint"] * 6 / param["calibration_index"]) + 1
+NbChosen = int(calib_config["NbJoint"] * 6 / calib_config["calibration_index"]) + 1
 
 #### picos optimization ( A-optimality, C-optimality, D-optimality)
 prev_time = time.time()
@@ -202,7 +202,7 @@ M_whole = np.matmul(R_rearr.T, R_rearr)
 det_root_whole = pc.DetRootN(M_whole)
 print("detrootn of whole matrix:", det_root_whole)
 
-SOCP_algo = SOCP(subX_dict, param)
+SOCP_algo = SOCP(subX_dict, calib_config)
 w_list, w_dict_sort = SOCP_algo.solve()
 solve_time = time.time() - prev_time
 print("solve time of socp: ", solve_time)
@@ -224,7 +224,7 @@ else:
 # plotting
 det_root_list = []
 n_key_list = []
-for nbc in range(min_NbChosen, param["NbSample"] + 1):
+for nbc in range(min_NbChosen, calib_config["NbSample"] + 1):
     n_key = list(w_dict_sort.keys())[0:nbc]
     n_key_list.append(n_key)
     M_i = pc.sum(w_dict_sort[i] * subX_list[i] for i in n_key)
@@ -233,7 +233,7 @@ idx_subList = range(len(det_root_list))
 
 fig, ax = plt.subplots(2)
 ratio = det_root_whole / det_root_list[-1]
-plot_range = param["NbSample"] - NbChosen
+plot_range = calib_config["NbSample"] - NbChosen
 ax[0].set_ylabel("D-optimality criterion", fontsize=20)
 ax[0].tick_params(axis="y", labelsize=18)
 ax[0].plot(ratio * np.array(det_root_list[:plot_range]))

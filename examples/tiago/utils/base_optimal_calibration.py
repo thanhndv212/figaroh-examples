@@ -76,7 +76,7 @@ class BaseOptimalCalibration(ABC):
         robot: Robot model instance loaded with FIGAROH
         model: Pinocchio robot model
         data: Pinocchio robot data
-        param (dict): Calibration parameters from configuration file
+        calib_config (dict): Calibration parameters from configuration file
         optimal_configurations (dict): Selected optimal configurations
         optimal_weights (ndarray): Weights assigned to configurations
         minNbChosen (int): Minimum number of configurations required
@@ -134,7 +134,7 @@ class BaseOptimalCalibration(ABC):
             ValueError: If calibration model type is unsupported
             
         Side Effects:
-            - Loads and stores calibration parameters in self.param
+            - Loads and stores calibration parameters in self.calib_config
             - Calculates minimum required configurations (self.minNbChosen)
             - Initializes optimization result attributes to None
             - Prints initialization confirmation message
@@ -152,21 +152,21 @@ class BaseOptimalCalibration(ABC):
         # Initialize attributes for optimal calibration
         self.optimal_configurations = None
         self.optimal_weights = None
-        self._sampleConfigs_file = self.param.get("sample_configs_file")
+        self._sampleConfigs_file = self.calib_config.get("sample_configs_file")
         
         # Calculate minimum number of configurations needed
-        if self.param["calib_model"] == "full_params":
+        if self.calib_config["calib_model"] == "full_params":
             self.minNbChosen = (
                 int(
-                    len(self.param["actJoint_idx"])
+                    len(self.calib_config["actJoint_idx"])
                     * 6
-                    / self.param["calibration_index"]
+                    / self.calib_config["calibration_index"]
                 )
                 + 1
             )
-        elif self.param["calib_model"] == "joint_offset":
+        elif self.calib_config["calib_model"] == "joint_offset":
             self.minNbChosen = (
-                int(len(self.param["actJoint_idx"]) / self.param["calibration_index"])
+                int(len(self.calib_config["actJoint_idx"]) / self.calib_config["calibration_index"])
                 + 1
             )
         
@@ -276,7 +276,7 @@ class BaseOptimalCalibration(ABC):
                               section names. Default "calibration".
                               
         Side Effects:
-            - Updates self.param with loaded configuration dictionary
+            - Updates self.calib_config with loaded configuration dictionary
             - Overwrites any existing parameter settings
             
         Raises:
@@ -286,13 +286,13 @@ class BaseOptimalCalibration(ABC):
             
         Example:
             >>> opt_calib.load_param("config/tiago_optimal.yaml")
-            >>> print(opt_calib.param["calib_model"])  # "full_params"
-            >>> print(opt_calib.param["NbSample"])     # 1000
+            >>> print(opt_calib.calib_config["calib_model"])  # "full_params"
+            >>> print(opt_calib.calib_config["NbSample"])     # 1000
         """
         with open(config_file, "r") as f:
             config = yaml.load(f, Loader=SafeLoader)
         calib_data = config[setting_type]
-        self.param = get_param_from_yaml(self.robot, calib_data)
+        self.calib_config = get_param_from_yaml(self.robot, calib_data)
 
     def load_candidate_configurations(self):
         """Load candidate joint configurations from external data files.
@@ -313,7 +313,7 @@ class BaseOptimalCalibration(ABC):
         
         Side Effects:
             - Sets self.q_measured with loaded joint configurations
-            - Updates self.param["NbSample"] with actual sample count
+            - Updates self.calib_config["NbSample"] with actual sample count
             - May load self._configs for YAML format data
             
         Raises:
@@ -334,7 +334,7 @@ class BaseOptimalCalibration(ABC):
         
         if "csv" in self._sampleConfigs_file:
             _, self.q_measured = load_data(
-                self._data_path, self.model, self.param, []
+                self._data_path, self.model, self.calib_config, []
             )
         elif "yaml" in self._sampleConfigs_file:
             with open(self._sampleConfigs_file, "r") as file:
@@ -355,7 +355,7 @@ class BaseOptimalCalibration(ABC):
             self.q_measured = q
 
             # update number of samples
-            self.param["NbSample"] = self.q_measured.shape[0]
+            self.calib_config["NbSample"] = self.q_measured.shape[0]
         else:
             raise ValueError("Data file format not supported. Use CSV or YAML format.")
     
@@ -404,12 +404,12 @@ class BaseOptimalCalibration(ABC):
             paramsrand_base,
             paramsrand_e,
         ) = calculate_base_kinematics_regressor(
-            self.q_measured, self.model, self.data, self.param
+            self.q_measured, self.model, self.data, self.calib_config
         )
 
         # Rearrange the kinematic regressor by sample numbered order
-        self.R_rearr = self.rearrange_rb(R_b, self.param)
-        subX_list, subX_dict = self.sub_info_matrix(self.R_rearr, self.param)
+        self.R_rearr = self.rearrange_rb(R_b, self.calib_config)
+        subX_list, subX_dict = self.sub_info_matrix(self.R_rearr, self.calib_config)
         self._subX_dict = subX_dict
         self._subX_list = subX_list
         return True
@@ -451,17 +451,17 @@ class BaseOptimalCalibration(ABC):
         self.detroot_whole = pc.DetRootN(M_whole) / np.sqrt(M_whole.shape[0])
         print("detrootn of whole matrix:", self.detroot_whole)
 
-    def rearrange_rb(self, R_b, param):
+    def rearrange_rb(self, R_b, calib_config):
         """rearrange the kinematic regressor by sample numbered order"""
         Rb_rearr = np.empty_like(R_b)
-        for i in range(param["calibration_index"]):
-            for j in range(param["NbSample"]):
-                Rb_rearr[j * param["calibration_index"] + i, :] = R_b[
-                    i * param["NbSample"] + j
+        for i in range(calib_config["calibration_index"]):
+            for j in range(calib_config["NbSample"]):
+                Rb_rearr[j * calib_config["calibration_index"] + i, :] = R_b[
+                    i * calib_config["NbSample"] + j
                 ]
         return Rb_rearr
 
-    def sub_info_matrix(self, R, param):
+    def sub_info_matrix(self, R, calib_config):
         """Decompose regressor into individual configuration info matrices.
         
         Creates separate information matrices for each configuration by
@@ -471,7 +471,7 @@ class BaseOptimalCalibration(ABC):
         
         Args:
             R (ndarray): Full rearranged kinematic regressor matrix
-            param (dict): Calibration parameters including sample count
+            calib_config (dict): Calibration parameters including sample count
                          and calibration index
                          
         Returns:
@@ -486,20 +486,20 @@ class BaseOptimalCalibration(ABC):
             
         Example:
             >>> R_full = np.random.rand(6000, 42)  # 1000 configs, 6 DOF
-            >>> subX_list, subX_dict = self.sub_info_matrix(R_full, param)
+            >>> subX_list, subX_dict = self.sub_info_matrix(R_full, calib_config)
             >>> print(len(subX_list))  # 1000
             >>> print(subX_dict[0].shape)  # (42, 42)
         """
         subX_list = []
-        idex = param["calibration_index"]
-        for it in range(param["NbSample"]):
+        idex = calib_config["calibration_index"]
+        for it in range(calib_config["NbSample"]):
             sub_R = R[it * idex : (it * idex + idex), :]
             subX = np.matmul(sub_R.T, sub_R)
             subX_list.append(subX)
         subX_dict = dict(
             zip(
                 np.arange(
-                    param["NbSample"],
+                    calib_config["NbSample"],
                 ),
                 subX_list,
             )
@@ -555,7 +555,7 @@ class BaseOptimalCalibration(ABC):
 
         # Picos optimization (A-optimality, C-optimality, D-optimality)
         prev_time = time.time()
-        SOCP_algo = SOCPOptimizer(self._subX_dict, self.param)
+        SOCP_algo = SOCPOptimizer(self._subX_dict, self.calib_config)
         self.w_list, self.w_dict_sort = SOCP_algo.solve()
         solve_time = time.time() - prev_time
         print("solve time of socp: ", solve_time)
@@ -641,7 +641,7 @@ class BaseOptimalCalibration(ABC):
         n_key_list = []
 
         # Calculate det_root_list and n_key_list
-        for nbc in range(self.minNbChosen, self.param["NbSample"] + 1):
+        for nbc in range(self.minNbChosen, self.calib_config["NbSample"] + 1):
             n_key = list(self.w_dict_sort.keys())[0:nbc]
             n_key_list.append(n_key)
             M_i = pc.sum(self.w_dict_sort[i] * self._subX_list[i] for i in n_key)
@@ -652,7 +652,7 @@ class BaseOptimalCalibration(ABC):
 
         # Plot D-optimality criterion
         ratio = self.detroot_whole / det_root_list[-1]
-        plot_range = self.param["NbSample"] - self.minNbChosen
+        plot_range = self.calib_config["NbSample"] - self.minNbChosen
         ax[0].set_ylabel("D-optimality criterion", fontsize=20)
         ax[0].tick_params(axis="y", labelsize=18)
         ax[0].plot(ratio * np.array(det_root_list[:plot_range]))
@@ -687,7 +687,7 @@ class BaseOptimalCalibration(ABC):
         os.makedirs(output_dir, exist_ok=True)
         
         # Save optimal configurations
-        robot_name = self.param["robot_name"] if "robot_name" in self.param else self.model.name
+        robot_name = self.calib_config["robot_name"] if "robot_name" in self.calib_config else self.model.name
         filename = f"{robot_name}_optimal_configurations.yaml"
 
         with open(os.path.join(output_dir, filename), "w") as stream:
@@ -728,29 +728,29 @@ class SOCPOptimizer:
     
     Attributes:
         pool (dict): Dictionary of information matrices indexed by config ID
-        param (dict): Calibration parameters including sample count
+        calib_config (dict): Calibration parameters including sample count
         problem: Picos optimization problem instance
         w: Decision variable for configuration weights
         t: Auxiliary variable for determinant objective
         solution: Optimization solution object
         
     Example:
-        >>> optimizer = SOCPOptimizer(subX_dict, param)
+        >>> optimizer = SOCPOptimizer(subX_dict, calib_config)
         >>> weights, sorted_weights = optimizer.solve()
         >>> print(f"Optimization status: {optimizer.solution.status}")
     """
     
-    def __init__(self, subX_dict, param):
+    def __init__(self, subX_dict, calib_config):
         import picos as pc
         self.pool = subX_dict
-        self.param = param
+        self.calib_config = calib_config
         self.problem = pc.Problem()
-        self.w = pc.RealVariable("w", self.param["NbSample"], lower=0)
+        self.w = pc.RealVariable("w", self.calib_config["NbSample"], lower=0)
         self.t = pc.RealVariable("t", 1)
 
     def add_constraints(self):
         import picos as pc
-        Mw = pc.sum(self.w[i] * self.pool[i] for i in range(self.param["NbSample"]))
+        Mw = pc.sum(self.w[i] * self.pool[i] for i in range(self.calib_config["NbSample"]))
         wgt_cons = self.problem.add_constraint(1 | self.w <= 1)
         det_root_cons = self.problem.add_constraint(self.t <= pc.DetRootN(Mw))
 
@@ -768,7 +768,7 @@ class SOCPOptimizer:
         print("sum of all element in vector solution: ", sum(w_list))
 
         # to dict
-        w_dict = dict(zip(np.arange(self.param["NbSample"]), w_list))
+        w_dict = dict(zip(np.arange(self.calib_config["NbSample"]), w_list))
         w_dict_sort = dict(reversed(sorted(w_dict.items(), key=lambda item: item[1])))
         return w_list, w_dict_sort
 

@@ -34,8 +34,8 @@ def main():
     )
     
     # Set required parameters that aren't in config file
-    ur10_calib.param["known_baseframe"] = False
-    ur10_calib.param["known_tipframe"] = False
+    ur10_calib.calib_config["known_baseframe"] = False
+    ur10_calib.calib_config["known_tipframe"] = False
     
     print("UR10 Calibration object created successfully!")
     print("Ready to initialize and solve calibration...")

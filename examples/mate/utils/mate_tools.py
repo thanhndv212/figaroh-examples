@@ -41,17 +41,17 @@ class MateCalibration(BaseCalibration):
         Returns:
             ndarray: Residual vector including regularization terms
         """
-        coeff_ = self.param["coeff_regularize"]
+        coeff_ = self.calib_config["coeff_regularize"]
         PEEe = calc_updated_fkm(self.model, self.data, var,
-                                self.q_measured, self.param)
+                                self.q_measured, self.calib_config)
         
         # Main residual: difference between measured and estimated poses
         position_residuals = self.PEE_measured - PEEe
         
         # Regularization term for intermediate parameters (excludes base/tip)
         n_base_params = 6  # Base frame parameters
-        n_tip_params = (self.param["NbMarkers"] *
-                        self.param["calibration_index"])
+        n_tip_params = (self.calib_config["NbMarkers"] *
+                        self.calib_config["calibration_index"])
         regularization_params = var[n_base_params : -n_tip_params]
         regularization_residuals = np.sqrt(coeff_) * regularization_params
         
@@ -69,7 +69,7 @@ def write_to_xacro(tiago_calib, file_name=None, file_type="yaml"):
     assert tiago_calib.STATUS == "CALIBRATED", "Calibration not performed yet"
     model = tiago_calib.model
     calib_result = tiago_calib.calibrated_param
-    param = tiago_calib.param
+    calib_config = tiago_calib.calib_config
 
     calibration_parameters = {}
     calibration_parameters["camera_position_x"] = float(calib_result["base_px"])
@@ -79,16 +79,16 @@ def write_to_xacro(tiago_calib, file_name=None, file_type="yaml"):
     calibration_parameters["camera_orientation_p"] = float(calib_result["base_phiy"])
     calibration_parameters["camera_orientation_y"] = float(calib_result["base_phiz"])
 
-    for idx in param["actJoint_idx"]:
+    for idx in calib_config["actJoint_idx"]:
         joint = model.names[idx]
         for key in calib_result.keys():
             if joint in key and "torso" not in key:
                 calibration_parameters[joint + "_offset"] = float(calib_result[key])
-    if tiago_calib.param["measurability"][0:3] == [True, True, True]:
+    if tiago_calib.calib_config["measurability"][0:3] == [True, True, True]:
         calibration_parameters["tip_position_x"] = float(calib_result["pEEx_1"])
         calibration_parameters["tip_position_y"] = float(calib_result["pEEy_1"])
         calibration_parameters["tip_position_z"] = float(calib_result["pEEz_1"])
-    if tiago_calib.param["measurability"][3:6] == [True, True, True]:
+    if tiago_calib.calib_config["measurability"][3:6] == [True, True, True]:
         calibration_parameters["tip_orientation_r"] = float(calib_result["phiEEx_1"])
         calibration_parameters["tip_orientation_p"] = float(calib_result["phiEEy_1"])
         calibration_parameters["tip_orientation_y"] = float(calib_result["phiEEz_1"])
@@ -97,7 +97,7 @@ def write_to_xacro(tiago_calib, file_name=None, file_type="yaml"):
         if file_name is None:
             path_save_xacro = abspath(
                 "data/calibration_paramters/tiago_master_calibration_{}.xacro".format(
-                    param["NbSample"]
+                    calib_config["NbSample"]
                 )
             )
         else:
@@ -116,7 +116,7 @@ def write_to_xacro(tiago_calib, file_name=None, file_type="yaml"):
         if file_name is None:
             path_save_yaml = abspath(
                 "data/calibration_parameters/tiago_master_calibration_{}.yaml".format(
-                    param["NbSample"]
+                    calib_config["NbSample"]
                 )
             )
         else:

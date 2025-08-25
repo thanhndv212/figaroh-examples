@@ -32,10 +32,10 @@ data = robot.data
 
 
 mate_xyz = MateCalibration(robot, "config/mate.yaml", del_list=[])
-mate_xyz.param["known_baseframe"] = False
-mate_xyz.param["known_tipframe"] = False
+mate_xyz.calib_config["known_baseframe"] = False
+mate_xyz.calib_config["known_tipframe"] = False
 mate_xyz.create_param_list()
-params_list = mate_xyz.param["param_name"]
+params_list = mate_xyz.calib_config["param_name"]
 
 
 mate_x = MateCalibration(robot, "config/mate_x.yaml", del_list=[])
@@ -54,7 +54,7 @@ for mate_ in [mate_x, mate_y, mate_z]:
     mate_.q_measured = mate_.q_measured / 180 * np.pi
     q.append(mate_.q_measured)
     pee.append(mate_.PEE_measured)
-    mate_.param["param_name"] = params_list
+    mate_.calib_config["param_name"] = params_list
 
 
 def cost_function(var, mate_x, mate_y, mate_z):
@@ -64,13 +64,13 @@ def cost_function(var, mate_x, mate_y, mate_z):
     coeff_b = 0.01
     coeff_ee = 0.01
     PEEe_x = calc_updated_fkm(
-        model, data, var, mate_x.q_measured, mate_x.param
+        model, data, var, mate_x.q_measured, mate_x.calib_config
     )
     PEEe_y = calc_updated_fkm(
-        model, data, var, mate_y.q_measured, mate_y.param
+        model, data, var, mate_y.q_measured, mate_y.calib_config
     )
     PEEe_z = calc_updated_fkm(
-        model, data, var, mate_z.q_measured, mate_z.param
+        model, data, var, mate_z.q_measured, mate_z.calib_config
     )
     res_vect = np.append((mate_x.PEE_measured - PEEe_x), (mate_y.PEE_measured - PEEe_y))
     res_vect = np.append(res_vect, (mate_z.PEE_measured - PEEe_z))
@@ -87,13 +87,13 @@ def pee_error(var, mate_x, mate_y, mate_z):
     """
 
     PEEe_x = calc_updated_fkm(
-        model, data, var, mate_x.q_measured, mate_x.param
+        model, data, var, mate_x.q_measured, mate_x.calib_config
     )
     PEEe_y = calc_updated_fkm(
-        model, data, var, mate_y.q_measured, mate_y.param
+        model, data, var, mate_y.q_measured, mate_y.calib_config
     )
     PEEe_z = calc_updated_fkm(
-        model, data, var, mate_z.q_measured, mate_z.param
+        model, data, var, mate_z.q_measured, mate_z.calib_config
     )
     res_vect = np.append((mate_x.PEE_measured - PEEe_x), (mate_y.PEE_measured - PEEe_y))
     res_vect = np.append(res_vect, (mate_z.PEE_measured - PEEe_z))
@@ -104,7 +104,7 @@ def pee_error(var, mate_x, mate_y, mate_z):
 def solve_optimisation():
 
     # set initial guess
-    init_guess, _ = get_LMvariables(mate_xyz.param, mode=0)
+    init_guess, _ = get_LMvariables(mate_xyz.calib_config, mode=0)
     init_guess[-3:] = np.array([0.0, 0.0, 0.0])
     # define solver parameters
     # iterate = True
@@ -116,7 +116,7 @@ def solve_optimisation():
     print("*" * 50)
     print(
         "{} iter guess".format(count),
-        dict(zip(mate_xyz.param["param_name"], list(init_guess))),
+        dict(zip(mate_xyz.calib_config["param_name"], list(init_guess))),
     )
 
     # define solver
@@ -135,7 +135,7 @@ def solve_optimisation():
     # mae = np.mean(np.abs(_PEEe_sol - self.PEE_measured))
 
     print("solution of calibrated parameters: ")
-    for x_i, xname in enumerate(mate_xyz.param["param_name"]):
+    for x_i, xname in enumerate(mate_xyz.calib_config["param_name"]):
         print(x_i + 1, xname, list(res)[x_i])
     # print("position root-mean-squared error of end-effector: ", rmse)
     # print("position mean absolute error of end-effector: ", mae)

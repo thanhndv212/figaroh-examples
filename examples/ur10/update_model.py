@@ -71,7 +71,7 @@ template = """    x: $x
 #  wrist_2   -> wrist_2_joint
 #  wrist_3   -> wrist_3_joint
 #
-def update_parameters(f_input, f_output, var, param):
+def update_parameters(f_input, f_output, var, calib_config):
     # read kinematic parameters
     with open(f_input, "r") as f:
         kinematics_params = yaml.load(f, Loader=yaml.SafeLoader)
@@ -81,7 +81,7 @@ def update_parameters(f_input, f_output, var, param):
                 continue
             for axis, n in axes.items():
                 try:
-                    id = param["param_name"].index(n + "_" + paramToJoint[pname], 0)
+                    id = calib_config["param_name"].index(n + "_" + paramToJoint[pname], 0)
                     offset = var[id]
                 except ValueError as exc:
                     offset = 0

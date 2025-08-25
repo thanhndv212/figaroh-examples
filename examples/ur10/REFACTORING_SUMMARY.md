@@ -134,7 +134,7 @@ ur10_task.save_results("results/")
 # Complex setup required
 robot = load_robot(...)
 config = yaml.load(...)
-param = get_param_from_yaml(...)
+calib_config = get_param_from_yaml(...)
 
 # Manual implementation of optimization
 # 50-100 lines of algorithm implementation

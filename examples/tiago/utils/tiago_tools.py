@@ -73,9 +73,9 @@ class TiagoCalibration(BaseCalibration):
         Returns:
             ndarray: Residual vector including regularization terms
         """
-        coeff_ = self.param["coeff_regularize"]
+        coeff_ = self.calib_config["coeff_regularize"]
         PEEe = calc_updated_fkm(self.model, self.data, var,
-                                self.q_measured, self.param)
+                                self.q_measured, self.calib_config)
         
         # Main residual: difference between measured and estimated poses
         position_residuals = self.PEE_measured - PEEe
@@ -83,8 +83,8 @@ class TiagoCalibration(BaseCalibration):
         # Regularization term for intermediate parameters (excludes base/tip)
         # This helps stabilize optimization for redundant kinematic chains
         n_base_params = 6  # Base frame parameters
-        n_tip_params = (self.param["NbMarkers"] *
-                        self.param["calibration_index"])
+        n_tip_params = (self.calib_config["NbMarkers"] *
+                        self.calib_config["calibration_index"])
         regularization_params = var[n_base_params : -n_tip_params]
         regularization_residuals = np.sqrt(coeff_) * regularization_params
         
@@ -316,7 +316,7 @@ class TrajectoryConstraintManager:
             
             # Compute joint torques
             tau = calc_torque(
-                p_f.shape[0], self.robot, p_f, v_f, a_f, self.identif_config
+                p_f.shape[0], self.robot, p_f, v_f, a_f
             )
             
             # Evaluate individual constraint types
@@ -512,7 +512,7 @@ class OptimalTrajectoryIPOPT:
                 
                 # Compute torques and check constraints
                 tau_i = calc_torque(
-                    p_i.shape[0], self.robot, p_i, v_i, a_i, self.identif_config
+                    p_i.shape[0], self.robot, p_i, v_i, a_i
                 )
                 tau_i = np.reshape(tau_i, (v_i.shape[1], v_i.shape[0])).transpose()
                 is_constr_violated = self.CB.check_cfg_constraints(p_i, v_i, tau_i)
