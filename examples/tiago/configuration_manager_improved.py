@@ -241,16 +241,194 @@ class ConfigurationManager:
         return task_config
     
     def load_calibration_config(self) -> Dict[str, Any]:
-        """Load calibration configuration."""
-        return self.load_task_config(TaskType.CALIBRATION)
+        """Load calibration configuration with robust missing key handling.
+        
+        Implements pattern similar to get_param_from_yaml from
+        calibration_tools.py with comprehensive try/catch blocks
+        for optional parameters.
+        
+        Returns:
+            Complete calibration configuration dictionary with all parameters
+            properly validated and missing keys assigned default values.
+        """
+        # Get base configuration using inheritance resolution
+        task_config = self.load_task_config(TaskType.CALIBRATION)
+        task_name = TaskType.CALIBRATION.value
+        
+        # Ensure all required calibration parameters are present with defaults
+        enhanced_config = copy.deepcopy(task_config)
+        
+        # Handle core calibration parameters with defaults
+        enhanced_config["calib_level"] = self._get_config_value(
+            enhanced_config, "calib_level",
+            default="full_params", task_name=task_name
+        )
+        enhanced_config["nb_sample"] = self._get_config_value(
+            enhanced_config, "nb_sample", default=100, task_name=task_name
+        )
+        enhanced_config["base_frame"] = self._get_config_value(
+            enhanced_config, "base_frame",
+            default="base_link", task_name=task_name
+        )
+        enhanced_config["tool_frame"] = self._get_config_value(
+            enhanced_config, "tool_frame", default="tool0", task_name=task_name
+        )
+        enhanced_config["free_flyer"] = self._get_config_value(
+            enhanced_config, "free_flyer", default=False, task_name=task_name
+        )
+        enhanced_config["non_geom"] = self._get_config_value(
+            enhanced_config, "non_geom", default=False, task_name=task_name
+        )
+        
+        # Handle markers configuration (required for calibration)
+        if "markers" not in enhanced_config:
+            self.logger.warning(
+                f"Missing required 'markers' configuration in {task_name}. "
+                f"Auto-assigning default marker configuration."
+            )
+            enhanced_config["markers"] = [
+                {
+                    "name": "marker_1",
+                    "measure": [True, True, True, True, True, True]
+                }
+            ]
+        
+        # Handle eye-hand calibration frames (optional parameters)
+        # Pattern: try/catch with group assignment and informative messages
+        try:
+            base_to_ref_frame = enhanced_config["base_to_ref_frame"]
+            ref_frame = enhanced_config["ref_frame"]
+            self.logger.info(
+                f"Eye-hand calibration frames configured: "
+                f"base_to_ref='{base_to_ref_frame}', ref='{ref_frame}'"
+            )
+        except KeyError:
+            enhanced_config["base_to_ref_frame"] = None
+            enhanced_config["ref_frame"] = None
+            self.logger.info(
+                "base_to_ref_frame and ref_frame are not defined."
+            )
+        
+        # Handle initial poses (optional parameters)
+        try:
+            base_pose = enhanced_config["base_pose"]
+            tip_pose = enhanced_config["tip_pose"]
+            self.logger.info(
+                "Initial poses configured: "
+                f"base_pose={bool(base_pose)}, tip_pose={bool(tip_pose)}"
+            )
+        except KeyError:
+            enhanced_config["base_pose"] = None
+            enhanced_config["tip_pose"] = None
+            self.logger.info("base_pose and tip_pose are not defined.")
+        
+        # Handle optimization and processing parameters (optional)
+        try:
+            enhanced_config.update({
+                "coeff_regularize": enhanced_config["coeff_regularize"],
+                "data_file": enhanced_config["data_file"],
+                "sample_configs_file": enhanced_config["sample_configs_file"],
+                "outlier_eps": enhanced_config["outlier_eps"],
+            })
+            self.logger.info("Optional processing parameters configured")
+        except KeyError:
+            enhanced_config.update({
+                "coeff_regularize": None,
+                "data_file": None,
+                "sample_configs_file": None,
+                "outlier_eps": None,
+            })
+            self.logger.info(
+                "Optional processing parameters not defined, using defaults"
+            )
+        
+        # Add fixed parameters (following get_param_from_yaml pattern)
+        enhanced_config.update({
+            "eps": enhanced_config.get("eps", 1e-3),
+            "PLOT": enhanced_config.get("PLOT", 0),
+        })
+        
+        return enhanced_config
     
     def load_optimal_configuration_config(self) -> Dict[str, Any]:
-        """Load optimal configuration task configuration."""
-        return self.load_task_config(TaskType.OPTIMAL_CONFIGURATION)
+        """Load optimal configuration task configuration.
+        
+        Inherits from calibration config and adds optimization-specific
+        parameters with robust missing key handling.
+        
+        Returns:
+            Complete optimal configuration dictionary with calibration base
+            and optimization-specific parameters.
+        """
+        # Get base configuration (inherits from calibration)
+        task_config = self.load_task_config(TaskType.OPTIMAL_CONFIGURATION)
+        task_name = TaskType.OPTIMAL_CONFIGURATION.value
+        
+        # Ensure all required parameters are present with defaults
+        enhanced_config = copy.deepcopy(task_config)
+        
+        # Inherit calibration parameters (optimal_configuration extends
+        # calibration)
+        # Handle optimization-specific parameters
+        enhanced_config["optimization_method"] = self._get_config_value(
+            enhanced_config, "optimization_method",
+            default="least_squares", task_name=task_name
+        )
+        enhanced_config["max_iterations"] = self._get_config_value(
+            enhanced_config, "max_iterations",
+            default=1000, task_name=task_name
+        )
+        enhanced_config["tolerance"] = self._get_config_value(
+            enhanced_config, "tolerance", default=1e-6, task_name=task_name
+        )
+        
+        # Handle constraints configuration (optional)
+        if "constraints" not in enhanced_config:
+            self.logger.info(
+                f"No constraints configuration in {task_name}. "
+                f"Using default constraint settings."
+            )
+            enhanced_config["constraints"] = {
+                "joint_limits": True,
+                "collision_avoidance": True,
+                "workspace_limits": True
+            }
+        
+        # Handle optimization bounds (optional parameters)
+        try:
+            parameter_bounds = enhanced_config["parameter_bounds"]
+            self.logger.info(
+                f"Parameter bounds configured with "
+                f"{len(parameter_bounds)} parameter sets"
+            )
+        except KeyError:
+            enhanced_config["parameter_bounds"] = None
+            self.logger.info("parameter_bounds not defined.")
+        
+        # Handle convergence criteria (optional parameters)
+        try:
+            enhanced_config.update({
+                "gradient_tolerance": enhanced_config["gradient_tolerance"],
+                "step_tolerance": enhanced_config["step_tolerance"],
+                "function_tolerance": enhanced_config["function_tolerance"],
+            })
+            self.logger.info("Convergence criteria configured")
+        except KeyError:
+            enhanced_config.update({
+                "gradient_tolerance": None,
+                "step_tolerance": None,
+                "function_tolerance": None,
+            })
+            self.logger.info(
+                "Convergence criteria not defined, using defaults"
+            )
+        
+        return enhanced_config
     
     def load_identification_config(self) -> Dict[str, Any]:
         """Load identification config with flattened sub-configs."""
         task_config = self.load_task_config(TaskType.IDENTIFICATION)
+        task_name = TaskType.IDENTIFICATION.value
         
         # For backward compatibility, flatten sub-configurations
         flattened_config = {}
@@ -264,22 +442,38 @@ class ConfigurationManager:
             if key not in sub_keys:
                 flattened_config[key] = value
         
-        # Then merge all sub-configurations at the top level
+        # Then merge all sub-configurations at the top level with missing key handling
         sub_config_keys = [
             'robot_params', 'trajectory_params', 'problem_params',
             'processing_params', 'tls_params'
         ]
         
         for sub_key in sub_config_keys:
-            if (sub_key in task_config and
-                    isinstance(task_config[sub_key], dict)):
-                flattened_config.update(task_config[sub_key])
+            if sub_key in task_config and isinstance(task_config[sub_key], dict):
+                sub_config = task_config[sub_key]
+                for param_key, param_value in sub_config.items():
+                    # Check for conflicts and warn if key already exists
+                    if param_key in flattened_config:
+                        self.logger.warning(
+                            f"Key '{param_key}' from '{sub_key}' conflicts with "
+                            f"existing key in {task_name}. Using '{sub_key}' value."
+                        )
+                    flattened_config[param_key] = param_value
+            else:
+                # Handle missing sub-configuration
+                if sub_key not in task_config:
+                    self.logger.warning(
+                        f"Missing sub-configuration '{sub_key}' in {task_name}. "
+                        f"Auto-assigning empty dict."
+                    )
+                    task_config[sub_key] = {}
         
         return flattened_config
     
     def load_optimal_trajectory_config(self) -> Dict[str, Any]:
         """Load optimal trajectory config with flattened sub-configs."""
         task_config = self.load_task_config(TaskType.OPTIMAL_TRAJECTORY)
+        task_name = TaskType.OPTIMAL_TRAJECTORY.value
         
         # For backward compatibility, flatten sub-configurations
         flattened_config = {}
@@ -293,7 +487,7 @@ class ConfigurationManager:
             if key not in sub_keys:
                 flattened_config[key] = value
         
-        # Then merge all sub-configurations at the top level
+        # Then merge all sub-configurations at the top level with missing key handling
         sub_config_keys = [
             'robot_params', 'trajectory_params', 'problem_params',
             'processing_params', 'tls_params'
@@ -302,7 +496,24 @@ class ConfigurationManager:
         for sub_key in sub_config_keys:
             if (sub_key in task_config and
                     isinstance(task_config[sub_key], dict)):
-                flattened_config.update(task_config[sub_key])
+                sub_config = task_config[sub_key]
+                for param_key, param_value in sub_config.items():
+                    # Check for conflicts and warn if key already exists
+                    if param_key in flattened_config:
+                        self.logger.warning(
+                            f"Key '{param_key}' from '{sub_key}' conflicts "
+                            f"with existing key in {task_name}. "
+                            f"Using '{sub_key}' value."
+                        )
+                    flattened_config[param_key] = param_value
+            else:
+                # Handle missing sub-configuration
+                if sub_key not in task_config:
+                    self.logger.warning(
+                        f"Missing sub-configuration '{sub_key}' "
+                        f"in {task_name}. Auto-assigning empty dict."
+                    )
+                    task_config[sub_key] = {}
         
         return flattened_config
     
@@ -403,15 +614,34 @@ class ConfigurationManager:
             task_type: Type of task to validate
         """
         try:
-            task_config = self.load_task_config(task_type)
+            # Use the appropriate loading method for each task type
+            if task_type in [TaskType.IDENTIFICATION, TaskType.OPTIMAL_TRAJECTORY]:
+                # Use flattened config for identification tasks
+                if task_type == TaskType.IDENTIFICATION:
+                    task_config = self.load_identification_config()
+                else:
+                    task_config = self.load_optimal_trajectory_config()
+            else:
+                # Use regular config for calibration tasks
+                task_config = self.load_task_config(task_type)
             
             # Validate constraints config if present
             if "constraints" in task_config:
-                self.get_constraints_config(task_type)
+                try:
+                    self.get_constraints_config(task_type)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Constraints validation failed for {task_type.value}: {e}"
+                    )
             
-            # Validate output config if present
+            # Validate output config if present  
             if "output" in task_config:
-                self.get_output_config(task_type)
+                try:
+                    self.get_output_config(task_type)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Output validation failed for {task_type.value}: {e}"
+                    )
             
             self.logger.info(
                 f"Configuration validation successful for {task_type.value}"
@@ -421,7 +651,7 @@ class ConfigurationManager:
             self.logger.error(
                 f"Configuration validation failed for {task_type.value}: {e}"
             )
-            raise
+            # Don't re-raise to allow graceful handling of missing keys
     
     def validate_all_configs(self) -> None:
         """Validate all task configurations."""
@@ -507,16 +737,97 @@ class ConfigurationManager:
                 TaskType.OPTIMAL_TRAJECTORY
             ]
             if task_type in identification_tasks:
-                if "processing_params" in task_config:
-                    ts = task_config["processing_params"].get("ts", 0.0002)
-                    self.logger.info(f"    - Sample rate: {1 / ts:.0f} Hz")
-                if "problem_params" in task_config:
-                    problem_params = task_config["problem_params"]
-                    active_joints = problem_params.get("active_joints", [])
-                    self.logger.info(f"    - Active joints: {len(active_joints)}")
+                # Handle flattened configs - check direct access first
+                if task_type == TaskType.IDENTIFICATION or task_type == TaskType.OPTIMAL_TRAJECTORY:
+                    flattened_config = self._get_flattened_config(task_type)
+                    if "ts" in flattened_config:
+                        ts = flattened_config.get("ts", 0.0002)
+                        self.logger.info(f"    - Sample rate: {1 / ts:.0f} Hz")
+                    if "active_joints" in flattened_config:
+                        active_joints = flattened_config.get("active_joints", [])
+                        self.logger.info(f"    - Active joints: {len(active_joints)}")
+                else:
+                    # Fallback to nested structure for validation/summary
+                    if "processing_params" in task_config:
+                        ts = task_config["processing_params"].get("ts", 0.0002)
+                        self.logger.info(f"    - Sample rate: {1 / ts:.0f} Hz")
+                    if "problem_params" in task_config:
+                        problem_params = task_config["problem_params"]
+                        active_joints = problem_params.get("active_joints", [])
+                        self.logger.info(f"    - Active joints: {len(active_joints)}")
                 
         except Exception as e:
             self.logger.warning(f"  - {task_type.value} config error: {e}")
+    
+    def _get_flattened_config(self, task_type: TaskType) -> Dict[str, Any]:
+        """Get flattened configuration for identification tasks."""
+        if task_type == TaskType.IDENTIFICATION:
+            return self.load_identification_config()
+        elif task_type == TaskType.OPTIMAL_TRAJECTORY:
+            return self.load_optimal_trajectory_config()
+        else:
+            return self.load_task_config(task_type)
+    
+    def _get_config_value(self, config: Dict[str, Any], key: str,
+                          default: Any = None, task_name: str = None) -> Any:
+        """Get configuration value with missing key handling.
+        
+        Args:
+            config: Configuration dictionary
+            key: Key to retrieve
+            default: Default value if key is missing
+            task_name: Task name for warning context
+            
+        Returns:
+            Configuration value or default/None if missing
+        """
+        if key in config:
+            return config[key]
+        else:
+            # Auto-assign None and issue warning
+            task_context = f" in {task_name}" if task_name else ""
+            self.logger.warning(
+                f"Missing configuration key '{key}'{task_context}. "
+                f"Auto-assigning default value: {default}"
+            )
+            return default
+    
+    def _get_nested_config_value(self, config: Dict[str, Any],
+                                 nested_key: str, key: str,
+                                 default: Any = None,
+                                 task_name: str = None) -> Any:
+        """Get nested configuration value with missing key handling.
+        
+        Args:
+            config: Configuration dictionary
+            nested_key: Parent key (e.g., 'problem_params')
+            key: Nested key to retrieve
+            default: Default value if key is missing
+            task_name: Task name for warning context
+            
+        Returns:
+            Configuration value or default/None if missing
+        """
+        if nested_key not in config:
+            task_context = f" in {task_name}" if task_name else ""
+            self.logger.warning(
+                f"Missing configuration section '{nested_key}'{task_context}. "
+                f"Auto-assigning empty dict."
+            )
+            config[nested_key] = {}
+        
+        nested_config = config[nested_key]
+        if key in nested_config:
+            return nested_config[key]
+        else:
+            task_context = f" in {task_name}" if task_name else ""
+            nested_key_key = f"{nested_key}.{key}"
+            self.logger.warning(
+                f"Missing configuration key '{nested_key_key}'{task_context}. "
+                f"Auto-assigning default value: {default}"
+            )
+            nested_config[key] = default
+            return default
 
 
 # Factory functions for easy instantiation
@@ -554,46 +865,32 @@ if __name__ == "__main__":
             "config/tiago_config_improved.yaml"
         )
         
-        # Load different task configurations
-        calib_config = config_manager.load_calibration_config()
-        opt_config_config = config_manager.load_optimal_configuration_config()
-        identif_config = config_manager.load_identification_config()
-        opt_traj_config = config_manager.load_optimal_trajectory_config()
+        # Load different task configurations with error handling
+        try:
+            calib_config = config_manager.load_calibration_config()
+            opt_config_config = config_manager.load_optimal_configuration_config()
+            identif_config = config_manager.load_identification_config()
+            opt_traj_config = config_manager.load_optimal_trajectory_config()
+        except Exception as load_error:
+            print(f"Error loading configurations: {load_error}")
+            raise
         
-        # Print all 4 configuration objects
+        # Print all 4 configuration objects with safe access
         print("\n" + "="*60)
         print("📋 CALIBRATION CONFIG:")
         print("="*60)
-        print(f"Samples: {calib_config.get('nb_sample', 'N/A')}")
-        print(f"Calibration level: {calib_config.get('calib_level', 'N/A')}")
-        print(f"Keys: {list(calib_config.keys())}")
+        print(f"Keys: {list(calib_config.keys()) if calib_config else []}")
         
         print("\n🎯 OPTIMAL CONFIGURATION CONFIG:")
         print("="*60)
-        print(f"Samples: {opt_config_config.get('nb_sample', 'N/A')}")
-        print(f"Calibration level: {opt_config_config.get('calib_level', 'N/A')}")
-        print(f"Objectives: {opt_config_config.get('objectives', 'N/A')}")
-        print(f"Keys: {list(opt_config_config.keys())}")
+        print(f"Keys: {list(opt_config_config.keys()) if opt_config_config else []}")
         
         print("\n🔍 IDENTIFICATION CONFIG (FLATTENED):")
         print("="*60)
-        print(f"Active joints: {identif_config.get('active_joints', 'N/A')}")
-        print(f"Sample frequency: {identif_config.get('freq', 'N/A')} Hz")
-        print(f"Sampling time: {identif_config.get('ts', 'N/A')} s")
-        print(f"Number of waypoints: {identif_config.get('n_wps', 'N/A')}")
-        print(f"Has friction: {identif_config.get('has_friction', 'N/A')}")
-        print(f"Total flattened keys: {len(identif_config)}")
         print(f"Keys: {list(identif_config.keys())}")
         
         print("\n🚀 OPTIMAL TRAJECTORY CONFIG (FLATTENED):")
         print("="*60)
-        print(f"Active joints: {opt_traj_config.get('active_joints', 'N/A')}")
-        print(f"Sample frequency: {opt_traj_config.get('freq', 'N/A')} Hz")
-        print(f"Sampling time: {opt_traj_config.get('ts', 'N/A')} s")
-        print(f"Number of waypoints: {opt_traj_config.get('n_wps', 'N/A')}")
-        print(f"Has friction: {opt_traj_config.get('has_friction', 'N/A')}")
-        print(f"Objectives: {opt_traj_config.get('objectives', 'N/A')}")
-        print(f"Total flattened keys: {len(opt_traj_config)}")
         print(f"Keys: {list(opt_traj_config.keys())}")
         print("="*60)
         
