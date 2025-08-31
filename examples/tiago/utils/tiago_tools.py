@@ -22,9 +22,14 @@ to use the generalized base classes.
 import numpy as np
 from typing import List
 
-from .base_identification import BaseIdentification
-from .base_optimal_calibration import BaseOptimalCalibration
-from .base_optimal_trajectory import (
+# Import from shared directory
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
+
+from base_identification import BaseIdentification
+from base_optimal_calibration import BaseOptimalCalibration
+from base_optimal_trajectory import (
     BaseOptimalTrajectory,
     BaseTrajectoryIPOPTProblem
 )
