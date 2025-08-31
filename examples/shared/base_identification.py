@@ -50,25 +50,24 @@ class BaseIdentification(ABC):
             robot: Robot model loaded with FIGAROH
             config_file: Path to robot configuration YAML file
         """
-        self._robot = robot
         self.robot = robot
-        self.model = robot.model
-        self.data = robot.data
-        
+        self.model = self.robot.model
+        self.data = self.robot.data
+
         # Load configuration using the TIAGo-style approach
         self.load_param(config_file)
         
         # Initialize attributes for identification results
-        self.W = None
+        self.dynamic_regressor = None
         self.standard_parameter = None
         self.params_base = None
-        self.W_base = None
+        self.dynamic_regressor_base = None
         self.phi_base = None
         self.rms_error = None
         self.correlation = None
         self.processed_data = None
         self.result = None
-        self.Nsample_ = None
+        self.num_samples = None
         self.tau_ref = None
         self.tau_identif = None
         self.tau_noised = None
@@ -79,148 +78,9 @@ class BaseIdentification(ABC):
         self.process_data(truncate=truncate)
         self.calculate_full_regressor()
 
-    def solve(self, decimate=True, plotting=True, save_params=False):
+    def solve(self, decimate=True, decimation_factor=10, zero_tolerance=0.001,
+              plotting=True, save_params=False):
         """Main solving method for dynamic parameter identification.
-        
-        Args:
-            truncate: None for no truncation, or tuple/list (start, end) 
-                     for custom truncation indices
-            decimate: Whether to apply decimation to reduce data size
-            plotting: Whether to show plots
-            save_params: Whether to save parameters to file
-        """
-        print(f"Starting {self.__class__.__name__} dynamic parameter identification...")
-        
-        self.calculate_baseparam(decimate=decimate, plotting=plotting, save_params=save_params)
-        
-        print(f"Dynamic identification completed")
-        print(f"RMS error: {self.rms_error:.6f}")
-        print(f"Correlation: {self.correlation:.4f}")
-        print(f"Condition number: {self.result['condition number']:.2e}")
-        print(f"{len(self.params_base)} base parameters identified")
-        
-        return self.phi_base
-    
-    def load_param(self, config_file, setting_type="identification"):
-        """Load the identification parameters from the yaml file."""
-        with open(config_file, "r") as f:
-            config = yaml.load(f, Loader=yaml.SafeLoader)
-        self.identif_config = get_identification_param_from_yaml(
-            self._robot, config[setting_type]
-        )
-
-    @abstractmethod
-    def load_trajectory_data(self):
-        """Load and process CSV data.
-        
-        This method must be implemented by robot-specific subclasses
-        to handle their specific data formats and file structures.
-        
-        Returns:
-            tuple: (timestamps, positions, velocities, torques) as numpy arrays
-        """
-        pass
-    
-    def apply_filters(self, t, q, dq, nbutter=4, f_butter=2, med_fil=5, f_sample=100):
-        """Apply median and lowpass filters to position and velocity data."""
-        from scipy import signal
-        b1, b2 = signal.butter(nbutter, f_butter / (f_sample / 2), "low")
-
-        q_filtered = np.zeros(q.shape)
-        dq_filtered = np.zeros(dq.shape)
-
-        for j in range(dq.shape[1]):
-            q_med = signal.medfilt(q[:, j], med_fil)
-            q_filtered[:, j] = signal.filtfilt(
-                b1, b2, q_med, padtype="odd", padlen=3 * (max(len(b1), len(b2)) - 1)
-            )
-            dq_med = signal.medfilt(dq[:, j], med_fil)
-            dq_filtered[:, j] = signal.filtfilt(
-                b1, b2, dq_med, padtype="odd", padlen=3 * (max(len(b1), len(b2)) - 1)
-            )
-        return q_filtered, dq_filtered
-
-    def estimate_acceleration(self, t, dq_filtered):
-        """Estimate acceleration from filtered velocity."""
-        return np.array([
-            np.gradient(dq_filtered[:, j]) / np.gradient(t[:, 0])
-            for j in range(dq_filtered.shape[1])
-        ]).T
-
-    def build_full_configuration(self, q_f, dq_f, ddq_f, N_):
-        """Build full configuration arrays for position, velocity, and acceleration."""
-        p = np.tile(self._robot.q0, (N_, 1))
-        v = np.tile(self._robot.v0, (N_, 1))
-        a = np.tile(self._robot.v0, (N_, 1))
-
-        p[:, self.identif_config["act_idxq"]] = q_f
-        v[:, self.identif_config["act_idxv"]] = dq_f
-        a[:, self.identif_config["act_idxv"]] = ddq_f
-        return p, v, a
-    
-    def process_torque_data(self, tau):
-        """Process torque data (generic implementation, should be overridden for robot-specific processing)."""
-        # Generic torque processing - robots should override this method
-        return tau
-
-    def process_data(self, truncate=None):
-        """Load and process data"""
-        t_, q_, dq_, tau_ = self.load_trajectory_data()
-
-        # Truncate data if truncation indices are provided
-        if truncate is not None:
-            if isinstance(truncate, (list, tuple)) and len(truncate) == 2:
-                # Use provided truncation indices
-                n_i, n_f = truncate
-                t_ = t_[n_i:n_f]
-                q_ = q_[n_i:n_f]
-                dq_ = dq_[n_i:n_f]
-                tau_ = tau_[n_i:n_f]
-
-        # Apply filters and estimate acceleration
-        q_filtered_, dq_filtered_ = self.apply_filters(t_, q_, dq_)
-        ddq_filtered_ = self.estimate_acceleration(t_, dq_filtered_)
-
-        # after processing, total number of samples
-        self.Nsample_ = q_filtered_.shape[0]
-
-        # Build full configuration
-        p_, v_, a_ = self.build_full_configuration(
-            q_filtered_, dq_filtered_, ddq_filtered_, self.Nsample_
-        )
-
-        # Process torque data
-        tau_prcd = self.process_torque_data(tau_)
-        self.processed_data = {
-            "t": t_,
-            "p": p_,
-            "v": v_,
-            "a": a_,
-            "tau": tau_prcd,
-        }
-
-    def get_standard_parameters(self):
-        """Get standard parameters for TIAGo robot."""
-        return get_standard_parameters(self.model, self.identif_config)
-    
-    def calculate_full_regressor(self):
-        """Build regressor matrix."""
-        self.W = build_regressor_basic(
-            self._robot,
-            self.processed_data["p"],
-            self.processed_data["v"],
-            self.processed_data["a"],
-            self.identif_config,
-        )
-        self.standard_parameter = self.get_standard_parameters()
-        # joint torque estimated from p,v,a with std params
-        phi_ref = np.array(list(self.standard_parameter.values()))
-        tau_ref = np.dot(self.W, phi_ref)
-        self.tau_ref = tau_ref[range(len(self.identif_config["act_idxv"]) * self.Nsample_)]
-
-    def calculate_baseparam(self, decimate=True, decimation_factor=10, 
-                       zero_tolerance=0.001, plotting=True, save_params=False):
-        """Calculate base parameters using QR decomposition.
         
         This method implements the complete base parameter identification
         workflow including column elimination, optional decimation, QR
@@ -230,23 +90,20 @@ class BaseIdentification(ABC):
             decimate (bool): Whether to apply decimation to reduce data size
             decimation_factor (int): Factor for signal decimation (default: 10)
             zero_tolerance (float): Tolerance for eliminating zero columns
-            plotting (bool): Whether to generate plots (unused in base class)
-            save_params (bool): Whether to save parameters (unused in base class)
+            plotting (bool): Whether to generate plots
+            save_params (bool): Whether to save parameters to file
             
         Returns:
-            dict: Results dictionary containing base parameters and metrics
+            ndarray: Base parameters phi_base
             
         Raises:
-            AssertionError: If prerequisites not met (W, standard_parameter)
+            AssertionError: If prerequisites not met (dynamic_regressor, standard_parameter)
             ValueError: If data shapes are incompatible
             np.linalg.LinAlgError: If QR decomposition fails
-            
-        Side Effects:
-            - Updates self.result with complete results dictionary
-            - Updates self.W_base, self.phi_base, self.params_base
-            - Updates self.tau_identif, self.tau_noised
-            - Updates self.rms_error, self.correlation
         """
+        print(f"Starting {self.__class__.__name__} dynamic parameter identification...")
+        
+        # Validate prerequisites
         self._validate_prerequisites()
         
         # Step 1: Eliminate zero columns
@@ -277,7 +134,318 @@ class BaseIdentification(ABC):
         if save_params:
             self._save_parameters_to_file()
         
-        return self.result
+        print(f"Dynamic identification completed")
+        print(f"RMS error: {self.rms_error:.6f}")
+        print(f"Correlation: {self.correlation:.4f}")
+        print(f"Condition number: {self.result['condition number']:.2e}")
+        print(f"{len(self.params_base)} base parameters identified")
+        
+        return self.phi_base
+    
+    def load_param(self, config_file, setting_type="identification"):
+        """Load the identification parameters from the yaml file."""
+        with open(config_file, "r") as f:
+            config = yaml.load(f, Loader=yaml.SafeLoader)
+        self.identif_config = get_identification_param_from_yaml(
+            self.robot, config[setting_type]
+        )
+
+    @abstractmethod
+    def load_trajectory_data(self):
+        """Load and process CSV data.
+        
+        This method must be implemented by robot-specific subclasses
+        to handle their specific data formats and file structures.
+        
+        Returns:
+            tuple: (timestamps, positions, velocities, torques) as numpy arrays
+        """
+        pass
+    
+    def _apply_filters(self, *signals, nbutter=4, f_butter=2, med_fil=5, f_sample=100):
+        """Apply median and lowpass filters to any number of signals.
+        
+        Args:
+            *signals: Variable number of signal arrays to filter
+            nbutter (int): Butterworth filter order (default: 4)
+            f_butter (float): Cutoff frequency in Hz (default: 2)
+            med_fil (int): Median filter window size (default: 5)
+            f_sample (float): Sampling frequency in Hz (default: 100)
+            
+        Returns:
+            tuple: Filtered signals in the same order as input
+        """
+        from scipy import signal
+        
+        # Design Butterworth filter coefficients
+        b1, b2 = signal.butter(nbutter, f_butter / (f_sample / 2), "low")
+        
+        filtered_signals = []
+        
+        for sig in signals:
+            if sig is None:
+                filtered_signals.append(None)
+                continue
+                
+            # Ensure signal is 2D array
+            if sig.ndim == 1:
+                sig = sig.reshape(-1, 1)
+                
+            sig_filtered = np.zeros(sig.shape)
+            
+            # Apply filters to each column (joint/channel)
+            for j in range(sig.shape[1]):
+                # Apply median filter first
+                sig_med = signal.medfilt(sig[:, j], med_fil)
+                
+                # Apply Butterworth lowpass filter
+                sig_filtered[:, j] = signal.filtfilt(
+                    b1, b2, sig_med, padtype="odd", 
+                    padlen=3 * (max(len(b1), len(b2)) - 1)
+                )
+            
+            filtered_signals.append(sig_filtered)
+        
+        # Return single array if only one signal, otherwise tuple
+        if len(filtered_signals) == 1:
+            return filtered_signals[0]
+        return tuple(filtered_signals)
+
+    def _differentiate_signal(self, time_vector, signal, method='gradient'):
+        """Compute first derivative of a time series signal.
+        
+        Args:
+            time_vector (ndarray): Time stamps corresponding to signal samples
+            signal (ndarray): Signal to differentiate (1D or 2D array)
+            method (str): Differentiation method ('gradient', 'forward', 'backward', 'central')
+            
+        Returns:
+            ndarray: First derivative of the signal with same shape as input
+            
+        Raises:
+            ValueError: If time_vector and signal have incompatible shapes
+            ValueError: If method is not supported
+        """
+        # Validate inputs
+        if signal.shape[0] != time_vector.shape[0]:
+            raise ValueError(f"Time vector length {time_vector.shape[0]} "
+                           f"doesn't match signal length {signal.shape[0]}")
+        
+        # Ensure signal is 2D
+        if signal.ndim == 1:
+            signal = signal.reshape(-1, 1)
+            squeeze_output = True
+        else:
+            squeeze_output = False
+        
+        # Handle time vector shape (extract first column if 2D)
+        if time_vector.ndim == 2:
+            t = time_vector[:, 0]
+        else:
+            t = time_vector
+        
+        # Initialize output array
+        derivative = np.zeros_like(signal)
+        
+        # Apply differentiation method to each column
+        for j in range(signal.shape[1]):
+            sig_col = signal[:, j]
+            
+            if method == 'gradient':
+                # Use numpy gradient (handles edge cases automatically)
+                derivative[:, j] = np.gradient(sig_col, t)
+                
+            elif method == 'forward':
+                # Forward difference: df/dt ≈ (f[i+1] - f[i]) / (t[i+1] - t[i])
+                derivative[:-1, j] = np.diff(sig_col) / np.diff(t)
+                # Extrapolate last point
+                derivative[-1, j] = derivative[-2, j]
+                
+            elif method == 'backward':
+                # Backward difference: df/dt ≈ (f[i] - f[i-1]) / (t[i] - t[i-1])
+                derivative[1:, j] = np.diff(sig_col) / np.diff(t)
+                # Extrapolate first point
+                derivative[0, j] = derivative[1, j]
+                
+            elif method == 'central':
+                # Central difference: df/dt ≈ (f[i+1] - f[i-1]) / (t[i+1] - t[i-1])
+                derivative[1:-1, j] = (sig_col[2:] - sig_col[:-2]) / (t[2:] - t[:-2])
+                # Handle boundary conditions
+                derivative[0, j] = (sig_col[1] - sig_col[0]) / (t[1] - t[0])
+                derivative[-1, j] = (sig_col[-1] - sig_col[-2]) / (t[-1] - t[-2])
+                
+            else:
+                raise ValueError(f"Unsupported differentiation method: {method}. "
+                               f"Use 'gradient', 'forward', 'backward', or 'central'")
+        
+        # Return with original dimensionality
+        if squeeze_output:
+            return derivative.squeeze()
+        return derivative
+
+    def _build_full_configuration(self):
+        """Build full configuration arrays for position, velocity, acceleration.
+        
+        This method expands the active joint data to full robot configuration
+        by filling in default values for inactive joints. Uses vectorized
+        operations for optimal performance.
+        """
+        # Validate required data
+        required_keys = ["positions", "velocities", "accelerations"]
+        for key in required_keys:
+            if key not in self.processed_data or self.processed_data[key] is None:
+                raise ValueError(f"Missing required data: {key}")
+        
+        # Get active joint data
+        q_active = self.processed_data["positions"]
+        dq_active = self.processed_data["velocities"]
+        ddq_active = self.processed_data["accelerations"]
+        
+        # Create full configuration arrays efficiently
+        config_data = [
+            (q_active, self.robot.q0, self.identif_config["act_idxq"]),
+            (dq_active, self.robot.v0, self.identif_config["act_idxv"]),
+            (ddq_active, self.robot.v0, self.identif_config["act_idxv"])
+        ]
+        
+        full_configs = []
+        for active_data, default_config, active_indices in config_data:
+            # Initialize with defaults
+            full_config = np.tile(default_config, (self.num_samples, 1))
+            # Fill active joints
+            full_config[:, active_indices] = active_data
+            full_configs.append(full_config)
+        
+        # Update processed data efficiently
+        config_keys = ["positions", "velocities", "accelerations"]
+        self.processed_data.update(dict(zip(config_keys, full_configs)))
+
+    def _truncate_data(self, data_dict, truncate=None):
+        """Truncate data arrays based on provided indices.
+        
+        Args:
+            data_dict (dict): Dictionary containing data arrays to truncate
+            truncate (tuple/list): Truncation indices (start, end) or None for no truncation
+            
+        Returns:
+            dict: Dictionary with truncated data arrays
+        """
+        if truncate is None:
+            return data_dict.copy()
+            
+        if not isinstance(truncate, (list, tuple)) or len(truncate) != 2:
+            raise ValueError("Truncate parameter must be a tuple/list of length 2 (start, end)")
+            
+        n_i, n_f = truncate
+        truncated_data = {}
+        
+        for key, array in data_dict.items():
+            if array is not None:
+                truncated_data[key] = array[n_i:n_f]
+            else:
+                truncated_data[key] = None
+                
+        return truncated_data
+    
+    def _filter_data(self, filter_config=None):
+        """Apply filtering to data with configurable parameters.
+        
+        Args:
+            filter_config (dict, optional): Filter configuration with keys:
+                - differentiation_method: Method for derivative estimation
+                - filter_params: Parameters for signal filtering
+                
+        Raises:
+            ValueError: If required data is missing
+        """
+        # Set default filter configuration
+        default_config = {
+            'differentiation_method': 'gradient',
+            'filter_params': {}
+        }
+        config = {**default_config, **(filter_config or {})}
+        
+        # Validate required data
+        if self.raw_data.get("timestamps") is None:
+            raise ValueError("Timestamps are required for data processing")
+        if self.raw_data.get("positions") is None:
+            raise ValueError("Position data is required for processing")
+            
+        # Create processed data copy to avoid modifying raw data
+        self.processed_data = {}
+        
+        # Process timestamps (no filtering needed)
+        self.processed_data["timestamps"] = self.raw_data["timestamps"]
+        
+        # Define signal processing pipeline
+        signal_pipeline = [
+            ("positions", self.raw_data["positions"], None),
+            ("velocities", self.raw_data.get("velocities"), "positions"),
+            ("accelerations", self.raw_data.get("accelerations"), "velocities")
+        ]
+        
+        # Process signals through pipeline
+        for signal_name, signal_data, dependency in signal_pipeline:
+            if signal_data is not None:
+                # Apply filtering to existing data
+                self.processed_data[signal_name] = self._apply_filters(
+                    signal_data, **config['filter_params'])
+            else:
+                # Estimate missing signal from dependency
+                if dependency:
+                    dependency_data = self.processed_data[dependency]
+                    self.processed_data[signal_name] = \
+                        self._differentiate_signal(
+                            self.processed_data["timestamps"],
+                            dependency_data,
+                            method=config['differentiation_method'])
+                else:
+                    raise ValueError(
+                        f"Cannot process {signal_name}: no data or dependency")
+        
+        # Process torque data (robot-specific processing)
+        if self.raw_data.get("torques") is not None:
+            self.processed_data["torques"] = self.process_torque_data(
+                self.raw_data["torques"])
+        else:
+            self.processed_data["torques"] = None
+        
+        # Update sample count
+        self.num_samples = self.processed_data["positions"].shape[0]
+        
+    def process_torque_data(self, tau):
+        """Process torque data (generic implementation, should be overridden for robot-specific processing)."""
+        # Generic torque processing - robots should override this method
+        return tau
+
+    def process_data(self, truncate=None):
+        """Load and process data"""
+        # load raw data
+        self.raw_data = self.load_trajectory_data()
+        
+        # Truncate data if truncation indices are provided
+        self.raw_data = self._truncate_data(self.raw_data, truncate)
+
+        # Apply filtering and differentiation
+        self._filter_data()
+
+        # Build full configuration
+        self._build_full_configuration()
+    
+    def calculate_full_regressor(self):
+        """Build regressor matrix."""
+        self.dynamic_regressor = build_regressor_basic(
+            self.robot,
+            self.processed_data["positions"],
+            self.processed_data["velocities"],
+            self.processed_data["accelerations"],
+            self.identif_config,
+        )
+        self.standard_parameter = get_standard_parameters(self.model, self.identif_config)
+        # joint torque estimated from p,v,a with std params
+        phi_ref = np.array(list(self.standard_parameter.values()))
+        tau_ref = np.dot(self.dynamic_regressor, phi_ref)
+        self.tau_ref = tau_ref[range(len(self.identif_config["act_idxv"]) * self.num_samples)]
 
     def _validate_prerequisites(self):
         """Validate that required data is available for calculation.
@@ -285,8 +453,8 @@ class BaseIdentification(ABC):
         Raises:
             AssertionError: If required attributes are not set
         """
-        assert hasattr(self, 'W') and self.W is not None, \
-               "Regressor matrix W not calculated. " \
+        assert hasattr(self, 'dynamic_regressor') and self.dynamic_regressor is not None, \
+               "Regressor matrix not calculated. " \
                "Call calculate_full_regressor() first."
         assert hasattr(self, 'standard_parameter') and \
                self.standard_parameter is not None, \
@@ -306,9 +474,9 @@ class BaseIdentification(ABC):
             tuple: (regressor_reduced, active_parameters)
         """
         idx_eliminated, active_parameters = get_index_eliminate(
-            self.W, self.standard_parameter, tol_e=zero_tolerance
+            self.dynamic_regressor, self.standard_parameter, tol_e=zero_tolerance
         )
-        regressor_reduced = build_regressor_reduced(self.W, idx_eliminated)
+        regressor_reduced = build_regressor_reduced(self.dynamic_regressor, idx_eliminated)
         return regressor_reduced, active_parameters
 
     def _apply_decimation(self, regressor_reduced, decimation_factor):
@@ -328,7 +496,7 @@ class BaseIdentification(ABC):
         num_joints = len(self.identif_config["act_idxv"])
         
         for i in range(num_joints):
-            tau_joint = self.processed_data["tau"][:, i]
+            tau_joint = self.processed_data["torques"][:, i]
             tau_dec = signal.decimate(tau_joint, q=decimation_factor,
                                       zero_phase=True)
             tau_decimated_list.append(tau_dec)
@@ -361,8 +529,8 @@ class BaseIdentification(ABC):
         
         for i in range(num_joints):
             # Extract rows corresponding to joint i
-            start_idx = self.identif_config["act_idxv"][i] * self.Nsample_
-            end_idx = (self.identif_config["act_idxv"][i] + 1) * self.Nsample_
+            start_idx = self.identif_config["act_idxv"][i] * self.num_samples
+            end_idx = (self.identif_config["act_idxv"][i] + 1) * self.num_samples
             
             joint_regressor_decimated = []
             for j in range(regressor_reduced.shape[1]):
@@ -400,7 +568,7 @@ class BaseIdentification(ABC):
         Returns:
             tuple: (tau_flattened, regressor_reduced)
         """
-        tau_data = self.processed_data["tau"]
+        tau_data = self.processed_data["torques"]
         if hasattr(tau_data, 'flatten'):
             tau_flattened = tau_data.flatten()
         else:
@@ -467,7 +635,7 @@ class BaseIdentification(ABC):
         }
         
         # Store key results for backward compatibility
-        self.W_base = W_base
+        self.dynamic_regressor_base = W_base
         self.phi_base = phi_base
         self.params_base = list(base_param_dict.keys())
         self.tau_identif = tau_estimated

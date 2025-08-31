@@ -116,8 +116,15 @@ class TiagoIdentification(BaseIdentification):
         q = pos[cols["pos"]].to_numpy()
         dq = vel[cols["vel"]].to_numpy()
         tau = eff[cols["eff"]].to_numpy()
-        return ts, q, dq, tau
-    
+        self.raw_data = {
+            "timestamps": ts,
+            "positions": q,
+            "velocities": dq,
+            "accelerations": None,
+            "torques": tau
+        }
+        return self.raw_data
+
     def process_torque_data(self, tau):
         """Process torque data with TIAGo-specific motor constants."""
         import pinocchio as pin
@@ -143,27 +150,6 @@ class TiagoIdentification(BaseIdentification):
                     * tau[:, i]
                 )
         return tau_processed
-    
-    def calculate_regressor_matrix(self, q, qd, qdd):
-        """Calculate dynamic regressor matrix for TIAGo robot.
-        
-        Args:
-            q: Joint positions
-            qd: Joint velocities  
-            qdd: Joint accelerations
-            
-        Returns:
-            np.ndarray: Dynamic regressor matrix
-        """
-        from figaroh.identification.identification_tools import (
-            calculate_base_dynamic_regressor
-        )
-        
-        # Use FIGAROH tools to calculate regressor for TIAGo
-        regressor, _ = calculate_base_dynamic_regressor(
-            q, qd, qdd, self.model, self.data, self.identif_config
-        )
-        return regressor
 
 
 class TiagoOptimalCalibration(BaseOptimalCalibration):
