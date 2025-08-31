@@ -20,7 +20,9 @@ to use the generalized base classes.
 """
 
 import numpy as np
+import pandas as pd
 from typing import List
+from os.path import abspath
 
 # Import from shared directory
 import sys
@@ -95,6 +97,26 @@ class TiagoIdentification(BaseIdentification):
         """
         super().__init__(robot, config_file)
         print("TiagoIdentification initialized for TIAGo robot")
+    
+    def load_trajectory_data(self):
+        """Load and process CSV data for TIAGo robot."""
+        ts = pd.read_csv(
+            abspath(self.identif_config["pos_data"]), usecols=[0]
+        ).to_numpy()
+        pos = pd.read_csv(abspath(self.identif_config["pos_data"]))
+        vel = pd.read_csv(abspath(self.identif_config["vel_data"]))
+        eff = pd.read_csv(abspath(self.identif_config["torque_data"]))
+
+        cols = {"pos": [], "vel": [], "eff": []}
+        for jn in self.identif_config["active_joints"]:
+            cols["pos"].extend([col for col in pos.columns if jn in col])
+            cols["vel"].extend([col for col in vel.columns if jn in col])
+            cols["eff"].extend([col for col in eff.columns if jn in col])
+
+        q = pos[cols["pos"]].to_numpy()
+        dq = vel[cols["vel"]].to_numpy()
+        tau = eff[cols["eff"]].to_numpy()
+        return ts, q, dq, tau
     
     def process_torque_data(self, tau):
         """Process torque data with TIAGo-specific motor constants."""

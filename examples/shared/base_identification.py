@@ -21,9 +21,7 @@ that can be inherited by any robot type (TIAGo, UR10, MATE, etc.).
 
 import yaml
 import numpy as np
-import pandas as pd
 from abc import ABC, abstractmethod
-from os.path import abspath
 
 # FIGAROH imports
 from figaroh.identification.identification_tools import (
@@ -111,25 +109,17 @@ class BaseIdentification(ABC):
             self._robot, config[setting_type]
         )
 
-    def load_csv_data(self):
-        """Load and process CSV data (generic implementation)."""
-        ts = pd.read_csv(
-            abspath(self.identif_config["pos_data"]), usecols=[0]
-        ).to_numpy()
-        pos = pd.read_csv(abspath(self.identif_config["pos_data"]))
-        vel = pd.read_csv(abspath(self.identif_config["vel_data"]))
-        eff = pd.read_csv(abspath(self.identif_config["torque_data"]))
-
-        cols = {"pos": [], "vel": [], "eff": []}
-        for jn in self.identif_config["active_joints"]:
-            cols["pos"].extend([col for col in pos.columns if jn in col])
-            cols["vel"].extend([col for col in vel.columns if jn in col])
-            cols["eff"].extend([col for col in eff.columns if jn in col])
-
-        q = pos[cols["pos"]].to_numpy()
-        dq = vel[cols["vel"]].to_numpy()
-        tau = eff[cols["eff"]].to_numpy()
-        return ts, q, dq, tau
+    @abstractmethod
+    def load_trajectory_data(self):
+        """Load and process CSV data.
+        
+        This method must be implemented by robot-specific subclasses
+        to handle their specific data formats and file structures.
+        
+        Returns:
+            tuple: (timestamps, positions, velocities, torques) as numpy arrays
+        """
+        pass
     
     def apply_filters(self, t, q, dq, nbutter=4, f_butter=2, med_fil=5, f_sample=100):
         """Apply median and lowpass filters to position and velocity data."""
@@ -175,7 +165,7 @@ class BaseIdentification(ABC):
 
     def process_data(self, truncate=None):
         """Load and process data"""
-        t_, q_, dq_, tau_ = self.load_csv_data()
+        t_, q_, dq_, tau_ = self.load_trajectory_data()
 
         # Truncate data if truncation indices are provided
         if truncate is not None:
