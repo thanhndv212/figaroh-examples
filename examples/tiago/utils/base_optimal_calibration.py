@@ -326,7 +326,7 @@ class BaseOptimalCalibration(ABC):
             >>> opt_calib.load_candidate_configurations()
             >>> print(opt_calib.q_measured.shape)  # (1000, 7) for TIAGo
         """
-        from figaroh.calibration.calibration_tools import rank_in_configuration
+        from figaroh.calibration.calibration_tools import get_idxq_from_jname
         
         if self._sampleConfigs_file is None:
             raise ValueError("sample_configs_file not specified in "
@@ -350,7 +350,7 @@ class BaseOptimalCalibration(ABC):
             q = np.zeros([len(df), self.robot.q0.shape[0]])
             for i in range(len(df)):
                 for j, name in enumerate(q_jointNames):
-                    jointidx = rank_in_configuration(self.model, name)
+                    jointidx = get_idxq_from_jname(self.model, name)
                     q[i, jointidx] = df[name][i]
             self.q_measured = q
 

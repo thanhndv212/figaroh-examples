@@ -24,6 +24,10 @@ from typing import List
 
 from .base_identification import BaseIdentification
 from .base_optimal_calibration import BaseOptimalCalibration
+from .base_optimal_trajectory import (
+    BaseOptimalTrajectory,
+    BaseTrajectoryIPOPTProblem
+)
 from figaroh.calibration.calibration_tools import BaseCalibration
 from figaroh.calibration.calibration_tools import (
     calc_updated_fkm,
@@ -142,17 +146,6 @@ class TiagoOptimalCalibration(BaseOptimalCalibration):
         """Initialize TIAGo optimal calibration."""
         super().__init__(robot, config_file)
         print("TIAGo Optimal Calibration initialized")
-
-
-
-# Import trajectory optimization classes from base module
-from .base_optimal_trajectory import (
-    ConfigurationManager,
-    BaseParameterComputer,
-    TrajectoryConstraintManager,
-    BaseOptimalTrajectory,
-    BaseTrajectoryIPOPTProblem
-)
 
 
 class OptimalTrajectoryIPOPT(BaseOptimalTrajectory):

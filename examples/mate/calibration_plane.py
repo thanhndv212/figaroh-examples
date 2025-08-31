@@ -19,7 +19,7 @@ from pinocchio.visualize import GepettoVisualizer
 import time
 from figaroh.calibration.calibration_tools import (
     calc_updated_fkm,
-    get_LMvariables,
+    initialize_variables,
 )
 from figaroh.tools.robot import load_robot
 import numpy as np
@@ -104,7 +104,7 @@ def pee_error(var, mate_x, mate_y, mate_z):
 def solve_optimisation():
 
     # set initial guess
-    init_guess, _ = get_LMvariables(mate_xyz.calib_config, mode=0)
+    init_guess, _ = initialize_variables(mate_xyz.calib_config, mode=0)
     init_guess[-3:] = np.array([0.0, 0.0, 0.0])
     # define solver parameters
     # iterate = True

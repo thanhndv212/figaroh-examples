@@ -37,7 +37,7 @@ from figaroh.calibration.calibration_tools import (
     load_data,
     calculate_base_kinematics_regressor,
     calc_updated_fkm,
-    get_LMvariables,
+    initialize_variables,
 )
 from figaroh.tools.robot import load_robot
 
@@ -77,7 +77,7 @@ for i, pn in enumerate(calib_config["param_name"]):
 dataSet = "experimental"  # choose data source 'sample' or 'experimental'
 if dataSet == "sample":
     # create artificial offsets
-    var_sample, nvars_sample = get_LMvariables(calib_config, mode=1)
+    var_sample, nvars_sample = initialize_variables(calib_config, mode=1)
 
     print("%d var_sample: " % nvars_sample, var_sample)
 
@@ -136,7 +136,7 @@ def cost_func(var, coeff, q, model, data, calib_config, PEEm):
 
 # initial guess
 # mode = 1: random seed [-0.01, 0.01], mode = 0: init guess = 0
-var_0, nvars = get_LMvariables(calib_config, mode=0)
+var_0, nvars = initialize_variables(calib_config, mode=0)
 # Write reference pose of camera in initial guess
 var_0[-6:] = np.array(
     [-0.000, -0.118, -0.011, -5.66796100e-01, -5.36932045e-04, 8.36004767e-03]
