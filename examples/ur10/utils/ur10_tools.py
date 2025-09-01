@@ -14,23 +14,19 @@
 # limitations under the License.
 
 import os
-import time
+import sys
 import random
-import csv
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import yaml
 from yaml.loader import SafeLoader
-import pprint
-import picos as pc
-import pandas as pd
-import sys
 
 # Add path to shared modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../shared'))
 from base_identification import BaseIdentification
+from base_optimal_calibration import BaseOptimalCalibration
 
-import pinocchio as pin
 from figaroh.calibration.calibration_tools import (
     BaseCalibration,
     load_data,
@@ -54,6 +50,7 @@ from figaroh.tools.qrdecomposition import get_baseParams
 from figaroh.identification.identification_tools import (
     get_standard_parameters,
 )
+
 
 class UR10Calibration(BaseCalibration):
     """
@@ -112,7 +109,7 @@ class UR10Calibration(BaseCalibration):
         # Combine residuals
         res_vect = np.append(weighted_residuals, regularization_residuals)
         return res_vect
-    
+
 
 class UR10Identification(BaseIdentification):
     """UR10-specific dynamic parameter identification class."""
@@ -180,7 +177,8 @@ class UR10Identification(BaseIdentification):
             "torques": tau_raw[:len(q_filtered)]  # Match length
         }
 
-class UR10OptimalCalibration:
+
+class UR10OptimalCalibration(BaseOptimalCalibration):
     """UR10-specific optimal configuration generation for calibration."""
     
     def __init__(self, robot, config_file="config/ur10_config.yaml"):
@@ -190,273 +188,91 @@ class UR10OptimalCalibration:
             robot: UR10 robot model loaded with FIGAROH
             config_file: Path to UR10 configuration YAML file
         """
-        self.robot = robot
-        self.model = robot.model
-        self.data = robot.data
-        
-        # Create a BaseCalibration object to get parameters
-        calib_obj = BaseCalibration(robot, config_file)
-        self.calib_config = calib_obj.calib_config
-        
+        super().__init__(robot, config_file)
         print("UR10 Optimal Calibration initialized")
     
-    def rearrange_rb(self, R_b, calib_config):
-        """Rearrange the kinematic regressor by sample numbered order."""
-        Rb_rearr = np.empty_like(R_b)
-        for i in range(calib_config["calibration_index"]):
-            for j in range(calib_config["NbSample"]):
-                Rb_rearr[j * calib_config["calibration_index"] + i, :] = R_b[
-                    i * calib_config["NbSample"] + j
-                ]
-        return Rb_rearr
-    
-    def sub_info_matrix(self, R, calib_config):
-        """Returns a list of sub info matrices (product of transpose of regressor and regressor)."""
-        subX_dict = {}
-        for i in range(calib_config["NbSample"]):
-            start_idx = i * calib_config["calibration_index"]
-            end_idx = (i + 1) * calib_config["calibration_index"]
-            R_i = R[start_idx:end_idx, :]
-            subX_dict[i] = R_i.T @ R_i
-        return subX_dict
-    
-    def solve(self, nb_chosen=15):
-        """Generate optimal configurations for UR10 calibration.
+    def load_candidate_configurations(self):
+        """Load candidate joint configurations from external data files.
         
-        Args:
-            nb_chosen: Number of optimal configurations to select
+        For UR10, this method first attempts to load from specified files,
+        and if no candidate configurations exist, generates random configurations
+        automatically within joint limits.
         """
-        print("Generating optimal configurations for UR10 calibration...")
+        from figaroh.calibration.calibration_tools import get_idxq_from_jname
         
-        # Calculate base kinematic regressor
-        q_rand = []
-        Rrand_b, R_b, R_e, paramsrand_base, paramsrand_e = calculate_base_kinematics_regressor(
-            q_rand, self.model, self.data, self.calib_config
-        )
+        if self._sampleConfigs_file is None:
+            print("No sample configurations file specified, generating random configurations")
+            self._generate_random_configurations()
+            return
         
-        # Load candidate configurations from the calibration data
-        filename = "data/calibration.csv"  # Use existing calibration data
-        q_candidates, _ = load_data(
-            filename, self.model, self.calib_config, []
-        )
-        
-        print(f"Loaded {len(q_candidates)} candidate configurations")
-        
-        # Calculate regressor for all candidates
-        R_candidates = np.zeros((len(q_candidates) * self.calib_config["calibration_index"], 
-                               self.calib_config["calibration_index"]))
-        
-        for i, q in enumerate(q_candidates):
-            # Calculate regressor for this configuration
-            # This is a simplified version - in practice you'd use the full kinematic regressor
-            start_idx = i * self.calib_config["calibration_index"]
-            end_idx = (i + 1) * self.calib_config["calibration_index"]
-            R_candidates[start_idx:end_idx, :] = np.eye(self.calib_config["calibration_index"])
-        
-        # Rearrange regressor
-        R_rearranged = self.rearrange_rb(R_candidates, self.calib_config)
-        
-        # Build sub-information matrices
-        subX_dict = self.sub_info_matrix(R_rearranged, self.calib_config)
-        
-        # Apply SOCP optimization for optimal selection
-        print("Applying SOCP optimization...")
+        # Try to load from specified file
         try:
-            self.socp_solver = SOCP(subX_dict, nb_chosen)
-            optimal_weights, optimal_configs = self.socp_solver.solve()
-            
-            if optimal_configs is None:
-                print("SOCP optimization failed, using random selection fallback")
-                # Fallback: select random configurations
-                available_indices = list(subX_dict.keys())
-                selected_indices = random.sample(available_indices, min(nb_chosen, len(available_indices)))
-                optimal_configs = selected_indices
-                optimal_weights = np.ones(len(selected_indices))
-            
-        except Exception as e:
-            print(f"SOCP optimization error: {e}")
-            print("Using random selection fallback")
-            # Fallback: select random configurations
-            available_indices = list(subX_dict.keys())
-            selected_indices = random.sample(available_indices, min(nb_chosen, len(available_indices)))
-            optimal_configs = selected_indices
-            optimal_weights = np.ones(len(selected_indices))
-        
-        self.optimal_configurations = optimal_configs
-        self.optimal_weights = optimal_weights
-        
-        print(f"Selected {len(optimal_configs)} optimal configurations")
-        
-        return optimal_configs
+            if "csv" in self._sampleConfigs_file:
+                # Load from CSV file
+                self.q_measured, _ = load_data(
+                    self._sampleConfigs_file, self.model, self.calib_config, []
+                )
+                # Update sample count
+                self.calib_config["NbSample"] = len(self.q_measured)
+                print(f"Loaded {len(self.q_measured)} configurations from CSV file")
+                
+            elif "yaml" in self._sampleConfigs_file:
+                # Load from YAML file
+                with open(self._sampleConfigs_file, "r") as f:
+                    configs_data = yaml.load(f, Loader=SafeLoader)
+                
+                joint_names = configs_data["calibration_joint_names"]
+                joint_configs = configs_data["calibration_joint_configurations"]
+                
+                # Convert to numpy array and map to model joint indices
+                idxq = get_idxq_from_jname(self.model, joint_names)
+                q_configs = np.array(joint_configs)
+                
+                # Create full configuration array
+                self.q_measured = np.zeros((len(joint_configs), self.model.nq))
+                self.q_measured[:, idxq] = q_configs
+                
+                # Store configurations for later use
+                self._configs = configs_data
+                
+                # Update sample count
+                self.calib_config["NbSample"] = len(self.q_measured)
+                print(f"Loaded {len(self.q_measured)} configurations from YAML file")
+                
+            else:
+                raise ValueError(f"Unsupported file format: {self._sampleConfigs_file}")
+                
+        except (FileNotFoundError, KeyError, ValueError) as e:
+            print(f"Failed to load candidate configurations: {e}")
+            print("Generating random configurations instead")
+            self._generate_random_configurations()
     
-    def plot_results(self):
-        """Plot optimal configuration results."""
-        if not hasattr(self, 'optimal_configurations'):
-            print("No optimal configuration results to plot. Run solve() first.")
-            return
+    def _generate_random_configurations(self):
+        """Generate random joint configurations for UR10 within joint limits."""
+        print("Generating random configurations for UR10...")
         
-        # Plot weight distribution
-        plt.figure(figsize=(10, 6))
+        # UR10 joint limits (conservative values in radians)
+        # Joint limits for UR10: approximately ±2π for most joints
+        q_min = np.array([-2*np.pi, -2*np.pi, -np.pi, -2*np.pi, -2*np.pi, -2*np.pi])
+        q_max = np.array([2*np.pi, 2*np.pi, np.pi, 2*np.pi, 2*np.pi, 2*np.pi])
         
-        plt.subplot(1, 2, 1)
-        plt.bar(range(len(self.optimal_weights)), self.optimal_weights)
-        plt.xlabel('Configuration Index')
-        plt.ylabel('Optimal Weight')
-        plt.title('UR10 Optimal Configuration Weights')
-        plt.grid(True, alpha=0.3)
+        # Generate random configurations
+        n_samples = 500  # Default 100 samples
+        self.q_measured = np.random.uniform(
+            low=q_min, high=q_max, size=(n_samples, len(q_min))
+        )
         
-        plt.subplot(1, 2, 2)
-        sorted_weights = sorted(self.optimal_weights, reverse=True)
-        plt.plot(sorted_weights)
-        plt.yscale('log')
-        plt.xlabel('Rank')
-        plt.ylabel('Weight (log scale)')
-        plt.title('UR10 Weight Distribution')
-        plt.grid(True, alpha=0.3)
+        # Update configuration with actual sample count
+        self.calib_config["NbSample"] = len(self.q_measured)
         
-        plt.tight_layout()
-        plt.show()
-    
-    def save_results(self, output_dir="results"):
-        """Save optimal configuration results."""
-        if not hasattr(self, 'optimal_configurations'):
-            print("No optimal configuration results to save. Run solve() first.")
-            return
-        
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Save optimal configurations
-        results_dict = {
-            'optimal_configurations': self.optimal_configurations,  # These are indices
-            'optimal_weights': (self.optimal_weights.tolist() 
-                              if hasattr(self.optimal_weights, 'tolist') 
-                              else self.optimal_weights),
-            'number_of_configurations': len(self.optimal_configurations)
+        # Create _configs attribute to store configuration data for base class compatibility
+        joint_names = [f"joint_{i+1}" for i in range(len(q_min))]
+        self._configs = {
+            "calibration_joint_names": joint_names,
+            "calibration_joint_configurations": self.q_measured.tolist()
         }
         
-        with open(os.path.join(output_dir, "ur10_optimal_configurations.yaml"), "w") as f:
-            yaml.dump(results_dict, f, default_flow_style=False)
-        
-        print(f"Results saved to {output_dir}/ur10_optimal_configurations.yaml")
-
-
-class Detmax:
-    """Determinant maximization algorithm for optimal experimental design."""
-    
-    def __init__(self, candidate_pool, nb_chosen):
-        self.pool = candidate_pool
-        self.nd = nb_chosen
-        self.cur_set = []
-        self.fail_set = []
-        self.opt_set = []
-        self.opt_critD = []
-
-    def get_critD(self, set_indices):
-        """Calculate n-th squared determinant of information matrix for given indices."""
-        infor_mat = 0
-        for idx in set_indices:
-            assert idx in self.pool.keys(), "chosen sample not in candidate pool"
-            infor_mat += self.pool[idx]
-        return float(pc.DetRootN(infor_mat))
-
-    def main_algo(self):
-        """Main determinant maximization algorithm."""
-        pool_idx = tuple(self.pool.keys())
-
-        # Initialize random set
-        cur_set = random.sample(pool_idx, self.nd)
-        updated_pool = list(set(pool_idx) - set(self.cur_set))
-
-        # Adding samples from remaining pool
-        opt_k = updated_pool[0]
-        opt_critD = self.get_critD(cur_set)
-        rm_j = cur_set[0]
-
-        while opt_k != rm_j:
-            # Add phase
-            for k in updated_pool:
-                cur_set.append(k)
-                cur_critD = self.get_critD(cur_set)
-                if opt_critD < cur_critD:
-                    opt_critD = cur_critD
-                    opt_k = k
-                cur_set.remove(k)
-            
-            cur_set.append(opt_k)
-            opt_critD = self.get_critD(cur_set)
-            
-            # Remove phase
-            delta_critD = opt_critD
-            rm_j = cur_set[0]
-            for j in cur_set:
-                rm_set = cur_set.copy()
-                rm_set.remove(j)
-                cur_critD = self.get_critD(rm_set)
-                if delta_critD > (opt_critD - cur_critD):
-                    delta_critD = opt_critD - cur_critD
-                    rm_j = j
-            
-            cur_set.remove(rm_j)
-            opt_critD = self.get_critD(cur_set)
-            updated_pool = list(set(pool_idx) - set(cur_set))
-
-        return [self.get_critD(cur_set[:i+1]) for i in range(len(cur_set))]
-
-
-class SOCP:
-    """Second-Order Cone Programming solver for optimal experimental design."""
-    
-    def __init__(self, candidate_pool, nb_chosen):
-        self.pool = candidate_pool
-        self.nd = nb_chosen
-
-    def solve(self):
-        """Solve SOCP optimization problem for optimal configuration selection."""
-        print("Setting up SOCP optimization problem...")
-        
-        # Create PICOS problem
-        prob = pc.Problem()
-        
-        # Decision variables: weights for each candidate
-        n_candidates = len(self.pool)
-        w = prob.add_variable('w', n_candidates)
-        
-        # Auxiliary variable for determinant
-        t = prob.add_variable('t', 1)
-        
-        # Constraints
-        prob.add_constraint(pc.sum(w) <= 1)  # Convex combination
-        prob.add_constraint(w >= 0)  # Non-negativity
-        
-        # Build weighted information matrix
-        info_matrix = sum(w[i] * list(self.pool.values())[i] for i in range(n_candidates))
-        
-        # Determinant constraint (approximated for SOCP)
-        prob.add_constraint(pc.DetRootN(info_matrix) >= t)
-        
-        # Objective: maximize determinant
-        prob.set_objective('max', t)
-        
-        # Solve
-        try:
-            solution = prob.solve(solver='cvxopt')
-            if solution.status == 'optimal':
-                weights = np.array(w.value).flatten()
-                
-                # Select configurations with highest weights
-                sorted_indices = np.argsort(weights)[::-1]
-                selected_indices = sorted_indices[:self.nd]
-                
-                optimal_configs = [list(self.pool.keys())[i] for i in selected_indices]
-                optimal_weights = weights[selected_indices]
-                
-                return optimal_weights, optimal_configs
-            else:
-                print(f"Optimization failed with status: {solution.status}")
-                return None, None
-        except Exception as e:
-            print(f"SOCP optimization error: {e}")
-            return None, None
+        print(f"Generated {len(self.q_measured)} random configurations")
 
 
 class UR10OptimalTrajectory:
@@ -475,8 +291,9 @@ class UR10OptimalTrajectory:
         
         # Load configuration
         with open(config_file, "r") as f:
-            self.config = yaml.load(f, Loader=SafeLoader)
+            config = yaml.load(f, Loader=SafeLoader)
         
+        self.config = config
         self.identif_data = self.config["identification"]
         self.identif_config = get_identification_param_from_yaml(robot, self.identif_data)
         
@@ -540,17 +357,10 @@ class UR10OptimalTrajectory:
         accelerations = []
         
         for joint in range(self.model.nq):
-            # Create cubic spline for this joint
-            cs = CubicSpline(t, waypoints[:, joint], bc_type='clamped')
-            
-            # Evaluate position, velocity, acceleration
-            q_joint = cs(t_eval)
-            dq_joint = cs(t_eval, 1)
-            ddq_joint = cs(t_eval, 2)
-            
-            trajectories.append(q_joint)
-            velocities.append(dq_joint)
-            accelerations.append(ddq_joint)
+            cs = CubicSpline(t, waypoints[:, joint])
+            trajectories.append(cs(t_eval))
+            velocities.append(cs(t_eval, nu=1))
+            accelerations.append(cs(t_eval, nu=2))
         
         q = np.array(trajectories).T
         dq = np.array(velocities).T
@@ -623,59 +433,36 @@ class UR10OptimalTrajectory:
         best_trajectory = None
         best_condition_number = float('inf')
         
-        print(f"Optimizing trajectory over {n_iterations} iterations...")
-        
-        for iteration in range(n_iterations):
-            # Generate random waypoints
+        for i in range(n_iterations):
+            # Generate random waypoints within joint limits
             waypoints = np.random.uniform(
-                low=-np.pi/2, high=np.pi/2, 
+                low=-np.pi, high=np.pi, 
                 size=(self.n_waypoints, self.model.nq)
             )
             
-            # Ensure start and end at zero velocity
-            waypoints[0, :] = np.zeros(self.model.nq)
-            waypoints[-1, :] = np.zeros(self.model.nq)
+            # Generate trajectory
+            q, dq, ddq = self.cubic_spline_trajectory(waypoints, self.trajectory_duration)
             
-            # Generate cubic spline trajectory
-            try:
-                q, dq, ddq = self.cubic_spline_trajectory(waypoints, self.trajectory_duration)
-                
-                # Check constraints
-                if not self.check_constraints(q, dq, ddq):
-                    continue
-                
-                # Evaluate trajectory quality
-                cond_num = self.evaluate_trajectory_quality(q, dq, ddq)
-                
-                # Update best trajectory
-                if cond_num < best_condition_number:
-                    best_condition_number = cond_num
-                    best_trajectory = {
-                        'q': q,
-                        'dq': dq,
-                        'ddq': ddq,
-                        'waypoints': waypoints,
-                        'condition_number': cond_num,
-                        'time': np.linspace(0, self.trajectory_duration, len(q))
-                    }
-                
-                if iteration % 10 == 0:
-                    print(f"Iteration {iteration}: Best condition number = {best_condition_number:.2f}")
-                    
-            except Exception as e:
-                print(f"Warning: Failed to generate trajectory at iteration {iteration}: {e}")
+            # Check constraints
+            if not self.check_constraints(q, dq, ddq):
                 continue
-        
-        if best_trajectory is None:
-            print("Failed to generate any valid trajectory")
-            return None
+            
+            # Evaluate quality
+            cond_num = self.evaluate_trajectory_quality(q, dq, ddq)
+            
+            if cond_num < best_condition_number:
+                best_condition_number = cond_num
+                best_trajectory = {
+                    'q': q, 'dq': dq, 'ddq': ddq,
+                    'waypoints': waypoints,
+                    'condition_number': cond_num
+                }
+            
+            if i % 10 == 0:
+                print(f"Iteration {i}: best condition number = {best_condition_number:.2e}")
         
         self.optimal_trajectory = best_trajectory
-        
-        print(f"Optimal trajectory generated!")
-        print(f"Final condition number: {best_condition_number:.2f}")
-        print(f"Trajectory duration: {self.trajectory_duration} seconds")
-        print(f"Number of waypoints: {self.n_waypoints}")
+        print(f"Optimal trajectory found with condition number: {best_condition_number:.2e}")
         
         return best_trajectory
     
@@ -686,50 +473,35 @@ class UR10OptimalTrajectory:
             return
         
         traj = self.optimal_trajectory
-        time = traj['time']
+        time_vector = np.arange(len(traj['q'])) * self.dt
         
         # Plot joint trajectories
         fig, axes = plt.subplots(3, 1, figsize=(12, 10))
         
-        # Joint positions
-        axes[0].plot(time, traj['q'])
+        # Position
+        axes[0].plot(time_vector, traj['q'])
         axes[0].set_ylabel('Joint Position (rad)')
         axes[0].set_title('UR10 Optimal Trajectory - Joint Positions')
-        axes[0].grid(True, alpha=0.3)
+        axes[0].grid(True)
         axes[0].legend([f'Joint {i+1}' for i in range(self.model.nq)])
         
-        # Joint velocities
-        axes[1].plot(time, traj['dq'])
+        # Velocity
+        axes[1].plot(time_vector, traj['dq'])
         axes[1].set_ylabel('Joint Velocity (rad/s)')
-        axes[1].set_title('UR10 Optimal Trajectory - Joint Velocities')
-        axes[1].grid(True, alpha=0.3)
-        axes[1].legend([f'Joint {i+1}' for i in range(self.model.nq)])
+        axes[1].set_title('Joint Velocities')
+        axes[1].grid(True)
         
-        # Joint accelerations
-        axes[2].plot(time, traj['ddq'])
+        # Acceleration
+        axes[2].plot(time_vector, traj['ddq'])
         axes[2].set_ylabel('Joint Acceleration (rad/s²)')
         axes[2].set_xlabel('Time (s)')
-        axes[2].set_title('UR10 Optimal Trajectory - Joint Accelerations')
-        axes[2].grid(True, alpha=0.3)
-        axes[2].legend([f'Joint {i+1}' for i in range(self.model.nq)])
+        axes[2].set_title('Joint Accelerations')
+        axes[2].grid(True)
         
         plt.tight_layout()
         plt.show()
         
-        # Plot waypoints
-        plt.figure(figsize=(10, 6))
-        waypoints = traj['waypoints']
-        waypoint_times = np.linspace(0, self.trajectory_duration, len(waypoints))
-        
-        for joint in range(self.model.nq):
-            plt.plot(waypoint_times, waypoints[:, joint], 'o-', label=f'Joint {joint+1}')
-        
-        plt.xlabel('Time (s)')
-        plt.ylabel('Joint Position (rad)')
-        plt.title('UR10 Optimal Trajectory Waypoints')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        plt.show()
+        print(f"Trajectory condition number: {traj['condition_number']:.2e}")
     
     def save_results(self, output_dir="results"):
         """Save optimal trajectory results."""
@@ -741,26 +513,22 @@ class UR10OptimalTrajectory:
         
         traj = self.optimal_trajectory
         
-        # Save trajectory data
-        trajectory_dict = {
-            'time': traj['time'].tolist(),
-            'joint_positions': traj['q'].tolist(),
-            'joint_velocities': traj['dq'].tolist(),
-            'joint_accelerations': traj['ddq'].tolist(),
-            'waypoints': traj['waypoints'].tolist(),
+        # Save to YAML
+        results_dict = {
             'condition_number': float(traj['condition_number']),
-            'trajectory_duration': float(self.trajectory_duration),
-            'n_waypoints': int(self.n_waypoints),
-            'dt': float(self.dt)
+            'waypoints': traj['waypoints'].tolist(),
+            'trajectory_duration': self.trajectory_duration,
+            'n_waypoints': self.n_waypoints,
+            'sampling_time': self.dt
         }
         
         with open(os.path.join(output_dir, "ur10_optimal_trajectory.yaml"), "w") as f:
-            yaml.dump(trajectory_dict, f, default_flow_style=False)
+            yaml.dump(results_dict, f, default_flow_style=False)
         
-        # Save as CSV for easy import
-        import pandas as pd
+        # Save trajectory data to CSV
+        time_vector = np.arange(len(traj['q'])) * self.dt
         df = pd.DataFrame({
-            'time': traj['time'],
+            'time': time_vector,
             **{f'q{i+1}': traj['q'][:, i] for i in range(self.model.nq)},
             **{f'dq{i+1}': traj['dq'][:, i] for i in range(self.model.nv)},
             **{f'ddq{i+1}': traj['ddq'][:, i] for i in range(self.model.nv)},

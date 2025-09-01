@@ -659,7 +659,6 @@ class BaseOptimalCalibration(ABC):
         ax[0].spines["top"].set_visible(False)
         ax[0].spines["right"].set_visible(False)
         ax[0].grid(True, linestyle="--")
-        ax[0].legend(fontsize=18)
 
         # Plot quality of estimation
         ax[1].set_ylabel("Weight values (log)", fontsize=20)
