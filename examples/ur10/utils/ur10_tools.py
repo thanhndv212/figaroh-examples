@@ -266,64 +266,6 @@ class UR10Identification:
         print(f"Correlation: {self.correlation:.4f}")
         
         return self.phi_base
-    
-    def plot_results(self):
-        """Plot identification results."""
-        if not hasattr(self, 'phi_base'):
-            print("No identification results to plot. Run solve() first.")
-            return
-        
-        # Plot torque comparison
-        plt.figure(figsize=(12, 8))
-        
-        plt.subplot(2, 1, 1)
-        plt.plot(self.tau_noised, label="Measured (with noise)", alpha=0.7)
-        plt.plot(self.tau_identif, label="Identified", alpha=0.7)
-        plt.xlabel('Sample')
-        plt.ylabel('Torque (Nm)')
-        plt.title('UR10 Torque Comparison')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        
-        # Plot standard parameters comparison
-        plt.subplot(2, 1, 2)
-        x_pos = np.arange(len(self.phi_standard))
-        width = 0.35
-        
-        plt.bar(x_pos - width/2, self.phi_standard, width, label='SIP Identified', alpha=0.7)
-        plt.bar(x_pos + width/2, self.phi_ref, width, label='SIP URDF', alpha=0.7)
-        plt.xlabel('Parameter Index')
-        plt.ylabel('Parameter Value')
-        plt.title('UR10 Standard Inertial Parameters Comparison')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.show()
-    
-    def save_results(self, output_dir="results"):
-        """Save identification results to files."""
-        if not hasattr(self, 'phi_base'):
-            print("No identification results to save. Run solve() first.")
-            return
-        
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Save identified parameters
-        results_dict = {
-            'base_parameters': self.phi_base.tolist(),
-            'parameter_names': [str(p) for p in self.params_base],
-            'standard_parameters_identified': self.phi_standard.tolist(),
-            'standard_parameters_reference': self.phi_ref.tolist(),
-            'rms_error': float(self.rms_error),
-            'correlation': float(self.correlation),
-            'condition_number': float(np.linalg.cond(self.W_base))
-        }
-        
-        with open(os.path.join(output_dir, "ur10_identification_results.yaml"), "w") as f:
-            yaml.dump(results_dict, f, default_flow_style=False)
-        
-        print(f"Results saved to {output_dir}/ur10_identification_results.yaml")
 
 
 class UR10OptimalCalibration:
