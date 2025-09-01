@@ -23,6 +23,12 @@ import yaml
 from yaml.loader import SafeLoader
 import pprint
 import picos as pc
+import pandas as pd
+import sys
+
+# Add path to shared modules
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../shared'))
+from base_identification import BaseIdentification
 
 import pinocchio as pin
 from figaroh.calibration.calibration_tools import (
@@ -108,7 +114,7 @@ class UR10Calibration(BaseCalibration):
         return res_vect
     
 
-class UR10Identification:
+class UR10Identification(BaseIdentification):
     """UR10-specific dynamic parameter identification class."""
     
     def __init__(self, robot, config_file="config/ur10_config.yaml"):
@@ -118,68 +124,25 @@ class UR10Identification:
             robot: UR10 robot model loaded with FIGAROH
             config_file: Path to UR10 configuration YAML file
         """
-        self.robot = robot
-        self.model = robot.model
-        self.data = robot.data
+        # Call parent constructor
+        super().__init__(robot, config_file)
         
-        # Load configuration
-        with open(config_file, "r") as f:
-            self.config = yaml.load(f, Loader=SafeLoader)
-        
-        self.identif_data = self.config["identification"]
-        self.identif_config = get_identification_param_from_yaml(robot, self.identif_data)
+        # UR10-specific: Set active joint indices (all joints are active for UR10)
+        if "act_idxq" not in self.identif_config:
+            self.identif_config["act_idxq"] = list(range(self.model.nq))
+        if "act_idxv" not in self.identif_config:
+            self.identif_config["act_idxv"] = list(range(self.model.nv))
         
         print("UR10 Dynamic Identification initialized")
-        
-    def calculate_base_parameters(self):
-        """Calculate structural base parameters for UR10."""
-        print("Calculating structural base parameters...")
-        
-        # Generate random samples for structural analysis
-        nb_samples_structural = 10 * self.identif_config["nb_samples"]
-        q_rand = np.random.uniform(
-            low=-np.pi, high=np.pi, 
-            size=(nb_samples_structural, self.model.nq)
-        )
-        dq_rand = np.random.uniform(
-            low=-2, high=2, 
-            size=(nb_samples_structural, self.model.nv)
-        )
-        ddq_rand = np.random.uniform(
-            low=-5, high=5, 
-            size=(nb_samples_structural, self.model.nv)
-        )
-        
-        # Build regressor matrix
-        W = build_regressor_basic(
-            self.robot, q_rand, dq_rand, ddq_rand, self.identif_config
-        )
-        
-        # Calculate standard parameters using FIGAROH function
-        # For now, create a dummy standard parameter dict similar to TIAGo
-        # This should ideally come from the URDF or robot definition
-        num_standard_params = W.shape[1]
-        self.params_standard = get_standard_parameters(self.model, self.identif_config)
-        
-        # Remove zero columns and build reduced regressor
-        self.idx_e, self.params_r = get_index_eliminate(W, self.params_standard, 1e-6)
-        W_e = build_regressor_reduced(W, self.idx_e)
-        
-        # Calculate base regressor and base parameters
-        _, self.params_base, self.idx_base = get_baseParams(W_e, self.params_r, self.params_standard)
-        
-        print(f"Calculated {len(self.params_base)} base parameters from {num_standard_params} standard parameters")
-        for ii, param in enumerate(self.params_base[:5]):  # Show first 5
-            print(f"  {ii}: {param}")
-        if len(self.params_base) > 5:
-            print(f"  ... and {len(self.params_base) - 5} more parameters")
     
     def load_trajectory_data(self):
-        """Load trajectory data from CSV files."""
-        print("Loading trajectory data...")
+        """Load trajectory data from CSV files.
         
-        # Load joint positions using pandas for easier handling
-        import pandas as pd
+        Returns:
+            dict: Dictionary with keys 'timestamps', 'positions', 'velocities', 
+                  'accelerations', 'torques'
+        """
+        print("Loading UR10 trajectory data...")
         
         # Load position data
         q_df = pd.read_csv("data/identification_q_simulation.csv")
@@ -192,81 +155,30 @@ class UR10Identification:
         print(f"Loaded {len(q_raw)} samples from CSV files")
         
         # Limit samples if needed
-        max_samples = min(len(q_raw), self.identif_config.get("nb_samples", 100))
+        max_samples = min(len(q_raw), 
+                         self.identif_config.get("nb_samples", 100))
         q_raw = q_raw[:max_samples, :]
         tau_raw = tau_raw[:max_samples, :]
         
         # Calculate velocities and accelerations using FIGAROH function
-        self.q, self.dq, self.ddq = calculate_first_second_order_differentiation(
-            self.model, q_raw, self.identif_config
-        )
-        
-        # Reshape torque data for identification (concatenate all joints)
-        self.tau_noised = np.concatenate([tau_raw[:, j] for j in range(self.model.nq)])
-        
-        print(f"Processed trajectory data: {len(self.q)} samples, {len(self.tau_noised)} torque values")
-    
-    def solve(self):
-        """Perform UR10 dynamic parameter identification."""
-        print("Starting UR10 dynamic parameter identification...")
-        
-        # Calculate base parameters
-        self.calculate_base_parameters()
-        
-        # Load trajectory data
-        self.load_trajectory_data()
-        
-        # Build regressor matrix for identification
-        W = build_regressor_basic(self.robot, self.q, self.dq, self.ddq, self.identif_config)
-        
-        # Select only columns corresponding to base parameters
-        self.W_base = W[:, self.idx_base]
-        
-        # Calculate condition number safely
-        cond_num = np.linalg.cond(self.W_base)
-        if np.isinf(cond_num):
-            print("Warning: Regressor matrix is singular (condition number = inf)")
-            print("This may indicate insufficient excitation in the trajectory")
-        else:
-            print(f"Regressor condition number: {cond_num:.2e}")
-        
-        # Solve for base parameters using pseudoinverse if needed
-        try:
-            self.phi_base = np.linalg.lstsq(self.W_base, self.tau_noised, rcond=None)[0]
-        except np.linalg.LinAlgError:
-            print("Warning: Using pseudoinverse due to singular matrix")
-            self.phi_base = np.linalg.pinv(self.W_base) @ self.tau_noised
-        
-        # Calculate identified torques
-        self.tau_identif = self.W_base @ self.phi_base
-        
-        # Calculate standard parameters for comparison
-        # Set up constraints for standard parameter calculation
-        COM_max = np.ones((self.model.nq * 3, 1))  # COM position bounds
-        COM_min = -np.ones((self.model.nq * 3, 1))
-        
-        try:
-            self.phi_standard, self.phi_ref = calculate_standard_parameters(
-                self.robot, W, self.tau_noised, COM_max, COM_min, 
-                self.identif_config
+        q_filtered, dq_filtered, ddq_filtered = \
+            calculate_first_second_order_differentiation(
+                self.model, q_raw, self.identif_config
             )
-        except Exception as e:
-            print(f"Warning: Could not calculate standard parameters: {e}")
-            # Create dummy values for plotting
-            self.phi_standard = np.zeros(len(self.params_base))
-            self.phi_ref = np.zeros(len(self.params_base))
         
-        # Calculate identification quality metrics
-        residuals = self.tau_noised - self.tau_identif
-        self.rms_error = np.sqrt(np.mean(residuals**2))
-        self.correlation = np.corrcoef(self.tau_noised, self.tau_identif)[0, 1]
+        # Create time vector (assuming 100Hz sampling)
+        dt = 0.01  # 100Hz
+        time_vector = np.arange(len(q_filtered)) * dt
         
-        print(f"Dynamic identification completed")
-        print(f"RMS error: {self.rms_error:.6f}")
-        print(f"Correlation: {self.correlation:.4f}")
+        print(f"Processed trajectory data: {len(q_filtered)} samples")
         
-        return self.phi_base
-
+        return {
+            "timestamps": time_vector.reshape(-1, 1),
+            "positions": q_filtered,
+            "velocities": dq_filtered,
+            "accelerations": ddq_filtered,
+            "torques": tau_raw[:len(q_filtered)]  # Match length
+        }
 
 class UR10OptimalCalibration:
     """UR10-specific optimal configuration generation for calibration."""

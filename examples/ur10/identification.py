@@ -33,7 +33,10 @@ def main():
         config_file="config/ur10_config.yaml"
     )
     
-    # Perform identification
+    # Initialize with data processing
+    ur10_identif.initialize()
+    
+    # Perform identification using the base class solve method
     base_params = ur10_identif.solve()
     
     # Display results
@@ -42,7 +45,7 @@ def main():
     print(f"Correlation: {ur10_identif.correlation:.4f}")
     print(f"Number of base parameters: {len(base_params)}")
     
-    # Plot and save results
+    # Plot and save results using base class methods
     ur10_identif.plot_results()
     ur10_identif.save_results("results/")
     
