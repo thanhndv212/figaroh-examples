@@ -20,8 +20,6 @@ from .ur10_tools import (
     UR10Identification,
     UR10OptimalCalibration,
     UR10OptimalTrajectory,
-    Detmax,
-    SOCP,
 )
 
 __all__ = [
@@ -29,6 +27,4 @@ __all__ = [
     "UR10Identification", 
     "UR10OptimalCalibration",
     "UR10OptimalTrajectory",
-    "Detmax",
-    "SOCP",
 ]
