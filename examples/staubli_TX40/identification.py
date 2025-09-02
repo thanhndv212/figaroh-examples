@@ -21,12 +21,10 @@ import pandas as pd
 import csv
 import yaml
 from yaml.loader import SafeLoader
-import pprint
 
 from figaroh.tools.robot import Robot
 from figaroh.tools.regressor import (
     build_regressor_basic,
-    add_coupling_TX40,
     build_regressor_reduced,
     get_index_eliminate,
     eliminate_non_dynaffect,
@@ -37,27 +35,68 @@ from figaroh.identification.identification_tools import (
     calculate_first_second_order_differentiation,
     relative_stdev,
     low_pass_filter_data,
+    get_standard_parameters
 )
 from figaroh.tools.robot import load_robot
 
 
+def add_coupling(W, model, data, N, nq, nv, njoints, q, v, a):
+    """Add TX40-specific wrist coupling to regressor matrix.
+    
+    This method adds coupling terms for the TX40 robot's wrist joints
+    (joints 4, 5, and 6) to account for mechanical coupling effects.
+    
+    Args:
+        W: Regressor matrix
+        model: Robot model
+        data: Robot data
+        N: Number of samples
+        nq: Number of position variables
+        nv: Number of velocity variables
+        njoints: Number of joints
+        q: Joint positions
+        v: Joint velocities
+        a: Joint accelerations
+        
+    Returns:
+        ndarray: Regressor matrix with coupling terms added
+    """
+    W = np.c_[W, np.zeros([W.shape[0], 3])]
+    for i in range(N):
+        # joint 5
+        W[4 * N + i, W.shape[1] - 3] = a[i, 5]
+        W[4 * N + i, W.shape[1] - 2] = v[i, 5]
+        W[4 * N + i, W.shape[1] - 1] = np.sign(v[i, 4] + v[i, 5])
+        # joint 6
+        W[5 * N + i, W.shape[1] - 3] = a[i, 4]
+        W[5 * N + i, W.shape[1] - 2] = v[i, 4]
+        W[5 * N + i, W.shape[1] - 1] = np.sign(v[i, 4] + v[i, 5])
+
+    return W
+
+# load robot
 robot = load_robot(
     "urdf/tx40_mdh_modified.urdf", package_dirs="models"
 )
+
+# load initial data
 model = robot.model
 data = robot.data
 
 nq, nv, njoints = model.nq, model.nv, model.njoints
 
+# load configuration
 with open("config/TX40_config.yaml", "r") as f:
     config = yaml.load(f, Loader=SafeLoader)
-    pprint.pprint(config)
 
 identif_data = config["identification"]
 
 identif_config = get_param_from_yaml(robot, identif_data)
-params_std = robot.get_standard_parameters(identif_config)
 
+# compute standard parameters
+params_std = get_standard_parameters(model, identif_config)
+
+# add coupling parameters
 if identif_config["has_coupled_wrist"]:  # self.isCoupling:
     params_std["Iam6"] = identif_config["Iam6"]
     params_std["fvm6"] = identif_config["fvm6"]
@@ -74,48 +113,22 @@ active_joints = [
 idx_act_joints = [robot.model.getJointId(i) - 1 for i in active_joints]
 identif_config["idx_act_joints"] = idx_act_joints
 
-q_rand = np.random.uniform(
-    low=-6, high=6, size=(10 * identif_config["nb_samples"], model.nq)
-)
 
-dq_rand = np.random.uniform(
-    low=-10, high=10, size=(10 * identif_config["nb_samples"], model.nv)
-)
-
-ddq_rand = np.random.uniform(
-    low=-30, high=30, size=(10 * identif_config["nb_samples"], model.nv)
-)
-W = build_regressor_basic(robot, q_rand, dq_rand, ddq_rand, identif_config)
-W = add_coupling_TX40(
-    W, model, data, len(q_rand), nq, nv, njoints, q_rand, dq_rand, ddq_rand
-)
-
-# remove zero cols and build a zero columns free regressor matrix
-idx_e, params_r = get_index_eliminate(W, params_std, 1e-6)
-W_e = build_regressor_reduced(W, idx_e)
-
-# Calulate the base regressor matrix, the base regroupings equations params_base and
-# get the idx_base, ie. the index of base parameters in the initial regressor matrix
-_, params_base, idx_base = get_baseParams(W_e, params_r, params_std)
-
-print("The structural base parameters are: ")
-for ii in range(len(params_base)):
-    print(params_base[ii])
-
+# process experimental data
 f_sample = 1 / identif_config["ts"]
 
 curr_data = pd.read_csv("data/curr_data.csv").to_numpy()
 pos_data = pd.read_csv("data/pos_read_data.csv").to_numpy()
 # Nyquist freq/0.5*sampling rate fs = 0.5 *5 kHz
 
-N_robot = identif_config["N"]
+# reduction ratio
+N_robot = identif_config["reduction_ratio"]
 
-# cut off tail and head
-head = int(0.1 * f_sample)
-tail = int(7.5 * f_sample + 1)
+# # cut off tail and head
+# head = int(0.1 * f_sample)
+# tail = int(7.5 * f_sample + 1)
 y = curr_data
 q_motor = pos_data
-
 # calculate joint position = inv(reduction ration matrix)*motor_encoder_angle
 red_q = np.diag(
     [N_robot[0], N_robot[1], N_robot[2], N_robot[3], N_robot[4], N_robot[5]]
@@ -126,6 +139,7 @@ q = q_T.T
 
 q_nofilt = np.array(q)
 
+# filtering
 nbutter = 4
 nbord = 5 * nbutter
 
@@ -142,30 +156,17 @@ for ii in range(model.nq):
 q[:, 1] += -np.pi / 2
 q[:, 2] += np.pi / 2
 
+# differentiate to get velocity and acceleration
 q, dq, ddq = calculate_first_second_order_differentiation(model, q, identif_config)
 
-# fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
-# fig.suptitle('Verif q')
 
-# ax1.plot(q[:,1])
-# ax1.set_ylabel('q1')
-
-# ax2.plot(dq[:,1])
-# ax2.set_ylabel('dq1')
-
-# ax3.plot(ddq[:,1])
-# ax3.set_xlabel('time (s)')
-# ax3.set_ylabel('ddq1')
-
-# plt.show()
-
-# build regressor matrix
+# build regressor matrix on experimental data
 qd = dq
 qdd = ddq
 N = q.shape[0]
 
 W = build_regressor_basic(robot, q, qd, qdd, identif_config)
-W = add_coupling_TX40(W, model, data, N, nq, nv, njoints, q, qd, qdd)
+W = add_coupling(W, model, data, N, nq, nv, njoints, q, qd, qdd)
 
 # calculate joint torques = reduction gear ratio matrix*motor_torques
 red_tau = np.diag(
@@ -184,16 +185,13 @@ tau = np.asarray(tau_T).ravel()
 # decimate by scipy.signal.decimate best_factor q = 25
 # parallel decimate joint-by-joint on joint torques and columns of regressor
 nj_ = tau.shape[0] // 6
-print("ni: ", nj_)
 tau_list = []
 W_list = []
 t_sample = []
 for i in range(nv):
     tau_temp = tau[(i * nj_) : ((i + 1) * nj_)]
     for m in range(2):
-        print(tau_temp.shape)
         tau_temp = signal.decimate(tau_temp, q=10, zero_phase=True)
-        print(tau_temp.shape)
     tau_list.append(tau_temp)
     W_joint_temp = np.zeros((tau_temp.shape[0], W.shape[1]))
     for j in range(W_joint_temp.shape[1]):
@@ -215,7 +213,6 @@ for i in range(len(W_list)):
     idx_eliminate = list(set(idx_qd_cross_zero))
     W_list[i] = np.delete(W_list[i], idx_eliminate, axis=0)
     tau_list[i] = np.delete(tau_list[i], idx_eliminate, axis=0)
-    print(W_list[i].shape, tau_list[i].shape)
     t_sample.append(W_list[i].shape[0])
 # rejoining
 # note:length of data on each joint different
@@ -230,7 +227,7 @@ for i in range(len(tau_list)):
     tau_[a : (a + tau_list[i].shape[0])] = tau_list[i]
     W_[a : (a + tau_list[i].shape[0]), :] = W_list[i]
     a += tau_list[i].shape[0]
-print(tau_.shape, W_.shape)
+
 
 # base parameters
 # elimate and QR decomposition for ordinary LS
@@ -243,9 +240,7 @@ phi_b_ols = np.around(np.linalg.lstsq(W_b, tau_, rcond=None)[0], 6)
 tau_dec = tau_
 tau_base = np.dot(W_b, phi_b)
 phi_ref = np.array(list(float(x) for x in params_std.values()))
-print("std param: ", phi_ref.shape, W_.shape, phi_ref)
 tau_ref = np.dot(W_, phi_ref)
-print(tau_dec.shape, tau_base.shape, tau_ref.shape)
 cur_t = 0
 plot2 = plt.figure(2)
 axs2 = plot2.subplots(len(identif_config["idx_act_joints"]), 1)
@@ -269,7 +264,6 @@ for i in range(len(identif_config["idx_act_joints"])):
         # axs2[i].grid()
     else:
         t = np.linspace(0, int(len(tau_dec[range_t]) * 0.02), len(tau_dec[range_t]))
-        print(t)
         axs2[i].plot(t, tau_dec[range_t], color="red")
         axs2[i].plot(
             t,
@@ -315,6 +309,7 @@ for i in range(len(tau_list)):
         tau_list[i].shape[0], sig_ro_joint[i]
     )
     a += tau_list[i].shape[0]
+    print(f"Processed joint {i + 1}/{tau_list[i].shape[0]}")
 SIGMA = np.diag(diag_SIGMA)
 # Covariance matrix
 C_X = np.linalg.inv(
@@ -348,7 +343,9 @@ for i in range(STD_X.shape[0]):
 # print("eleminanted parameters: ", params_e)
 print("condition number of base regressor: ", np.linalg.cond(W_b))
 print("condition number of observation matrix: ", np.linalg.cond(W_e))
-
+print("\nBase parameters:")
+for i, param_name in enumerate(params_base):
+    print(f"{i + 1:2d}. {param_name}: {phi_b[i]:10.6f}")
 ############################################################################################################################
 # essential parameter
 min_std_e = min(std_xr)
