@@ -29,7 +29,7 @@ identification:
       Iam6 : None
       fvm6 : None
       fsm6 : None
-      N : None
+      reduction_ratio : None
       ratio_essential : None
   problem_params:
     - is_external_wrench : False
