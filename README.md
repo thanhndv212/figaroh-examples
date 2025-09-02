@@ -1,6 +1,6 @@
 # FIGAROH Examples
 
-This repository contains comprehensive examples and tutorials for the [FIGAROH](https://github.com/thanhndv212/figaroh) library - a Python toolbox for dynamics identification and geometric calibration of robots and humans.
+This repository contains comprehensive examples and tutorials for the [FIGAROH PLUS](https://github.com/thanhndv212/figaroh-plus) library - a Python toolbox for dynamics identification and geometric calibration of robots.
 
 ## Prerequisites
 
@@ -9,7 +9,7 @@ First, install the core FIGAROH package:
 ```bash
 pip install figaroh
 # or for development:
-pip install git+https://github.com/thanhndv212/figaroh.git
+pip install git+https://github.com/thanhndv212/figaroh-plus.git
 ```
 
 Then install additional dependencies for the examples:
@@ -29,16 +29,19 @@ conda install -c conda-forge pinocchio cyipopt
 ```
 figaroh-examples/
 ├── examples/                    # Example implementations for different robots
-│   ├── human/                  # Human biomechanics examples
 │   ├── mate/                   # 3DOF manipulator examples  
-│   ├── soarm/                  # SOARM robot examples
-│   ├── staubli_TX40/          # Industrial manipulator examples
+│   ├── shared/                 # Shared base classes and utilities
+│   ├── staubli_tx40/          # Industrial manipulator examples
 │   ├── talos/                  # Humanoid robot examples
 │   ├── tiago/                  # Mobile manipulator examples
 │   └── ur10/                   # Universal Robots examples
 ├── models/                     # URDF models and robot descriptions
-│   ├── human_description/      # Human body URDF models
+│   ├── hey5_description/       # Hand gripper description
+│   ├── mate_description/       # 3DOF manipulator description
+│   ├── pmb2_description/       # Mobile base description
+│   ├── realsense2_description/ # RealSense camera description
 │   ├── staubli_tx40_description/ # Staubli TX40 robot description
+│   ├── talos_description/      # TALOS humanoid robot description
 │   ├── tiago_description/      # TIAGo robot description
 │   └── ur_description/         # Universal Robots description
 ├── requirements.txt            # Python dependencies for examples
@@ -47,16 +50,10 @@ figaroh-examples/
 
 ## Examples Overview
 
-### Human Modeling
-- **Joint center estimation**: Estimate human joint locations from motion capture data
-- **Segment inertial identification**: Identify inertial parameters of human body segments
-
-Location: `examples/human/`
-
 ### Industrial Manipulator - Staubli TX40
 - **Dynamic identification**: Identify inertial parameters, friction, and actuator characteristics
 
-Location: `examples/staubli_TX40/`
+Location: `examples/staubli_tx40/`
 
 ### Universal Robots UR10
 - **Geometric calibration**: Calibrate kinematic parameters using RealSense camera and checkerboard
@@ -94,6 +91,9 @@ Each example folder contains:
 - `optimal_trajectory.py`: Optimal trajectory generation
 - `update_model.py`: Model parameter update utilities
 - `urdf/`: Robot-specific URDF files (when needed)
+- `utils/`: Robot-specific tools and utilities
+
+The `shared/` directory contains base classes and common utilities used across multiple robot implementations.
 
 The `models/` directory contains shared URDF robot descriptions that can be used across multiple examples.
 
@@ -109,6 +109,13 @@ The `models/` directory contains shared URDF robot descriptions that can be used
 
 ```bash
 cd examples/tiago
+python identification.py
+```
+
+### Example: Running Staubli TX40 Dynamic Identification
+
+```bash
+cd examples/staubli_tx40
 python identification.py
 ```
 
