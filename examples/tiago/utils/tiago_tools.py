@@ -125,7 +125,7 @@ class TiagoIdentification(BaseIdentification):
         }
         return self.raw_data
 
-    def process_torque_data(self, tau):
+    def process_torque_data(self, tau, filter_config=None):
         """Process torque data with TIAGo-specific motor constants."""
         import pinocchio as pin
         

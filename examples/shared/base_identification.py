@@ -161,7 +161,69 @@ class BaseIdentification(ABC):
             tuple: (timestamps, positions, velocities, torques) as numpy arrays
         """
         pass
+
+    def process_data(self, truncate=None, filter_config=None):
+        """Load and process data"""
+        # Set default filter configuration
+        default_config = {
+            'differentiation_method': 'gradient',
+            'filter_params': {}
+        }
+        filter_config = {**default_config, **(filter_config or {})}
+
+        # load raw data
+        self.raw_data = self.load_trajectory_data()
+        
+        # Truncate data if truncation indices are provided
+        self.raw_data = self._truncate_data(self.raw_data, truncate)
+
+        # Apply filtering and differentiation kinematics data
+        self.process_kinematics_data(filter_config)
+
+        # Process joint torque data
+        self.processed_data["torques"] = self.process_torque_data(self.raw_data["torques"], filter_config)
+
+        # Update sample count to ensure consistency
+        self.num_samples = self.processed_data["positions"].shape[0]
+
+        # Build full configuration
+        self._build_full_configuration()
     
+    def calculate_full_regressor(self):
+        """Build regressor matrix, compute pre-identified values of standard 
+        parameters, compute joint torques based on pre-identified standard 
+        parameters."""
+        # Build full regressor matrix
+        self.dynamic_regressor = build_regressor_basic(
+            self.robot,
+            self.processed_data["positions"],
+            self.processed_data["velocities"],
+            self.processed_data["accelerations"],
+            self.identif_config,
+        )
+
+        # Compute standard parameters
+        self.standard_parameter = get_standard_parameters(self.model, self.identif_config)
+
+        # additional parameters can be added in robot-specific subclass
+        self.add_additional_parameters()
+
+        # Convert all string values to floats in the standard_parameter dict
+        for key, value in self.standard_parameter.items():
+            if isinstance(value, str):
+                self.standard_parameter[key] = float(value)
+
+        # joint torque estimated from p,v,a with std params
+        phi_ref = np.array(list(self.standard_parameter.values()))
+        tau_ref = np.dot(self.dynamic_regressor, phi_ref)
+
+        # filter only active joints
+        self.tau_ref = tau_ref[range(len(self.identif_config["act_idxv"]) * self.num_samples)]
+
+    def add_additional_parameters(self):
+        """Add additional parameters specific to the robot and recalculate dynamic regressor."""
+        pass
+
     def _apply_filters(self, *signals, nbutter=4, f_butter=2, med_fil=5, f_sample=100):
         """Apply median and lowpass filters to any number of signals.
         
@@ -347,7 +409,11 @@ class BaseIdentification(ABC):
                 
         return truncated_data
     
-    def _filter_data(self, filter_config=None):
+    def process_kinematics_data(self, filter_config=None):
+        """Process kinematics data (positions, velocities, accelerations) with filtering."""
+        self._filter_kinematics_data(filter_config)
+
+    def _filter_kinematics_data(self, filter_config=None):
         """Apply filtering to data with configurable parameters.
         
         Args:
@@ -357,14 +423,7 @@ class BaseIdentification(ABC):
                 
         Raises:
             ValueError: If required data is missing
-        """
-        # Set default filter configuration
-        default_config = {
-            'differentiation_method': 'gradient',
-            'filter_params': {}
-        }
-        config = {**default_config, **(filter_config or {})}
-        
+        """ 
         # Validate required data
         if self.raw_data.get("timestamps") is None:
             raise ValueError("Timestamps are required for data processing")
@@ -389,7 +448,7 @@ class BaseIdentification(ABC):
             if signal_data is not None:
                 # Apply filtering to existing data
                 self.processed_data[signal_name] = self._apply_filters(
-                    signal_data, **config['filter_params'])
+                    signal_data, **filter_config['filter_params'])
             else:
                 # Estimate missing signal from dependency
                 if dependency:
@@ -398,54 +457,19 @@ class BaseIdentification(ABC):
                         self._differentiate_signal(
                             self.processed_data["timestamps"],
                             dependency_data,
-                            method=config['differentiation_method'])
+                            method=filter_config['differentiation_method'])
                 else:
                     raise ValueError(
                         f"Cannot process {signal_name}: no data or dependency")
-        
-        # Process torque data (robot-specific processing)
-        if self.raw_data.get("torques") is not None:
-            self.processed_data["torques"] = self.process_torque_data(
-                self.raw_data["torques"])
-        else:
-            self.processed_data["torques"] = None
-        
-        # Update sample count
-        self.num_samples = self.processed_data["positions"].shape[0]
-        
-    def process_torque_data(self, tau):
+
+    def process_torque_data(self, tau, **kwargs):
         """Process torque data (generic implementation, should be overridden for robot-specific processing)."""
         # Generic torque processing - robots should override this method
-        return tau
-
-    def process_data(self, truncate=None):
-        """Load and process data"""
-        # load raw data
-        self.raw_data = self.load_trajectory_data()
-        
-        # Truncate data if truncation indices are provided
-        self.raw_data = self._truncate_data(self.raw_data, truncate)
-
-        # Apply filtering and differentiation
-        self._filter_data()
-
-        # Build full configuration
-        self._build_full_configuration()
-    
-    def calculate_full_regressor(self):
-        """Build regressor matrix."""
-        self.dynamic_regressor = build_regressor_basic(
-            self.robot,
-            self.processed_data["positions"],
-            self.processed_data["velocities"],
-            self.processed_data["accelerations"],
-            self.identif_config,
-        )
-        self.standard_parameter = get_standard_parameters(self.model, self.identif_config)
-        # joint torque estimated from p,v,a with std params
-        phi_ref = np.array(list(self.standard_parameter.values()))
-        tau_ref = np.dot(self.dynamic_regressor, phi_ref)
-        self.tau_ref = tau_ref[range(len(self.identif_config["act_idxv"]) * self.num_samples)]
+        if tau is not None:
+            self.processed_data["torques"] = tau
+            return self.processed_data["torques"]
+        else:
+            raise ValueError("Torque data is required for processing")
 
     def _validate_prerequisites(self):
         """Validate that required data is available for calculation.
@@ -510,6 +534,14 @@ class BaseIdentification(ABC):
         regressor_decimated = self._decimate_regressor_matrix(
             regressor_reduced, decimation_factor)
         
+        # Validate that decimated data is properly aligned
+        if tau_decimated.shape[0] != regressor_decimated.shape[0]:
+            raise ValueError(
+                f"Decimated data size mismatch: "
+                f"tau_decimated has {tau_decimated.shape[0]} samples, "
+                f"regressor_decimated has {regressor_decimated.shape[0]} rows"
+            )
+
         return tau_decimated, regressor_decimated
 
     def _decimate_regressor_matrix(self, regressor_reduced, decimation_factor):
