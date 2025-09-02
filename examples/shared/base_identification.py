@@ -411,9 +411,9 @@ class BaseIdentification(ABC):
     
     def process_kinematics_data(self, filter_config=None):
         """Process kinematics data (positions, velocities, accelerations) with filtering."""
-        self._filter_kinematics_data(filter_config)
+        self.filter_kinematics_data(filter_config)
 
-    def _filter_kinematics_data(self, filter_config=None):
+    def filter_kinematics_data(self, filter_config=None):
         """Apply filtering to data with configurable parameters.
         
         Args:

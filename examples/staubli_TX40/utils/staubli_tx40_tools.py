@@ -159,9 +159,9 @@ class TX40Identification(BaseIdentification):
 
         # Convert motor positions to joint positions
         self._convert_motor_to_joint_positions()
-
+        print("Position shape:", self.raw_data["positions"].shape)
         # Apply filtering to kinematics data
-        self._filter_kinematics_data(filter_config)
+        self.filter_kinematics_data(filter_config)
 
     def _convert_motor_to_joint_positions(self):
         """Convert motor encoder positions to joint positions with
@@ -189,6 +189,7 @@ class TX40Identification(BaseIdentification):
 
         # Convert motor positions to joint positions
         joint_positions = np.dot(np.linalg.inv(reduction_matrix), self.raw_data["positions"].T)
+        joint_positions = joint_positions.T
         
         # Apply TX40-specific joint offsets
         joint_positions[:, 1] += -np.pi / 2  # Joint 2 offset
