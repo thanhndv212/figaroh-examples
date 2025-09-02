@@ -11,6 +11,12 @@ calibration:
       measure: [True, True, True, False, False, False]
   free_flyer: False
   nb_sample: 29
+  base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  tip_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  coeff_regularize: 0.001
+  outlier_eps: 0.02
+  data_file: data/talos_left_arm_02_10_contact.csv
+  sample_configs_file: None
 identification:
   robot_params:
     - q_lim_def: 1.57
