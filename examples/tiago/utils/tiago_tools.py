@@ -16,29 +16,75 @@
 """
 Example refactored TIAGo tools using the new base classes.
 This demonstrates how the existing TIAGo implementation would be refactored
-to use the generalized base classes.
+to use the generalized base classes and new infrastructure.
 """
 
 import numpy as np
 import pandas as pd
 from typing import List
 from os.path import abspath
-
-# Import from shared directory
 import sys
 import os
+
+# Import from shared directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
 
-from base_identification import BaseIdentification
-from base_optimal_calibration import BaseOptimalCalibration
-from base_optimal_trajectory import (
-    BaseOptimalTrajectory,
-    BaseTrajectoryIPOPTProblem
-)
+# Import FIGAROH modules
 from figaroh.calibration.calibration_tools import BaseCalibration
-from figaroh.calibration.calibration_tools import (
-    calc_updated_fkm,
-)
+from figaroh.calibration.calibration_tools import calc_updated_fkm
+
+# Import shared modules with fallback
+try:
+    from base_identification import BaseIdentification
+    from base_optimal_calibration import BaseOptimalCalibration
+    from base_optimal_trajectory import (
+        BaseOptimalTrajectory,
+        BaseTrajectoryIPOPTProblem
+    )
+    from config_manager import ConfigManager
+    from error_handling import (
+        CalibrationError,
+        IdentificationError,
+        validate_robot_config,
+        handle_calibration_errors
+    )
+    from data_processing import DataProcessor
+except ImportError:
+    # Fallback imports for compatibility
+    from base_identification import BaseIdentification
+    from base_optimal_calibration import BaseOptimalCalibration
+    from base_optimal_trajectory import (
+        BaseOptimalTrajectory,
+        BaseTrajectoryIPOPTProblem
+    )
+    
+    # Fallback classes if new infrastructure not available
+    class ConfigManager:
+        def __init__(self, config_path):
+            import yaml
+            with open(config_path, 'r') as f:
+                self.config = yaml.safe_load(f)
+        
+        def get_config(self):
+            return self.config
+    
+    class CalibrationError(Exception):
+        pass
+    
+    class IdentificationError(Exception):
+        pass
+    
+    def validate_robot_config(config):
+        return True
+    
+    def handle_calibration_errors(func):
+        return func
+    
+    class DataProcessor:
+        @staticmethod
+        def load_data_csv(filepath, time_col='time', columns=None):
+            import pandas as pd
+            return pd.read_csv(filepath)
 
 
 class TiagoCalibration(BaseCalibration):
@@ -49,8 +95,26 @@ class TiagoCalibration(BaseCalibration):
     the BaseCalibration class with robot-specific cost functions and
     initialization parameters.
     """
-    def __init__(self, robot, config_file, del_list=[]):
+    
+    @handle_calibration_errors
+    def __init__(self, robot, config_file="config/tiago_config.yaml",
+                 del_list=[]):
+        """Initialize TIAGo calibration with robot model and configuration.
+        
+        Args:
+            robot: TIAGo robot model loaded with FIGAROH
+            config_file: Path to TIAGo configuration YAML file
+            del_list: List of sample indices to exclude from calibration
+        """
+        # Use ConfigManager for centralized configuration
+        self.config_manager = ConfigManager(config_file)
+        self.tiago_config = self.config_manager.get_config()
+        
+        # Validate configuration
+        validate_robot_config(self.tiago_config)
+        
         super().__init__(robot, config_file, del_list)
+        print("TIAGo calibration initialized with new infrastructure")
 
     def cost_function(self, var):
         """

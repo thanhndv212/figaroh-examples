@@ -8,8 +8,14 @@ Available modules:
 - base_identification: Base class for robot dynamic parameter identification
 - base_optimal_calibration: Base class for optimal configuration generation
 - base_optimal_trajectory: Base class for optimal trajectory generation
+- config_manager: Centralized configuration management
+- error_handling: Custom exceptions and validation utilities
+- data_processing: Common data processing utilities
 """
 
+# flake8: noqa F401
+
+# Import base classes
 from .base_identification import BaseIdentification
 from .base_optimal_calibration import (
     BaseOptimalCalibration, SOCPOptimizer, Detmax
@@ -22,14 +28,57 @@ from .base_optimal_trajectory import (
     TrajectoryConstraintManager
 )
 
+# Import new infrastructure modules
+try:
+    from .config_manager import ConfigManager, ConfigurationError
+    from .error_handling import (
+        FigarohExampleError,
+        RobotInitializationError,
+        DataProcessingError,
+        CalibrationError,
+        IdentificationError,
+        ValidationError,
+        validate_robot_config,
+        validate_input_data,
+        handle_identification_errors,
+        handle_calibration_errors,
+        setup_example_logging
+    )
+    from .data_processing import DataProcessor
+    
+    # Include new modules in __all__
+    _new_modules = [
+        'ConfigManager',
+        'ConfigurationError',
+        'FigarohExampleError',
+        'RobotInitializationError',
+        'DataProcessingError',
+        'CalibrationError',
+        'IdentificationError',
+        'ValidationError',
+        'validate_robot_config',
+        'validate_input_data',
+        'handle_identification_errors',
+        'handle_calibration_errors',
+        'setup_example_logging',
+        'DataProcessor'
+    ]
+except ImportError:
+    # Graceful fallback if new modules are not available
+    _new_modules = []
+
+__version__ = "0.2.0"
+__author__ = "Thanh Nguyen"
+
 __all__ = [
+    # Base classes
     'BaseIdentification',
     'BaseOptimalCalibration',
+    'BaseOptimalTrajectory',
     'SOCPOptimizer',
     'Detmax',
-    'BaseOptimalTrajectory',
     'BaseTrajectoryIPOPTProblem',
     'ConfigurationManager',
     'BaseParameterComputer',
-    'TrajectoryConstraintManager'
-]
+    'TrajectoryConstraintManager',
+] + _new_modules

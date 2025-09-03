@@ -19,14 +19,8 @@ import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import yaml
-from yaml.loader import SafeLoader
 
-# Add path to shared modules
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../shared'))
-from base_identification import BaseIdentification
-from base_optimal_calibration import BaseOptimalCalibration
-
+# Import FIGAROH modules
 from figaroh.calibration.calibration_tools import (
     BaseCalibration,
     load_data,
@@ -36,7 +30,6 @@ from figaroh.identification.identification_tools import (
     get_param_from_yaml as get_identification_param_from_yaml,
     calculate_first_second_order_differentiation,
 )
-
 from figaroh.tools.regressor import (
     build_regressor_basic,
     get_index_eliminate,
@@ -44,6 +37,53 @@ from figaroh.tools.regressor import (
 )
 from figaroh.tools.qrdecomposition import get_baseParams
 
+# Add path to shared modules
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../shared'))
+
+# Import shared modules with fallback
+try:
+    from base_identification import BaseIdentification
+    from base_optimal_calibration import BaseOptimalCalibration
+    from config_manager import ConfigManager
+    from error_handling import (
+        CalibrationError,
+        IdentificationError,
+        validate_robot_config,
+        handle_calibration_errors
+    )
+    from data_processing import DataProcessor
+except ImportError:
+    # Fallback imports for compatibility
+    from base_identification import BaseIdentification
+    from base_optimal_calibration import BaseOptimalCalibration
+    
+    # Fallback classes if new infrastructure not available
+    class ConfigManager:
+        def __init__(self, config_path):
+            import yaml
+            with open(config_path, 'r') as f:
+                self.config = yaml.safe_load(f)
+        
+        def get_config(self):
+            return self.config
+    
+    class CalibrationError(Exception):
+        pass
+    
+    class IdentificationError(Exception):
+        pass
+    
+    def validate_robot_config(config):
+        return True
+    
+    def handle_calibration_errors(func):
+        return func
+    
+    class DataProcessor:
+        @staticmethod
+        def load_data_csv(filepath, time_col='time', columns=None):
+            import pandas as pd
+            return pd.read_csv(filepath)
 
 
 class UR10Calibration(BaseCalibration):
@@ -55,6 +95,7 @@ class UR10Calibration(BaseCalibration):
     initialization parameters.
     """
     
+    @handle_calibration_errors
     def __init__(self, robot, config_file="config/ur10_config.yaml",
                  del_list=[]):
         """Initialize UR10 calibration with robot model and configuration.
@@ -64,6 +105,13 @@ class UR10Calibration(BaseCalibration):
             config_file: Path to UR10 configuration YAML file
             del_list: List of sample indices to exclude from calibration
         """
+        # Use ConfigManager for centralized configuration
+        self.config_manager = ConfigManager(config_file)
+        self.ur10_config = self.config_manager.get_config()
+        
+        # Validate configuration
+        validate_robot_config(self.ur10_config)
+        
         super().__init__(robot, config_file, del_list)
 
     def cost_function(self, var):
@@ -108,6 +156,7 @@ class UR10Calibration(BaseCalibration):
 class UR10Identification(BaseIdentification):
     """UR10-specific dynamic parameter identification class."""
     
+    @handle_calibration_errors
     def __init__(self, robot, config_file="config/ur10_config.yaml"):
         """Initialize UR10 identification with robot model and configuration.
         
@@ -115,10 +164,17 @@ class UR10Identification(BaseIdentification):
             robot: UR10 robot model loaded with FIGAROH
             config_file: Path to UR10 configuration YAML file
         """
+        # Use ConfigManager for centralized configuration
+        self.config_manager = ConfigManager(config_file)
+        self.ur10_config = self.config_manager.get_config()
+        
+        # Validate configuration
+        validate_robot_config(self.ur10_config)
+        
         # Call parent constructor
         super().__init__(robot, config_file)
         
-        # UR10-specific: Set active joint indices (all joints are active for UR10)
+        # UR10-specific: Set active joint indices (all joints are active)
         if "act_idxq" not in self.identif_config:
             self.identif_config["act_idxq"] = list(range(self.model.nq))
         if "act_idxv" not in self.identif_config:
@@ -127,49 +183,64 @@ class UR10Identification(BaseIdentification):
         print("UR10 Dynamic Identification initialized")
     
     def load_trajectory_data(self):
-        """Load trajectory data from CSV files.
+        """Load trajectory data from CSV files using DataProcessor.
         
         Returns:
-            dict: Dictionary with keys 'timestamps', 'positions', 'velocities', 
-                  'accelerations', 'torques'
+            dict: Dictionary with keys 'timestamps', 'positions',
+                  'velocities', 'accelerations', 'torques'
         """
         print("Loading UR10 trajectory data...")
         
-        # Load position data
-        q_df = pd.read_csv("data/identification_q_simulation.csv")
-        q_raw = q_df.values  # Convert to numpy array
-        
-        # Load torque data 
-        tau_df = pd.read_csv("data/identification_tau_simulation.csv")
-        tau_raw = tau_df.values  # Convert to numpy array
-        
-        print(f"Loaded {len(q_raw)} samples from CSV files")
-        
-        # Limit samples if needed
-        max_samples = min(len(q_raw), 
-                         self.identif_config.get("nb_samples", 100))
-        q_raw = q_raw[:max_samples, :]
-        tau_raw = tau_raw[:max_samples, :]
-        
-        # Calculate velocities and accelerations using FIGAROH function
-        q_filtered, dq_filtered, ddq_filtered = \
-            calculate_first_second_order_differentiation(
-                self.model, q_raw, self.identif_config
+        try:
+            # Use DataProcessor for improved data loading
+            q_df = DataProcessor.load_data_csv(
+                "data/identification_q_simulation.csv"
             )
-        
-        # Create time vector (assuming 100Hz sampling)
-        dt = 0.01  # 100Hz
-        time_vector = np.arange(len(q_filtered)) * dt
-        
-        print(f"Processed trajectory data: {len(q_filtered)} samples")
-        
-        return {
-            "timestamps": time_vector.reshape(-1, 1),
-            "positions": q_filtered,
-            "velocities": dq_filtered,
-            "accelerations": ddq_filtered,
-            "torques": tau_raw[:len(q_filtered)]  # Match length
-        }
+            tau_df = DataProcessor.load_data_csv(
+                "data/identification_tau_simulation.csv"
+            )
+            
+            q_raw = q_df.values  # Convert to numpy array
+            tau_raw = tau_df.values  # Convert to numpy array
+            
+            print(f"Loaded {len(q_raw)} samples from CSV files")
+            
+            # Limit samples if needed
+            max_samples = min(len(q_raw),
+                             self.identif_config.get("nb_samples", 100))
+            q_raw = q_raw[:max_samples, :]
+            tau_raw = tau_raw[:max_samples, :]
+            
+            # Apply data filtering if available
+            if hasattr(DataProcessor, 'apply_lowpass_filter'):
+                q_raw = DataProcessor.apply_lowpass_filter(
+                    q_raw, cutoff=10.0, fs=100.0
+                )
+            
+            # Calculate derivatives using FIGAROH function
+            q_filtered, dq_filtered, ddq_filtered = \
+                calculate_first_second_order_differentiation(
+                    self.model, q_raw, self.identif_config
+                )
+            
+            # Create time vector (assuming 100Hz sampling)
+            dt = 0.01  # 100Hz
+            time_vector = np.arange(len(q_filtered)) * dt
+            
+            print(f"Processed trajectory data: {len(q_filtered)} samples")
+            
+            return {
+                "timestamps": time_vector.reshape(-1, 1),
+                "positions": q_filtered,
+                "velocities": dq_filtered,
+                "accelerations": ddq_filtered,
+                "torques": tau_raw[:len(q_filtered)]  # Match length
+            }
+            
+        except Exception as e:
+            raise IdentificationError(
+                f"Failed to load UR10 trajectory data: {e}"
+            )
 
 
 class UR10OptimalCalibration(BaseOptimalCalibration):
