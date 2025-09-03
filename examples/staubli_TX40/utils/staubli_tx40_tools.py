@@ -14,9 +14,10 @@
 # limitations under the License.
 
 """
-Staubli TX40 robot tools using the new base classes.
+Staubli TX40 robot tools using the new base classes and infrastructure.
 This demonstrates how the Staubli TX40 implementation is refactored
-to use the generalized base classes.
+to use the generalized base classes with improved error handling
+and configuration management.
 """
 
 import numpy as np
@@ -25,10 +26,28 @@ from scipy import signal
 import sys
 import os
 
-# Import from shared directory
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
+# Import from examples package (new approach)
+try:
+    from examples.shared import BaseIdentification
+    from examples.shared.config_manager import ConfigManager
+    from examples.shared.error_handling import (
+        validate_input_data,
+        handle_identification_errors,
+        RobotInitializationError,
+        DataProcessingError
+    )
+except ImportError:
+    # Fallback to old path-based imports for backward compatibility
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
+    from base_identification import BaseIdentification
+    from config_manager import ConfigManager
+    from error_handling import (
+        validate_input_data,
+        handle_identification_errors,
+        RobotInitializationError,
+        DataProcessingError
+    )
 
-from base_identification import BaseIdentification
 from figaroh.tools.regressor import build_regressor_basic
 from figaroh.identification.identification_tools import (
     get_standard_parameters
@@ -45,7 +64,23 @@ class TX40Identification(BaseIdentification):
             robot: Staubli TX40 robot model loaded with FIGAROH
             config_file: Path to TX40 configuration YAML file
         """
-        super().__init__(robot, config_file)
+        try:
+            # Use new configuration manager if available
+            if 'ConfigManager' in globals():
+                # Load config using new manager with validation
+                config_dict = ConfigManager.load_robot_config(
+                    'staubli_tx40', config_file
+                )
+                super().__init__(robot, config_file)
+            else:
+                # Fallback to original method
+                super().__init__(robot, config_file)
+                
+        except Exception as e:
+            if 'RobotInitializationError' in globals():
+                raise RobotInitializationError(f"TX40 initialization failed: {e}")
+            else:
+                raise e
         
         # TX40-specific active joints
         self.active_joints = [
@@ -76,6 +111,7 @@ class TX40Identification(BaseIdentification):
         idx_act_joints = [jid - 1 for jid in act_Jid]
         self.identif_config["idx_act_joints"] = idx_act_joints
 
+    @handle_identification_errors
     def solve(self, decimate=True, decimation_factor=10, zero_tolerance=0.001,
               plotting=True, save_params=False, wls=False):
         """Solve TX40 identification with optional weighted least squares.
@@ -114,33 +150,41 @@ class TX40Identification(BaseIdentification):
         
         return phi_base
     
+    @validate_input_data
     def load_trajectory_data(self):
         """Load and process CSV data for Staubli TX40 robot."""
-        # Load current (torque) and position data
-        curr_data = pd.read_csv("data/curr_data.csv").to_numpy()
-        pos_data = pd.read_csv("data/pos_read_data.csv").to_numpy()
-        
-        # validate sizes of loaded data
-        if curr_data.shape != pos_data.shape :
-            raise ValueError(
-                f"Data size mismatch: curr_data has {curr_data.shape} samples, "
-                f"pos_data has {pos_data.shape} samples"
-            )
-        # Create timestamp array based on sampling time
-        n_samples = pos_data.shape[0]
-        timestamps = np.linspace(
-            0, n_samples * self.identif_config["ts"], n_samples
-        ).reshape(-1, 1)
-        
-        # Store raw motor encoder positions and current data
-        self.raw_data = {
-            "timestamps": timestamps,
-            "positions": pos_data,  # Motor encoder positions
-            "velocities": None,     # Will be computed from positions
-            "accelerations": None,  # Will be computed from velocities
-            "torques": curr_data    # Motor currents
-        }
-        return self.raw_data
+        try:
+            # Load current (torque) and position data
+            curr_data = pd.read_csv("data/curr_data.csv").to_numpy()
+            pos_data = pd.read_csv("data/pos_read_data.csv").to_numpy()
+            
+            # Validate sizes of loaded data
+            if curr_data.shape != pos_data.shape:
+                msg = (f"Data size mismatch: curr_data has {curr_data.shape} "
+                       f"samples, pos_data has {pos_data.shape} samples")
+                raise ValueError(msg)
+                
+            # Create timestamp array based on sampling time
+            n_samples = pos_data.shape[0]
+            timestamps = np.linspace(
+                0, n_samples * self.identif_config["ts"], n_samples
+            ).reshape(-1, 1)
+            
+            # Store raw motor encoder positions and current data
+            self.raw_data = {
+                "timestamps": timestamps,
+                "positions": pos_data,  # Motor encoder positions
+                "velocities": None,     # Will be computed from positions
+                "accelerations": None,  # Will be computed from velocities
+                "torques": curr_data    # Motor currents
+            }
+            return self.raw_data
+            
+        except Exception as e:
+            if 'DataProcessingError' in globals():
+                raise DataProcessingError(f"Failed to load TX40 data: {e}")
+            else:
+                raise e
 
     def process_kinematics_data(self, filter_config=None):
         """Apply TX40-specific filtering to data."""
