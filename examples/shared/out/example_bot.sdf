@@ -1,0 +1,88 @@
+<?xml version="1.0" ?>
+<sdf version="1.10">
+  <world name="default">
+    <include/>
+    <model name="base_link">
+      <link name="base_link_link">
+        <inertial>
+          <mass>5.0</mass>
+          <pose>0.0 0.0 0.1 0 0 0</pose>
+          <inertia>
+            <ixx>0.1</ixx>
+            <ixy>0.0</ixy>
+            <ixz>0.0</ixz>
+            <iyy>0.1</iyy>
+            <iyz>0.0</iyz>
+            <izz>0.05</izz>
+          </inertia>
+        </inertial>
+        <visual name="base_link_visual">
+          <geometry>
+            <mesh>
+              <uri>meshes/base.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1.0</ambient>
+          </material>
+        </visual>
+        <collision name="base_link_collision">
+          <geometry>
+            <mesh>
+              <uri>meshes/base_col.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.8</mu>
+                <mu2>0.7</mu2>
+              </ode>
+            </friction>
+            <bounce>
+              <restitution_coefficient>0.1</restitution_coefficient>
+            </bounce>
+            <contact/>
+          </surface>
+        </collision>
+        <sensor name="imu_1" type="imu">
+          <pose>0 0 0 0 0 0</pose>
+          <noise>
+            <accel_stddev>[0.02, 0.02, 0.02]</accel_stddev>
+            <gyro_stddev>[0.001, 0.001, 0.001]</gyro_stddev>
+          </noise>
+        </sensor>
+      </link>
+      <joint name="joint1" type="revolute">
+        <parent>base_link_link</parent>
+        <child>link1_link</child>
+        <pose>0.0 0.0 0.2 0 0 0</pose>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <limit>
+            <lower>-1.57</lower>
+            <upper>1.57</upper>
+          </limit>
+          <damping>0.01</damping>
+          <friction>0.05</friction>
+        </axis>
+      </joint>
+    </model>
+    <model name="link1">
+      <link name="link1_link">
+        <inertial>
+          <mass>1.0</mass>
+          <pose>0.0 0.0 0.1 0 0 0</pose>
+          <inertia>
+            <ixx>0.01</ixx>
+            <ixy>0.0</ixy>
+            <ixz>0.0</ixz>
+            <iyy>0.01</iyy>
+            <iyz>0.0</iyz>
+            <izz>0.005</izz>
+          </inertia>
+        </inertial>
+      </link>
+    </model>
+  </world>
+</sdf>

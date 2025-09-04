@@ -1,0 +1,99 @@
+actuators:
+  motor_joint1:
+    gear_ratio: 100
+    joint: joint1
+    model: dc_motor
+    saturation: 5.0
+    torque_constant: 0.05
+bodies:
+  base_link:
+    collision:
+      contact:
+        mu_dynamic: 0.7
+        mu_static: 0.8
+        restitution: 0.1
+      mesh_file: meshes/base_col.stl
+    com:
+    - 0.0
+    - 0.0
+    - 0.1
+    inertia:
+      ixx: 0.1
+      ixy: 0.0
+      ixz: 0.0
+      iyy: 0.1
+      iyz: 0.0
+      izz: 0.05
+    mass: 5.0
+    visual:
+      color:
+      - 0.8
+      - 0.8
+      - 0.8
+      - 1.0
+      mesh_file: meshes/base.stl
+  link1:
+    com:
+    - 0.0
+    - 0.0
+    - 0.1
+    inertia:
+      ixx: 0.01
+      iyy: 0.01
+      izz: 0.005
+    mass: 1.0
+contacts:
+  foot:
+    body: base_link
+    surface:
+      damping: 50.0
+      mu_dynamic: 0.75
+      mu_static: 0.85
+      restitution: 0.05
+      stiffness: 20000.0
+joints:
+  joint1:
+    axis:
+    - 0
+    - 0
+    - 1
+    child: link1
+    dynamics:
+      damping: 0.01
+      friction: 0.05
+    limits:
+      effort: 10.0
+      lower: -1.57
+      upper: 1.57
+      velocity: 2.0
+    origin:
+    - 0.0
+    - 0.0
+    - 0.2
+    parent: base_link
+    type: revolute
+metadata:
+  robot_name: example_bot
+  schema_version: '0.1'
+  source: example
+  units: SI
+sensors:
+  imu_1:
+    noise:
+      accel_stddev:
+      - 0.02
+      - 0.02
+      - 0.02
+      gyro_stddev:
+      - 0.001
+      - 0.001
+      - 0.001
+    parent: base_link
+    pose:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    type: imu
