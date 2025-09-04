@@ -42,7 +42,7 @@ conda install -c conda-forge pinocchio cyipopt
 
 ```python
 # Import the modernized infrastructure
-from examples.shared import ConfigManager, DataProcessor, validate_robot_config
+from ...shared import ConfigManager, DataProcessor, validate_robot_config
 
 # Load and validate robot configuration
 config = ConfigManager.load_robot_config('ur10', 'config.yaml')

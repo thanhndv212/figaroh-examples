@@ -28,9 +28,9 @@ import os
 
 # Import from examples package (new approach)
 try:
-    from examples.shared import BaseIdentification
-    from examples.shared.config_manager import ConfigManager
-    from examples.shared.error_handling import (
+    from ...shared import BaseIdentification
+    from ...shared.config_manager import ConfigManager
+    from ...shared.error_handling import (
         validate_input_data,
         handle_identification_errors,
         RobotInitializationError,

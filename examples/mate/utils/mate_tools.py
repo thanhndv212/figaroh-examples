@@ -20,8 +20,8 @@ import yaml
 
 from figaroh.calibration.calibration_tools import (
     calc_updated_fkm,
-    BaseCalibration,
 )
+from ...shared.base_calibration import BaseCalibration
 
 
 class MateCalibration(BaseCalibration):

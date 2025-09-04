@@ -22,10 +22,10 @@ import matplotlib.pyplot as plt
 
 # Import FIGAROH modules
 from figaroh.calibration.calibration_tools import (
-    BaseCalibration,
     load_data,
     calc_updated_fkm,
 )
+from ...shared.base_calibration import BaseCalibration
 from figaroh.identification.identification_tools import (
     get_param_from_yaml as get_identification_param_from_yaml,
     calculate_first_second_order_differentiation,

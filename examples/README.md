@@ -19,6 +19,7 @@ examples/
 ├── __init__.py                  # Main package initialization
 ├── shared/                      # Shared infrastructure modules
 │   ├── __init__.py             # Shared module exports
+│   ├── base_calibration.py     # Extracted BaseCalibration class
 │   ├── config_manager.py       # Configuration management
 │   ├── error_handling.py       # Error handling and validation
 │   ├── data_processing.py      # Optimized data processing
@@ -40,11 +41,11 @@ examples/
 ### 1. Basic Usage
 
 ```python
-# Import shared infrastructure
-from examples.shared import (
+# Import shared infrastructure with clean relative imports
+from ...shared import (
     ConfigManager, 
     DataProcessor, 
-    validate_robot_config
+    BaseCalibration
 )
 
 # Load and validate robot configuration
@@ -313,7 +314,7 @@ print(f"Cache recommended: {metrics['cache_effective']}")
 ```python
 # Fallback imports are automatically handled
 # Check what's available:
-from examples.shared import __all__
+from ...shared import __all__
 print(f"Available modules: {__all__}")
 ```
 

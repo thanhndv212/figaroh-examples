@@ -23,68 +23,25 @@ import numpy as np
 import pandas as pd
 from typing import List
 from os.path import abspath
-import sys
-import os
-
-# Import from shared directory
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
 
 # Import FIGAROH modules
-from figaroh.calibration.calibration_tools import BaseCalibration
 from figaroh.calibration.calibration_tools import calc_updated_fkm
 
-# Import shared modules with fallback
-try:
-    from base_identification import BaseIdentification
-    from base_optimal_calibration import BaseOptimalCalibration
-    from base_optimal_trajectory import (
-        BaseOptimalTrajectory,
-        BaseTrajectoryIPOPTProblem
-    )
-    from config_manager import ConfigManager
-    from error_handling import (
-        CalibrationError,
-        IdentificationError,
-        validate_robot_config,
-        handle_calibration_errors
-    )
-    from data_processing import DataProcessor
-except ImportError:
-    # Fallback imports for compatibility
-    from base_identification import BaseIdentification
-    from base_optimal_calibration import BaseOptimalCalibration
-    from base_optimal_trajectory import (
-        BaseOptimalTrajectory,
-        BaseTrajectoryIPOPTProblem
-    )
-    
-    # Fallback classes if new infrastructure not available
-    class ConfigManager:
-        def __init__(self, config_path):
-            import yaml
-            with open(config_path, 'r') as f:
-                self.config = yaml.safe_load(f)
-        
-        def get_config(self):
-            return self.config
-    
-    class CalibrationError(Exception):
-        pass
-    
-    class IdentificationError(Exception):
-        pass
-    
-    def validate_robot_config(config):
-        return True
-    
-    def handle_calibration_errors(func):
-        return func
-    
-    class DataProcessor:
-        @staticmethod
-        def load_data_csv(filepath, time_col='time', columns=None):
-            import pandas as pd
-            return pd.read_csv(filepath)
+# Import shared modules using relative imports
+from ...shared.base_calibration import BaseCalibration
+from ...shared.base_identification import BaseIdentification
+from ...shared.base_optimal_calibration import BaseOptimalCalibration
+from ...shared.base_optimal_trajectory import (
+    BaseOptimalTrajectory,
+    BaseTrajectoryIPOPTProblem
+)
+from ...shared.results_manager import ResultsManager
+from ...shared.error_handling import handle_calibration_errors
+
+
+def validate_robot_config(config):
+    """Validate robot configuration."""
+    return True
 
 
 class TiagoCalibration(BaseCalibration):
