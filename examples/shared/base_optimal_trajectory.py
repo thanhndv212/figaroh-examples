@@ -521,57 +521,147 @@ class BaseOptimalTrajectory:
         return wp_init, W_stack
     
     def plot_results(self):
-        """Plot the optimization results with improved visualization."""
+        """Plot optimal trajectory results using unified results manager."""
         if not self.results['T_F']:
             self.logger.warning("No trajectory data to plot")
             return
         
         try:
-            # Create subplots
-            n_joints = len(self.CB.act_Jid)
-            fig, axes = plt.subplots(n_joints, 3, sharex=True, figsize=(15, 2*n_joints))
-            if n_joints == 1:
-                axes = axes.reshape(1, -1)
+            from .results_manager import ResultsManager
             
-            fig.suptitle('Optimal Trajectory Results', fontsize=16)
+            # Initialize results manager
+            robot_name = getattr(self, 'robot_name', self.robot.model.name)
+            results_manager = ResultsManager('optimal_trajectory', robot_name)
             
-            # Plot each segment
-            colors = plt.cm.tab10(np.linspace(0, 1, len(self.results['T_F'])))
+            # Calculate overall condition number
+            condition_number = getattr(self, 'final_condition_number', 0.0)
+            if condition_number == 0.0 and hasattr(self, 'results') and 'condition_numbers' in self.results:
+                condition_number = self.results['condition_numbers'][-1] if self.results['condition_numbers'] else 0.0
             
-            for seg_idx, (T, P, V, A) in enumerate(zip(
-                self.results['T_F'], self.results['P_F'], 
-                self.results['V_F'], self.results['A_F']
-            )):
-                color = colors[seg_idx]
-                label = f'Segment {seg_idx + 1}'
+            # Plot using unified manager
+            results_manager.plot_optimal_trajectory_results(
+                trajectories=self.results,
+                condition_number=condition_number,
+                joint_names=[f"Joint {i+1}" for i in range(len(self.CB.act_Jid))],
+                title="Optimal Trajectory Generation Results"
+            )
+            
+        except ImportError:
+            # Fallback to existing plotting
+            try:
+                # Create subplots
+                n_joints = len(self.CB.act_Jid)
+                fig, axes = plt.subplots(n_joints, 3, sharex=True, figsize=(15, 2*n_joints))
+                if n_joints == 1:
+                    axes = axes.reshape(1, -1)
                 
+                fig.suptitle('Optimal Trajectory Results', fontsize=16)
+                
+                # Plot each segment
+                colors = plt.cm.tab10(np.linspace(0, 1, len(self.results['T_F'])))
+                
+                for seg_idx, (T, P, V, A) in enumerate(zip(
+                    self.results['T_F'], self.results['P_F'], 
+                    self.results['V_F'], self.results['A_F']
+                )):
+                    color = colors[seg_idx]
+                    label = f'Segment {seg_idx + 1}'
+                    
+                    for joint_idx in range(n_joints):
+                        axes[joint_idx, 0].plot(T, P[:, joint_idx], color=color, label=label)
+                        axes[joint_idx, 1].plot(T, V[:, joint_idx], color=color, label=label)
+                        axes[joint_idx, 2].plot(T, A[:, joint_idx], color=color, label=label)
+                
+                # Set labels and formatting
                 for joint_idx in range(n_joints):
-                    axes[joint_idx, 0].plot(T, P[:, joint_idx], color=color, label=label)
-                    axes[joint_idx, 1].plot(T, V[:, joint_idx], color=color, label=label)
-                    axes[joint_idx, 2].plot(T, A[:, joint_idx], color=color, label=label)
-            
-            # Set labels and formatting
-            for joint_idx in range(n_joints):
-                axes[joint_idx, 0].set_ylabel(f'Joint {joint_idx+1}\nPosition (rad)')
-                axes[joint_idx, 1].set_ylabel(f'Joint {joint_idx+1}\nVelocity (rad/s)')
-                axes[joint_idx, 2].set_ylabel(f'Joint {joint_idx+1}\nAcceleration (rad/s²)')
-                
-                if joint_idx == 0:
+                    axes[joint_idx, 0].set_ylabel(f'Joint {joint_idx+1}\nPosition (rad)')
+                    axes[joint_idx, 1].set_ylabel(f'Joint {joint_idx+1}\nVelocity (rad/s)')
+                    axes[joint_idx, 2].set_ylabel(f'Joint {joint_idx+1}\nAcceleration (rad/s²)')
+                    
+                    if joint_idx == 0:
+                        for col in range(3):
+                            axes[joint_idx, col].legend()
+                    
                     for col in range(3):
-                        axes[joint_idx, col].legend()
+                        axes[joint_idx, col].grid(True, alpha=0.3)
                 
-                for col in range(3):
-                    axes[joint_idx, col].grid(True, alpha=0.3)
+                axes[-1, 0].set_xlabel('Time (s)')
+                axes[-1, 1].set_xlabel('Time (s)')
+                axes[-1, 2].set_xlabel('Time (s)')
+                
+                plt.tight_layout()
+                plt.show()
+                
+            except Exception as e:
+                self.logger.error(f"Error plotting results: {e}")
+    
+    def save_results(self, output_dir="results"):
+        """Save optimal trajectory results using unified results manager."""
+        if not self.results['T_F']:
+            self.logger.warning("No trajectory data to save")
+            return
+        
+        try:
+            from .results_manager import ResultsManager
             
-            axes[-1, 0].set_xlabel('Time (s)')
-            axes[-1, 1].set_xlabel('Time (s)')
-            axes[-1, 2].set_xlabel('Time (s)')
+            # Initialize results manager
+            robot_name = getattr(self, 'robot_name', self.robot.model.name)
+            results_manager = ResultsManager('optimal_trajectory', robot_name)
             
-            plt.tight_layout()
-            plt.show()
+            # Calculate overall condition number
+            condition_number = getattr(self, 'final_condition_number', 0.0)
+            if condition_number == 0.0 and hasattr(self, 'results') and 'condition_numbers' in self.results:
+                condition_number = self.results['condition_numbers'][-1] if self.results['condition_numbers'] else 0.0
             
-        except Exception as e:
-            self.logger.error(f"Error plotting results: {e}")
+            # Prepare results dictionary
+            results_dict = {
+                'trajectory_segments': len(self.results['T_F']),
+                'condition_number': float(condition_number),
+                'joint_names': [f"Joint {i+1}" for i in range(len(self.CB.act_Jid))],
+                'configuration': self.CB.identif_config,
+                'time_segments': [t.tolist() for t in self.results['T_F']],
+                'position_segments': [p.tolist() for p in self.results['P_F']],
+                'velocity_segments': [v.tolist() for v in self.results['V_F']],
+                'acceleration_segments': [a.tolist() for a in self.results['A_F']]
+            }
+            
+            # Add condition number history if available
+            if 'condition_numbers' in self.results:
+                results_dict['condition_number_history'] = [float(c) for c in self.results['condition_numbers']]
+            
+            # Save using unified manager
+            saved_files = results_manager.save_results(
+                results_dict,
+                output_dir,
+                save_formats=['yaml', 'npz']
+            )
+            
+            self.logger.info(f"Trajectory results saved successfully")
+            return saved_files
+            
+        except ImportError:
+            # Fallback to basic saving
+            import os
+            import yaml
+            
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Basic results dictionary
+            robot_name = getattr(self, 'robot_name', self.robot.model.name)
+            filename = f"{robot_name}_optimal_trajectory.yaml"
+            
+            condition_number = getattr(self, 'final_condition_number', 0.0)
+            results_dict = {
+                'trajectory_segments': len(self.results['T_F']),
+                'condition_number': float(condition_number),
+                'joint_count': len(self.CB.act_Jid)
+            }
+            
+            with open(os.path.join(output_dir, filename), 'w') as f:
+                yaml.dump(results_dict, f, default_flow_style=False)
+            
+            self.logger.info(f"Basic results saved to {output_dir}/{filename}")
+            return {'yaml': os.path.join(output_dir, filename)}
 
 
 class BaseTrajectoryIPOPTProblem(BaseOptimizationProblem):

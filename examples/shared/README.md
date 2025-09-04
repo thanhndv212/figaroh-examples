@@ -39,7 +39,7 @@ To use these base classes in your robot implementation:
 
 ```python
 # Import from shared directory
-from examples.shared import BaseIdentification, BaseOptimalCalibration
+from ...shared import BaseIdentification, BaseOptimalCalibration
 
 # Create robot-specific classes
 class MyRobotIdentification(BaseIdentification):

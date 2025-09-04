@@ -6,7 +6,7 @@ A single-file exporter system that converts a neutral SysID schema (YAML/JSON)
 into URDF, SDF, MJCF, and USD (optional) outputs.
 
 Usage:
-    python sysid_exporters.py --schema example_schema.yaml --formats urdf,sdf,mjcf
+    python exporters.py --schema example_schema.yaml --formats urdf,sdf,mjcf
 
 Requirements:
     - Python 3.8+

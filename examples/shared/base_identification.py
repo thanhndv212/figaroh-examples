@@ -71,7 +71,10 @@ class BaseIdentification(ABC):
         self.tau_ref = None
         self.tau_identif = None
         self.tau_noised = None
-        
+        self.filter_config = {
+            'differentiation_method': 'gradient',
+            'filter_params': {}
+        }
         print(f"{self.__class__.__name__} initialized")
 
     def initialize(self, truncate=None):
@@ -79,7 +82,7 @@ class BaseIdentification(ABC):
         self.calculate_full_regressor()
 
     def solve(self, decimate=True, decimation_factor=10, zero_tolerance=0.001,
-              plotting=True, save_params=False):
+              plotting=True, save_results=False):
         """Main solving method for dynamic parameter identification.
         
         This method implements the complete base parameter identification
@@ -91,7 +94,7 @@ class BaseIdentification(ABC):
             decimation_factor (int): Factor for signal decimation (default: 10)
             zero_tolerance (float): Tolerance for eliminating zero columns
             plotting (bool): Whether to generate plots
-            save_params (bool): Whether to save parameters to file
+            save_results (bool): Whether to save parameters to file
             
         Returns:
             ndarray: Base parameters phi_base
@@ -123,22 +126,16 @@ class BaseIdentification(ABC):
             tau_processed, W_processed, active_params)
         
         # Step 4: Store results and compute quality metrics
-        self._store_results(results)
         self._compute_quality_metrics()
+        self._store_results(results)
         
         # Step 5: Optional plotting
         if plotting:
-            self._plot_identification_results()
+            self.plot_results()
         
         # Step 6: Optional parameter saving
-        if save_params:
-            self._save_parameters_to_file()
-        
-        print(f"Dynamic identification completed")
-        print(f"RMS error: {self.rms_error:.6f}")
-        print(f"Correlation: {self.correlation:.4f}")
-        print(f"Condition number: {self.result['condition number']:.2e}")
-        print(f"{len(self.params_base)} base parameters identified")
+        if save_results:
+            self.save_results()
         
         return self.phi_base
     
@@ -162,14 +159,10 @@ class BaseIdentification(ABC):
         """
         pass
 
-    def process_data(self, truncate=None, filter_config=None):
+    def process_data(self, truncate=None):
         """Load and process data"""
         # Set default filter configuration
-        default_config = {
-            'differentiation_method': 'gradient',
-            'filter_params': {}
-        }
-        filter_config = {**default_config, **(filter_config or {})}
+        filter_config = self.filter_config
 
         # load raw data
         self.raw_data = self.load_trajectory_data()
@@ -181,7 +174,7 @@ class BaseIdentification(ABC):
         self.process_kinematics_data(filter_config)
 
         # Process joint torque data
-        self.processed_data["torques"] = self.process_torque_data(self.raw_data["torques"], filter_config)
+        self.processed_data["torques"] = self.process_torque_data()
 
         # Update sample count to ensure consistency
         self.num_samples = self.processed_data["positions"].shape[0]
@@ -462,11 +455,11 @@ class BaseIdentification(ABC):
                     raise ValueError(
                         f"Cannot process {signal_name}: no data or dependency")
 
-    def process_torque_data(self, tau, **kwargs):
+    def process_torque_data(self, **kwargs):
         """Process torque data (generic implementation, should be overridden for robot-specific processing)."""
         # Generic torque processing - robots should override this method
-        if tau is not None:
-            self.processed_data["torques"] = tau
+        if self.raw_data["torques"] is not None:
+            self.processed_data["torques"] = self.raw_data["torques"]
             return self.processed_data["torques"]
         else:
             raise ValueError("Torque data is required for processing")
@@ -620,7 +613,6 @@ class BaseIdentification(ABC):
             dict: Results from QR decomposition
         """
         from figaroh.tools.qrdecomposition import double_QR
-        from figaroh.identification.identification_tools import relative_stdev
         
         # Perform QR decomposition
         W_base, base_param_dict, base_parameters, phi_base, phi_std = \
@@ -630,10 +622,12 @@ class BaseIdentification(ABC):
         # Calculate torque estimation (avoid redundant computation)
         tau_estimated = np.dot(W_base, phi_base)
         
-        # Calculate quality metrics
-        rmse = np.linalg.norm(tau_processed - tau_estimated) / np.sqrt(
-            tau_processed.shape[0])
-        std_relative = relative_stdev(W_base, phi_base, tau_processed)
+        # Store key results for backward compatibility
+        self.dynamic_regressor_base = W_base
+        self.phi_base = phi_base
+        self.params_base = list(base_param_dict.keys())
+        self.tau_identif = tau_estimated
+        self.tau_noised = tau_processed
 
         return {
             "base_regressor": W_base,
@@ -642,36 +636,7 @@ class BaseIdentification(ABC):
             "phi_base": phi_base,
             "tau_estimated": tau_estimated,
             "tau_processed": tau_processed,
-            "rmse": rmse,
-            "std_relative": std_relative
         }
-
-    def _store_results(self, calculation_results):
-        """Store calculation results in instance attributes.
-        
-        Args:
-            calculation_results (dict): Results from base parameter calculation
-        """
-        W_base = calculation_results["base_regressor"]
-        phi_base = calculation_results["phi_base"]
-        base_param_dict = calculation_results["base_param_dict"]
-        tau_estimated = calculation_results["tau_estimated"]
-        
-        self.result = {
-            "base regressor": W_base,
-            "base parameters": base_param_dict,
-            "condition number": np.linalg.cond(W_base),
-            "rmse norm (N/m)": calculation_results["rmse"],
-            "torque estimated": tau_estimated,
-            "std dev of estimated param": calculation_results["std_relative"],
-        }
-        
-        # Store key results for backward compatibility
-        self.dynamic_regressor_base = W_base
-        self.phi_base = phi_base
-        self.params_base = list(base_param_dict.keys())
-        self.tau_identif = tau_estimated
-        self.tau_noised = calculation_results["tau_processed"]
 
     def _compute_quality_metrics(self):
         """Compute quality metrics for the identification.
@@ -680,6 +645,10 @@ class BaseIdentification(ABC):
             - Updates self.rms_error
             - Updates self.correlation
         """
+        from figaroh.identification.identification_tools import relative_stdev
+
+        # Calculate quality metrics
+        self.std_relative = relative_stdev(self.dynamic_regressor_base, self.phi_base, self.tau_noised)
         residuals = self.tau_noised - self.tau_identif
         self.rms_error = np.sqrt(np.mean(residuals**2))
         
@@ -693,37 +662,100 @@ class BaseIdentification(ABC):
         else:
             self.correlation = 1.0
 
-    def _plot_identification_results(self):
-        """Plot identification results if plotting is enabled.
+    def _store_results(self, identif_results):
+        """Store calculation results in instance attributes.
         
-        Creates visualizations of:
-        - Estimated vs measured torques
-        - Parameter estimation quality
+        Args:
+            identif_results (dict): Results from base parameter calculation
         """
+
+        # Store results in instance attribute
+        self.result = {
+            "base regressor": identif_results["base_regressor"],
+            "base parameters": identif_results["base_param_dict"],
+            "base parameters values": identif_results["phi_base"],
+            "base parameters names": list(identif_results["base_param_dict"].keys()),
+            "condition number": np.linalg.cond(identif_results["base_regressor"]),
+            "torque estimated": identif_results["tau_estimated"],
+            "torque processed": identif_results["tau_processed"],
+            "std dev of estimated param": self.std_relative,
+            "rmse norm (N/m)": self.rms_error,
+            "num samples": self.num_samples,
+            "identification config": getattr(self, 'identif_config', {}),
+            "task type": "identification"
+        }
+
+        # Initialize ResultsManager for identification task
+        try:
+            from .results_manager import ResultsManager
+            
+            # Get robot name from class or model
+            robot_name = getattr(
+                self, 'robot_name',
+                getattr(
+                    self.model, 'name',
+                    self.__class__.__name__.lower().replace(
+                        'identification', '')))
+            
+            # Initialize results manager for identification task
+            self.results_manager = ResultsManager('identification', robot_name, self.result)
+            
+        except ImportError as e:
+            print(f"Warning: ResultsManager not available: {e}")
+            self.results_manager = None
+    
+    def plot_results(self):
+        """Plot identification results using unified results manager."""
+        if not hasattr(self, 'result') or self.result is None:
+            print("No identification results to plot. Run solve() first.")
+            return
+        
+        # Use pre-initialized results manager if available
+        if hasattr(self, 'results_manager') and \
+           self.results_manager is not None:
+            try:
+                # Plot using unified manager with self.result data
+                self.results_manager.plot_identification_results()
+                return
+                
+            except Exception as e:
+                print(f"Error plotting with ResultsManager: {e}")
+                print("Falling back to basic plotting...")
+        
+        # Fallback to basic plotting if ResultsManager not available
         try:
             import matplotlib.pyplot as plt
             
-            fig, axes = plt.subplots(2, 1, figsize=(12, 8))
+            # Extract data from self.result dictionary
+            tau_measured = self.result.get("torque processed", np.array([]))
+            tau_identified = self.result.get("torque estimated", np.array([]))
+            parameter_values = self.result.get("base parameters values",
+                                               np.array([]))
             
-            # Plot torque comparison
-            time_vector = np.arange(len(self.tau_noised))
-            axes[0].plot(time_vector, self.tau_noised, 'b-',
-                         label='Measured torques', linewidth=1)
-            axes[0].plot(time_vector, self.tau_identif, 'r--',
-                         label='Estimated torques', linewidth=1)
-            axes[0].set_xlabel('Sample')
-            axes[0].set_ylabel('Torque (N⋅m)')
-            axes[0].set_title('Torque Identification Results')
-            axes[0].legend()
-            axes[0].grid(True, alpha=0.3)
+            if len(tau_measured) == 0 or len(tau_identified) == 0:
+                print("No torque data available for plotting")
+                return
             
-            # Plot residuals
-            residuals = self.tau_noised - self.tau_identif
-            axes[1].plot(time_vector, residuals, 'g-', linewidth=1)
-            axes[1].set_xlabel('Sample')
-            axes[1].set_ylabel('Residual (N⋅m)')
-            axes[1].set_title(f'Residuals (RMSE: {self.rms_error:.4f} N⋅m)')
-            axes[1].grid(True, alpha=0.3)
+            plt.figure(figsize=(12, 8))
+            
+            plt.subplot(2, 1, 1)
+            plt.plot(tau_measured, label="Measured (with noise)", alpha=0.7)
+            plt.plot(tau_identified, label="Identified", alpha=0.7)
+            plt.xlabel('Sample')
+            plt.ylabel('Torque (Nm)')
+            plt.title(f'{self.__class__.__name__} Torque Comparison')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            
+            plt.subplot(2, 1, 2)
+            if len(parameter_values) > 0:
+                plt.bar(range(len(parameter_values)), parameter_values,
+                        alpha=0.7, label="Base Parameters")
+                plt.xlabel('Parameter Index')
+                plt.ylabel('Parameter Value')
+                plt.title('Identified Base Parameters')
+                plt.legend()
+                plt.grid(True, alpha=0.3)
             
             plt.tight_layout()
             plt.show()
@@ -732,109 +764,76 @@ class BaseIdentification(ABC):
             print("Warning: matplotlib not available for plotting")
         except Exception as e:
             print(f"Warning: Plotting failed: {e}")
-
-    def _save_parameters_to_file(self):
-        """Save identified parameters to file.
-        
-        Saves base parameters and quality metrics to a JSON file
-        in the same directory as the identification results.
-        """
-        try:
-            import json
-            import os
-            from datetime import datetime
-            
-            # Create results directory if it doesn't exist
-            results_dir = os.path.join(os.getcwd(), 'identification_results')
-            os.makedirs(results_dir, exist_ok=True)
-            
-            # Prepare data for saving
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"base_parameters_{timestamp}.json"
-            filepath = os.path.join(results_dir, filename)
-            
-            # Convert numpy arrays to lists for JSON serialization
-            save_data = {
-                "timestamp": timestamp,
-                "base_parameters": {
-                    name: float(value) if hasattr(value, 'item') else value
-                    for name, value in self.result["base parameters"].items()
-                },
-                "quality_metrics": {
-                    "condition_number": float(self.result["condition number"]),
-                    "rmse_norm": float(self.result["rmse norm (N/m)"]),
-                    "correlation": float(self.correlation),
-                    "rms_error": float(self.rms_error)
-                },
-                "regressor_shape": list(self.result["base regressor"].shape),
-                "num_parameters": len(self.result["base parameters"])
-            }
-            
-            with open(filepath, 'w') as f:
-                json.dump(save_data, f, indent=2)
-            
-            print(f"Parameters saved to: {filepath}")
-            
-        except Exception as e:
-            print(f"Warning: Failed to save parameters: {e}")
-    
-    def plot_results(self):
-        """Plot identification results."""
-        if not hasattr(self, 'result') or self.result is None:
-            print("No identification results to plot. Run solve() first.")
-            return
-        
-        import matplotlib.pyplot as plt
-        
-        # Plot torque comparison
-        plt.figure(figsize=(12, 8))
-        
-        plt.subplot(2, 1, 1)
-        plt.plot(self.tau_noised, label="Measured (with noise)", alpha=0.7)
-        plt.plot(self.tau_identif, label="Identified", alpha=0.7)
-        plt.xlabel('Sample')
-        plt.ylabel('Torque (Nm)')
-        plt.title(f'{self.__class__.__name__} Torque Comparison')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        
-        # Plot parameter values
-        plt.subplot(2, 1, 2)
-        plt.bar(range(len(self.phi_base)), self.phi_base, alpha=0.7, label="Base Parameters")
-        plt.xlabel('Parameter Index')
-        plt.ylabel('Parameter Value')
-        plt.title('Identified Base Parameters')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.show()
     
     def save_results(self, output_dir="results"):
-        """Save identification results to files."""
+        """Save identification results using unified results manager."""
         if not hasattr(self, 'result') or self.result is None:
             print("No identification results to save. Run solve() first.")
             return
         
-        import os
-        import yaml
+        # Use pre-initialized results manager if available
+        if hasattr(self, 'results_manager') and \
+           self.results_manager is not None:
+            try:
+                # Save using unified manager with self.result data
+                saved_files = self.results_manager.save_results(
+                    output_dir=output_dir,
+                    save_formats=['yaml', 'csv', 'npz']
+                )
+                
+                print("Identification results saved using ResultsManager")
+                for fmt, path in saved_files.items():
+                    print(f"  {fmt}: {path}")
+                
+                return saved_files
+                
+            except Exception as e:
+                print(f"Error saving with ResultsManager: {e}")
+                print("Falling back to basic saving...")
         
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Save identified parameters
-        results_dict = {
-            'base_parameters': self.phi_base.tolist(),
-            'parameter_names': [str(p) for p in self.params_base],
-            'rms_error': float(self.rms_error),
-            'correlation': float(self.correlation),
-            'condition_number': float(self.result['condition number']),
-            'standard_deviation': self.result['std dev of estimated param'].tolist() if hasattr(self.result['std dev of estimated param'], 'tolist') else self.result['std dev of estimated param']
-        }
-        
-        robot_name = self.__class__.__name__.lower().replace('identification', '')
-        filename = f"{robot_name}_identification_results.yaml"
-        
-        with open(os.path.join(output_dir, filename), "w") as f:
-            yaml.dump(results_dict, f, default_flow_style=False)
-        
-        print(f"Results saved to {output_dir}/{filename}")
+        # Fallback to basic saving if ResultsManager not available
+        try:
+            import os
+            import yaml
+            import datetime
+
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Extract data from self.result dictionary
+            parameter_values = self.result.get("base parameters values",
+                                               np.array([]))
+            parameter_names = self.result.get("base parameters names", [])
+            condition_number = self.result.get("condition number", 0)
+            rmse_norm = self.result.get("rmse norm (N/m)", 0)
+            std_dev_param = self.result.get("std dev of estimated param",
+                                            np.array([]))
+            
+            results_dict = {
+                'base_parameters': (
+                    parameter_values.tolist()
+                    if hasattr(parameter_values, 'tolist')
+                    else parameter_values),
+                'parameter_names': [str(p) for p in parameter_names],
+                'condition_number': float(condition_number),
+                'rmse_norm': float(rmse_norm),
+                'standard_deviation': (
+                    std_dev_param.tolist()
+                    if hasattr(std_dev_param, 'tolist')
+                    else std_dev_param
+                )
+            }
+            
+            robot_name = self.__class__.__name__.lower().replace(
+                'identification', '')
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{robot_name}_identification_results_{timestamp}.yaml"
+
+            with open(os.path.join(output_dir, filename), "w") as f:
+                yaml.dump(results_dict, f, default_flow_style=False)
+            
+            print(f"Results saved to {output_dir}/{filename}")
+            return {filename: os.path.join(output_dir, filename)}
+            
+        except Exception as e:
+            print(f"Error in fallback saving: {e}")
+            return None

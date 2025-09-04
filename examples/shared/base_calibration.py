@@ -212,13 +212,15 @@ class BaseCalibration(ABC):
         except Exception as e:
             raise CalibrationError(f"Initialization failed: {e}")
 
-    def solve(self):
+    def solve(self, method="lm", max_iterations=3, outlier_threshold=3.0,
+              enable_logging=True, plotting=False, save_results=False):
         """Execute the complete calibration process.
         
         This is the main entry point for calibration that:
         1. Runs the optimization algorithm via solve_optimisation()
         2. Optionally generates visualization plots if enabled
-        
+        3. Optionally saves results to files if enabled
+
         The method serves as a high-level orchestrator for the calibration
         workflow, delegating the actual optimization to solve_optimisation()
         and handling visualization based on user preferences.
@@ -232,11 +234,36 @@ class BaseCalibration(ABC):
             solve_optimisation: Core optimization implementation
             plot: Visualization and analysis plotting
         """
-        self.solve_optimisation()
-        if self.calib_config.get("PLOT", False):
-            self.plot()
+        result, outlier_indices = self.solve_optimisation(method=method, 
+                                 max_iterations=max_iterations,
+                                 outlier_threshold=outlier_threshold,
+                                 enable_logging=enable_logging)
+        
+        # Evaluate solution
+        evaluation = self._evaluate_solution(result, outlier_indices)
+        
+        # Log final results
+        if enable_logging:
+            logger.info("="*30)
+            logger.info("FINAL CALIBRATION RESULTS")
+            logger.info("="*30)
+            self._log_iteration_results("FINAL", result, evaluation)
+            
+            if len(outlier_indices) > 0:
+                logger.info(f"Outlier samples: {outlier_indices}")
+            logger.info("Calibration completed successfully!")
+        
+        # Store results
+        self._store_optimization_results(result, evaluation, outlier_indices)
 
-    def plot(self):
+        # Generate plots if required
+        if plotting:
+            self.plot_results()
+        if save_results:
+            self.save_results()
+        return result
+    
+    def plot_results(self):
         """Generate comprehensive visualization plots for calibration results.
         
         Creates multiple visualization plots to analyze calibration quality:
@@ -261,10 +288,27 @@ class BaseCalibration(ABC):
             plot_errors_distribution: Individual error analysis plots
             plot_3d_poses: 3D pose comparison visualization
         """
-        self.plot_errors_distribution()
-        self.plot_3d_poses()
-        # self.plot_joint_configurations()
-        plt.show()
+
+        # Use pre-initialized results manager if available
+        if hasattr(self, 'results_manager') and \
+           self.results_manager is not None:
+            try:
+                # Plot using unified manager with self.result data
+                self.results_manager.plot_calibration_results()
+                return
+                
+            except Exception as e:
+                print(f"Error plotting with ResultsManager: {e}")
+                print("Falling back to basic plotting...")
+        
+        # Fallback to basic plotting if ResultsManager not available
+        try:
+            self.plot_errors_distribution()
+            self.plot_3d_poses()
+            # self.plot_joint_configurations()
+            plt.show()
+        except Exception as e:
+            print(f"Warning: Plotting failed: {e}")
 
     def load_param(self, config_file: str, setting_type: str = "calibration"):
         """Load calibration parameters from YAML configuration file.
@@ -587,7 +631,8 @@ class BaseCalibration(ABC):
         
         return logger
 
-    def _optimize_with_outlier_removal(self, var_init: np.ndarray, 
+    def _optimize_with_outlier_removal(self, var_init: np.ndarray,
+                                     method: str = "lm",
                                      max_iterations: int = 3,
                                      outlier_threshold: float = 1.0) -> Tuple:
         """Optimize with iterative outlier removal.
@@ -612,7 +657,7 @@ class BaseCalibration(ABC):
             result = least_squares(
                 self.cost_function,
                 current_var,
-                method='lm',
+                method=method,
                 max_nfev=1000
             )
             
@@ -769,7 +814,7 @@ class BaseCalibration(ABC):
         # Store main results
         self.LM_result = result
         self.var_ = result.x
-        self._var_0 = np.zeros_like(result.x)  # Store initial guess
+        self.uncalib_values = np.zeros_like(result.x)  # Store initial guess
         
         # Store evaluation metrics
         self.evaluation_metrics = evaluation
@@ -782,24 +827,69 @@ class BaseCalibration(ABC):
         n_samples = self.calib_config["NbSample"]
         n_markers = self.calib_config["NbMarkers"]
         
-        if len(residuals) == n_dofs * n_samples * n_markers:
-            residuals_3d = residuals.reshape((n_markers, n_dofs, n_samples))
-            self._PEE_dist = np.sqrt(np.mean(residuals_3d**2, axis=1))
-        elif len(residuals) == n_dofs * n_samples:
+        # if len(residuals) == n_dofs * n_samples * n_markers:
+        #     residuals_3d = residuals.reshape((n_markers, n_dofs, n_samples))
+        #     self._PEE_dist = np.sqrt(np.mean(residuals_3d**2, axis=1))
+        if len(residuals) == n_dofs * n_samples:
             residuals_2d = residuals.reshape((n_dofs, n_samples))
             sample_rms = np.sqrt(np.mean(residuals_2d**2, axis=0))
             self._PEE_dist = sample_rms.reshape((1, n_samples))
         else:
             # Fallback for unexpected residual shapes
             self._PEE_dist = np.ones((n_markers, n_samples)) * evaluation['rmse']
-        
+
+        # Reshape PEE measured for consistency
+        PEEm_LM2d = self.PEE_measured.reshape(
+            (
+                n_dofs, n_samples
+            )
+        )
+        PEEe_LM2d = PEE_est.reshape(
+            (
+                n_dofs, n_samples
+            )
+        )
+        # Store results
+        self.results_data = {}
+        self.results_data["number of calibrated parameters"] = len(result.x)
+        self.results_data["calibrated parameters names"] = self.calib_config["param_name"]
+        self.results_data["calibrated parameters values"] = result.x.tolist()
+        self.results_data.update(evaluation)
+        self.results_data["number of samples"] = n_samples
+        self.results_data["rms residuals by samples"] = self._PEE_dist
+        self.results_data["residuals"] = residuals_2d.T
+        self.results_data["PEE measured (2D array)"] = PEEm_LM2d.T
+        self.results_data["PEE estimated (2D array)"] = PEEe_LM2d.T
+        self.results_data["outlier indices"] = outlier_indices
+        self.results_data["calibration config"] = self.calib_config
+        self.results_data["task type"] = "calibration"
+
+        # Initialize ResultsManager for calibration task
+        try:
+            from .results_manager import ResultsManager
+            
+            # Get robot name from class or model
+            robot_name = getattr(
+                self, 'robot_name',
+                getattr(
+                    self.model, 'name',
+                    self.__class__.__name__.lower().replace(
+                        'calibration', '')))
+            # Initialize results manager for calibration task
+            self.results_manager = ResultsManager('calibration', robot_name, self.results_data)
+            
+        except ImportError as e:
+            print(f"Warning: ResultsManager not available: {e}")
+            self.results_manager = None
+
         # Update status
         self.STATUS = "CALIBRATED"
 
-    def solve_optimisation(self, var_init: Optional[np.ndarray] = None, 
+    def solve_optimisation(self, var_init: Optional[np.ndarray] = None,
+                          method: str = "lm",
                           max_iterations: int = 3,
                           outlier_threshold: float = 3.0, 
-                          enable_logging: bool = True):
+                          enable_logging: bool = False):
         """Solve calibration optimization with robust outlier handling.
         
         This method implements a comprehensive optimization strategy:
@@ -850,28 +940,10 @@ class BaseCalibration(ABC):
             # Run optimization with outlier removal
             result, outlier_indices, final_residuals = \
                 self._optimize_with_outlier_removal(
-                    var_init, max_iterations, outlier_threshold
+                    var_init, method, max_iterations, outlier_threshold
                 )
             
-            # Evaluate solution
-            evaluation = self._evaluate_solution(result, outlier_indices)
-            
-            # Log final results
-            if enable_logging:
-                logger.info("="*30)
-                logger.info("FINAL CALIBRATION RESULTS")
-                logger.info("="*30)
-                self._log_iteration_results("FINAL", result, evaluation)
-                
-                if len(outlier_indices) > 0:
-                    logger.info(f"Outlier samples: {outlier_indices}")
-                
-                logger.info("Calibration completed successfully!")
-            
-            # Store results
-            self._store_optimization_results(result, evaluation, outlier_indices)
-            
-            return result
+            return result, outlier_indices
             
         except Exception as e:
             if enable_logging:
@@ -1006,7 +1078,7 @@ class BaseCalibration(ABC):
                 self.calib_config["NbSample"],
             )
         )
-        PEEe_uncalib = self.get_pose_from_measure(self._var_0)
+        PEEe_uncalib = self.get_pose_from_measure(self.uncalib_values)
         PEEe_uncalib2d = PEEe_uncalib.reshape(
             (
                 self.calib_config["NbMarkers"] * self.calib_config["calibration_index"],
@@ -1084,3 +1156,29 @@ class BaseCalibration(ABC):
             ax4.set_ylabel("Sample")
             ax4.set_zlabel("Joint")
             ax4.grid()
+
+    def save_results(self, output_dir="results"):
+        """Save calibration results using unified results manager."""
+        if not hasattr(self, 'result') or self.results_data is None:
+            print("No calibration results to save. Run solve() first.")
+            return
+        
+        # Use pre-initialized results manager if available
+        if hasattr(self, 'results_manager') and \
+           self.results_manager is not None:
+            try:
+                # Save using unified manager with self.result data
+                saved_files = self.results_manager.save_results(
+                    output_dir=output_dir,
+                    save_formats=['yaml', 'csv', 'npz']
+                )
+
+                print("Calibration results saved using ResultsManager")
+                for fmt, path in saved_files.items():
+                    print(f"  {fmt}: {path}")
+                
+                return saved_files
+                
+            except Exception as e:
+                print(f"Error saving with ResultsManager: {e}")
+                print("Falling back to basic saving...")

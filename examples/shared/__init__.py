@@ -16,6 +16,7 @@ Available modules:
 # flake8: noqa F401
 
 # Import base classes
+from .base_calibration import BaseCalibration
 from .base_identification import BaseIdentification
 from .base_optimal_calibration import (
     BaseOptimalCalibration, SOCPOptimizer, Detmax
@@ -28,44 +29,50 @@ from .base_optimal_trajectory import (
     TrajectoryConstraintManager
 )
 
-# Import new infrastructure modules
-try:
-    from .config_manager import ConfigManager, ConfigurationError
-    from .error_handling import (
-        FigarohExampleError,
-        RobotInitializationError,
-        DataProcessingError,
-        CalibrationError,
-        IdentificationError,
-        ValidationError,
-        validate_robot_config,
-        validate_input_data,
-        handle_identification_errors,
-        handle_calibration_errors,
-        setup_example_logging
-    )
-    from .data_processing import DataProcessor
-    
-    # Include new modules in __all__
-    _new_modules = [
-        'ConfigManager',
-        'ConfigurationError',
-        'FigarohExampleError',
-        'RobotInitializationError',
-        'DataProcessingError',
-        'CalibrationError',
-        'IdentificationError',
-        'ValidationError',
-        'validate_robot_config',
-        'validate_input_data',
-        'handle_identification_errors',
-        'handle_calibration_errors',
-        'setup_example_logging',
-        'DataProcessor'
-    ]
-except ImportError:
-    # Graceful fallback if new modules are not available
-    _new_modules = []
+from .config_manager import ConfigManager, ConfigurationError
+from .error_handling import (
+    FigarohExampleError,
+    RobotInitializationError,
+    DataProcessingError,
+    CalibrationError,
+    IdentificationError,
+    ValidationError,
+    validate_robot_config,
+    validate_input_data,
+    handle_identification_errors,
+    handle_calibration_errors,
+    setup_example_logging
+)
+from .data_processing import DataProcessor
+from .results_manager import (
+    ResultsManager,
+    plot_calibration_results,
+    plot_identification_results,
+    save_results
+)
+
+# Include new modules in __all__
+_new_modules = [
+    'ConfigManager',
+    'ConfigurationError',
+    'FigarohExampleError',
+    'RobotInitializationError',
+    'DataProcessingError',
+    'CalibrationError',
+    'IdentificationError',
+    'ValidationError',
+    'validate_robot_config',
+    'validate_input_data',
+    'handle_identification_errors',
+    'handle_calibration_errors',
+    'setup_example_logging',
+    'DataProcessor',
+    'ResultsManager',
+    'plot_calibration_results',
+    'plot_identification_results',
+    'save_results'
+]
+
 
 __version__ = "0.2.0"
 __author__ = "Thanh Nguyen"

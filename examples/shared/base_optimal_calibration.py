@@ -677,29 +677,116 @@ class BaseOptimalCalibration(ABC):
 
         return True
     
+    def plot_results(self):
+        """Plot optimal calibration results using unified results manager."""
+        if not hasattr(self, 'optimal_configurations') or self.optimal_configurations is None:
+            print("No optimal configuration results to plot. Run solve() first.")
+            return
+        
+        try:
+            from .results_manager import ResultsManager
+            
+            # Initialize results manager
+            robot_name = self.calib_config.get("robot_name", self.model.name)
+            results_manager = ResultsManager('optimal_calibration', robot_name)
+            
+            # Prepare data for plotting
+            weights = np.array(list(self.w_dict_sort.values())) if hasattr(self, 'w_dict_sort') else np.array([])
+            
+            # Plot using unified manager
+            results_manager.plot_optimal_calibration_results(
+                configurations=self.optimal_configurations,
+                weights=weights,
+                title="Optimal Calibration Configuration Results"
+            )
+            
+        except ImportError:
+            # Fallback to existing plotting
+            import matplotlib.pyplot as plt
+            
+            fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+            
+            ax[0].bar(
+                list(self.w_dict_sort.keys()),
+                list(self.w_dict_sort.values()),
+            )
+            ax[0].set_xlabel("Configuration indices")
+            ax[0].set_ylabel("Weights")
+            ax[0].set_title("Chosen configurations")
+            ax[0].spines["top"].set_visible(False)
+            ax[0].spines["right"].set_visible(False)
+            ax[0].grid(True, linestyle="--")
+            
+            ax[1].bar(
+                list(self.w_dict_sort.keys()),
+                list(self.w_dict_sort.values()),
+            )
+            ax[1].set_yscale("log")
+            ax[1].spines["top"].set_visible(False)
+            ax[1].spines["right"].set_visible(False)
+            ax[1].grid(True, linestyle="--")
+            plt.show()
+    
     def save_results(self, output_dir="results"):
-        """Save optimal configuration results to files."""
+        """Save optimal configuration results using unified results manager."""
         if not hasattr(self, 'optimal_configurations') or self.optimal_configurations is None:
             print("No optimal configuration results to save. Run solve() first.")
             return
         
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Save optimal configurations
-        robot_name = self.calib_config["robot_name"] if "robot_name" in self.calib_config else self.model.name
-        filename = f"{robot_name}_optimal_configurations.yaml"
+        try:
+            from .results_manager import ResultsManager
+            
+            # Initialize results manager
+            robot_name = self.calib_config.get("robot_name", self.model.name)
+            results_manager = ResultsManager('optimal_calibration', robot_name)
+            
+            # Prepare results dictionary
+            results_dict = {
+                'optimal_configurations': self.optimal_configurations,
+                'selected_weights': self.w_dict_sort if hasattr(self, 'w_dict_sort') else {},
+                'minimum_configurations': getattr(self, 'minNbChosen', 0),
+                'configuration_count': len(self.optimal_configurations),
+                'calibration_config': self.calib_config
+            }
+            
+            # Add condition number if available
+            if hasattr(self, 'detroot_whole'):
+                results_dict['condition_number'] = float(self.detroot_whole)
+            
+            # Save using unified manager
+            saved_files = results_manager.save_results(
+                results_dict,
+                output_dir,
+                save_formats=['yaml', 'csv']
+            )
+            
+            return saved_files
+            
+        except ImportError:
+            # Fallback to existing saving
+            import os
+            import yaml
+            
+            os.makedirs(output_dir, exist_ok=True)
+            
+            robot_name = self.calib_config.get("robot_name", self.model.name)
+            filename = f"{robot_name}_optimal_configurations.yaml"
 
-        with open(os.path.join(output_dir, filename), "w") as stream:
-            try:
-                yaml.dump(
-                    self.optimal_configurations,
-                    stream,
-                    sort_keys=False,
-                    default_flow_style=True,
-                )
-            except yaml.YAMLError as exc:
-                print(exc)
-        print(f"Results saved to {output_dir}/{filename}")
+            with open(os.path.join(output_dir, filename), "w") as stream:
+                try:
+                    yaml.dump(
+                        self.optimal_configurations,
+                        stream,
+                        sort_keys=False,
+                        default_flow_style=True,
+                    )
+                except yaml.YAMLError as exc:
+                    print(exc)
+            print(f"Results saved to {output_dir}/{filename}")
+            
+            return {
+                'yaml': os.path.join(output_dir, filename)
+            }
 
 
 # SOCP Optimizer class used by BaseOptimalCalibration
