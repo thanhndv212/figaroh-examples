@@ -63,12 +63,6 @@ class TiagoCalibration(BaseCalibration):
             config_file: Path to TIAGo configuration YAML file
             del_list: List of sample indices to exclude from calibration
         """
-        # Use ConfigManager for centralized configuration
-        self.config_manager = ConfigManager(config_file)
-        self.tiago_config = self.config_manager.get_config()
-        
-        # Validate configuration
-        validate_robot_config(self.tiago_config)
         
         super().__init__(robot, config_file, del_list)
         print("TIAGo calibration initialized with new infrastructure")
@@ -146,20 +140,20 @@ class TiagoIdentification(BaseIdentification):
         }
         return self.raw_data
 
-    def process_torque_data(self, tau, filter_config=None):
+    def process_torque_data(self):
         """Process torque data with TIAGo-specific motor constants."""
         import pinocchio as pin
         
         # Apply TIAGo-specific torque processing (reduction ratios, etc.)
         pin.computeSubtreeMasses(self.robot.model, self.robot.data)
-        tau_processed = tau.copy()
-        
+        tau_processed = self.raw_data["torques"].copy()
+
         for i, joint_name in enumerate(self.identif_config["active_joints"]):
             if joint_name == "torso_lift_joint":
                 tau_processed[:, i] = (
                     self.identif_config["reduction_ratio"][joint_name]
                     * self.identif_config["kmotor"][joint_name]
-                    * tau[:, i]
+                    * self.raw_data["torques"][:, i]
                     + 9.81 * self.robot.data.mass[
                         self.robot.model.getJointId(joint_name)
                     ]
@@ -168,9 +162,10 @@ class TiagoIdentification(BaseIdentification):
                 tau_processed[:, i] = (
                     self.identif_config["reduction_ratio"][joint_name]
                     * self.identif_config["kmotor"][joint_name]
-                    * tau[:, i]
+                    * self.raw_data["torques"][:, i]
                 )
-        return tau_processed
+        self.processed_data["torques"] = tau_processed
+        return self.processed_data["torques"]
 
 
 class TiagoOptimalCalibration(BaseOptimalCalibration):

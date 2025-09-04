@@ -64,23 +64,8 @@ class TX40Identification(BaseIdentification):
             robot: Staubli TX40 robot model loaded with FIGAROH
             config_file: Path to TX40 configuration YAML file
         """
-        try:
-            # Use new configuration manager if available
-            if 'ConfigManager' in globals():
-                # Load config using new manager with validation
-                config_dict = ConfigManager.load_robot_config(
-                    'staubli_tx40', config_file
-                )
-                super().__init__(robot, config_file)
-            else:
-                # Fallback to original method
-                super().__init__(robot, config_file)
-                
-        except Exception as e:
-            if 'RobotInitializationError' in globals():
-                raise RobotInitializationError(f"TX40 initialization failed: {e}")
-            else:
-                raise e
+        super().__init__(robot, config_file)
+        print("TiagoIdentification initialized for TIAGo robot")
         
         # TX40-specific active joints
         self.active_joints = [
@@ -111,9 +96,21 @@ class TX40Identification(BaseIdentification):
         idx_act_joints = [jid - 1 for jid in act_Jid]
         self.identif_config["idx_act_joints"] = idx_act_joints
 
+        # TX40-specific filter parameters
+        self.filter_config = {
+            'differentiation_method': 'gradient',
+            'filter_params': {
+                'nbutter': 4,
+                'f_butter': self.identif_config.get(
+                    "cut_off_frequency_butterworth", 100.0
+                ),
+                'f_sample': 1 / self.identif_config["ts"]
+            }
+        }
+
     @handle_identification_errors
     def solve(self, decimate=True, decimation_factor=10, zero_tolerance=0.001,
-              plotting=True, save_params=False, wls=False):
+              plotting=True, save_results=False, wls=False):
         """Solve TX40 identification with optional weighted least squares.
         
         Args:
@@ -121,7 +118,7 @@ class TX40Identification(BaseIdentification):
             decimation_factor (int): Factor (not used for TX40 custom)
             zero_tolerance (float): Tolerance for eliminating zero columns
             plotting (bool): Whether to generate plots
-            save_params (bool): Whether to save parameters to file
+            save_results (bool): Whether to save parameters to file
             wls (bool): Whether to use weighted least squares
             
         Returns:
@@ -133,7 +130,7 @@ class TX40Identification(BaseIdentification):
             decimation_factor=decimation_factor,
             zero_tolerance=zero_tolerance,
             plotting=False,  # Handle plotting separately
-            save_params=False  # Handle saving separately
+            save_results=False  # Handle saving separately
         )
         
         # Apply weighted least squares if requested
@@ -142,11 +139,11 @@ class TX40Identification(BaseIdentification):
         
         # TX40-specific plotting
         if plotting:
-            self._plot_identification_results()
+            self.plot_results()
         
         # TX40-specific parameter saving
-        if save_params:
-            self._save_tx40_parameters()
+        if save_results:
+            self.save_results()
         
         return phi_base
     
@@ -189,17 +186,7 @@ class TX40Identification(BaseIdentification):
     def process_kinematics_data(self, filter_config=None):
         """Apply TX40-specific filtering to data."""
         # TX40-specific filter parameters
-        default_config = {
-            'differentiation_method': 'gradient',
-            'filter_params': {
-                'nbutter': 4,
-                'f_butter': self.identif_config.get(
-                    "cut_off_frequency_butterworth", 100.0
-                ),
-                'f_sample': 1 / self.identif_config["ts"]
-            }
-        }
-        filter_config = {**default_config, **(filter_config or {})}
+        filter_config = self.filter_config
 
         # Convert motor positions to joint positions
         self._convert_motor_to_joint_positions()
@@ -242,20 +229,9 @@ class TX40Identification(BaseIdentification):
         # Update raw data with converted positions
         self.raw_data["positions"] = joint_positions
 
-    def process_torque_data(self, tau, filter_config=None):
+    def process_torque_data(self):
         """Process torque data with TX40-specific motor torque conversion."""
-        # TX40-specific filter parameters
-        default_config = {
-            'differentiation_method': 'gradient',
-            'filter_params': {
-                'nbutter': 4,
-                'f_butter': self.identif_config.get(
-                    "cut_off_frequency_butterworth", 100.0
-                ),
-                'f_sample': 1 / self.identif_config["ts"]
-            }
-        }
-        filter_config = {**default_config, **(filter_config or {})}
+        filter_config = self.filter_config
         # Get reduction ratios from config
         reduction_ratios = self.identif_config["reduction_ratio"]
         
@@ -268,7 +244,7 @@ class TX40Identification(BaseIdentification):
         red_tau[4, 5] = reduction_ratios[5]  # Coupling term
         
         # Convert motor torques to joint torques
-        tau_T = np.dot(red_tau, tau.T)
+        tau_T = np.dot(red_tau, self.raw_data["torques"].T)
         tau_processed = tau_T.T
 
         # Remove border effects

@@ -105,13 +105,6 @@ class UR10Calibration(BaseCalibration):
             config_file: Path to UR10 configuration YAML file
             del_list: List of sample indices to exclude from calibration
         """
-        # Use ConfigManager for centralized configuration
-        self.config_manager = ConfigManager(config_file)
-        self.ur10_config = self.config_manager.get_config()
-        
-        # Validate configuration
-        validate_robot_config(self.ur10_config)
-        
         super().__init__(robot, config_file, del_list)
 
     def cost_function(self, var):
@@ -164,13 +157,6 @@ class UR10Identification(BaseIdentification):
             robot: UR10 robot model loaded with FIGAROH
             config_file: Path to UR10 configuration YAML file
         """
-        # Use ConfigManager for centralized configuration
-        self.config_manager = ConfigManager(config_file)
-        self.ur10_config = self.config_manager.get_config()
-        
-        # Validate configuration
-        validate_robot_config(self.ur10_config)
-        
         # Call parent constructor
         super().__init__(robot, config_file)
         
