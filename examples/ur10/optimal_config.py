@@ -25,9 +25,13 @@ import sys
 import os
 import numpy as np
 
-# Add path to utils directory
-sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
-from ur10_tools import UR10OptimalCalibration
+# Add the parent directory to Python path to enable proper imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(os.path.dirname(current_dir))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from examples.ur10.utils.ur10_tools import UR10OptimalCalibration
 
 from figaroh.tools.robot import load_robot
 

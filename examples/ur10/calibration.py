@@ -13,7 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from utils.ur10_tools import UR10Calibration
+import sys
+import os
+
+# Add the parent directory to Python path to enable proper imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(os.path.dirname(current_dir))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from examples.ur10.utils.ur10_tools import UR10Calibration
 from figaroh.tools.robot import load_robot
 
 
@@ -45,11 +54,8 @@ def main():
     print("Calibration initialized successfully!")
     
     # Solve the calibration
-    ur10_calib.solve()
+    ur10_calib.solve(plotting=True, enable_logging=False)
     print("Calibration solved successfully!")
-
-    # Display results
-    ur10_calib.plot()
 
 
 if __name__ == "__main__":

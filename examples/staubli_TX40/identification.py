@@ -19,7 +19,16 @@ This demonstrates the clean separation between robot-specific and general
 identification functionality.
 """
 
-from utils.staubli_tx40_tools import TX40Identification
+import sys
+import os
+
+# Add the parent directory to Python path to enable proper imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(os.path.dirname(current_dir))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from examples.staubli_tx40.utils.staubli_tx40_tools import TX40Identification
 from figaroh.tools.robot import load_robot
 
 
@@ -37,10 +46,10 @@ def main():
     tx40_iden.initialize()
 
     # Solve identification with TX40-specific features
-    phi_base = tx40_iden.solve(
+    tx40_iden.solve(
         decimate=True,          # Apply TX40-specific decimation
         plotting=True,          # Generate identification plots
-        save_params=False,       # Save parameters to CSV files
+        save_results=False,       # Save parameters to CSV files
         wls=False               # Use weighted least squares
     )
 
@@ -53,7 +62,6 @@ def main():
         f"Number of base parameters identified: "
         f"{len(tx40_iden.params_base)}"
     )
-    print(f"RMS error: {tx40_iden.rms_error:.6f}")
     print(f"Correlation coefficient: {tx40_iden.correlation:.4f}")
     
     if hasattr(tx40_iden, 'result'):
@@ -68,7 +76,7 @@ def main():
 
     print("\nBase parameters:")
     for i, param_name in enumerate(tx40_iden.params_base):
-        print(f"{i + 1:2d}. {param_name}: {phi_base[i]:10.6f}")
+        print(f"{i + 1:2d}. {param_name}: {tx40_iden.phi_base[i]:10.6f}")
 
     print("\nIdentification completed successfully!")
     return tx40_iden

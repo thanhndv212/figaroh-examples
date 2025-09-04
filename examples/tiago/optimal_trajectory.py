@@ -3,10 +3,19 @@
 Optimal Trajectory Generation using IPOPT for TIAGo Robot
 """
 
+import sys
+import os
+
+# Add the parent directory to Python path to enable proper imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(os.path.dirname(current_dir))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 from matplotlib import pyplot as plt
 from figaroh.tools.robot import load_robot
-from utils.simplified_colission_model import build_tiago_simplified
-from utils.tiago_tools import OptimalTrajectoryIPOPT
+from examples.tiago.utils.simplified_colission_model import build_tiago_simplified
+from examples.tiago.tiago_tools import OptimalTrajectoryIPOPT
 
 
 def plot_condition_number_evolution(results):

@@ -43,7 +43,4 @@ tiago_calib.calib_config["known_tipframe"] = False
 tiago_calib.initialize()
 
 # solve least_squares estimation
-tiago_calib.solve()
-
-# display results
-tiago_calib.plot()
+tiago_calib.solve(plotting=True, enable_logging=False)
