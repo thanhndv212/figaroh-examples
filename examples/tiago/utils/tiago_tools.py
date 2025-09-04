@@ -27,16 +27,16 @@ from os.path import abspath
 # Import FIGAROH modules
 from figaroh.calibration.calibration_tools import calc_updated_fkm
 
-# Import shared modules using relative imports
-from ...shared.base_calibration import BaseCalibration
-from ...shared.base_identification import BaseIdentification
-from ...shared.base_optimal_calibration import BaseOptimalCalibration
-from ...shared.base_optimal_trajectory import (
+# Import shared modules using figaroh library
+from figaroh.calibration.base_calibration import BaseCalibration
+from figaroh.identification.base_identification import BaseIdentification
+from figaroh.optimal.base_optimal_calibration import BaseOptimalCalibration
+from figaroh.optimal.base_optimal_trajectory import (
     BaseOptimalTrajectory,
     BaseTrajectoryIPOPTProblem
 )
-from ...shared.results_manager import ResultsManager
-from ...shared.error_handling import handle_calibration_errors
+from figaroh.utils.results_manager import ResultsManager
+from figaroh.utils.error_handling import handle_calibration_errors
 
 
 def validate_robot_config(config):

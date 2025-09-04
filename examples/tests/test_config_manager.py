@@ -10,11 +10,8 @@ import os
 import yaml
 from pathlib import Path
 
-# Import using relative path for testing
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-from shared.config_manager import (
+# Import from shared (config manager is still in shared)
+from ..shared.config_manager import (
     ConfigManager,
     ConfigurationError,
     ConfigSchema

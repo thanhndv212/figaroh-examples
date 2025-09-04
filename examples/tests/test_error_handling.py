@@ -7,12 +7,8 @@ Tests for the custom exception hierarchy and validation utilities.
 import pytest
 import numpy as np
 
-# Import using relative path for testing
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-from shared.error_handling import (
+# Import from figaroh utils
+from figaroh.utils.error_handling import (
     FigarohExampleError,
     RobotInitializationError,
     ConfigurationError,

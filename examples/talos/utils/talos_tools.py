@@ -13,18 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
 import numpy as np
 
 from figaroh.calibration.calibration_tools import (
     calc_updated_fkm,
     initialize_variables,
 )
-from ...shared.base_calibration import BaseCalibration
-
-# Add path to shared modules
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../shared'))
+# Import base class from figaroh
+from figaroh.calibration.base_calibration import BaseCalibration
 
 
 class TALOSCalibration(BaseCalibration):

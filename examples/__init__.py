@@ -10,20 +10,28 @@ Available modules:
 - robots: Robot-specific implementations (TX40, UR10, TALOS, TIAGO, MATE)
 """
 
-# Import shared modules for easy access
+# Import base classes from FIGAROH library for easy access
 try:
+    from figaroh.identification.base_identification import BaseIdentification
+    from figaroh.optimal.base_optimal_calibration import BaseOptimalCalibration
+    from figaroh.optimal.base_optimal_trajectory import BaseOptimalTrajectory
+    from figaroh.utils.results_manager import ResultsManager
+    from figaroh.utils.error_handling import (
+        CalibrationError, 
+        IdentificationError,
+        handle_calibration_errors
+    )
+    
+    # Import shared modules that are still only in examples
     from .shared import (
-        BaseIdentification,
-        BaseOptimalCalibration,
-        BaseOptimalTrajectory,
-        SOCPOptimizer,
-        Detmax,
         ConfigurationManager,
         BaseParameterComputer,
-        TrajectoryConstraintManager
+        TrajectoryConstraintManager,
+        ConfigManager,
+        DataProcessor
     )
 except ImportError:
-    # Graceful fallback if shared modules are not available
+    # Graceful fallback if modules are not available
     pass
 
 __version__ = "0.1.0"

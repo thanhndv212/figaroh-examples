@@ -21,11 +21,25 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Import FIGAROH modules
+import numpy as np
+import pandas as pd
+from scipy.optimize import least_squares
+from typing import Dict, Any, List
 from figaroh.calibration.calibration_tools import (
     load_data,
     calc_updated_fkm,
 )
-from ...shared.base_calibration import BaseCalibration
+# Import base classes from figaroh
+from figaroh.calibration.base_calibration import BaseCalibration
+from figaroh.identification.base_identification import BaseIdentification
+from figaroh.optimal.base_optimal_calibration import BaseOptimalCalibration
+from figaroh.utils.results_manager import ResultsManager
+from figaroh.utils.error_handling import (
+    CalibrationError,
+    IdentificationError,
+    validate_robot_config,
+    handle_calibration_errors
+)
 from figaroh.identification.identification_tools import (
     get_param_from_yaml as get_identification_param_from_yaml,
     calculate_first_second_order_differentiation,
@@ -37,27 +51,12 @@ from figaroh.tools.regressor import (
 )
 from figaroh.tools.qrdecomposition import get_baseParams
 
-# Add path to shared modules
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../shared'))
-
-# Import shared modules with fallback
+# Fallback for config manager and data processor if needed
 try:
-    from base_identification import BaseIdentification
-    from base_optimal_calibration import BaseOptimalCalibration
-    from config_manager import ConfigManager
-    from error_handling import (
-        CalibrationError,
-        IdentificationError,
-        validate_robot_config,
-        handle_calibration_errors
-    )
-    from data_processing import DataProcessor
+    from ...shared.config_manager import ConfigManager
+    from ...shared.data_processing import DataProcessor
 except ImportError:
-    # Fallback imports for compatibility
-    from base_identification import BaseIdentification
-    from base_optimal_calibration import BaseOptimalCalibration
-    
-    # Fallback classes if new infrastructure not available
+    # Create simple fallback classes if shared modules not available
     class ConfigManager:
         def __init__(self, config_path):
             import yaml
@@ -66,18 +65,6 @@ except ImportError:
         
         def get_config(self):
             return self.config
-    
-    class CalibrationError(Exception):
-        pass
-    
-    class IdentificationError(Exception):
-        pass
-    
-    def validate_robot_config(config):
-        return True
-    
-    def handle_calibration_errors(func):
-        return func
     
     class DataProcessor:
         @staticmethod

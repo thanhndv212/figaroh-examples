@@ -23,30 +23,28 @@ and configuration management.
 import numpy as np
 import pandas as pd
 from scipy import signal
-import sys
-import os
 
-# Import from examples package (new approach)
+# Import base classes from figaroh
+from figaroh.identification.base_identification import BaseIdentification
+from figaroh.utils.error_handling import (
+    validate_input_data,
+    handle_identification_errors,
+    RobotInitializationError,
+    DataProcessingError
+)
+# Import from shared modules if needed
 try:
-    from ...shared import BaseIdentification
     from ...shared.config_manager import ConfigManager
-    from ...shared.error_handling import (
-        validate_input_data,
-        handle_identification_errors,
-        RobotInitializationError,
-        DataProcessingError
-    )
 except ImportError:
-    # Fallback to old path-based imports for backward compatibility
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
-    from base_identification import BaseIdentification
-    from config_manager import ConfigManager
-    from error_handling import (
-        validate_input_data,
-        handle_identification_errors,
-        RobotInitializationError,
-        DataProcessingError
-    )
+    # Create simple fallback if config manager not available
+    class ConfigManager:
+        def __init__(self, config_path):
+            import yaml
+            with open(config_path, 'r') as f:
+                self.config = yaml.safe_load(f)
+        
+        def get_config(self):
+            return self.config
 
 from figaroh.tools.regressor import build_regressor_basic
 from figaroh.identification.identification_tools import (
