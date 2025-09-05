@@ -230,10 +230,10 @@ If you use these examples in your research, please cite the main FIGAROH paper:
 
 ## License
 
-This project is licensed under the same terms as the main FIGAROH package. See [LICENSE](https://github.com/thanhndv212/figaroh/blob/main/LICENSE) for details.
+This project is licensed under the same terms as the main FIGAROH package. See [LICENSE](https://github.com/thanhndv212/figaroh-plus/blob/main/LICENSE) for details.
 
 ## Support
 
 For questions about the examples:
 - Open an issue in this repository for example-specific questions
-- Open an issue in the [main FIGAROH repository](https://github.com/thanhndv212/figaroh/issues) for library-related questions
+- Open an issue in the [main FIGAROH repository](https://github.com/thanhndv212/figaroh-plus/issues) for library-related questions
