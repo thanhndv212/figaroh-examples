@@ -64,7 +64,7 @@ tasks:
     parameters:
       calibration_level: "full_params"
       include_non_geometric: false
-      outlier_threshold: 0.022  # 2.2cm based on TIAGo precision
+      outlier_threshold: 0.05  # 5cm outlier threshold
       
     kinematics:
       base_frame: "universe"
@@ -136,7 +136,7 @@ variants:
         tool_pose: [0.2163, 0.03484, 0.004, 0.0, -1.57, -1.57]
     data:
       source_file: "data/optitrack_camera_hand_calibration_test3.csv"
-      outlier_threshold: 0.022
+      outlier_threshold: 0.05
 
   # VICON motion capture variant
   vicon_calibration:

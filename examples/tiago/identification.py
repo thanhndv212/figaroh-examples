@@ -35,7 +35,7 @@ def main():
     )
 
     # Create identification object
-    tiago_iden = TiagoIdentification(tiago, "config/tiago_config.yaml")
+    tiago_iden = TiagoIdentification(tiago, "config/tiago_unified_config.yaml")
 
     # Define additional parameters excluded from yaml files
     ps = tiago_iden.identif_config
