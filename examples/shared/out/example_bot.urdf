@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<robot name="example_bot">
+  <link name="base_link">
+    <inertial>
+      <mass value="5.0"/>
+      <origin xyz="0.0 0.0 0.1" rpy="0 0 0"/>
+      <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.1" iyz="0.0" izz="0.05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="meshes/base.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="meshes/base_col.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="link1">
+    <inertial>
+      <mass value="1.0"/>
+      <origin xyz="0.0 0.0 0.1" rpy="0 0 0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.005"/>
+    </inertial>
+  </link>
+  <joint name="joint1" type="revolute">
+    <parent link="base_link"/>
+    <child link="link1"/>
+    <origin xyz="0.0 0.0 0.2" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="10.0" velocity="2.0"/>
+    <dynamics damping="0.01" friction="0.05"/>
+  </joint>
+</robot>

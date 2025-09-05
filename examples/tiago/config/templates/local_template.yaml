@@ -1,0 +1,10 @@
+# Local TIAGo Template
+# This demonstrates local template resolution
+
+robot:
+  type: "tiago_specific"
+  
+tasks:
+  calibration:
+    parameters:
+      calibration_level: "joint_offset"  # Simplified for local template

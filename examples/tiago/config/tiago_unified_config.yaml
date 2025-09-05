@@ -1,0 +1,188 @@
+# TIAGo Robot Configuration - Unified Format (Standalone)
+# Configuration for PAL Robotics TIAGo humanoid robot
+# This is a standalone configuration without template inheritance
+
+# Comment out extends for now to test standalone mode
+# extends: "templates/humanoid_robot.yaml"
+
+# Configuration metadata
+_metadata:
+  schema_version: "2.0"
+  config_type: "robot_configuration"
+
+# TIAGo-specific robot configuration
+robot:
+  name: "tiago"
+  description: "PAL Robotics TIAGo mobile manipulator robot"
+  
+  properties:
+    # TIAGo joint configuration (torso + arm)
+    joints:
+      active_joints: [
+        "torso_lift_joint",
+        "arm_1_joint", "arm_2_joint", "arm_3_joint", "arm_4_joint",
+        "arm_5_joint", "arm_6_joint", "arm_7_joint"
+      ]
+      joint_limits:
+        velocity: [0.05009095, 0.05009095, 0.07504916, 0.0715585, 0.05585054, 0.12217305]
+        acceleration: [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
+        torque: [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
+    
+    # TIAGo mechanical properties
+    mechanics:
+      reduction_ratios: [32.0, 32.0, 45.0, -48.0, 45.0, 32.0]
+      ratio_essential: 30.0
+      friction_coefficients:
+        viscous: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        static: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      actuator_inertias: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      joint_offsets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    
+    # TIAGo has coupled wrist
+    coupling:
+      has_coupled_wrist: true
+      Iam6: 0
+      fvm6: 0
+      fsm6: 0
+      
+    # Mobile base properties
+    mobility:
+      has_mobile_base: true
+      base_type: "differential_drive"
+      
+    # Sensor configuration
+    sensors:
+      has_head_camera: true
+      has_torso_camera: false
+      has_ft_sensors: true
+
+# TIAGo task configurations
+tasks:
+  calibration:
+    enabled: true
+    
+    parameters:
+      calibration_level: "full_params"
+      include_non_geometric: false
+      outlier_threshold: 0.05  # 5cm outlier threshold
+      
+    kinematics:
+      base_frame: "universe"
+      tool_frame: "wrist_ft_tool_link"
+      
+    measurements:
+      markers:
+        - name: "wrist_marker"
+          reference_joint: "arm_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+          
+      poses:
+        base_pose: [0.0908, 0.08, 0.0, -1.57, 0.0, 0.0]
+        tool_pose: [0.2163, 0.03484, 0.004, 0.0, -1.57, -1.57]
+    
+    data:
+      source_file: "data/calibration/mocap/qualysis_base_hand_calibration.csv"
+      sample_configurations_file: "data/optimal_configs/eye_hand_calibration_tiago_hey5_100.yaml"
+      number_of_samples: 500
+
+  identification:
+    enabled: true
+    
+    problem:
+      include_external_forces: true  # TIAGo has F/T sensors
+      use_joint_torques: true
+      force_torque_sensors: ["wrist_ft_sensor"]
+      
+      model_components:
+        friction: true
+        joint_offset: true
+        actuator_inertia: true
+        
+    signal_processing:
+      sampling_frequency: 5000.0  # High rate due to 1/0.0002 = 5000Hz
+      cutoff_frequency: 100.0
+      filter_type: "butterworth"
+
+  optimal_configuration:
+    enabled: true
+    
+    parameters:
+      number_of_samples: 100
+      optimization_objectives: ["condition_number", "manipulability"]
+      
+    output:
+      output_file: "data/optimal_configs/tiago_optimal_configs.yaml"
+
+# TIAGo-specific custom parameters
+custom:
+  manufacturer: "PAL Robotics"
+  gripper_type: "hey5"  # hey5, parallel, none
+  has_mobile_base: true
+  camera_configuration: "rgbd"  # Head-mounted RGBD camera
+  additional_sensors: ["laser", "imu", "bumpers"]
+
+# Configuration variants for different TIAGo setups
+variants:
+  # Motion capture calibration variant
+  mocap_calibration:
+    extends: "tasks.calibration"
+    kinematics:
+      base_frame: "head_2_joint"
+      tool_frame: "wrist_ft_tool_link"
+    measurements:
+      poses:
+        base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        tool_pose: [0.2163, 0.03484, 0.004, 0.0, -1.57, -1.57]
+    data:
+      source_file: "data/optitrack_camera_hand_calibration_test3.csv"
+      outlier_threshold: 0.05
+
+  # VICON motion capture variant
+  vicon_calibration:
+    extends: "tasks.calibration"
+    kinematics:
+      base_frame: "base_footprint"
+      tool_frame: "gripper_tool_link"
+    measurements:
+      markers:
+        - name: "gripper_marker"
+          reference_joint: "arm_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "vicon"
+    data:
+      source_file: "data/vicon_calibration.csv"
+
+  # Eye-hand calibration with camera
+  eye_hand_calibration:
+    extends: "tasks.calibration"
+    kinematics:
+      base_frame: "xtion_rgb_optical_frame"
+      tool_frame: "gripper_link"
+    eye_hand:
+      enabled: true
+      camera_frame: "xtion_link"
+      reference_frame: "head_2_joint"
+    measurements:
+      markers:
+        - name: "gripper_marker"
+          reference_joint: "arm_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "camera"
+
+  # Joint offset only calibration
+  joint_offset_calibration:
+    extends: "tasks.calibration"
+    parameters:
+      calibration_level: "joint_offset"
+      number_of_samples: 100
+    data:
+      source_file: "data/joint_offset_calibration.csv"
+
+  # PAL gripper configuration
+  pal_gripper:
+    extends: "tasks.calibration"
+    kinematics:
+      tool_frame: "gripper_link"
+    custom:
+      gripper_type: "parallel"

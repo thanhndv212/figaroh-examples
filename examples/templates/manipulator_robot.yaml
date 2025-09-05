@@ -1,0 +1,43 @@
+# Manipulator Robot Template
+# Template for fixed-base manipulator robots (UR10, KUKA, etc.)
+# Extends the base robot configuration with manipulator-specific settings
+
+extends: "base_robot_config.yaml"
+
+robot:
+  type: "manipulator"
+  description: "Fixed-base manipulator robot"
+  
+  properties:
+    # Typical manipulator characteristics
+    coupling:
+      has_coupled_wrist: false
+      
+# Task defaults for manipulators
+tasks:
+  calibration:
+    enabled: true  # Most manipulators support calibration
+    
+    kinematics:
+      base_frame: "universe"      # Fixed base
+      free_flying_base: false
+      
+    measurements:
+      # Default marker configuration for wrist-mounted marker
+      markers:
+        - name: "wrist_marker"
+          reference_joint: ""     # To be specified in robot config
+          measurable_dof: [true, true, true, true, true, true]
+          sensor_type: "mocap"
+          
+  identification:
+    enabled: true  # Most manipulators support identification
+    
+    problem:
+      include_external_forces: false  # Typically no external F/T sensors
+      use_joint_torques: true        # Use joint torque measurements
+
+# Environment defaults for manipulators
+environment:
+  # Manipulators typically work in structured environments
+  workspace_type: "structured"

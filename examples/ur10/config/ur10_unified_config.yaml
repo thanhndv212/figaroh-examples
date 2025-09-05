@@ -1,0 +1,173 @@
+# UR10 Robot Configuration - Unified Format
+# Configuration for Universal Robots UR10 6-DOF manipulator
+# This configuration extends the manipulator template with UR10-specific parameters
+
+extends: "../../templates/manipulator_robot.yaml"
+
+# UR10-specific robot configuration
+robot:
+  name: "ur10"
+  description: "Universal Robots UR10 6-DOF industrial manipulator"
+  
+  properties:
+    # UR10 joint configuration
+    joints:
+      active_joints: [
+        "shoulder_pan_joint",
+        "shoulder_lift_joint", 
+        "elbow_joint",
+        "wrist_1_joint",
+        "wrist_2_joint",
+        "wrist_3_joint"
+      ]
+      joint_limits:
+        position: [-6.28, 6.28, -6.28, 6.28, -3.14, 6.28, -6.28, 6.28, -6.28, 6.28, -6.28, 6.28]
+        velocity: [2.16, 2.16, 3.15, 3.2, 3.2, 3.2]  # [rad/s]
+        acceleration: [40.0, 40.0, 40.0, 40.0, 40.0, 40.0]  # [rad/s²]
+        torque: [330.0, 330.0, 150.0, 54.0, 54.0, 54.0]  # [Nm]
+    
+    # UR10 mechanical properties
+    mechanics:
+      reduction_ratios: [101.0, 101.0, 101.0, 101.0, 101.0, 101.0]
+      ratio_essential: 100.0
+      friction_coefficients:
+        viscous: [0, 0, 0, 0, 0, 0]  # To be identified
+        static: [0, 0, 0, 0, 0, 0]   # To be identified
+      actuator_inertias: [0, 0, 0, 0, 0, 0]  # To be identified
+      joint_offsets: [0, 0, 0, 0, 0, 0]      # To be calibrated
+
+# UR10 task configurations
+tasks:
+  calibration:
+    enabled: true
+    
+    parameters:
+      calibration_level: "full_params"
+      include_non_geometric: false
+      regularization_coefficient: 0.001
+      outlier_threshold: 0.02  # 2cm outlier threshold
+      
+    kinematics:
+      base_frame: "universe"
+      tool_frame: "wrist_3_link"
+      
+    measurements:
+      markers:
+        - name: "wrist_marker"
+          reference_joint: "wrist_3_joint"
+          measurable_dof: [true, true, true, true, true, true]
+          sensor_type: "mocap"
+          
+      poses:
+        base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        tool_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    
+    data:
+      source_file: "data/calibration.csv"
+      sample_configurations_file: "data/optimal_configs/ur10_optimal_configs.yaml"
+      number_of_samples: 29
+
+  identification:
+    enabled: true
+    
+    problem:
+      include_external_forces: false
+      use_joint_torques: true
+      
+      model_components:
+        friction: true
+        joint_offset: true
+        actuator_inertia: true
+        static_regressor: true
+        inertia_regressor: true
+        
+    signal_processing:
+      sampling_frequency: 500.0  # Hz
+      cutoff_frequency: 50.0     # Hz
+      filter_type: "butterworth"
+      filter_order: 4
+
+  optimal_configuration:
+    enabled: true
+    
+    parameters:
+      number_of_samples: 50
+      optimization_objectives: ["condition_number", "dexterity"]
+      
+    constraints:
+      joint_limit_margin: 0.1
+      collision_checking: false  # UR10 is usually collision-free
+      
+    output:
+      save_configurations: true
+      output_file: "data/optimal_configs/ur10_optimal_configs.yaml"
+      enable_visualization: true
+
+  optimal_trajectory:
+    enabled: true
+    
+    trajectory:
+      waypoints: 7
+      frequency: 100
+      segment_duration: 2.0
+      
+    constraints:
+      velocity_scaling: 0.5
+      acceleration_scaling: 0.5
+      
+    output:
+      save_trajectory: true
+      output_file: "data/trajectories/ur10_optimal_trajectory.yaml"
+
+# UR10-specific custom parameters
+custom:
+  manufacturer: "Universal Robots"
+  payload: 10.0  # kg
+  reach: 1.3     # meters
+  repeatability: 0.1  # mm
+  ip_rating: "IP54"
+  
+# Environment configuration
+environment:
+  working_directory: "."
+  data_directory: "data"
+  results_directory: "results"
+  
+  logging:
+    level: "INFO"
+    console_output: true
+    
+  visualization:
+    enabled: true
+    save_plots: true
+    plot_directory: "plots"
+
+# Configuration variants for different setups
+variants:
+  # Minimal calibration configuration
+  minimal_calibration:
+    extends: "tasks.calibration"
+    parameters:
+      calibration_level: "joint_offset"
+      number_of_samples: 10
+    data:
+      source_file: "data/quick_calibration.csv"
+      
+  # High-precision calibration
+  precision_calibration:
+    extends: "tasks.calibration"
+    parameters:
+      outlier_threshold: 0.005  # 0.5mm precision
+      regularization_coefficient: 0.0001
+      number_of_samples: 100
+    data:
+      source_file: "data/precision_calibration.csv"
+      
+  # Identification with external load
+  loaded_identification:
+    extends: "tasks.identification"
+    load_configuration:
+      additional_mass: 5.0  # 5kg additional load
+      loaded_body_index: 6  # End-effector
+    signal_processing:
+      cutoff_frequency: 30.0  # Lower for loaded motion

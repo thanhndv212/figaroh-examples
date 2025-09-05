@@ -248,8 +248,8 @@ class ConfigPanel:
                 self.server.gui.add_markdown("End-effector tool frame")
             
             # Camera pose parameters with explanations
-            if 'camera_pose' in calib_config:
-                pose = calib_config['camera_pose']
+            if 'base_pose' in calib_config:
+                pose = calib_config['base_pose']
                 self.server.gui.add_markdown("📷 Camera Pose (X,Y,Z,Roll,Pitch,Yaw)")
                 
                 self.config_widgets['camera_px'] = self.server.gui.add_number(
@@ -373,8 +373,8 @@ class ConfigPanel:
                     calib_config['tool_frame'] = self.config_widgets['tool_frame'].value
                 
                 # Update camera pose
-                if 'camera_pose' in calib_config:
-                    pose = calib_config['camera_pose']
+                if 'base_pose' in calib_config:
+                    pose = calib_config['base_pose']
                     if 'camera_px' in self.config_widgets:
                         pose[0] = self.config_widgets['camera_px'].value
                     if 'camera_py' in self.config_widgets:

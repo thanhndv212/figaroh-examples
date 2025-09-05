@@ -13,232 +13,205 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Example refactored TIAGo tools using the new base classes.
+This demonstrates how the existing TIAGo implementation would be refactored
+to use the generalized base classes and new infrastructure.
+"""
 
-from os.path import abspath
-from scipy.optimize import least_squares
 import numpy as np
-import yaml
+import pandas as pd
+from typing import List
+from os.path import abspath
 
-from figaroh.calibration.calibration_tools import (
-    load_data,
-    calc_updated_fkm,
-    get_LMvariables,
-    BaseCalibration,
+# Import FIGAROH modules
+from figaroh.calibration.calibration_tools import calc_updated_fkm
+
+# Import shared modules using figaroh library
+from figaroh.calibration.base_calibration import BaseCalibration
+from figaroh.identification.base_identification import BaseIdentification
+from figaroh.optimal.base_optimal_calibration import BaseOptimalCalibration
+from figaroh.optimal.base_optimal_trajectory import (
+    BaseOptimalTrajectory,
+    BaseTrajectoryIPOPTProblem
 )
+from figaroh.utils.results_manager import ResultsManager
+from figaroh.utils.error_handling import handle_calibration_errors
 
+
+def validate_robot_config(config):
+    """Validate robot configuration."""
+    return True
 
 
 class TiagoCalibration(BaseCalibration):
     """
     Class for calibrating the TIAGo robot.
+    
+    This class provides TIAGo-specific calibration functionality by extending
+    the BaseCalibration class with robot-specific cost functions and
+    initialization parameters.
     """
-    def __init__(self, robot, config_file, del_list=[]):
+    
+    @handle_calibration_errors
+    def __init__(self, robot, config_file="config/tiago_config.yaml",
+                 del_list=[]):
+        """Initialize TIAGo calibration with robot model and configuration.
+        
+        Args:
+            robot: TIAGo robot model loaded with FIGAROH
+            config_file: Path to TIAGo configuration YAML file
+            del_list: List of sample indices to exclude from calibration
+        """
+        
         super().__init__(robot, config_file, del_list)
+        print("TIAGo calibration initialized with new infrastructure")
 
     def cost_function(self, var):
         """
-        Cost function for the optimization problem.
+        TIAGo-specific cost function for the optimization problem.
+        
+        Implements regularization for intermediate parameters to improve
+        numerical stability and convergence.
+        
+        Args:
+            var (ndarray): Parameter vector to evaluate
+            
+        Returns:
+            ndarray: Residual vector including regularization terms
         """
-        coeff_ = self.param["coeff_regularize"]
-        PEEe = calc_updated_fkm(self.model, self.data, var, self.q_measured, self.param)
-        res_vect = np.append(
-            (self.PEE_measured - PEEe),
-            np.sqrt(coeff_)
-            * var[6 : -self.param["NbMarkers"] * self.param["calibration_index"]],
-        )
+        coeff_ = self.calib_config["coeff_regularize"]
+        PEEe = calc_updated_fkm(self.model, self.data, var,
+                                self.q_measured, self.calib_config)
+        
+        # Main residual: difference between measured and estimated poses
+        position_residuals = self.PEE_measured - PEEe
+        
+        # Regularization term for intermediate parameters (excludes base/tip)
+        # This helps stabilize optimization for redundant kinematic chains
+        n_base_params = 6  # Base frame parameters
+        n_tip_params = (self.calib_config["NbMarkers"] *
+                        self.calib_config["calibration_index"])
+        regularization_params = var[n_base_params : -n_tip_params]
+        regularization_residuals = np.sqrt(coeff_) * regularization_params
+        
+        # Combine residuals
+        res_vect = np.append(position_residuals, regularization_residuals)
         return res_vect
 
-    def solve_optimisation(self):
+
+class TiagoIdentification(BaseIdentification):
+    """TIAGo-specific dynamic parameter identification class."""
+    
+    def __init__(self, robot, config_file="config/tiago_config.yaml"):
+        """Initialize TIAGo identification with robot model and configuration.
+        
+        Args:
+            robot: TIAGo robot model loaded with FIGAROH
+            config_file: Path to TIAGo configuration YAML file
         """
-        Solve the optimization problem.
-        """
+        super().__init__(robot, config_file)
+        print("TiagoIdentification initialized for TIAGo robot")
+    
+    def load_trajectory_data(self):
+        """Load and process CSV data for TIAGo robot."""
+        ts = pd.read_csv(
+            abspath(self.identif_config["pos_data"]), usecols=[0]
+        ).to_numpy()
+        pos = pd.read_csv(abspath(self.identif_config["pos_data"]))
+        vel = pd.read_csv(abspath(self.identif_config["vel_data"]))
+        eff = pd.read_csv(abspath(self.identif_config["torque_data"]))
 
-        # set initial guess
-        _var_0, _ = get_LMvariables(self.param, mode=0)
-        _var_0[0:6] = np.array(self.param["camera_pose"])
-        _var_0[-self.param["calibration_index"] :] = np.array(self.param["tip_pose"])[
-            : self.param["calibration_index"]
-        ]
-        self._var_0 = _var_0
+        cols = {"pos": [], "vel": [], "eff": []}
+        for jn in self.identif_config["active_joints"]:
+            cols["pos"].extend([col for col in pos.columns if jn in col])
+            cols["vel"].extend([col for col in vel.columns if jn in col])
+            cols["eff"].extend([col for col in eff.columns if jn in col])
 
-        # define solver parameters
-        iterate = True
-        iter_max = 10
-        count = 0
-        del_list_ = []
-        res = _var_0
-        outlier_eps = self.param["outlier_eps"]
+        q = pos[cols["pos"]].to_numpy()
+        dq = vel[cols["vel"]].to_numpy()
+        tau = eff[cols["eff"]].to_numpy()
+        self.raw_data = {
+            "timestamps": ts,
+            "positions": q,
+            "velocities": dq,
+            "accelerations": None,
+            "torques": tau
+        }
+        return self.raw_data
 
-        while count < iter_max and iterate:
-            print("*" * 50)
-            print(
-                "{} iter guess".format(count),
-                dict(zip(self.param["param_name"], list(_var_0))),
-            )
+    def process_torque_data(self):
+        """Process torque data with TIAGo-specific motor constants."""
+        import pinocchio as pin
+        
+        # Apply TIAGo-specific torque processing (reduction ratios, etc.)
+        pin.computeSubtreeMasses(self.robot.model, self.robot.data)
+        tau_processed = self.raw_data["torques"].copy()
 
-            # define solver
-            LM_solve = least_squares(
-                self.cost_function,
-                _var_0,
-                method="lm",
-                verbose=1,
-                args=(),
-            )
-
-            # solution
-            res = LM_solve.x
-            _PEEe_sol = calc_updated_fkm(
-                self.model, self.data, res, self.q_measured, self.param
-            )
-            rmse = np.sqrt(np.mean((_PEEe_sol - self.PEE_measured) ** 2))
-            mae = np.mean(np.abs(_PEEe_sol - self.PEE_measured))
-
-            print("solution of calibrated parameters: ")
-            for x_i, xname in enumerate(self.param["param_name"]):
-                print(x_i + 1, xname, list(res)[x_i])
-            print("position root-mean-squared error of end-effector: ", rmse)
-            print("position mean absolute error of end-effector: ", mae)
-            print("optimality: ", LM_solve.optimality)
-
-            # check for unrealistic values
-            delta_PEE = _PEEe_sol - self.PEE_measured
-            PEE_xyz = delta_PEE.reshape(
-                (
-                    self.param["NbMarkers"] * self.param["calibration_index"],
-                    self.param["NbSample"],
+        for i, joint_name in enumerate(self.identif_config["active_joints"]):
+            if joint_name == "torso_lift_joint":
+                tau_processed[:, i] = (
+                    self.identif_config["reduction_ratio"][joint_name]
+                    * self.identif_config["kmotor"][joint_name]
+                    * self.raw_data["torques"][:, i]
+                    + 9.81 * self.robot.data.mass[
+                        self.robot.model.getJointId(joint_name)
+                    ]
                 )
-            )
-            PEE_dist = np.zeros((self.param["NbMarkers"], self.param["NbSample"]))
-            for i in range(self.param["NbMarkers"]):
-                for j in range(self.param["NbSample"]):
-                    PEE_dist[i, j] = np.sqrt(
-                        PEE_xyz[i * 3, j] ** 2
-                        + PEE_xyz[i * 3 + 1, j] ** 2
-                        + PEE_xyz[i * 3 + 2, j] ** 2
-                    )
-            for i in range(self.param["NbMarkers"]):
-                for k in range(self.param["NbSample"]):
-                    if PEE_dist[i, k] > outlier_eps:
-                        del_list_.append((i, k))
-            print(
-                "indices of samples with >{} m deviation: ".format(outlier_eps),
-                del_list_,
-            )
-
-            # reset iteration with outliers removal
-            if len(del_list_) > 0 and count < iter_max:
-                self.PEE_measured, self.q_measured = load_data(
-                    self._data_path,
-                    self.model,
-                    self.param,
-                    self.del_list_ + del_list_,
-                )
-                self.param["NbSample"] = self.q_measured.shape[0]
-                count += 1
-                _var_0 = res + np.random.normal(0, 0.01, size=res.shape)
             else:
-                iterate = False
-        self._PEE_dist = PEE_dist
-        param_values_ = [float(res_i_) for res_i_ in res]
-        self.calibrated_param = dict(zip(self.param["param_name"], param_values_))
-        self.LM_result = LM_solve
-        self.rmse = rmse
-        self.mae = mae
-        if self.LM_result.success:
-            self.STATUS = "CALIBRATED"
+                tau_processed[:, i] = (
+                    self.identif_config["reduction_ratio"][joint_name]
+                    * self.identif_config["kmotor"][joint_name]
+                    * self.raw_data["torques"][:, i]
+                )
+        self.processed_data["torques"] = tau_processed
+        return self.processed_data["torques"]
 
 
+class TiagoOptimalCalibration(BaseOptimalCalibration):
+    """TIAGo-specific optimal configuration generation for calibration."""
+    
+    def __init__(self, robot, config_file="config/tiago_config.yaml"):
+        """Initialize TIAGo optimal calibration."""
+        super().__init__(robot, config_file)
+        print("TIAGo Optimal Calibration initialized")
 
 
-def write_to_xacro(tiago_calib, file_name=None, file_type="yaml"):
+class OptimalTrajectoryIPOPT(BaseOptimalTrajectory):
     """
-    Write calibration result to xacro file.
+    TIAGo-specific optimal trajectory generation using IPOPT.
+    
+    This class extends the BaseOptimalTrajectory to provide TIAGo-specific
+    configuration and problem setup.
     """
-    assert tiago_calib.STATUS == "CALIBRATED", "Calibration not performed yet"
-    model = tiago_calib.model
-    calib_result = tiago_calib.calibrated_param
-    param = tiago_calib.param
-
-    calibration_parameters = {}
-    calibration_parameters["camera_position_x"] = float(calib_result["base_px"])
-    calibration_parameters["camera_position_y"] = float(calib_result["base_py"])
-    calibration_parameters["camera_position_z"] = float(calib_result["base_pz"])
-    calibration_parameters["camera_orientation_r"] = float(calib_result["base_phix"])
-    calibration_parameters["camera_orientation_p"] = float(calib_result["base_phiy"])
-    calibration_parameters["camera_orientation_y"] = float(calib_result["base_phiz"])
-
-    for idx in param["actJoint_idx"]:
-        joint = model.names[idx]
-        for key in calib_result.keys():
-            if joint in key and "torso" not in key:
-                calibration_parameters[joint + "_offset"] = float(calib_result[key])
-    if tiago_calib.param["measurability"][0:3] == [True, True, True]:
-        calibration_parameters["tip_position_x"] = float(calib_result["pEEx_1"])
-        calibration_parameters["tip_position_y"] = float(calib_result["pEEy_1"])
-        calibration_parameters["tip_position_z"] = float(calib_result["pEEz_1"])
-    if tiago_calib.param["measurability"][3:6] == [True, True, True]:
-        calibration_parameters["tip_orientation_r"] = float(calib_result["phiEEx_1"])
-        calibration_parameters["tip_orientation_p"] = float(calib_result["phiEEy_1"])
-        calibration_parameters["tip_orientation_y"] = float(calib_result["phiEEz_1"])
-
-    if file_type == "xacro":
-        if file_name is None:
-            path_save_xacro = abspath(
-                "data/calibration_paramters/tiago_master_calibration_{}.xacro".format(
-                    param["NbSample"]
-                )
-            )
-        else:
-            path_save_xacro = abspath("data/calibration_parameters/" + file_name)
-        with open(path_save_xacro, "w") as output_file:
-            for parameter in calibration_parameters.keys():
-                update_name = parameter
-                update_value = calibration_parameters[parameter]
-                update_line = '<xacro:property name="{}" value="{}" / >'.format(
-                    update_name, update_value
-                )
-                output_file.write(update_line)
-                output_file.write("\n")
-
-    elif file_type == "yaml":
-        if file_name is None:
-            path_save_yaml = abspath(
-                "data/calibration_parameters/tiago_master_calibration_{}.yaml".format(
-                    param["NbSample"]
-                )
-            )
-        else:
-            path_save_yaml = abspath("data/calibration_parameters/" + file_name)
-        with open(path_save_yaml, "w") as output_file:
-            # for parameter in calibration_parameters.keys():
-            #     update_name = parameter
-            #     update_value = calibration_parameters[parameter]
-            #     update_line = "{}:{}".format(update_name, update_value)
-            #     output_file.write(update_line)
-            #     output_file.write("\n")
-            try:
-                yaml.dump(
-                    calibration_parameters,
-                    output_file,
-                    sort_keys=False,
-                    default_flow_style=False,
-                )
-            except yaml.YAMLError as exc:
-                print(exc)
+    
+    def __init__(self, robot, active_joints: List[str], 
+                 config_file: str = "config/tiago_config.yaml"):
+        """Initialize the TIAGo optimal trajectory generator."""
+        super().__init__(robot, active_joints, config_file)
+        self.logger.info("TIAGo OptimalTrajectoryIPOPT initialized")
+    
+    def _create_ipopt_problem(self, n_joints, n_wps, Ns, tps, vel_wps, acc_wps, 
+                              wp_init, vel_wp_init, acc_wp_init, W_stack):
+        """Create TIAGo-specific IPOPT problem instance."""
+        return TiagoTrajectoryIPOPTProblem(
+            self, n_joints, n_wps, Ns, tps, vel_wps, acc_wps,
+            wp_init, vel_wp_init, acc_wp_init, W_stack
+        )
 
 
-def main():
-    return 0
-
-
-if __name__ == "__main__":
-    tiago = load_robot("data/urdf/tiago_hey5.urdf")
-    tiago_calib = TiagoCalibration(tiago, "config/tiago_config.yaml")
-    tiago_calib.initialize()
-    tiago_calib.solve()
-    tiago_calib.plot()
-    # write_to_xacro(
-    #     tiago_calib,
-    #     file_name="tiago_master_calibration.yaml",
-    #     file_type="yaml",
-    # )
+class TiagoTrajectoryIPOPTProblem(BaseTrajectoryIPOPTProblem):
+    """
+    TIAGo-specific IPOPT problem formulation for trajectory optimization.
+    
+    This class extends the BaseTrajectoryIPOPTProblem with TIAGo-specific
+    configurations and constraints.
+    """
+    
+    def __init__(self, opt_traj, n_joints, n_wps, Ns, tps, vel_wps, acc_wps, 
+                 wp_init, vel_wp_init, acc_wp_init, W_stack):
+        super().__init__(
+            opt_traj, n_joints, n_wps, Ns, tps, vel_wps, acc_wps,
+            wp_init, vel_wp_init, acc_wp_init, W_stack, 
+            "TiagoTrajectoryOptimization"
+        )

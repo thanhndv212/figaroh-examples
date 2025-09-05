@@ -43,9 +43,9 @@ for i in range(len(total_list)):
     zero_list = [*zero_list, *total_list[i]]
 
 
-def update_parameters(model, res, param):
+def update_parameters(model, res, calib_config):
 
-    param_list = np.zeros((param["NbJoint"], 6))
+    param_list = np.zeros((calib_config["NbJoint"], 6))
 
     # torso all zeros
 
@@ -102,7 +102,7 @@ def update_parameters(model, res, param):
         dirname(dirname(str(abspath(__file__)))), f"data/offset.xacro"
     )
     with open(path_save_xacro, "w") as output_file:
-        for i in range(param["NbJoint"]):
+        for i in range(calib_config["NbJoint"]):
             for j in range(6):
                 update_name = joint_names[i + 1] + offset_name[j]
                 update_value = param_list[i, j]
@@ -113,7 +113,7 @@ def update_parameters(model, res, param):
                 output_file.write("\n")
     path_save_yaml = join(dirname(dirname(str(abspath(__file__)))), f"data/offset.yaml")
     with open(path_save_yaml, "w") as output_file:
-        for i in range(param["NbJoint"]):
+        for i in range(calib_config["NbJoint"]):
             for j in range(6):
                 update_name = joint_names[i + 1] + offset_name[j]
                 update_value = param_list[i, j]
