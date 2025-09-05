@@ -1,0 +1,161 @@
+# Staubli TX40 Robot Configuration - Unified Format
+# Configuration for Staubli TX40 6-DOF SCARA robot
+# This configuration extends the manipulator template with TX40-specific parameters
+
+extends: "../templates/manipulator_robot.yaml"
+
+# Staubli TX40-specific robot configuration
+robot:
+  name: "staubli_tx40"
+  description: "Staubli TX40 6-DOF SCARA manipulator robot"
+  
+  properties:
+    # TX40 joint configuration
+    joints:
+      active_joints: [
+        "joint_1", "joint_2", "joint_3", 
+        "joint_4", "joint_5", "joint_6"
+      ]
+      joint_limits:
+        position: [-2.967, 2.967, -2.271, 2.271, -2.443, 2.443, 
+                  -4.712, 4.712, -2.094, 2.094, -6.283, 6.283]
+        velocity: [6.0, 6.0, 7.5, 12.0, 12.0, 17.0]  # [rad/s] 
+        acceleration: [50.0, 50.0, 50.0, 80.0, 80.0, 100.0]  # [rad/s²]
+        torque: [20.0, 20.0, 8.0, 3.0, 3.0, 1.5]  # [Nm] - smaller robot
+    
+    # TX40 mechanical properties
+    mechanics:
+      reduction_ratios: [50.0, 50.0, 50.0, 50.0, 50.0, 50.0]
+      ratio_essential: 50.0
+      friction_coefficients:
+        viscous: [0, 0, 0, 0, 0, 0]  # To be identified
+        static: [0, 0, 0, 0, 0, 0]   # To be identified
+      actuator_inertias: [0, 0, 0, 0, 0, 0]  # To be identified
+      joint_offsets: [0, 0, 0, 0, 0, 0]      # To be calibrated
+    
+    # TX40 has no coupled joints
+    coupling:
+      has_coupled_wrist: false
+
+# Staubli TX40 task configurations
+tasks:
+  calibration:
+    enabled: true
+    
+    parameters:
+      calibration_level: "full_params"
+      include_non_geometric: false
+      outlier_threshold: 0.01  # 1cm - high precision for small robot
+      regularization_coefficient: 0.001
+      
+    kinematics:
+      base_frame: "universe"
+      tool_frame: "link_6"  # TX40 end-effector
+      
+    measurements:
+      markers:
+        - name: "tool_marker"
+          reference_joint: "joint_6"
+          measurable_dof: [true, true, true, true, true, true]
+          sensor_type: "mocap"
+          
+      poses:
+        base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        tool_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    
+    data:
+      source_file: "data/tx40_calibration.csv"
+      sample_configurations_file: "data/optimal_configs/tx40_optimal_configs.yaml"
+      number_of_samples: 50  # Moderate samples for SCARA
+
+  identification:
+    enabled: true
+    
+    problem:
+      include_external_forces: false  # No external sensors typically
+      use_joint_torques: true
+      
+      model_components:
+        friction: true
+        joint_offset: true
+        actuator_inertia: true
+        static_regressor: true
+        inertia_regressor: true
+        
+    signal_processing:
+      sampling_frequency: 1000.0  # High precision robot
+      cutoff_frequency: 100.0     # Higher cutoff for fast motions
+      filter_type: "butterworth"
+      filter_order: 4
+
+  optimal_configuration:
+    enabled: true
+    
+    parameters:
+      number_of_samples: 30
+      optimization_objectives: ["condition_number", "dexterity"]
+      
+    constraints:
+      joint_limit_margin: 0.05  # Small margin for precise robot
+      collision_checking: false
+      
+    output:
+      save_configurations: true
+      output_file: "data/optimal_configs/tx40_optimal_configs.yaml"
+
+  optimal_trajectory:
+    enabled: true
+    
+    trajectory:
+      waypoints: 5
+      frequency: 200  # Higher frequency for precise robot
+      segment_duration: 1.5  # Shorter segments
+      
+    constraints:
+      velocity_scaling: 0.6
+      acceleration_scaling: 0.6
+      jerk_limit: 50.0  # Higher jerk limit
+      
+    output:
+      save_trajectory: true
+      output_file: "data/trajectories/tx40_optimal_trajectory.yaml"
+
+# TX40-specific custom parameters
+custom:
+  manufacturer: "Staubli"
+  robot_type: "scara"
+  payload: 1.0  # kg - small payload
+  reach: 0.65   # meters
+  repeatability: 0.01  # mm - very high precision
+  protection_class: "IP65"
+  operating_temperature: [-10, 45]  # °C range
+
+# Configuration variants for different TX40 setups  
+variants:
+  # High-speed identification
+  high_speed_identification:
+    extends: "tasks.identification"
+    signal_processing:
+      sampling_frequency: 2000.0  # Even higher for fast motions
+      cutoff_frequency: 200.0
+    trajectory:
+      velocity_scaling: 0.8
+      acceleration_scaling: 0.8
+
+  # Precision calibration variant
+  precision_calibration:
+    extends: "tasks.calibration"
+    parameters:
+      outlier_threshold: 0.005  # 0.5mm ultra-precision
+      number_of_samples: 100
+    data:
+      source_file: "data/precision_calibration.csv"
+
+  # Quick calibration for production
+  production_calibration:
+    extends: "tasks.calibration"
+    parameters:
+      calibration_level: "joint_offset"
+      number_of_samples: 20
+    data:
+      source_file: "data/production_check.csv"

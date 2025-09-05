@@ -1,0 +1,190 @@
+# TALOS Robot Configuration - Unified Format
+# Configuration for PAL Robotics TALOS humanoid robot (torso-arm system)
+# This configuration extends the humanoid template with TALOS-specific parameters
+
+extends: "../templates/humanoid_robot.yaml"
+
+# TALOS-specific robot configuration
+robot:
+  name: "talos"
+  description: "PAL Robotics TALOS humanoid robot - torso and arm system"
+  
+  properties:
+    # TALOS joint configuration (torso + arms)
+    joints:
+      active_joints: [
+        "torso_1_joint", "torso_2_joint",
+        "arm_left_1_joint", "arm_left_2_joint", "arm_left_3_joint", 
+        "arm_left_4_joint", "arm_left_5_joint", "arm_left_6_joint", "arm_left_7_joint",
+        "arm_right_1_joint", "arm_right_2_joint", "arm_right_3_joint",
+        "arm_right_4_joint", "arm_right_5_joint", "arm_right_6_joint", "arm_right_7_joint"
+      ]
+      joint_limits:
+        # TALOS has higher torque capabilities than TIAGo
+        torque: [200.0, 200.0, 150.0, 150.0, 100.0, 100.0, 50.0, 50.0, 50.0,
+                150.0, 150.0, 100.0, 100.0, 50.0, 50.0, 50.0]
+    
+    # TALOS mechanical properties
+    mechanics:
+      reduction_ratios: [160.0, 160.0, 160.0, 160.0, 160.0, 100.0, 100.0, 100.0, 100.0,
+                        160.0, 160.0, 160.0, 160.0, 100.0, 100.0, 100.0]
+      ratio_essential: 100.0
+      friction_coefficients:
+        viscous: [0.0] * 16  # To be identified for all joints
+        static: [0.0] * 16   # To be identified for all joints
+      actuator_inertias: [0.0] * 16  # To be identified
+      joint_offsets: [0.0] * 16      # To be calibrated
+    
+    # TALOS coupling information
+    coupling:
+      has_coupled_wrist: true
+      coupled_joints: ["arm_left_6_joint", "arm_left_7_joint", 
+                      "arm_right_6_joint", "arm_right_7_joint"]
+      
+    # Full humanoid properties
+    mobility:
+      has_mobile_base: false  # TALOS is typically mounted for upper body calibration
+      base_type: "fixed"
+      
+    sensors:
+      has_head_camera: true
+      has_torso_camera: false
+      has_ft_sensors: true
+
+# TALOS task configurations
+tasks:
+  calibration:
+    enabled: true
+    
+    parameters:
+      calibration_level: "full_params"
+      include_non_geometric: false
+      outlier_threshold: 0.03  # 3cm for larger humanoid
+      regularization_coefficient: 0.01
+      
+    kinematics:
+      base_frame: "universe"
+      tool_frame: "arm_left_tool_link"  # Default to left arm
+      
+    measurements:
+      markers:
+        - name: "left_hand_marker"
+          reference_joint: "arm_left_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+          
+      poses:
+        base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        tool_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    
+    data:
+      source_file: "data/talos_calibration.csv"
+      sample_configurations_file: "data/optimal_configs/talos_optimal_configs.yaml"
+      number_of_samples: 200  # More samples for complex humanoid
+
+  identification:
+    enabled: true
+    
+    problem:
+      include_external_forces: true
+      use_joint_torques: true
+      force_torque_sensors: ["arm_left_ft_sensor", "arm_right_ft_sensor"]
+      
+      model_components:
+        friction: true
+        joint_offset: true
+        actuator_inertia: true
+        
+    signal_processing:
+      sampling_frequency: 1000.0  # High sampling rate for humanoid
+      cutoff_frequency: 50.0
+      filter_type: "butterworth"
+      filter_order: 4
+
+  optimal_configuration:
+    enabled: true
+    
+    parameters:
+      number_of_samples: 75
+      optimization_objectives: ["condition_number", "manipulability"]
+      
+    constraints:
+      joint_limit_margin: 0.05  # Smaller margin for humanoid flexibility
+      
+    output:
+      output_file: "data/optimal_configs/talos_optimal_configs.yaml"
+
+# TALOS-specific custom parameters
+custom:
+  manufacturer: "PAL Robotics"
+  robot_type: "humanoid"
+  has_torso: true
+  has_head: true
+  arm_count: 2
+  leg_count: 2
+  height: 1.75  # meters
+  weight: 95.0  # kg
+  
+# Configuration variants for different TALOS configurations
+variants:
+  # Left arm only calibration
+  left_arm_calibration:
+    extends: "tasks.calibration"
+    kinematics:
+      base_frame: "torso_2_link"
+      tool_frame: "arm_left_tool_link"
+    measurements:
+      markers:
+        - name: "left_hand_marker"
+          reference_joint: "arm_left_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+
+  # Right arm only calibration  
+  right_arm_calibration:
+    extends: "tasks.calibration"
+    kinematics:
+      base_frame: "torso_2_link"
+      tool_frame: "arm_right_tool_link"
+    measurements:
+      markers:
+        - name: "right_hand_marker"
+          reference_joint: "arm_right_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+
+  # Dual arm calibration
+  dual_arm_calibration:
+    extends: "tasks.calibration"
+    measurements:
+      markers:
+        - name: "left_hand_marker"
+          reference_joint: "arm_left_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+        - name: "right_hand_marker"
+          reference_joint: "arm_right_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+    data:
+      number_of_samples: 300  # More samples for dual arm
+
+  # Torso-only calibration
+  torso_calibration:
+    extends: "tasks.calibration"
+    kinematics:
+      base_frame: "universe"
+      tool_frame: "torso_2_link"
+    parameters:
+      calibration_level: "joint_offset"  # Simplified for torso
+    data:
+      number_of_samples: 50
+
+  # Upper body identification
+  upperbody_identification:
+    extends: "tasks.identification"
+    problem:
+      model_components:
+        friction: true
+        joint_offset: false  # Focus on dynamics
+        actuator_inertia: true

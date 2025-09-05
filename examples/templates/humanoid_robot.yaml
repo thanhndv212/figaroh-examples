@@ -1,0 +1,71 @@
+# Humanoid Robot Template
+# Template for humanoid robots (TIAGo, TALOS, etc.)
+# Extends the base robot configuration with humanoid-specific settings
+
+extends: "base_robot_config.yaml"
+
+robot:
+  type: "humanoid"
+  description: "Humanoid or mobile manipulator robot"
+  
+  properties:
+    # Humanoid-specific characteristics
+    coupling:
+      has_coupled_wrist: true  # Many humanoids have coupled wrists
+      
+    # Additional humanoid properties
+    mobility:
+      has_mobile_base: true
+      base_type: "differential_drive"  # differential_drive, omnidirectional, etc.
+      
+    # Sensor configuration common to humanoids
+    sensors:
+      has_head_camera: true
+      has_torso_camera: false
+      has_ft_sensors: true
+      
+# Task defaults for humanoids
+tasks:
+  calibration:
+    enabled: true
+    
+    # Humanoids often have more complex kinematic chains
+    kinematics:
+      free_flying_base: false  # Even mobile robots are usually calibrated fixed
+      
+    measurements:
+      # Default for head-mounted or hand-mounted markers
+      markers:
+        - name: "hand_marker"
+          reference_joint: ""     # To be specified in robot config
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+          
+    # Eye-hand calibration is common for humanoids
+    eye_hand:
+      enabled: false  # Enable in specific robot configs
+      
+  identification:
+    enabled: true
+    
+    problem:
+      include_external_forces: true   # Humanoids often have F/T sensors
+      use_joint_torques: true
+      
+    # Humanoids often need higher sampling rates due to complexity
+    signal_processing:
+      sampling_frequency: 1000.0
+      cutoff_frequency: 50.0
+
+# Custom parameters common to humanoids
+custom:
+  # Humanoid-specific features
+  has_torso: true
+  has_head: true
+  arm_count: 2
+  leg_count: 2
+  
+# Environment settings for humanoids
+environment:
+  # Humanoids often work in unstructured environments
+  workspace_type: "unstructured"

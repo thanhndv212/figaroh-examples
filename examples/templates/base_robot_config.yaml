@@ -1,0 +1,221 @@
+# Base Robot Configuration Template
+# This template defines the standard structure for robot configurations
+# in the FIGAROH framework. Robot-specific configurations should extend
+# this template and override/add parameters as needed.
+
+meta:
+  schema_version: "2.0"
+  config_type: "robot_configuration"
+  description: "Base template for robot configurations"
+
+robot:
+  name: "${ROBOT_NAME}"
+  description: "${ROBOT_DESCRIPTION}"
+  
+  # Physical and mechanical properties
+  properties:
+    # Joint configuration
+    joints:
+      active_joints: []  # List of active joint names - override in robot config
+      joint_limits:
+        position: []  # Joint position limits [rad or m]
+        velocity: []  # Joint velocity limits [rad/s or m/s]
+        acceleration: []  # Joint acceleration limits [rad/s² or m/s²]
+        torque: []    # Joint torque limits [Nm or N]
+    
+    # Mechanical properties
+    mechanics:
+      reduction_ratios: []      # Gear reduction ratios for each joint
+      ratio_essential: 1.0      # Essential ratio parameter
+      friction_coefficients:
+        viscous: []             # Viscous friction coefficients (Fv)
+        static: []              # Static friction coefficients (Fs)
+      actuator_inertias: []     # Actuator inertias (Ia)
+      joint_offsets: []         # Joint offset parameters
+    
+    # Coupling information (for complex robots)
+    coupling:
+      has_coupled_wrist: false
+      coupled_joints: []
+      # Coupled wrist parameters (if applicable)
+      Iam6: 0.0
+      fvm6: 0.0
+      fsm6: 0.0
+
+# Task definitions - these define what the robot can do
+tasks:
+  # Kinematic Calibration Task
+  calibration:
+    enabled: false  # Override to true in robot configs that support calibration
+    type: "kinematic_calibration"
+    
+    # Calibration-specific parameters
+    parameters:
+      calibration_level: "full_params"  # full_params, joint_offset, custom
+      include_non_geometric: false      # Include non-geometric parameters
+      regularization_coefficient: 0.01  # Regularization for optimization
+      outlier_threshold: 0.05           # Outlier detection threshold [m]
+      tolerance: 1e-3                   # Convergence tolerance
+      max_iterations: 100               # Maximum optimization iterations
+      
+    # Kinematic chain definition
+    kinematics:
+      base_frame: "universe"      # Start frame of kinematic chain
+      tool_frame: ""              # End frame - must be specified in robot config
+      free_flying_base: false     # Whether robot has free-flying base
+      
+    # Measurement configuration
+    measurements:
+      markers: []  # Marker configuration - must be specified in robot config
+      # Example marker structure:
+      # - name: "primary_marker"
+      #   reference_joint: "joint_name"
+      #   measurable_dof: [true, true, true, false, false, false]  # x,y,z,rx,ry,rz
+      #   sensor_type: "mocap"  # mocap, camera, laser, etc.
+      
+      # Calibration poses (eye-hand calibration)
+      poses:
+        base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # [x,y,z,rx,ry,rz]
+        tool_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # [x,y,z,rx,ry,rz]
+    
+    # Data configuration
+    data:
+      source_file: ""                    # Path to measurement data file
+      sample_configurations_file: ""     # Path to optimal configurations
+      number_of_samples: 100             # Number of calibration samples
+      
+    # Optional: Eye-hand calibration settings
+    eye_hand:
+      enabled: false
+      camera_frame: ""          # Camera frame name
+      reference_frame: ""       # Reference frame for eye-hand calibration
+
+  # Dynamic Identification Task
+  identification:
+    enabled: false  # Override to true in robot configs that support identification
+    type: "dynamic_identification"
+    
+    # Problem formulation parameters
+    problem:
+      include_external_forces: false     # Use external force/torque sensors
+      use_joint_torques: true           # Use joint torque measurements
+      force_torque_sensors: []          # List of F/T sensor configurations
+      external_force_offsets: false     # Include F/T sensor offsets
+      
+      # Model components to identify
+      model_components:
+        friction: true              # Include friction model
+        joint_offset: true          # Include joint offset identification
+        actuator_inertia: true      # Include actuator inertia
+        static_regressor: true      # Use static regressor
+        inertia_regressor: true     # Use inertia regressor
+        embedded_forces: false      # Include embedded force model
+    
+    # Signal processing configuration
+    signal_processing:
+      sampling_frequency: 500.0     # Sampling rate [Hz]
+      cutoff_frequency: 100.0       # Lowpass filter cutoff [Hz]
+      filter_type: "butterworth"    # Filter type
+      filter_order: 4               # Filter order
+      
+    # Load configuration for total least squares
+    load_configuration:
+      additional_mass: 0.0          # Additional mass for TLS [kg]
+      loaded_body_index: 0          # Index of body with additional mass
+      synchronize_joint_motion: false  # Synchronize joint motion
+
+  # Optimal Configuration Generation
+  optimal_configuration:
+    enabled: false
+    type: "configuration_optimization"
+    inherits_from: "calibration"  # Inherit all calibration parameters
+    
+    # Override/extend calibration parameters
+    parameters:
+      number_of_samples: 50  # Usually fewer samples for optimization
+      optimization_objectives: ["condition_number", "manipulability"]
+      convergence_threshold: 1e-6
+      max_optimization_iterations: 1000
+      
+    # Optimization constraints
+    constraints:
+      joint_limit_margin: 0.1     # Safety margin from joint limits
+      collision_checking: true    # Enable collision checking
+      workspace_bounds: []        # Workspace boundary constraints
+      
+    # Output configuration
+    output:
+      save_configurations: true
+      output_file: "data/optimal_configs/optimized_configurations.yaml"
+      enable_visualization: true
+      save_metrics: true
+
+  # Optimal Trajectory Generation
+  optimal_trajectory:
+    enabled: false
+    type: "trajectory_optimization"
+    inherits_from: "identification"  # Inherit all identification parameters
+    
+    # Trajectory-specific parameters
+    trajectory:
+      waypoints: 5                # Number of waypoints
+      frequency: 100              # Trajectory frequency [Hz]
+      segment_duration: 2.0       # Duration per segment [s]
+      joint_limit_margin: 0.05    # Margin from joint limits
+      max_optimization_attempts: 1000
+      
+    # Trajectory constraints
+    constraints:
+      velocity_scaling: 0.8       # Max velocity as fraction of limit
+      acceleration_scaling: 0.8   # Max acceleration as fraction of limit
+      jerk_limit: 10.0           # Maximum jerk [rad/s³]
+      
+    # Output configuration
+    output:
+      save_trajectory: true
+      output_file: "data/trajectories/optimal_trajectory.yaml"
+      save_metrics: true
+      enable_visualization: true
+      plot_results: true
+
+# Environment and execution settings
+environment:
+  # Directory structure
+  working_directory: "."
+  data_directory: "data"
+  results_directory: "results"
+  
+  # Logging configuration
+  logging:
+    level: "INFO"                 # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    file: "logs/figaroh.log"      # Log file path (relative to working_directory)
+    console_output: true          # Enable console logging
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+  # Visualization settings
+  visualization:
+    enabled: true                 # Enable visualization features
+    save_plots: true             # Save plots to files
+    plot_directory: "plots"       # Directory for saved plots
+    plot_format: "png"           # Plot file format (png, pdf, svg)
+    interactive: false            # Use interactive plots
+
+# Custom extensions placeholder
+# Robot-specific configurations can add custom parameters here
+custom:
+  # Example custom parameters:
+  # gripper_type: "parallel"
+  # has_mobile_base: false
+  # camera_configuration: "stereo"
+  # additional_sensors: []
+  
+# Variables that can be referenced in configurations
+variables:
+  # Common paths
+  CONFIG_DIR: "config"
+  DATA_DIR: "data" 
+  RESULTS_DIR: "results"
+  
+  # Default tolerances
+  DEFAULT_TOLERANCE: 1e-3
+  DEFAULT_OUTLIER_THRESHOLD: 0.05

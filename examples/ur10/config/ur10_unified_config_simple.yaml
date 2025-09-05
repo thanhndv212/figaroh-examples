@@ -1,0 +1,97 @@
+# UR10 Robot Configuration - Unified Format (Simplified for Testing)
+# Configuration for Universal Robots UR10 6-DOF manipulator
+
+# UR10-specific robot configuration
+robot:
+  name: "ur10"
+  description: "Universal Robots UR10 6-DOF industrial manipulator"
+  
+  properties:
+    # UR10 joint configuration
+    joints:
+      active_joints: [
+        "shoulder_pan_joint",
+        "shoulder_lift_joint", 
+        "elbow_joint",
+        "wrist_1_joint",
+        "wrist_2_joint",
+        "wrist_3_joint"
+      ]
+      joint_limits:
+        position: [-6.28, 6.28, -6.28, 6.28, -3.14, 6.28, -6.28, 6.28, -6.28, 6.28, -6.28, 6.28]
+        velocity: [2.16, 2.16, 3.15, 3.2, 3.2, 3.2]  # [rad/s]
+        acceleration: [40.0, 40.0, 40.0, 40.0, 40.0, 40.0]  # [rad/s²]
+        torque: [330.0, 330.0, 150.0, 54.0, 54.0, 54.0]  # [Nm]
+    
+    # UR10 mechanical properties
+    mechanics:
+      reduction_ratios: [101.0, 101.0, 101.0, 101.0, 101.0, 101.0]
+      ratio_essential: 100.0
+      friction_coefficients:
+        viscous: [0, 0, 0, 0, 0, 0]  # To be identified
+        static: [0, 0, 0, 0, 0, 0]   # To be identified
+      actuator_inertias: [0, 0, 0, 0, 0, 0]  # To be identified
+      joint_offsets: [0, 0, 0, 0, 0, 0]      # To be calibrated
+
+# UR10 task configurations
+tasks:
+  calibration:
+    enabled: true
+    type: kinematic_calibration
+    
+    parameters:
+      calibration_level: "full_params"
+      include_non_geometric: false
+      regularization_coefficient: 0.001
+      outlier_threshold: 0.02  # 2cm outlier threshold
+      
+    kinematics:
+      base_frame: "universe"
+      tool_frame: "wrist_3_link"
+      
+    measurements:
+      markers:
+        - name: "wrist_marker"
+          reference_joint: "wrist_3_joint"
+          measurable_dof: [true, true, true, true, true, true]
+          sensor_type: "mocap"
+          
+      poses:
+        base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        tool_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    
+    data:
+      source_file: "data/calibration.csv"
+      sample_configurations_file: "data/optimal_configs/ur10_optimal_configs.yaml"
+      number_of_samples: 29
+
+  identification:
+    enabled: true
+    type: dynamic_identification
+    
+    problem:
+      include_external_forces: false
+      use_joint_torques: true
+      
+      model_components:
+        friction: true
+        joint_offset: true
+        actuator_inertia: true
+        static_regressor: true
+        inertia_regressor: true
+        
+    signal_processing:
+      sampling_frequency: 500.0  # Hz
+      cutoff_frequency: 50.0     # Hz
+      filter_type: "butterworth"
+      filter_order: 4
+
+# Environment settings
+environment:
+  gravity: [0, 0, -9.81]
+  temperature: 22.0
+
+# Custom properties
+custom:
+  manufacturer: "Universal Robots"
+  model_series: "UR10"
