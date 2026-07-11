@@ -151,20 +151,33 @@ class UR10Identification(BaseIdentification):
         super().__init__(robot, config_file)
         print("UR10 Dynamic Identification initialized")
 
-    def load_trajectory_data(self) -> Dict[str, np.ndarray]:
+    def load_trajectory_data(
+        self, data_source: str = None
+    ) -> Dict[str, np.ndarray]:
         """Load trajectory data from CSV files using DataProcessor.
+
+        Args:
+            data_source: Optional directory override. When given, the
+                same filenames ("identification_q_simulation.csv" /
+                "identification_tau_simulation.csv") are read from this
+                directory instead of the default "data/" — e.g. to load
+                a held-out validation set via
+                ``identif_config["validation_data_file"]``.
 
         Returns:
             Dictionary with keys 'timestamps', 'positions',
             'velocities', 'accelerations', 'torques'
         """
         print("Loading UR10 trajectory data...")
+        data_dir = data_source or "data"
 
         try:
             # Use DataProcessor for improved data loading
-            q_df = DataProcessor.load_csv_data("data/identification_q_simulation.csv")
+            q_df = DataProcessor.load_csv_data(
+                os.path.join(data_dir, "identification_q_simulation.csv")
+            )
             tau_df = DataProcessor.load_csv_data(
-                "data/identification_tau_simulation.csv"
+                os.path.join(data_dir, "identification_tau_simulation.csv")
             )
 
             q_raw = q_df  # Convert to numpy array

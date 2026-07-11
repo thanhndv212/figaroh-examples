@@ -89,6 +89,13 @@ tasks:
       filter_type: "butterworth"
       filter_order: 4
 
+    data:
+      # Held-out validation dataset: a directory containing the SAME
+      # filenames as training ("identification_q_simulation.csv" /
+      # "identification_tau_simulation.csv") but genuinely different
+      # data — never a split of the training file. Empty = disabled.
+      validation_data_file: ""
+
   optimal_configuration:
     enabled: true
 

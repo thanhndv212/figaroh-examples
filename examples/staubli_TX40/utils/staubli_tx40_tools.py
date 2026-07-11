@@ -22,6 +22,8 @@ and configuration management.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import pandas as pd
 from scipy import signal
@@ -148,12 +150,27 @@ class TX40Identification(BaseIdentification):
         return phi_base
 
     @validate_input_data
-    def load_trajectory_data(self) -> dict:  # type: ignore[override]
-        """Load and process CSV data for Staubli TX40 robot."""
+    def load_trajectory_data(  # type: ignore[override]
+        self, data_source: str = None
+    ) -> dict:
+        """Load and process CSV data for Staubli TX40 robot.
+
+        Args:
+            data_source: Optional directory override. When given, the
+                same filenames ("curr_data.csv" / "pos_read_data.csv")
+                are read from this directory instead of "data/" — e.g.
+                to load a held-out validation set via
+                ``identif_config["validation_data_file"]``.
+        """
+        data_dir = data_source or "data"
         try:
             # Load current (torque) and position data
-            curr_data = pd.read_csv("data/curr_data.csv").to_numpy()
-            pos_data = pd.read_csv("data/pos_read_data.csv").to_numpy()
+            curr_data = pd.read_csv(
+                os.path.join(data_dir, "curr_data.csv")
+            ).to_numpy()
+            pos_data = pd.read_csv(
+                os.path.join(data_dir, "pos_read_data.csv")
+            ).to_numpy()
 
             # Validate sizes of loaded data
             if curr_data.shape != pos_data.shape:

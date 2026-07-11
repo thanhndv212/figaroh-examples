@@ -21,6 +21,7 @@ to use the generalized base classes and new infrastructure.
 
 from __future__ import annotations
 
+import os
 from os.path import abspath
 from typing import Any, List, Optional
 
@@ -125,14 +126,31 @@ class TiagoIdentification(BaseIdentification):
         super().__init__(robot, config_file)
         print("TiagoIdentification initialized for TIAGo robot")
 
-    def load_trajectory_data(self) -> dict[str, Any]:
-        """Load and process CSV data for TIAGo robot."""
-        ts = pd.read_csv(
-            abspath(self.identif_config["pos_data"]), usecols=[0]
-        ).to_numpy()
-        pos = pd.read_csv(abspath(self.identif_config["pos_data"]))
-        vel = pd.read_csv(abspath(self.identif_config["vel_data"]))
-        eff = pd.read_csv(abspath(self.identif_config["torque_data"]))
+    def load_trajectory_data(self, data_source: str = None) -> dict[str, Any]:
+        """Load and process CSV data for TIAGo robot.
+
+        Args:
+            data_source: Optional directory override. When given, the
+                same basenames configured in ``pos_data``/``vel_data``/
+                ``torque_data`` are read from this directory instead of
+                their configured parent directory — e.g. to load a
+                held-out validation set via
+                ``identif_config["validation_data_file"]``.
+        """
+        pos_path = abspath(self.identif_config["pos_data"])
+        vel_path = abspath(self.identif_config["vel_data"])
+        torque_path = abspath(self.identif_config["torque_data"])
+        if data_source:
+            pos_path = os.path.join(data_source, os.path.basename(pos_path))
+            vel_path = os.path.join(data_source, os.path.basename(vel_path))
+            torque_path = os.path.join(
+                data_source, os.path.basename(torque_path)
+            )
+
+        ts = pd.read_csv(pos_path, usecols=[0]).to_numpy()
+        pos = pd.read_csv(pos_path)
+        vel = pd.read_csv(vel_path)
+        eff = pd.read_csv(torque_path)
 
         cols: dict[str, list[str]] = {"pos": [], "vel": [], "eff": []}
         for jn in self.identif_config["active_joints"]:
