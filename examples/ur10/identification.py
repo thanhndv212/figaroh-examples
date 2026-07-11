@@ -60,6 +60,14 @@ def parse_args() -> argparse.Namespace:
             "and exit(1) if it fails."
         ),
     )
+    parser.add_argument(
+        "--html-report",
+        action="store_true",
+        help=(
+            "Export a self-contained HTML diagnostic report "
+            "(results/identification_report.html)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -111,6 +119,7 @@ def main(args: argparse.Namespace) -> None:
             decimate=False,
             plotting=True,
             save_results=False,
+            html_report=args.html_report,
         )
 
         # Display results

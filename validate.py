@@ -32,25 +32,28 @@ REPO_ROOT = Path(__file__).resolve().parent
 #   extra_args is an optional list of CLI flags to pass to the script.
 EXAMPLE_SCRIPTS = {
     "ur10": [
-        ("calibration.py", 120, False, ["--calibrate-only", "--no-plot"]),
+        ("calibration.py", 120, False,
+         ["--calibrate-only", "--no-plot", "--html-report"]),
         ("update_model.py", 120, False),
-        ("identification.py", 120, False),
+        ("identification.py", 120, False, ["--verify", "--html-report"]),
         ("optimal_config.py", 600, True),
         ("optimal_trajectory.py", 600, True),
     ],
     "tiago": [
-        ("calibration.py", 120, False, ["--calibrate-only", "--no-plot"]),
+        ("calibration.py", 120, False,
+         ["--calibrate-only", "--no-plot", "--html-report"]),
         ("update_model.py", 120, False),
-        ("identification.py", 120, False),
+        ("identification.py", 120, False, ["--verify", "--html-report"]),
         ("optimal_config.py", 120, False),
         ("optimal_trajectory.py", 600, True),
     ],
     "talos": [
-        ("calibration_upperbody.py", 120, False, ["--calibrate-only", "--no-plot"]),
+        ("calibration_upperbody.py", 120, False,
+         ["--calibrate-only", "--no-plot", "--html-report"]),
         ("update_model.py", 120, False),
     ],
     "staubli_tx40": [
-        ("identification.py", 120, False),
+        ("identification.py", 120, False, ["--verify", "--html-report"]),
     ],
 }
 

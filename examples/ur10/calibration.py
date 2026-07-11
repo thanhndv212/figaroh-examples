@@ -301,6 +301,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--html-report",
+        action="store_true",
+        help=(
+            "Export a self-contained HTML diagnostic report "
+            "(results/calibration_report.html) after calibration."
+        ),
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -319,6 +327,7 @@ def _run_calibration(
     plot: bool = True,
     verbose: bool = False,
     validation_data: str | None = None,
+    html_report: bool = False,
 ) -> tuple[np.ndarray, list[str], str]:
     """Run UR10 calibration.
 
@@ -332,7 +341,9 @@ def _run_calibration(
     if validation_data:
         ur10_calib.calib_config["validation_data_file"] = validation_data
     ur10_calib.initialize()
-    result = ur10_calib.solve(plotting=plot, enable_logging=verbose)
+    result = ur10_calib.solve(
+        plotting=plot, enable_logging=verbose, html_report=html_report
+    )
     param_names = ur10_calib.calib_config["param_name"]
 
     # Save with timestamp
@@ -564,6 +575,7 @@ def main() -> None:
                 plot=not args.no_plot,
                 verbose=args.verbose,
                 validation_data=args.validation_data,
+                html_report=args.html_report,
             )
             if args.calibrate_only:
                 print(

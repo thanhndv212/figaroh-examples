@@ -112,6 +112,7 @@ class TX40Identification(BaseIdentification):
         plotting: bool = True,
         save_results: bool = False,
         wls: bool = False,
+        html_report: bool = False,
     ) -> np.ndarray:
         """Solve TX40 identification with optional weighted least squares.
 
@@ -122,6 +123,8 @@ class TX40Identification(BaseIdentification):
             plotting (bool): Whether to generate plots
             save_results (bool): Whether to save parameters to file
             wls (bool): Whether to use weighted least squares
+            html_report (bool): If True, also export an HTML diagnostic
+                report (see :meth:`export_html_report`).
 
         Returns:
             ndarray: Base parameters phi_base
@@ -146,6 +149,9 @@ class TX40Identification(BaseIdentification):
         # TX40-specific parameter saving
         if save_results:
             self.save_results()
+
+        if html_report:
+            self.export_html_report()
 
         return phi_base
 

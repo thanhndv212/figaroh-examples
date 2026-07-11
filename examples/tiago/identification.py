@@ -53,6 +53,24 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Enable verbose (INFO) logging",
     )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help=(
+            "Check the identification against quality thresholds "
+            "(condition number, validation correlation/improvement), "
+            "write the verdict to results/identification_verification.json, "
+            "and exit(1) if it fails."
+        ),
+    )
+    parser.add_argument(
+        "--html-report",
+        action="store_true",
+        help=(
+            "Export a self-contained HTML diagnostic report "
+            "(results/identification_report.html)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -138,6 +156,7 @@ def main() -> TiagoIdentification | None:
             decimate=True,
             plotting=True,
             save_results=False,
+            html_report=args.html_report,
         )
 
         # Print results summary
@@ -163,6 +182,25 @@ def main() -> TiagoIdentification | None:
         print("\nBase parameters:")
         for i, param_name in enumerate(tiago_iden.params_base):
             print(f"{i + 1:2d}. {param_name}: {tiago_iden.phi_base[i]:10.6f}")
+
+        if args.verify:
+            print("\n" + "=" * 60)
+            print("VERIFICATION")
+            print("=" * 60)
+            verdict = tiago_iden.verify()
+            report_path = tiago_iden.export_verification_report()
+            print(f"Verdict written to: {report_path}")
+            for check in verdict.checks:
+                status = "PASS" if check.passed else "FAIL"
+                print(
+                    f"  [{status}] {check.name}: {check.value:.4g} "
+                    f"({check.comparison} {check.threshold:.4g})"
+                )
+            if verdict.passed:
+                print("\nVerification PASSED.")
+            else:
+                print("\nVerification FAILED.")
+                sys.exit(1)
 
         print("\nIdentification completed successfully!")
         return tiago_iden
