@@ -68,6 +68,15 @@ def parse_args() -> argparse.Namespace:
             "(results/identification_report.html)."
         ),
     )
+    parser.add_argument(
+        "--wls",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Refine the OLS base-parameter estimate with iteratively-"
+            "weighted least squares (Gautier, 1997). Off by default."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -120,6 +129,7 @@ def main(args: argparse.Namespace) -> None:
             plotting=True,
             save_results=False,
             html_report=args.html_report,
+            wls=args.wls,
         )
 
         # Display results

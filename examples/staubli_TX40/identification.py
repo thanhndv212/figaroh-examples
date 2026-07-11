@@ -76,6 +76,16 @@ def parse_args() -> argparse.Namespace:
             "(results/identification_report.html)."
         ),
     )
+    parser.add_argument(
+        "--wls",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Refine the OLS base-parameter estimate with iteratively-"
+            "weighted least squares (Gautier, 1997). On by default for "
+            "TX40; use --no-wls for the plain OLS estimate."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -111,7 +121,7 @@ def main(args: argparse.Namespace) -> None:
             decimate=True,  # Apply TX40-specific decimation
             plotting=True,  # Generate identification plots
             save_results=False,  # Save parameters to CSV files
-            wls=True,  # Use weighted least squares
+            wls=args.wls,  # Weighted least squares refinement
             html_report=args.html_report,
         )
 
