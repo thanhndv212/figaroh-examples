@@ -94,6 +94,7 @@ tasks:
       include_external_forces: true  # TIAGo has F/T sensors
       use_joint_torques: true
       force_torque_sensors: ["wrist_ft_sensor"]
+      wls: false  # Refine OLS estimate with weighted least squares (Gautier, 1997)
 
       model_components:
         friction: true

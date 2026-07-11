@@ -74,10 +74,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--wls",
         action=argparse.BooleanOptionalAction,
-        default=False,
+        default=None,
         help=(
             "Refine the OLS base-parameter estimate with iteratively-"
-            "weighted least squares (Gautier, 1997). Off by default."
+            "weighted least squares (Gautier, 1997). Overrides the "
+            "identification.problem.wls config value; falls back to "
+            "False if neither is set."
         ),
     )
     return parser.parse_args()
@@ -116,6 +118,10 @@ def main() -> TiagoIdentification | None:
 
         # Define additional parameters excluded from yaml files
         ps = tiago_iden.identif_config
+        # CLI flag overrides the config value; falls back to False if
+        # neither --wls/--no-wls was passed nor identification.problem.wls
+        # is set in the YAML config.
+        wls_enabled = args.wls if args.wls is not None else ps.get("wls", False)
         ps["reduction_ratio"] = {
             "torso_lift_joint": 1,
             "arm_1_joint": 100,
@@ -166,7 +172,7 @@ def main() -> TiagoIdentification | None:
             plotting=True,
             save_results=False,
             html_report=args.html_report,
-            wls=args.wls,
+            wls=wls_enabled,
         )
 
         # Print results summary

@@ -79,11 +79,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--wls",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=None,
         help=(
             "Refine the OLS base-parameter estimate with iteratively-"
-            "weighted least squares (Gautier, 1997). On by default for "
-            "TX40; use --no-wls for the plain OLS estimate."
+            "weighted least squares (Gautier, 1997). Overrides the "
+            "identification.problem.wls config value (True by default "
+            "for TX40); use --no-wls for the plain OLS estimate."
         ),
     )
     return parser.parse_args()
@@ -113,6 +114,14 @@ def main(args: argparse.Namespace) -> None:
         # Create TX40 identification object
         tx40_iden = TX40Identification(robot, str(config_path))
 
+        # CLI flag overrides the config value; falls back to False if
+        # neither --wls/--no-wls was passed nor identification.problem.wls
+        # is set in the YAML config.
+        wls_enabled = (
+            args.wls if args.wls is not None
+            else tx40_iden.identif_config.get("wls", False)
+        )
+
         # Initialize identification process with data loading and processing
         tx40_iden.initialize()
 
@@ -121,7 +130,7 @@ def main(args: argparse.Namespace) -> None:
             decimate=True,  # Apply TX40-specific decimation
             plotting=True,  # Generate identification plots
             save_results=False,  # Save parameters to CSV files
-            wls=args.wls,  # Weighted least squares refinement
+            wls=wls_enabled,  # Weighted least squares refinement
             html_report=args.html_report,
         )
 

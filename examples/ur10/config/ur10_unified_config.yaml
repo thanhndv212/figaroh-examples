@@ -75,6 +75,7 @@ tasks:
     problem:
       include_external_forces: false
       use_joint_torques: true
+      wls: false  # Refine OLS estimate with weighted least squares (Gautier, 1997)
 
       model_components:
         friction: false
