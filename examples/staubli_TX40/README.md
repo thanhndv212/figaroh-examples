@@ -45,4 +45,4 @@ Both are archived to `results/runs/<asset>/identification/<timestamp>/` (see `--
 python identification.py --no-verify --no-html-report
 ```
 
-See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/) for what the report/verdict contain and how to compare two runs.
+See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/guides/reporting_and_verification/) for what the report/verdict contain and how to compare two runs.

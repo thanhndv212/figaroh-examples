@@ -34,7 +34,7 @@ python calibration.py
 6. Add `--html-report` (calibration/identification scripts) for a shareable HTML diagnostic
    report, and `--verify` (identification scripts) for a machine-readable pass/fail verdict
    you can gate CI on. See each robot's README for the exact flags it supports, and
-   FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/)
+   FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/guides/reporting_and_verification/)
    for the full walkthrough (HTML reports, `verify()`, and comparing two runs offline).
 
 ## Data format

@@ -328,7 +328,7 @@ from figaroh.tools.compare_report import generate_compare_page
 generate_compare_page(output_path="results/compare.html")
 ```
 
-See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/)
+See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/guides/reporting_and_verification/)
 for what the report/verdict contain and how the compare page's compatibility
 check works.
 

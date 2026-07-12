@@ -75,7 +75,7 @@ All saved files are timestamped to avoid overwriting:
   by default) — summary, auto-flagged insights, per-DOF residuals,
   parameter uncertainty, and (if `validation_data_file` is configured) an
   interactive before/after chart. See FIGAROH's
-  [Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/).
+  [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/guides/reporting_and_verification/).
 
 ## Notes
 

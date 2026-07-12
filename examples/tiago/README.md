@@ -367,7 +367,7 @@ generate_compare_page(output_path="results/compare.html")
 
 Open `results/compare.html` and load two `identification_verification.json`
 files (drag-and-drop or the file picker) — see FIGAROH's
-[Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/)
+[Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/guides/reporting_and_verification/)
 for what each report/verdict contains and how the compatibility check works.
 
 ## Architecture
