@@ -9,6 +9,18 @@ robot:
   name: "ur10"
   description: "Universal Robots UR10 6-DOF industrial manipulator"
 
+  # Physical-unit identity (optional). "name" above is the model TYPE,
+  # shared by every UR10; this block identifies one specific unit for
+  # V&V report/verdict provenance. Prefer a per-asset overlay file
+  # (see config/UR10-007.yaml) over editing this shared config,
+  # so onboarding a second unit never risks the first one's identity.
+  # instance:
+  #   asset_id: "UR10-007"
+  #   serial_number: ""
+  #   label: ""
+  #   site: ""
+  #   operator: ""
+
   properties:
     # UR10 joint configuration
     joints:

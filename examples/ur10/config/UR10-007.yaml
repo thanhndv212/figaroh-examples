@@ -1,0 +1,35 @@
+# Per-asset overlay: physical-unit identity for one specific UR10, layered
+# on top of the shared model-type config via the same `extends:` mechanism
+# every task/variant config in this repo already uses.
+#
+# Why a separate file rather than editing ur10_unified_config.yaml directly:
+# that file describes the UR10 *model* (shared by every UR10 in a fleet);
+# this file identifies one *physical unit*. Keeping them separate means
+# adding a second robot never risks clobbering the first one's identity,
+# and the model config stays reusable as-is.
+#
+# Must stay a sibling of ur10_unified_config.yaml (same directory): the
+# config parser resolves every `extends:` in the inheritance chain relative
+# to this file's directory, including ur10_unified_config.yaml's own
+# `extends: "../../templates/manipulator_robot.yaml"` — placing this file
+# a directory level deeper would break that inherited reference.
+#
+# Usage — point --config at this file instead of the base config:
+#   python identification.py --config config/UR10-007.yaml --verify --html-report
+#   python calibration.py --config config/UR10-007.yaml --calibrate-only
+#
+# CLI --asset-id/--operator (see identification.py --help) still take
+# precedence over this file, for one-off overrides without editing YAML.
+#
+# To onboard another unit, copy this file and change only the `instance:`
+# block — everything else is inherited from the shared model config.
+
+extends: "ur10_unified_config.yaml"
+
+robot:
+  instance:
+    asset_id: "UR10-007"
+    serial_number: "2021-330-1180"
+    label: "cell-3 left arm"
+    site: "Toulouse-Lab"
+    operator: ""

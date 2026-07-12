@@ -15,6 +15,19 @@ robot:
   name: "tiago"
   description: "PAL Robotics TIAGo mobile manipulator robot"
 
+  # Physical-unit identity (optional). "name" above is the model TYPE,
+  # shared by every TIAGo; this block identifies one specific unit for
+  # V&V report/verdict provenance. Prefer a per-asset overlay file (see
+  # ../ur10/config/UR10-007.yaml for the pattern) over editing this
+  # shared config, so onboarding a second unit never risks the first
+  # one's identity.
+  # instance:
+  #   asset_id: "TIAGO-42"
+  #   serial_number: ""
+  #   label: ""
+  #   site: ""
+  #   operator: ""
+
   properties:
     # TIAGo joint configuration (torso + arm)
     joints:

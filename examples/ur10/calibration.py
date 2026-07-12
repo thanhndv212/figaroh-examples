@@ -57,6 +57,7 @@ if str(project_root) not in sys.path:
 
 from examples.ur10.utils.ur10_tools import UR10Calibration  # noqa: E402
 from figaroh.tools.robot import load_robot  # noqa: E402
+from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
 from figaroh.tools.urdf_exporter import (  # noqa: E402
     export_urdf,
     frame_settings_doc,
@@ -302,10 +303,40 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--html-report",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help=(
-            "Export a self-contained HTML diagnostic report "
-            "(results/calibration_report.html) after calibration."
+            "Export a self-contained HTML diagnostic report to the run directory "
+            "after calibration. Use --no-html-report to skip."
+        ),
+    )
+    parser.add_argument(
+        "--asset-id",
+        type=str,
+        default=None,
+        help=(
+            "Physical unit identifier for the report/verdict provenance "
+            "record (e.g. 'UR10-007'). Overrides robot.instance.asset_id "
+            "in the config; omit both to render as an unspecified unit."
+        ),
+    )
+    parser.add_argument(
+        "--operator",
+        type=str,
+        default=None,
+        help="Operator name for the provenance record. Overrides "
+        "robot.instance.operator in the config.",
+    )
+    parser.add_argument(
+        "--archive",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Archive this run to results/runs/<asset>/calibration/"
+            "<timestamp>/ (provenance, config snapshot, parameters, and "
+            "the HTML report if generated) and append a summary line to "
+            "results/runs/index.jsonl. Never overwrites a prior run. "
+            "Use --no-archive to skip."
         ),
     )
     parser.add_argument(
@@ -328,6 +359,9 @@ def _run_calibration(
     verbose: bool = False,
     validation_data: str | None = None,
     html_report: bool = False,
+    asset_id: str | None = None,
+    operator: str | None = None,
+    archive: bool = False,
 ) -> tuple[np.ndarray, list[str], str]:
     """Run UR10 calibration.
 
@@ -340,11 +374,34 @@ def _run_calibration(
     ur10_calib.calib_config["known_tipframe"] = False
     if validation_data:
         ur10_calib.calib_config["validation_data_file"] = validation_data
+    # CLI --asset-id/--operator override the config's robot.instance block
+    # (if any) for this run's provenance record.
+    if asset_id or operator:
+        instance = dict(ur10_calib.calib_config.get("instance") or {})
+        if asset_id:
+            instance["asset_id"] = asset_id
+        if operator:
+            instance["operator"] = operator
+        ur10_calib.calib_config["instance"] = instance
     ur10_calib.initialize()
     result = ur10_calib.solve(
-        plotting=plot, enable_logging=verbose, html_report=html_report
+        plotting=plot, enable_logging=verbose, html_report=False
     )
     param_names = ur10_calib.calib_config["param_name"]
+
+    # V&V report suite: compute path once, write directly
+    run_dir = None
+    if html_report or archive:
+        run_dir = compute_run_dir(ur10_calib)
+
+    if html_report:
+        ur10_calib.export_html_report(output_path=str(run_dir / "report.html"))
+
+    if archive:
+        archive_run(ur10_calib, run_dir)
+
+    if run_dir:
+        print(f"Results written to: {run_dir}")
 
     # Save with timestamp
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -576,6 +633,9 @@ def main() -> None:
                 verbose=args.verbose,
                 validation_data=args.validation_data,
                 html_report=args.html_report,
+                asset_id=args.asset_id,
+                operator=args.operator,
+                archive=args.archive,
             )
             if args.calibrate_only:
                 print(
