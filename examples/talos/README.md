@@ -63,6 +63,7 @@ All saved files are timestamped to avoid overwriting:
 | `--interactive` | Step-by-step selection of what to run |
 | `--model <path>` | Skip file selection for `--viz-validation` |
 | `--no-plot` | Suppress matplotlib plots (CI) |
+| `--html-report` / `--no-html-report` | Self-contained HTML diagnostic report (on by default) |
 
 ## Outputs
 
@@ -70,6 +71,11 @@ All saved files are timestamped to avoid overwriting:
 - Modified URDFs saved as timestamped `_modified_*.urdf` in `urdf/`.
 - `update_model.py` (or `--update-model`) exports the calibrated URDF and
   prints FK verification metrics.
+- A self-contained HTML diagnostic report (`results/calibration_report.html`
+  by default) — summary, auto-flagged insights, per-DOF residuals,
+  parameter uncertainty, and (if `validation_data_file` is configured) an
+  interactive before/after chart. See FIGAROH's
+  [Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/).
 
 ## Notes
 

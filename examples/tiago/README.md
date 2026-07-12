@@ -333,6 +333,9 @@ python update_model.py
 # ── Dynamic parameter identification ────────────────────────────
 python identification.py
 
+# Skip the HTML report / verification verdict (both on by default)
+python identification.py --no-html-report --no-verify
+
 # ── Optimal configuration generation ─────────────────────────────
 python optimal_config.py --end-effector hey5
 
@@ -343,6 +346,29 @@ python optimal_trajectory.py
 All saved files are timestamped to avoid overwriting:
 - Calibration results: `data/calibration/calibration_results_{ts}.npz`
 - Modified URDFs: `urdf/tiago_48_schunk_modified_{ts}.urdf`
+
+### Quality reports & verification
+
+`calibration.py` (`--html-report`, on by default) and `identification.py`
+(`--html-report`/`--verify`, both on by default) write a self-contained HTML
+diagnostic report and, for identification, a machine-readable pass/fail
+verdict to the run directory (`results/runs/tiago-<asset>/{calibration,
+identification}/<timestamp>/`, or `results/` for a plain `--no-archive` run).
+`identification.py --verify` exits non-zero when the run fails its quality
+thresholds — a real CI gate, not just a printed warning.
+
+Compare two identification runs (e.g. before/after a config change) offline,
+with no server:
+
+```python
+from figaroh.tools.compare_report import generate_compare_page
+generate_compare_page(output_path="results/compare.html")
+```
+
+Open `results/compare.html` and load two `identification_verification.json`
+files (drag-and-drop or the file picker) — see FIGAROH's
+[Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/)
+for what each report/verdict contains and how the compatibility check works.
 
 ## Architecture
 

@@ -30,3 +30,19 @@ If you swap datasets or change sample time / filtering, update the YAML config a
 ## Outputs
 
 The script prints a short identification summary (base parameter count, correlation, and base parameter values). Plotting and saving are controlled by arguments passed to `TX40Identification.solve(...)` in `identification.py` (e.g., `plotting=True`, `save_results=False`, `wls=True`).
+
+## Quality reports & verification
+
+`--verify` and `--html-report` are **on by default** — a plain `python identification.py` run already:
+
+- prints a terminal quality report (condition number, RMSE, per-joint residuals, base-parameter uncertainty),
+- writes a self-contained HTML diagnostic report with an interactive before/after chart, and
+- checks the run against quality thresholds and writes a machine-readable verdict, exiting non-zero if it fails.
+
+Both are archived to `results/runs/<asset>/identification/<timestamp>/` (see `--archive`). To skip either:
+
+```bash
+python identification.py --no-verify --no-html-report
+```
+
+See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/) for what the report/verdict contain and how to compare two runs.

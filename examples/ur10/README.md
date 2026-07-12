@@ -293,6 +293,12 @@ python update_model.py
 # ── Dynamic parameter identification ────────────────────────────
 python identification.py
 
+# Skip the HTML report / verification verdict (both on by default)
+python identification.py --no-html-report --no-verify
+
+# Per-asset config with an explicit unit identity for the report/verdict provenance
+python identification.py --config config/UR10-007.yaml --verify --html-report
+
 # ── Optimal configuration generation ─────────────────────────────
 python optimal_config.py -n 20
 
@@ -303,6 +309,28 @@ python optimal_trajectory.py
 All saved files are timestamped to avoid overwriting:
 - Calibration results: `data/calibration/calibration_results_{ts}.npz`
 - Modified URDFs: `urdf/ur10_robot_modified_{ts}.urdf`
+
+### Quality reports & verification
+
+`calibration.py`/`identification.py` write a self-contained HTML diagnostic
+report by default (`--html-report`), and `identification.py` also checks the
+run against quality thresholds and writes a machine-readable verdict
+(`--verify`, exits non-zero on failure — a real CI gate). Both flags default
+to on; `--no-html-report`/`--no-verify` skip them.
+
+To compare two identification runs offline (e.g. two different excitation
+trajectories, or before/after a config change), generate the static compare
+page once and load any two exported `identification_verification.json`
+files into it:
+
+```python
+from figaroh.tools.compare_report import generate_compare_page
+generate_compare_page(output_path="results/compare.html")
+```
+
+See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/)
+for what the report/verdict contain and how the compare page's compatibility
+check works.
 
 ## Complete Workflow
 

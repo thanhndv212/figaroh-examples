@@ -31,6 +31,11 @@ python calibration.py
 3. Place or update CSV logs under `examples/<robot>/data/` (or update paths in the YAML).
 4. Run one of: `calibration.py`, `identification.py`, `optimal_config.py`, `optimal_trajectory.py` (if present).
 5. Review printed results/plots. If applicable, use `update_model.py` to materialize estimated parameters.
+6. Add `--html-report` (calibration/identification scripts) for a shareable HTML diagnostic
+   report, and `--verify` (identification scripts) for a machine-readable pass/fail verdict
+   you can gate CI on. See each robot's README for the exact flags it supports, and
+   FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh/guides/reporting_and_verification/)
+   for the full walkthrough (HTML reports, `verify()`, and comparing two runs offline).
 
 ## Data format
 
