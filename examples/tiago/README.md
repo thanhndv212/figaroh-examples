@@ -357,6 +357,11 @@ identification}/<timestamp>/`, or `results/` for a plain `--no-archive` run).
 `identification.py --verify` exits non-zero when the run fails its quality
 thresholds — a real CI gate, not just a printed warning.
 
+`identification.py --wls` refines the OLS base-parameter estimate with
+weighted least squares before quality metrics are computed (off by default
+for TIAGo — overrides `identification.problem.wls` in the config; use
+`--no-wls` to force plain OLS).
+
 Compare two identification runs (e.g. before/after a config change) offline,
 with no server:
 

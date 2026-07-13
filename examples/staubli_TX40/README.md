@@ -29,7 +29,7 @@ If you swap datasets or change sample time / filtering, update the YAML config a
 
 ## Outputs
 
-The script prints a short identification summary (base parameter count, correlation, and base parameter values). Plotting and saving are controlled by arguments passed to `TX40Identification.solve(...)` in `identification.py` (e.g., `plotting=True`, `save_results=False`, `wls=True`).
+The script prints a short identification summary (base parameter count, correlation, and base parameter values). Plotting and saving are controlled by arguments passed to `TX40Identification.solve(...)` in `identification.py` (e.g., `plotting=True`, `save_results=False`).
 
 ## Quality reports & verification
 
@@ -43,6 +43,16 @@ Both are archived to `results/runs/<asset>/identification/<timestamp>/` (see `--
 
 ```bash
 python identification.py --no-verify --no-html-report
+```
+
+`--wls`/`--no-wls` overrides the config's `identification.problem.wls` value
+and is **on by default for TX40** (unlike UR10/TIAGo, which default off) —
+it refines the OLS base-parameter estimate with weighted least squares
+before quality metrics are computed. Use `--no-wls` for the plain OLS
+estimate:
+
+```bash
+python identification.py --no-wls
 ```
 
 See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/guides/reporting_and_verification/) for what the report/verdict contain and how to compare two runs.

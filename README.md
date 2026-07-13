@@ -36,6 +36,16 @@ python calibration.py
    you can gate CI on. See each robot's README for the exact flags it supports, and
    FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/guides/reporting_and_verification/)
    for the full walkthrough (HTML reports, `verify()`, and comparing two runs offline).
+7. Add `--wls`/`--no-wls` (identification scripts) to override the config's
+   `identification.problem.wls` value and refine the OLS base-parameter
+   estimate with weighted least squares before quality metrics are computed
+   (Staubli TX40's config defaults this on; UR10/TIAGo default off).
+8. By default (unless run with `--no-archive`), each run is archived to a
+   timestamped `results/runs/<asset>/<task>/<timestamp>/` directory containing
+   a config snapshot, a provenance record (git commit, config hash,
+   timestamps), and the HTML report if generated — instead of overwriting a
+   single `results/` path — and appends a summary line to
+   `results/runs/index.jsonl`.
 
 ## Data format
 

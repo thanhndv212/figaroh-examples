@@ -299,6 +299,14 @@ python identification.py --no-html-report --no-verify
 # Per-asset config with an explicit unit identity for the report/verdict provenance
 python identification.py --config config/UR10-007.yaml --verify --html-report
 
+# Refine the OLS base-parameter estimate with weighted least squares
+# (off by default for UR10 — overrides identification.problem.wls in the config)
+python identification.py --wls
+
+# Skip archiving this run to results/runs/<asset>/identification/<timestamp>/
+# (archiving — config snapshot, provenance record, HTML report — is on by default)
+python identification.py --no-archive
+
 # ── Optimal configuration generation ─────────────────────────────
 python optimal_config.py -n 20
 
