@@ -55,4 +55,4 @@ estimate:
 python identification.py --no-wls
 ```
 
-See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/guides/reporting_and_verification/) for what the report/verdict contain and how to compare two runs.
+See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/reporting_and_verification/) for what the report/verdict contain and how to compare two runs.
