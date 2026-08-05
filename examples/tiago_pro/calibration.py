@@ -7,14 +7,14 @@ runs Figaroh's Levenberg-Marquardt calibration, and writes the identified
 kinematic parameters (base frame pose + per-joint DH offsets + marker
 position) to a results YAML.
 
-Migrated from the standalone `figaroh_tiagoPro` repo. This example keeps
-the original self-contained calibration class (it drives
-`figaroh.calibration.calibration_tools` directly rather than through
-`BaseCalibration`) since that is what was validated against real hardware
-data — see `data/calibration_results_20260702_0756.yaml` for the
-reference run (RMSE 6.46 mm, MAE 4.94 mm, 94 samples). The class and its
-supporting functions live in `utils/tiago_pro_tools.py`, following the
-same layout as the other examples (`tiago`, `talos`, `ur10`).
+Migrated from the standalone `figaroh_tiagoPro` repo. TiagoProCalibration
+subclasses `figaroh.calibration.base_calibration.BaseCalibration`, the same
+pattern the `tiago` example's TiagoCalibration uses — see
+`utils/tiago_pro_tools.py` for the overrides genuinely specific to this
+robot/dataset. Numerically re-verified after migration: RMSE 6.46 mm / MAE
+4.95 mm, 94 samples (vs. RMSE 6.46 mm / MAE 4.94 mm pre-migration — see
+`data/calibration_results_20260702_0756.yaml`, the frozen pre-migration
+reference).
 
 Usage:
     python3 calibration.py --data data/calibration_samples_20260702_0756.csv
@@ -26,7 +26,6 @@ Usage:
 
 import argparse
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pinocchio as pin
@@ -40,10 +39,8 @@ from examples.tiago_pro.utils.tiago_pro_tools import (  # noqa: E402
     _Robot,
     TiagoProCalibration,
     write_calibration_results,
-    _prepare_report,
 )
-from figaroh.tools.report import generate_calibration_report  # noqa: E402
-from figaroh.tools.run_archive import archive_run  # noqa: E402
+from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
 
 _HERE = Path(__file__).parent
 _URDF_DEFAULT = _HERE / "urdf" / "tiago_pro.urdf"
@@ -105,35 +102,43 @@ def main():
     args = parser.parse_args()
 
     print(f"Loading robot from {args.urdf} ...")
-    robot = _Robot(pin.buildModelFromUrdf(args.urdf))
+    robot = _Robot(pin.buildModelFromUrdf(args.urdf), urdf_path=args.urdf)
 
-    calib = TiagoProCalibration(robot, args.config, args.data)
-    calib.load_and_check_data()
+    calib = TiagoProCalibration(robot, args.config, del_list=[])
+    calib.calib_config["known_baseframe"] = False  # co-estimate base-marker->base transform
+    calib.calib_config["known_tipframe"] = False  # estimate marker pos rel. to gripper
+    calib.calib_config["data_file"] = args.data
+    calib._data_path = str(Path(args.data).resolve())
 
-    run_started = datetime.now(timezone.utc).isoformat()
-    calib.solve()
-    run_finished = datetime.now(timezone.utc).isoformat()
+    if args.asset_id or args.operator:
+        instance = dict(calib.calib_config.get("instance") or {})
+        if args.asset_id:
+            instance["asset_id"] = args.asset_id
+        if args.operator:
+            instance["operator"] = args.operator
+        calib.calib_config["instance"] = instance
+
+    calib.initialize()
+    calib.solve(
+        max_iterations=10,
+        enable_logging=True,
+        plotting=False,
+        html_report=False,
+    )
 
     write_calibration_results(calib, args.output)
 
+    run_dir = None
     if args.html_report or args.archive:
-        run_dir = _prepare_report(
-            calib,
-            config_path=args.config,
-            urdf_path=args.urdf,
-            asset_id=args.asset_id,
-            operator=args.operator,
-            run_started=run_started,
-            run_finished=run_finished,
-        )
+        run_dir = compute_run_dir(calib)
 
-        if args.html_report:
-            generate_calibration_report(calib, output_path=str(run_dir / "report.html"))
-            print(f"HTML quality report written to {run_dir / 'report.html'}")
+    if args.html_report:
+        calib.export_html_report(output_path=str(run_dir / "report.html"))
+        print(f"HTML quality report written to {run_dir / 'report.html'}")
 
-        if args.archive:
-            archive_run(calib, run_dir)
-            print(f"Run archived to {run_dir}")
+    if args.archive:
+        archive_run(calib, run_dir)
+        print(f"Run archived to {run_dir}")
 
 
 if __name__ == "__main__":

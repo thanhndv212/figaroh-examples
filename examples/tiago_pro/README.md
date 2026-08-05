@@ -6,13 +6,21 @@ kinematic offsets for the right arm chain
 measurements (Qualisys mocap). Goal: reduce the FK/mocap error at the
 source (e.g. for `mocap_mpc_corrector.py` on the real robot).
 
-Unlike the other examples in this repo, this one drives
-`figaroh.calibration.calibration_tools` directly through a small
-self-contained `TiagoProCalibration` class rather than subclassing
-`BaseCalibration` — that is the code that was validated against real
-hardware data, so the port keeps it as-is rather than risking a rewrite.
-See `data/calibration_results_20260702_0756.yaml` for the reference run
-(94 samples, RMSE 6.46 mm, MAE 4.94 mm).
+`TiagoProCalibration` subclasses `figaroh.calibration.base_calibration.
+BaseCalibration`, the same pattern the `tiago` example's `TiagoCalibration`
+uses (it originally drove `figaroh.calibration.calibration_tools` directly
+through a self-contained class, kept separate from `BaseCalibration` because
+that was the code validated against real hardware data — migrated onto
+`BaseCalibration` since, with numerical re-verification against that
+reference run). See `utils/tiago_pro_tools.py` for the overrides genuinely
+specific to this robot/dataset — a marker-offset pair that's structurally
+unobservable because of a never-exercised tool-changer joint, and a CSV
+column that can legitimately be absent from cleaned data.
+See `data/calibration_results_20260702_0756.yaml` for the frozen
+pre-migration reference run (94 samples, RMSE 6.46 mm, MAE 4.94 mm) — the
+migrated code reproduces it closely (RMSE 6.46 mm, MAE 4.95 mm) but not
+bit-identically, since `BaseCalibration`'s inherited outlier-removal loop
+calls the LM solver with slightly different options.
 
 ---
 
@@ -130,14 +138,11 @@ By default (same reporting format as the `tiago` example — see
   alongside it — a run directory is never overwritten
 - appends a one-line summary to `results/runs/index.jsonl`
 
-`TiagoProCalibration` predates `figaroh.calibration.base_calibration`
-and isn't a `BaseCalibration` subclass (see note above), so
-`calibration.py` computes the same quality metrics
-(`_compute_condition_number`/`_compute_per_dof_stats`/
-`_compute_uncertainty`, mirroring `BaseCalibration`'s formulas) and
-attaches them to the calibration object before handing it to figaroh's
-actual report/provenance/archive functions — same output format, no
-duplicated rendering code.
+`TiagoProCalibration` is a `BaseCalibration` subclass (see note above), so
+all of this — condition number, per-DOF stats, parameter uncertainty and
+correlation, provenance/archive — comes directly from `BaseCalibration`;
+`calibration.py` only calls `initialize()`/`solve()`/`export_html_report()`,
+same as the `tiago` example's driver.
 
 ```bash
 # Attach a physical-unit identity to the archive path + provenance record
