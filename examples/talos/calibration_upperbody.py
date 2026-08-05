@@ -417,20 +417,16 @@ def _run_calibration(
     np.savez(saved_path, result=result.x, param_names=param_names)
     print(f"Calibration results saved to {saved_path}")
 
-    # Print log-map residual statistics
-    PEE_est = calib.get_pose_from_measure(result.x)
-    residuals = calib._compute_logmap_residuals(calib.PEE_measured, PEE_est)
-    calib_config = calib.calib_config
-    n_dofs = calib_config["calibration_index"]
-    n_samples = calib_config["NbSample"]
-    residuals_2d = residuals.reshape((n_dofs, n_samples))
-    rmse = np.sqrt(np.mean(residuals**2))
+    # Post-calibration residual summary -- read from evaluation_metrics
+    # (already computed and printed in more detail by print_quality_report()
+    # inside solve()) rather than recomputing independently, so there's a
+    # single source of truth for "RMSE" instead of two numbers that used to
+    # differ by sqrt(n_dofs) depending on which convention each computation
+    # happened to use.
+    metrics = calib.evaluation_metrics
     print(f"\nPost-calibration residual statistics (log map):")
-    print(
-        f"  Position RMSE: "
-        f"{np.sqrt(np.mean(np.sum(residuals_2d**2, axis=0))) * 1000:.2f} mm"
-    )
-    print(f"  Overall RMSE: {rmse:.6f}")
+    print(f"  Position RMSE: {metrics['rmse'] * 1000:.2f} mm")
+    print(f"  Position MAE:  {metrics['mae'] * 1000:.2f} mm")
 
     return result.x, param_names, saved_path
 

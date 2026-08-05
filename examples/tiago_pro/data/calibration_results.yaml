@@ -1,6 +1,6 @@
 metadata:
-  rmse_mm: 6.464
-  mae_mm: 4.949
+  rmse_mm: 11.197
+  mae_mm: 10.045
 calibrated_parameters:
   base_px_torso:
     value: 0.007118773457332641
