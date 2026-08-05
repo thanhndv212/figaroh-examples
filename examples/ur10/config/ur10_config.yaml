@@ -1,55 +1,85 @@
 # define parameters for calibration and identification process
 # robot: ur_10
+#
+# This is figaroh's legacy flat config format. For a full field-by-field
+# reference (meaning, units, which fields are actually consumed by the
+# pipeline), see docs/source/concepts/config_parameters.md in figaroh, or
+# https://thanhndv212.github.io/figaroh-plus/concepts/config_parameters/
 ---
 calibration:
+  # Which kinematic-error model to identify:
+  #   joint_offset - one rotational offset per joint (fast, coarse)
+  #   full_params  - full 6-DOF (xyz + rpy) DH-style placement error/joint
   calib_level: full_params
+  # Also identify joint elasticity (gravity-torque-driven compliance) on
+  # top of the geometric model above.
   non_geom: False
-  base_frame: universe
-  tool_frame: wrist_3_link
+  base_frame: universe # start_frame of kinematic chain
+  tool_frame: wrist_3_link # end_frame of kinematic chain
   markers:
+    # ref_joint: joint the external marker is rigidly attached near; its
+    #   offset from tool_frame is estimated (pEEx/y/z, phiEEx/y/z).
+    # measure: 6-DOF mask [x, y, z, roll, pitch, yaw] -- which axes the
+    #   external sensor reports for this marker (here: full 6-DOF pose).
     - ref_joint: wrist_3_joint
       measure: [True, True, True, True, True, True]
-  free_flyer: False
-  nb_sample: 29
+  free_flyer: False # True if the robot base itself is unconstrained/floating
+  nb_sample: 29 # number of samples expected from data_file
+  # Initial guess [x, y, z, roll, pitch, yaw] (m, rad) for the base_frame
+  # -> world transform being estimated.
   base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  # Initial guess [x, y, z, roll, pitch, yaw] (m, rad) for the tool_frame ->
+  # marker transform being estimated.
   tip_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  coeff_regularize: 0.001
-  outlier_eps: 0.02
-  data_file: data/calibration.csv
+  coeff_regularize: 0.001 # L2 regularization weight on identified offsets
+  outlier_eps: 0.02 # meters; residual above this is dropped as an outlier
+  data_file: data/calibration.csv # recorded (q, marker pose) samples
 identification:
   robot_params:
+    # q/dq/ddq/tau_lim_def: joint limit margins. Parsed into the config
+    # dict but not currently consumed anywhere in the identification
+    # pipeline (kept for schema/future use).
     - q_lim_def: 1.57
       dq_lim_def : 5.0
       ddq_lim_def : 20.0
       tau_lim_def : 4.0
-      fv : None
-      fs : None
-      Ia : None
-      offset : None
-      Iam6 : None
-      fvm6 : None
-      fsm6 : None
-      reduction_ratio : None
+      # fv/fs/Ia/offset/Iam6/fvm6/fsm6/reduction_ratio/ratio_essential are
+      # all None here because problem_params below turns off friction,
+      # actuator-inertia, joint-offset, and coupled-wrist terms -- this
+      # robot's regressor only identifies rigid-body inertial parameters.
+      fv : None # viscous friction/joint (N.m.s/rad); would be used if has_friction
+      fs : None # Coulomb/static friction/joint (N.m); would be used if has_friction
+      Ia : None # reflected actuator inertia/joint (kg.m^2); would be used if has_actuator_inertia
+      offset : None # constant joint torque offset (N.m); would be used if has_joint_offset
+      Iam6 : None # coupled-wrist shared-motor inertia; would be used if has_coupled_wrist
+      fvm6 : None # coupled-wrist shared-motor viscous friction; would be used if has_coupled_wrist
+      fsm6 : None # coupled-wrist shared-motor Coulomb friction; would be used if has_coupled_wrist
+      reduction_ratio : None # motor turns per joint turn (sign = direction)
+      # Threshold (%) for the "essential parameters" selection technique
+      # (Pham et al. 1995). Documented intent only -- not currently wired
+      # into any solver in this codebase.
       ratio_essential : None
   problem_params:
-    - is_external_wrench : False
-      is_joint_torques : True
-      force_torque : ['All']
-      external_wrench_offsets : False
-      has_friction : False
-      has_joint_offset : False
-      has_actuator_inertia : False
-      is_static_regressor : True
-      is_inertia_regressor : True
-      has_coupled_wrist : False
-      embedded_forces : False
+    - is_external_wrench : False # include a measured F/T sensor wrench as a regressor input
+      is_joint_torques : True # regress against joint torque signals (standard inverse-dynamics ID)
+      force_torque : ['All'] # which F/T channels to use; only actually applied if is_external_wrench
+      external_wrench_offsets : False # also identify a constant bias on the F/T reading
+      has_friction : False # include fv/fs columns in the regressor
+      has_joint_offset : False # include the offset column in the regressor
+      has_actuator_inertia : False # include the Ia column in the regressor
+      is_static_regressor : True # include the friction+offset ("static") regressor block
+      is_inertia_regressor : True # include the rigid-body inertial-parameter regressor block
+      has_coupled_wrist : False # last 2 wrist joints share differential actuation -> adds Iam6/fvm6/fsm6 + coupling terms
+      embedded_forces : False # express the external wrench in a body-embedded frame instead of world
   processing_params:
-    - cut_off_frequency_butterworth: 100.0
-      ts : 0.01
+    - cut_off_frequency_butterworth: 100.0 # low-pass filter cutoff (Hz) applied before regression
+      ts : 0.01 # sample period (s) of the recorded data
   tls_params:
-    - mass_load : None
-      which_body_loaded : None
-      sync_joint_motion : False
+    - mass_load : None # known test-payload mass (kg) for optional TLS-based load identification
+      which_body_loaded : None # index of the link/body carrying that payload
+      sync_joint_motion : False # parsed but not currently used
+  # Exciting-trajectory generation parameters (used by optimal_trajectory.py,
+  # not by identification.py itself).
   trajectory_params:
     - n_wps: 3          # number of waypoints (reduced from 5)
       freq: 50          # frequency in Hz (reduced from 100)
