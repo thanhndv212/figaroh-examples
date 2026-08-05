@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+  Reset to zero ahead of a from-scratch full_params calibration (50-pose set).
+  Previous values (RMSE: 8.11 mm, MAE: 6.62 mm) removed on purpose -- do not
+  restore them without re-running calibration against this zeroed baseline.
+-->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+	<!--Constant parameters-->
+	<xacro:property name="arm_left_1_joint_offset" value="0.0" />
+	<xacro:property name="arm_left_2_joint_offset" value="0.0" />
+	<xacro:property name="arm_left_3_joint_offset" value="0.0" />
+	<xacro:property name="arm_left_4_joint_offset" value="0.0" />
+	<xacro:property name="arm_left_5_joint_offset" value="0.0" />
+	<xacro:property name="arm_left_6_joint_offset" value="0.0" />
+	<xacro:property name="arm_left_7_joint_offset" value="0.0" />
+
+	<xacro:property name="arm_right_1_joint_offset" value="0.0" />
+	<xacro:property name="arm_right_2_joint_offset" value="0.0" />
+	<xacro:property name="arm_right_3_joint_offset" value="0.0" />
+	<xacro:property name="arm_right_4_joint_offset" value="0.0" />
+	<xacro:property name="arm_right_5_joint_offset" value="0.0" />
+	<xacro:property name="arm_right_6_joint_offset" value="0.0" />
+	<xacro:property name="arm_right_7_joint_offset" value="0.0" />
+
+	<xacro:property name="head_1_joint_offset" value="0.0" />
+	<xacro:property name="head_2_joint_offset" value="0.0" />
+
+</robot>

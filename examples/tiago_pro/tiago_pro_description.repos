@@ -1,0 +1,36 @@
+---
+repositories:
+  robot_description/omni_base_robot:
+    type: git
+    url: https://github.com/pal-robotics/omni_base_robot.git
+    version: 2.17.0
+
+  robot_description/tiago_pro_robot:
+    type: git
+    url: https://github.com/clementPene/tiago_pro_robot.git
+    version: humble-devel
+
+  robot_description/tiago_pro_head_robot:
+    type: git
+    url: https://github.com/pal-robotics/tiago_pro_head_robot.git
+    version: 1.10.0
+
+  robot_description/pal_atc:
+    type: git
+    url: https://github.com/clementPene/pal_atc.git
+    version: humble-devel
+
+  robot_description/pal_pro_gripper:
+    type: git
+    url: https://github.com/pal-robotics/pal_pro_gripper.git
+    version: 1.12.4
+
+  robot_description/pal_sea_arm:
+    type: git
+    url: https://github.com/clementPene/pal_sea_arm.git
+    version: humble-devel
+
+  robot_description/pal_urdf_utils:
+    type: git
+    url: https://github.com/pal-robotics/pal_urdf_utils.git
+    version: 2.6.1

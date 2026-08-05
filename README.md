@@ -55,6 +55,7 @@ Examples use CSV logs for measurements and trajectories. The required files/colu
 
 - UR10 (manipulator): [examples/ur10/README.md](examples/ur10/README.md)
 - TIAGo (mobile manipulator): [examples/tiago/README.md](examples/tiago/README.md)
+- TIAGo Pro (right-arm geometric calibration, mocap-based): [examples/tiago_pro/README.md](examples/tiago_pro/README.md)
 - TALOS (humanoid, torso/arm chain): [examples/talos/README.md](examples/talos/README.md)
 - Staubli TX40 (manipulator): [examples/staubli_tx40/README.md](examples/staubli_tx40/README.md)
 - Templates and config starting points: [examples/templates/README.md](examples/templates/README.md)

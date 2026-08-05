@@ -1,0 +1,36 @@
+# Generated from calibration_results_20260702_0756.yaml (94 samples, RMSE 6.46mm)
+# Deploy to /etc/calibration/master_calibration.yaml on the robot.
+robot_state_publisher:
+  geometric_calibration:
+    arm_right_1_dpitch: 0.013443139167674116
+    arm_right_1_droll: -0.016283497028594347
+    arm_right_1_dyaw: 1.0712081328361308e-08
+    arm_right_2_dpitch: -0.019360118115349788
+    arm_right_2_droll: -0.009890504447940419
+    arm_right_2_dx: 0.01988140295491326
+    arm_right_2_dyaw: -0.04201492483459835
+    arm_right_2_dz: 2.5513008658891763e-08
+    arm_right_3_dpitch: -0.006161319871159448
+    arm_right_3_droll: 0.011929481427555389
+    arm_right_3_dx: -0.004109734633232538
+    arm_right_3_dyaw: -0.018246000861083692
+    arm_right_3_dz: -0.02021808622084715
+    arm_right_4_dpitch: 0.03431188622100152
+    arm_right_4_droll: 0.0031646739503160496
+    arm_right_4_dx: 7.632078805402467e-05
+    arm_right_4_dyaw: 0.00990923131630066
+    arm_right_4_dz: 0.0003288998239605727
+    arm_right_5_dpitch: 0.012907284504168356
+    arm_right_5_droll: 0.006465795716016042
+    arm_right_5_dx: -0.006723301220353441
+    arm_right_5_dyaw: 0.041627699284026036
+    arm_right_6_dpitch: -0.006097649413939366
+    arm_right_6_droll: 0.0006893831922738083
+    arm_right_6_dx: 0.0002590363170006348
+    arm_right_6_dy: 0.001029057714436286
+    arm_right_6_dyaw: -0.013187731757280222
+    arm_right_7_dx: 0.0049524913814516765
+    arm_right_7_dy: 4.7706329166543664e-08
+    arm_right_7_dz: 0.0009440931501134973
+    gripper_right_tool_mount_dx: -0.0029980037287637143
+    gripper_right_tool_mount_dy: 0.0011391386760018205

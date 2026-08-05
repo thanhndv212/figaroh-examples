@@ -1,0 +1,46 @@
+# Figaroh calibration config for Tiago Pro — right arm geometric calibration.
+#
+# Goal: identify full kinematic parameters for the chain
+#   base_footprint -> gripper_right_tool_holder
+# using external EE pose measurements (Qualisys mocap or any other source).
+#
+# Identified parameters (full_params level, known_baseframe=False):
+#   6 DOF base frame pose  (mocap frame -> base_footprint, estimated)
+#   DH params per joint (a, d, alpha, theta offset) for torso + arm_right_1..7
+#   pEEx_1, pEEy_1, pEEz_1  — marker position relative to gripper_right_tool_holder
+#
+# NOTE: joint names in this file must match the Pinocchio model names exactly.
+#
+# For a full field-by-field reference of this legacy flat config format, see
+# docs/source/concepts/config_parameters.md in figaroh, or
+# https://thanhndv212.github.io/figaroh-plus/concepts/config_parameters/
+---
+calibration:
+  calib_level: full_params   # joint_offset | full_params
+  non_geom: False            # also identify joint elasticity (gravity-torque-driven compliance)
+  # base_frame is a plain anchor (universe), not a camera/sensor mount, so
+  # the single unknown 6-DOF transform estimated here (mocap -> base_frame,
+  # via known_baseframe=False in run_calibration.py) sits at the root of
+  # the chain and isn't re-estimated jointly with a mid-chain unknown --
+  # unlike eye-hand calibration (base_to_ref_frame/ref_frame, e.g.
+  # tiago_config_hey5.yaml), where the camera pose itself is an unknown
+  # inserted partway through the chain and fit simultaneously with the
+  # joint offsets downstream of it. See "Why the camera pose is a free
+  # parameter" in docs/source/concepts/config_parameters.md for why that
+  # makes eye-hand the harder, more under-determined case.
+  base_frame: universe
+  tool_frame: gripper_right_tool_holder
+  markers:
+    - ref_joint: arm_right_7_joint
+      measure: [True, True, True, False, False, False]   # position only (no orientation)
+  free_flyer: False          # True if the robot base itself is unconstrained/floating
+  # base_pose: initial guess for mocap->base_footprint transform [tx, ty, tz, rx, ry, rz] (m, rad)
+  base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  # tip_pose: initial guess for marker position rel. to gripper_right_tool_holder (meters, RPY)
+  tip_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  coeff_regularize: 0.01           # L2 regularization weight on joint params
+  outlier_eps: 0.05                # samples with error > 5cm are removed iteratively
+  data_file: data/calibration_samples_20260702_0756.csv
+  sample_configs_file: null
+  nb_sample: 100
+...
