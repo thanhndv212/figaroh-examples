@@ -1,127 +1,122 @@
 metadata:
-  rmse_mm: 11.197
-  mae_mm: 10.045
+  rmse_mm: 8.994
+  mae_mm: 8.252
+  rmse_orient_deg: 2.0814
+  mae_orient_deg: 1.8806
+  rmse_combined: 0.037425
+  mae_combined: 0.034102
 calibrated_parameters:
   base_px_torso:
-    value: 0.007118773457332641
+    value: -0.0004843540820209214
     unit: m
   base_py_torso:
-    value: 0.0007711780170374175
+    value: 0.0008830946411919643
     unit: m
   base_pz_torso:
-    value: 0.010351000218397492
+    value: 0.012117395594750566
     unit: m
   base_phix_torso:
-    value: 0.0007689447214520384
+    value: -0.0017590852087792613
     unit: rad
   base_phiy_torso:
-    value: -0.0051489866796944625
+    value: 0.0019974002273621607
     unit: rad
   base_phiz_torso:
-    value: -0.017137523898081267
-    unit: rad
-  d_phix_arm_right_1_joint:
-    value: -0.016832847054406543
-    unit: rad
-  d_phiy_arm_right_1_joint:
-    value: 0.026956286363827
+    value: -0.0001361164172345468
     unit: rad
   d_phiz_arm_right_1_joint:
-    value: -1.4806354228076487e-07
+    value: -1.7654997477327044e-06
     unit: rad
   d_px_arm_right_2_joint:
-    value: 2.6128248167294702e-05
+    value: -0.0001570576937145855
+    unit: m
+  d_py_arm_right_2_joint:
+    value: 0.0006889904853454123
     unit: m
   d_phix_arm_right_2_joint:
-    value: -0.009891177675389485
-    unit: rad
-  d_phiy_arm_right_2_joint:
-    value: -0.019453402978267923
+    value: -0.003903514451181069
     unit: rad
   d_phiz_arm_right_2_joint:
-    value: -0.05775608250723293
+    value: -0.010352670945721157
     unit: rad
   d_px_arm_right_3_joint:
-    value: -0.004218999160869475
+    value: -0.009972844665650295
     unit: m
   d_py_arm_right_3_joint:
-    value: 0.0005820634991880838
+    value: 0.00012166663111650156
+    unit: m
+  d_pz_arm_right_3_joint:
+    value: -0.00016480340755240053
     unit: m
   d_phix_arm_right_3_joint:
-    value: 0.01196798330101441
-    unit: rad
-  d_phiy_arm_right_3_joint:
-    value: -0.007925314971006537
-    unit: rad
-  d_phiz_arm_right_3_joint:
-    value: -0.01817667794252683
+    value: 0.009073095703033399
     unit: rad
   d_px_arm_right_4_joint:
-    value: 6.4558228339833724e-06
-    unit: m
-  d_py_arm_right_4_joint:
-    value: -0.00014903041236779884
+    value: 0.0024959956400068505
     unit: m
   d_pz_arm_right_4_joint:
-    value: 0.0010143392728002429
+    value: -0.000120151888687495
     unit: m
   d_phix_arm_right_4_joint:
-    value: 0.0031347069812670686
+    value: 0.0006539181339194706
     unit: rad
   d_phiy_arm_right_4_joint:
-    value: 0.03387848318269611
+    value: -0.01554332436846251
     unit: rad
   d_phiz_arm_right_4_joint:
-    value: 0.0081461616211153
+    value: 0.029060350404057446
     unit: rad
   d_px_arm_right_5_joint:
-    value: -0.006647446031359515
+    value: -0.001689584724572136
     unit: m
   d_phix_arm_right_5_joint:
-    value: 0.006724585446078768
-    unit: rad
-  d_phiy_arm_right_5_joint:
-    value: 0.012894616051092217
-    unit: rad
-  d_phiz_arm_right_5_joint:
-    value: 0.04117397692040789
+    value: -0.002896066902492864
     unit: rad
   d_px_arm_right_6_joint:
-    value: 0.00024823911579226833
+    value: -0.001977338678022222
     unit: m
   d_py_arm_right_6_joint:
-    value: 0.001280016961438318
+    value: 0.003645663884588776
     unit: m
   d_phix_arm_right_6_joint:
-    value: 0.0008905548181113598
+    value: -0.005090049711027388
     unit: rad
   d_phiy_arm_right_6_joint:
-    value: -0.0061781585977810334
+    value: 0.01615225514314655
     unit: rad
   d_phiz_arm_right_6_joint:
-    value: -0.013182427529128434
+    value: -0.012247795381946138
     unit: rad
   d_px_arm_right_7_joint:
-    value: 0.004955525629323469
+    value: 0.0017605363521809943
     unit: m
   d_py_arm_right_7_joint:
-    value: -9.90645510507248e-08
+    value: 1.5410676685979924e-05
     unit: m
   d_pz_arm_right_7_joint:
-    value: 0.0012452993322109136
+    value: 0.004091615526647471
     unit: m
-  d_px_gripper_right_tool_mount_joint:
-    value: -0.0029903542395563897
-    unit: m
-  d_py_gripper_right_tool_mount_joint:
-    value: 0.0011554396385031831
-    unit: m
+  d_phix_arm_right_7_joint:
+    value: 0.003050168202191592
+    unit: rad
+  d_phiz_arm_right_7_joint:
+    value: 0.016119551083390915
+    unit: rad
   pEEx_1:
-    value: 0.0
+    value: -0.004285143212685347
     unit: m
   pEEy_1:
-    value: 0.0
+    value: -0.0005800165426586511
     unit: m
   pEEz_1:
-    value: -0.005061506718954434
+    value: 0.13848512932491627
     unit: m
+  phiEEx_1:
+    value: -0.019145408699989215
+    unit: rad
+  phiEEy_1:
+    value: -0.007010593945446065
+    unit: rad
+  phiEEz_1:
+    value: 0.039270425760370584
+    unit: rad

@@ -1,0 +1,120 @@
+metadata:
+  rmse_mm: 7.926
+  mae_mm: 7.279
+  rmse_rot_deg: 2.1804
+  mae_rot_deg: 1.8887
+calibrated_parameters:
+  base_px_torso:
+    value: -0.0032739058609790525
+    unit: m
+  base_py_torso:
+    value: -0.00015588416608770822
+    unit: m
+  base_pz_torso:
+    value: 0.011783466072918622
+    unit: m
+  base_phix_torso:
+    value: -0.0010948897483856743
+    unit: rad
+  base_phiy_torso:
+    value: 0.0021676948494112882
+    unit: rad
+  base_phiz_torso:
+    value: 0.0039186741840394395
+    unit: rad
+  d_phiz_arm_right_1_joint:
+    value: -3.1610688785984456e-07
+    unit: rad
+  d_px_arm_right_2_joint:
+    value: -0.001061960049822918
+    unit: m
+  d_py_arm_right_2_joint:
+    value: 0.0007920580010905221
+    unit: m
+  d_pz_arm_right_2_joint:
+    value: 6.384933475634065e-07
+    unit: m
+  d_phix_arm_right_2_joint:
+    value: -0.0006127172339809037
+    unit: rad
+  d_phiz_arm_right_2_joint:
+    value: -0.013453033129699445
+    unit: rad
+  d_px_arm_right_3_joint:
+    value: -0.0043481214412186804
+    unit: m
+  d_phix_arm_right_3_joint:
+    value: 0.005062436623717302
+    unit: rad
+  d_phiz_arm_right_3_joint:
+    value: -0.018869015175848863
+    unit: rad
+  d_px_arm_right_4_joint:
+    value: 0.0025265473392364394
+    unit: m
+  d_py_arm_right_4_joint:
+    value: 0.0007106022052830342
+    unit: m
+  d_phix_arm_right_4_joint:
+    value: 1.741334672779912e-05
+    unit: rad
+  d_phiz_arm_right_4_joint:
+    value: 0.032881212525239456
+    unit: rad
+  d_px_arm_right_5_joint:
+    value: -0.005670213929725297
+    unit: m
+  d_py_arm_right_5_joint:
+    value: 0.000479361959905255
+    unit: m
+  d_phix_arm_right_5_joint:
+    value: -0.0035089078265856007
+    unit: rad
+  d_px_arm_right_6_joint:
+    value: -0.0014848287703047034
+    unit: m
+  d_py_arm_right_6_joint:
+    value: 0.00019182249201395445
+    unit: m
+  d_pz_arm_right_6_joint:
+    value: 0.0004765776765455738
+    unit: m
+  d_phix_arm_right_6_joint:
+    value: -0.005596288257721061
+    unit: rad
+  d_phiy_arm_right_6_joint:
+    value: 0.014628972064360047
+    unit: rad
+  d_phiz_arm_right_6_joint:
+    value: -0.014787161044501548
+    unit: rad
+  d_px_arm_right_7_joint:
+    value: 0.0015481552644921299
+    unit: m
+  d_pz_arm_right_7_joint:
+    value: -0.00017065937883028177
+    unit: m
+  d_phix_arm_right_7_joint:
+    value: 0.0015133006002240915
+    unit: rad
+  d_phiz_arm_right_7_joint:
+    value: 0.01462649640789992
+    unit: rad
+  pEEx_1:
+    value: -0.004914202947434654
+    unit: m
+  pEEy_1:
+    value: -0.0013046177109898994
+    unit: m
+  pEEz_1:
+    value: 0.1371579415170854
+    unit: m
+  phiEEx_1:
+    value: -0.016739655399462056
+    unit: rad
+  phiEEy_1:
+    value: -0.005023630210135556
+    unit: rad
+  phiEEz_1:
+    value: 0.04317921804701692
+    unit: rad

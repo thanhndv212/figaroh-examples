@@ -35,25 +35,36 @@ outlier-removal loop calls `least_squares` with different options
 follows a slightly different convergence path to what is otherwise the same
 optimum.
 
-Two things are genuinely special about this robot/dataset and need real
-overrides beyond what TiagoCalibration needs — everything else (data
+One thing is genuinely special about this robot/dataset and needs a real
+override beyond what TiagoCalibration needs — everything else (data
 loading, condition number, parameter uncertainty/correlation, quality
 report, HTML export, provenance/archive) comes from BaseCalibration
-unchanged:
+unchanged: ``gripper_right_tool_mount_joint`` (the PAL ATC tool-changer
+coupler) can be absent from a cleaned data CSV — it's a constant-zero
+column (never exercised during data collection), not real measured data.
+See ``_pad_csv_missing_joints``.
 
-1. ``pEEx_1``/``pEEy_1`` (marker offset in the gripper plane) are
-   structurally unobservable: ``gripper_right_tool_mount_joint`` (the PAL
-   ATC tool-changer coupler) is a real, continuous joint, but it's never
-   exercised in this data (always recorded at q=0), so a marker offset in
-   that plane is indistinguishable from an unmeasured rotation of that
-   joint (confirmed by SVD: singular value ~1e-16, eigenvector ~100%
-   pEEx_1/pEEy_1, zero effect on any other parameter). Fixed at 0 per the
-   mocap marker being mounted at the EE frame origin by design — a design
-   assumption, not a measured value, since it can't be verified from this
-   data. See ``cost_function``/``get_pose_from_measure``.
-2. ``gripper_right_tool_mount_joint`` can be absent from a cleaned data CSV
-   (it's a constant-zero column, not real measured data) — see
-   ``_pad_csv_missing_joints``.
+History: ``pEEx_1``/``pEEy_1`` (marker offset in the gripper plane) used to
+be fixed at 0 (``_fixed_tip_xy``), because under the OLD config
+(``tool_frame: gripper_right_tool_holder``, position-only ``measure``) they
+were structurally unobservable — ``gripper_right_tool_mount_joint`` sits
+between ``tool_frame`` and the marker, is never exercised in the data
+(always recorded at q=0), and a marker offset in that plane was
+indistinguishable from an unmeasured rotation of that joint (confirmed by
+SVD: singular value ~1e-16, eigenvector ~100% pEEx_1/pEEy_1, zero effect on
+any other parameter).
+
+RESOLVED 2026-08-06: the config now sets ``tool_frame:
+gripper_right_pal_atc_base_link`` (before ``gripper_right_tool_mount_joint``
+in the kinematic tree, so that joint no longer appears in the calibrated
+chain at all) and measures full pose (``phix1``/``phiy1``/``phiz1`` are now
+in the data, not just position). Re-checked by SVD of the residual Jacobian
+at the solution on real data (48 samples): pEEx_1/pEEy_1's weight in the
+smallest singular direction is ~1e-21 (vs ~1.0 before), well-conditioned —
+free to optimize now. ``_fixed_tip_xy`` defaults to ``False``; the
+``_fixed_idx``/``_free_idx``/reduced-space-optimization machinery below is
+kept (rather than deleted) so a future position-only config still works
+unchanged, it just becomes a no-op when there's nothing to fix.
 """
 
 from __future__ import annotations
@@ -94,7 +105,7 @@ class TiagoProCalibration(BaseCalibration):
     def __init__(self, robot, config_file: str, del_list: list | None = None):
         super().__init__(robot, config_file, del_list or [])
         self.robot_name = "tiago_pro"
-        self._fixed_tip_xy = True
+        self._fixed_tip_xy = False  # see "History"/"RESOLVED" in module docstring
         self._fixed_idx: list[int] = []  # populated in initialize()
 
     def initialize(self) -> None:
@@ -174,33 +185,54 @@ class TiagoProCalibration(BaseCalibration):
         return np.append(raw_residuals, regularization)
 
     def get_pose_from_measure(self, res_: np.ndarray) -> np.ndarray:
-        """As BaseCalibration, but pEEx_1/pEEy_1 are always evaluated at 0 --
-        see class docstring. Keeps every BaseCalibration consumer of this
-        method (outlier detection, evaluation, reporting, export) consistent
-        with what cost_function() used during optimization, regardless of
-        whatever the optimizer nominally left in result.x at those two
-        positions (their Jacobian columns are exactly zero, so LM shouldn't
-        move them from their zero starting value -- this is belt-and-braces)."""
+        """As BaseCalibration, but if ``_fixed_tip_xy`` is set, pEEx_1/pEEy_1
+        are always evaluated at 0 -- see class docstring. Keeps every
+        BaseCalibration consumer of this method (outlier detection,
+        evaluation, reporting, export) consistent with what cost_function()
+        used during optimization, regardless of whatever the optimizer
+        nominally left in result.x at those two positions (their Jacobian
+        columns are exactly zero, so LM shouldn't move them from their zero
+        starting value -- this is belt-and-braces). A no-op when
+        ``_fixed_idx`` is empty (the current default)."""
         full = res_.copy()
         if self._fixed_idx:
             full[self._fixed_idx] = 0.0
         return super().get_pose_from_measure(full)
 
     def _detect_outliers(self, residuals: np.ndarray, threshold: float) -> list:
-        """TIAGo Pro uses a fixed absolute-distance cutoff (``outlier_eps`` in
-        the config, default 5cm) instead of BaseCalibration's adaptive
-        statistical (mean + k*std) threshold -- domain knowledge that >5cm is
-        unambiguous mistracking, not a fit-quality-relative judgement.
-        ``threshold`` (in std-devs) is accepted for interface compatibility
-        but unused."""
+        """TIAGo Pro uses fixed absolute-distance cutoffs (``outlier_eps``
+        meters for position, ``outlier_eps_deg`` degrees for orientation, in
+        the config -- defaults 5cm / 10deg) instead of BaseCalibration's
+        adaptive statistical (mean + k*std) threshold -- domain knowledge
+        that error beyond either is unambiguous mistracking, not a
+        fit-quality-relative judgement. ``threshold`` (in std-devs) is
+        accepted for interface compatibility but unused.
+
+        Position and orientation are evaluated *separately* (not folded into
+        one combined Euclidean norm across mismatched units) -- residuals_2d
+        rows 0:3 are position (m), rows 3:6 orientation (rad, from
+        BaseCalibration's SE3 log map), same convention as
+        BaseCalibration._compute_per_dof_stats' "overall" block. Flagging a
+        sample if *either* exceeds its own threshold matters here
+        specifically because outlier removal feeds back into what data the
+        fit uses -- for position-only calibration (calibration_index == 3)
+        this reduces to the original single position check.
+        """
         ci = self.calib_config["calibration_index"]
         n_samples = self.calib_config["NbSample"]
         if len(residuals) != ci * n_samples:
             return []
         residuals_2d = residuals.reshape((ci, n_samples))
-        dist = np.sqrt(np.sum(residuals_2d**2, axis=0))
-        eps = self.calib_config.get("outlier_eps", 0.05)
-        return np.where(dist > eps)[0].tolist()
+        eps_pos = self.calib_config.get("outlier_eps", 0.05)
+        pos_rows = residuals_2d[:3, :]
+        dist_pos = np.sqrt(np.sum(pos_rows**2, axis=0))
+        outliers = set(np.where(dist_pos > eps_pos)[0].tolist())
+        if ci >= 6:
+            eps_orient = np.radians(self.calib_config.get("outlier_eps_deg", 10.0))
+            orient_rows = residuals_2d[3:6, :]
+            dist_orient = np.sqrt(np.sum(orient_rows**2, axis=0))
+            outliers.update(np.where(dist_orient > eps_orient)[0].tolist())
+        return sorted(outliers)
 
     def _expand(self, var_free: np.ndarray) -> np.ndarray:
         """Map a reduced (free-parameters-only) vector back to full length,
@@ -313,11 +345,21 @@ def write_calibration_results(calib: TiagoProCalibration, output_path: str) -> N
 
     param_names = calib.calib_config["param_name"]
     metrics = calib.evaluation_metrics
+    # Position (mm) / orientation (deg) computed and aggregated separately
+    # -- same convention as BaseCalibration._compute_per_dof_stats' "overall"
+    # block. metrics["rmse"]/["mae"] fold both into one Euclidean norm across
+    # mismatched units (m and rad); kept below only for backward
+    # compatibility with older results files, not as the primary figure.
+    overall = metrics["per_dof_stats"]["overall"]
 
     results = {
         "metadata": {
-            "rmse_mm": round(float(metrics["rmse"]) * 1000, 3),
-            "mae_mm": round(float(metrics["mae"]) * 1000, 3),
+            "rmse_mm": round(overall["pos_rmse_mm"], 3),
+            "mae_mm": round(overall["pos_mae_mm"], 3),
+            "rmse_orient_deg": round(overall["orient_rmse_deg"], 4),
+            "mae_orient_deg": round(overall["orient_mae_deg"], 4),
+            "rmse_combined": round(float(metrics["rmse"]), 6),
+            "mae_combined": round(float(metrics["mae"]), 6),
         },
         "calibrated_parameters": {
             name: {

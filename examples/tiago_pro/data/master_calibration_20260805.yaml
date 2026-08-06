@@ -1,0 +1,50 @@
+# Generated from calibration_results_20260805_1246.yaml
+# (48 samples, position RMSE 7.93mm/MAE 7.28mm, orientation RMSE 2.18°/MAE 1.89°)
+# Deploy to /etc/calibration/master_calibration.yaml on the robot.
+#
+# ⚠️ Only 8/38 params are statistically solid (>=3sigma), 22/38 are within
+# noise (<1sigma) — see calibration_reliability_20260805.md for the per-param
+# breakdown. USE master_calibration_20260805_conservative.yaml INSTEAD: a
+# held-out train/test validation (4 random splits) showed this full variant
+# generalizes ~1.6x worse on unseen poses (mean 34.5mm vs 21.2mm position
+# RMSE) and is far less stable across splits (24.9-49.9mm vs 19.7-22.7mm) —
+# classic overfitting on the noise-level params, not just a theoretical
+# concern. See the "Validation" section in calibration_reliability_20260805.md.
+#
+# Not included:
+#   - base_*_torso (6 params): mocap->universe / torso_lift_joint own placement
+#     are mathematically merged (known_baseframe=False) — not a pure robot
+#     calibration value, don't apply to the URDF.
+#   - pEEx_1/pEEy_1/pEEz_1/phiEEx_1/phiEEy_1/phiEEz_1: mocap marker offset,
+#     not a robot joint — see mocap_frame_correction_20260805.md instead.
+#   - gripper_right_tool_mount_joint: no longer has its own params (tool_frame
+#     changed to gripper_right_pal_atc_base_link, upstream of this joint —
+#     see tiago_pro_calibration_config.yaml comments).
+robot_state_publisher:
+  geometric_calibration:
+    arm_right_1_dyaw: -3.1610688785984456e-07
+    arm_right_2_dx: -0.001061960049822918
+    arm_right_2_dy: 0.0007920580010905221
+    arm_right_2_dz: 6.384933475634065e-07
+    arm_right_2_droll: -0.0006127172339809037
+    arm_right_2_dyaw: -0.013453033129699445
+    arm_right_3_dx: -0.0043481214412186804
+    arm_right_3_droll: 0.005062436623717302
+    arm_right_3_dyaw: -0.018869015175848863
+    arm_right_4_dx: 0.0025265473392364394
+    arm_right_4_dy: 0.0007106022052830342
+    arm_right_4_droll: 1.741334672779912e-05
+    arm_right_4_dyaw: 0.032881212525239456
+    arm_right_5_dx: -0.005670213929725297
+    arm_right_5_dy: 0.000479361959905255
+    arm_right_5_droll: -0.0035089078265856007
+    arm_right_6_dx: -0.0014848287703047034
+    arm_right_6_dy: 0.00019182249201395445
+    arm_right_6_dz: 0.0004765776765455738
+    arm_right_6_droll: -0.005596288257721061
+    arm_right_6_dpitch: 0.014628972064360047
+    arm_right_6_dyaw: -0.014787161044501548
+    arm_right_7_dx: 0.0015481552644921299
+    arm_right_7_dz: -0.00017065937883028177
+    arm_right_7_droll: 0.0015133006002240915
+    arm_right_7_dyaw: 0.01462649640789992

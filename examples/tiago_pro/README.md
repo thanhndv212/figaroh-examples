@@ -13,14 +13,46 @@ through a self-contained class, kept separate from `BaseCalibration` because
 that was the code validated against real hardware data — migrated onto
 `BaseCalibration` since, with numerical re-verification against that
 reference run). See `utils/tiago_pro_tools.py` for the overrides genuinely
-specific to this robot/dataset — a marker-offset pair that's structurally
-unobservable because of a never-exercised tool-changer joint, and a CSV
-column that can legitimately be absent from cleaned data.
-See `data/calibration_results_20260702_0756.yaml` for the frozen
-pre-migration reference run (94 samples, RMSE 6.46 mm, MAE 4.94 mm) — the
-migrated code reproduces it closely (RMSE 6.46 mm, MAE 4.95 mm) but not
-bit-identically, since `BaseCalibration`'s inherited outlier-removal loop
-calls the LM solver with slightly different options.
+specific to this robot/dataset — a CSV column that can legitimately be
+absent from cleaned data, and a fixed absolute-distance outlier cutoff
+(position + orientation, separately) instead of `BaseCalibration`'s default
+adaptive statistical threshold.
+
+**As of 2026-08-06** the default config measures full EE pose (position +
+orientation — the Qualisys rigid body already reports both) instead of
+position-only, and the marker offset (`pEE`/`phiEE`) is estimated relative
+to `gripper_right_pal_atc_base_link` instead of `gripper_right_tool_holder`
+— stopping the FK chain *before* the never-exercised
+`gripper_right_tool_mount_joint` avoids an exact regressor collinearity
+between that joint and the marker-offset params (see the comments in
+`config/tiago_pro_calibration_config.yaml`). This also makes `pEEx_1`/
+`pEEy_1` — previously fixed at 0 because they were structurally
+unobservable under the old position-only setup — safe to freely optimize
+(re-verified by SVD; `_fixed_tip_xy` in `utils/tiago_pro_tools.py` now
+defaults to `False`).
+
+Reference run: 48 samples, position RMSE 8.99 mm / MAE 8.25 mm, orientation
+RMSE 2.08 deg / MAE 1.88 deg — see `data/calibration_results_20260805_1246.yaml`
+for the upstream figures this was validated against (7.93 mm / 7.28 mm
+position, 2.18 / 1.89 deg orientation): close but not bit-identical, same
+pattern as the `BaseCalibration` migration below.
+
+The earlier position-only reference run (94 samples, RMSE 6.46 mm, MAE
+4.94/4.95 mm — `data/calibration_results_20260702_0756.yaml`) is kept as a
+**frozen historical record only**: `data/calibration_samples_2026070*.csv`
+have no orientation columns, so they're no longer compatible with the
+current default config (which requires full-pose measurements). Reverting
+`config/tiago_pro_calibration_config.yaml`'s `tool_frame`/`markers.measure`/
+`tip_pose` to the position-only values in that frozen YAML's neighboring
+git history would make them runnable again if needed.
+
+`BaseCalibration` migration note: reproduces the frozen pre-migration
+position-only reference (94 samples, RMSE 6.46 mm, MAE 4.94 mm) closely
+(RMSE 6.46 mm, MAE 4.95 mm) but not bit-identically, since
+`BaseCalibration`'s inherited outlier-removal loop calls the LM solver with
+slightly different options than the original bespoke loop did — the same
+kind of small solver-path difference shows up again in the orientation
+upgrade above.
 
 ---
 
@@ -112,20 +144,22 @@ python3 generate_optimal_configs.py --pool-size 500 --no-viser
 ### Step 4 — Collect calibration data (on the real robot)
 
 Not part of this example (requires the physical robot + Qualisys mocap
-running). `data/calibration_samples_20260701_0913.csv` and
-`data/calibration_samples_20260702_0756.csv` are real logs captured this
-way, included so calibration can be run and checked without hardware.
+running, recording the full 6DOF `tiago_endEffector` rigid body pose, not
+just position). `data/calibration_samples_20260805_1246.csv` is a real
+log captured this way, included so calibration can be run and checked
+without hardware. (`data/calibration_samples_2026070*.csv` are earlier,
+position-only logs — see the "frozen historical record" note above.)
 
 ### Step 5 — Run calibration (host)
 
 ```bash
 python3 calibration.py \
   --urdf urdf/tiago_pro.urdf \
-  --data data/calibration_samples_20260702_0756.csv
+  --data data/calibration_samples_20260805_1246.csv
 ```
 
-Outputs identified joint offsets + marker position (RMSE/MAE in mm) to
-`data/calibration_results.yaml`.
+Outputs identified marker pose + per-joint offsets (position RMSE/MAE in
+mm, orientation RMSE/MAE in deg) to `data/calibration_results.yaml`.
 
 By default (same reporting format as the `tiago` example — see
 `figaroh.tools.report`/`provenance`/`run_archive`) each run also:
@@ -146,21 +180,34 @@ same as the `tiago` example's driver.
 
 ```bash
 # Attach a physical-unit identity to the archive path + provenance record
-python3 calibration.py --data data/calibration_samples_20260702_0756.csv \
+python3 calibration.py --data data/calibration_samples_20260805_1246.csv \
   --asset-id TIAGO-PRO-1 --operator "Jane Doe"
 
 # Skip reporting/archiving (just the results YAML)
-python3 calibration.py --data data/calibration_samples_20260702_0756.csv \
+python3 calibration.py --data data/calibration_samples_20260805_1246.csv \
   --no-html-report --no-archive
 ```
 
 ### Step 6 — Apply on robot
 
-Not part of this example — see `data/calibration_application_20260702.md`
-and `data/master_calibration_20260702.yaml` for how the reference run's
-results were translated into a PAL `master_calibration.yaml` deployment
-file, and `urdf/calibration_offset.urdf.xacro` for the PAL calibration
-xacro format.
+Not part of this example. `data/calibration_reliability_20260805.md` is a
+worked example of deciding *which* identified parameters are worth
+deploying — a per-parameter statistical significance table (standard
+error from the residual Jacobian covariance) plus a held-out train/test
+validation showing that a reduced "conservative" subset (only ≥2σ
+parameters) generalizes ~1.6x better on unseen poses than the full fit —
+don't deploy noise-level parameters as if they were real mechanical
+corrections. The same σ-significance numbers are also visible per-run in
+`results/runs/.../report.html`'s "Parameter uncertainty" section.
+See `data/mocap_frame_correction_20260805.md`,
+`data/master_calibration_20260805.yaml` (all parameters) and
+`data/master_calibration_20260805_conservative.yaml` (≥2σ subset only)
+for how the reference run's results were translated into a PAL
+`master_calibration.yaml` deployment file, and
+`urdf/calibration_offset.urdf.xacro` for the PAL calibration xacro
+format. (`data/calibration_application_20260702.md` and
+`data/master_calibration_20260702.yaml` are the equivalent artifacts for
+the earlier, position-only reference run.)
 
 ---
 
@@ -168,9 +215,10 @@ xacro format.
 
 | Parameter | Description |
 |---|---|
-| `offsetRZ_arm_right_1..7_joint` | Per-joint angle offset (rad) |
-| `offsetPZ_torso_lift_joint` | Torso linear offset (m) |
-| `pEEx_1, pEEy_1, pEEz_1` | Mocap marker position rel. to `gripper_right_tool_holder` (m) |
+| `base_p{x,y,z}_torso`, `base_phi{x,y,z}_torso` | Base-marker↔robot transform, merged with torso_lift_joint's own DH offsets (m, rad) |
+| `d_p{x,y,z}_arm_right_N_joint`, `d_phi{x,y,z}_arm_right_N_joint` | Per-joint DH offset, torso + arm_right_1..7 (m, rad) |
+| `pEEx_1, pEEy_1, pEEz_1` | Mocap marker position rel. to `tool_frame` (`gripper_right_pal_atc_base_link`) (m) |
+| `phiEEx_1, phiEEy_1, phiEEz_1` | Mocap marker orientation rel. to `tool_frame` (rad) |
 
 ---
 
@@ -178,19 +226,24 @@ xacro format.
 
 | File | Description |
 |---|---|
-| `calibration.py` | Figaroh LM calibration (main entry point) |
+| `calibration.py` | Thin CLI entry point (argparse/main only) |
+| `utils/tiago_pro_tools.py` | `TiagoProCalibration(BaseCalibration)` + `write_calibration_results` — robot/dataset-specific overrides |
 | `generate_urdf.py` | Post-process a container-generated URDF → portable |
-| `view_robot.py` | Visualize robot in Viser |
+| `view_robot.py` | Visualize robot in Viser, with per-DOF sliders and frame highlighting |
 | `generate_optimal_configs.py` | D-optimal config selection |
+| `visualize_optimal_configs.py` | Replay a saved `data/optimal_configs.yaml` in Viser without regenerating it |
 | `config/tiago_pro_calibration_config.yaml` | Figaroh calibration config |
 | `urdf/tiago_pro.urdf` | Portable URDF (used by scripts) |
 | `urdf/tiago_pro_container.urdf` | Raw URDF as generated on the robot |
 | `urdf/tiago_pro.srdf` | Collision pairs |
 | `urdf/calibration_offset.urdf.xacro` | PAL calibration xacro template/reference |
 | `tiago_pro_description.repos` | VCS repos for the full upstream mesh packages (optional; a curated mesh subset is already in `../../models/`) |
-| `data/calibration_samples_*.csv` | Real calibration data logs |
-| `data/calibration_results_*.yaml` | Reference calibration results for the above logs |
+| `data/calibration_samples_20260805_1246.csv` | Real calibration data log, full 6DOF pose (current default) |
+| `data/calibration_samples_2026070*.csv` | Earlier, position-only logs (frozen historical reference — see note above) |
+| `data/calibration_results_*.yaml` | Reference calibration results for the logs above |
+| `data/calibration_reliability_20260805.md` | Per-parameter statistical significance + held-out train/test validation study |
 | `data/optimal_configs.yaml` | Pre-generated D-optimal configuration set |
-| `data/master_calibration_20260702.yaml`, `data/calibration_application_20260702.md` | Deployment provenance for the reference run |
+| `data/mocap_frame_correction_20260805.md`, `data/master_calibration_20260805*.yaml` | Deployment provenance for the current reference run (`_conservative` = ≥2σ subset only) |
+| `data/master_calibration_20260702.yaml`, `data/calibration_application_20260702.md` | Deployment provenance for the earlier, position-only reference run |
 | `results/runs/<asset>/calibration/<timestamp>/` | Per-run archive: `report.html`, `provenance.json`, `config.snapshot.yaml`, `parameters.csv` |
 | `results/runs/index.jsonl` | Append-only one-line-per-run summary index |

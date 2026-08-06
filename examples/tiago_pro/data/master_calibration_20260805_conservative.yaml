@@ -1,0 +1,33 @@
+# Generated from calibration_results_20260805_1246.yaml
+# (48 samples, position RMSE 7.93mm/MAE 7.28mm, orientation RMSE 2.18°/MAE 1.89°)
+# Deploy to /etc/calibration/master_calibration.yaml on the robot.
+#
+# CONSERVATIVE variant: only parameters with statistical significance >=2sigma
+# are included (see calibration_reliability_20260805.md for the full table
+# with standard errors). Everything else (~22 of 38 params, mostly per-joint
+# translations d_px/d_py/d_pz) is within measurement noise given only 48
+# samples and is deliberately left out — applying them would encode mocap
+# noise as if it were a mechanical correction. Recollect more data to
+# tighten those before adding them.
+#
+# Validated (not just theoretical): a held-out train/test split (4 random
+# splits) showed this variant generalizes ~1.6x better on unseen poses than
+# the full 38-param fit (mean 21.2mm vs 34.5mm position RMSE) and is much
+# more stable across splits — see the "Validation" section in
+# calibration_reliability_20260805.md.
+#
+# Not included (same as the full variant):
+#   - base_*_torso: mocap->universe / torso_lift_joint own placement merged,
+#     not a pure robot calibration value.
+#   - pEE*/phiEE*: mocap marker offset, not a robot joint — see
+#     mocap_frame_correction_20260805.md.
+#   - gripper_right_tool_mount_joint: no longer has its own params.
+robot_state_publisher:
+  geometric_calibration:
+    arm_right_3_droll: 0.005062436623717302    # 2.08 sigma
+    arm_right_3_dyaw: -0.018869015175848863    # 9.70 sigma
+    arm_right_4_dyaw: 0.032881212525239456     # 11.57 sigma
+    arm_right_6_droll: -0.005596288257721061   # 2.74 sigma
+    arm_right_6_dpitch: 0.014628972064360047   # 11.59 sigma
+    arm_right_6_dyaw: -0.014787161044501548    # 5.68 sigma
+    arm_right_7_dyaw: 0.01462649640789992      # 11.31 sigma

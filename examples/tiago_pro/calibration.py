@@ -11,16 +11,24 @@ Migrated from the standalone `figaroh_tiagoPro` repo. TiagoProCalibration
 subclasses `figaroh.calibration.base_calibration.BaseCalibration`, the same
 pattern the `tiago` example's TiagoCalibration uses — see
 `utils/tiago_pro_tools.py` for the overrides genuinely specific to this
-robot/dataset. Numerically re-verified after migration: RMSE 6.46 mm / MAE
-4.95 mm, 94 samples (vs. RMSE 6.46 mm / MAE 4.94 mm pre-migration — see
-`data/calibration_results_20260702_0756.yaml`, the frozen pre-migration
-reference).
+robot/dataset.
+
+As of 2026-08-06, the default config measures full EE pose (position +
+orientation, not just position) and the marker offset is estimated
+relative to `gripper_right_pal_atc_base_link` rather than
+`gripper_right_tool_holder` — see the comments in
+`config/tiago_pro_calibration_config.yaml` for why. Reference run: 48
+samples, position RMSE ~7.9 mm / MAE ~7.3 mm, orientation RMSE ~2.2 deg /
+MAE ~1.9 deg — see `data/calibration_results_20260805_1246.yaml`. The
+earlier position-only reference run (94 samples, RMSE 6.46 mm / MAE 4.95
+mm — `data/calibration_results_20260702_0756.yaml`) still runs, just not
+as the default `--data`/`--config`.
 
 Usage:
-    python3 calibration.py --data data/calibration_samples_20260702_0756.csv
+    python3 calibration.py --data data/calibration_samples_20260805_1246.csv
     python3 calibration.py \\
         --urdf urdf/tiago_pro.urdf \\
-        --data data/calibration_samples_20260702_0756.csv \\
+        --data data/calibration_samples_20260805_1246.csv \\
         --output data/calibration_results.yaml
 """
 
@@ -45,7 +53,7 @@ from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
 _HERE = Path(__file__).parent
 _URDF_DEFAULT = _HERE / "urdf" / "tiago_pro.urdf"
 _CONFIG_DEFAULT = _HERE / "config" / "tiago_pro_calibration_config.yaml"
-_DATA_DEFAULT = _HERE / "data" / "calibration_samples_20260702_0756.csv"
+_DATA_DEFAULT = _HERE / "data" / "calibration_samples_20260805_1246.csv"
 _OUT_DEFAULT = _HERE / "data" / "calibration_results.yaml"
 
 
