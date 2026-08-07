@@ -1,0 +1,61 @@
+# Figaroh calibration config for Tiago Pro — right arm geometric calibration.
+#
+# Goal: identify full kinematic parameters for the chain
+#   base_footprint -> gripper_right_tool_holder
+# using external EE pose measurements (Qualisys mocap or any other source).
+#
+# Identified parameters (full_params level, known_baseframe=False):
+#   6 DOF base frame pose  (mocap frame -> base_footprint, estimated)
+#   DH params per joint (a, d, alpha, theta offset) for torso + arm_right_1..7
+#   pEEx_1, pEEy_1, pEEz_1, phiEEx_1, phiEEy_1, phiEEz_1 — marker pose relative
+#   to tool_frame (see below)
+#
+# tiago_endEffector is a full 6DOF Qualisys rigid body (same as tiago_base),
+# already used for orientation by mocap_ee_publisher.py/mocap_mpc_corrector.py
+# in production — collect_calibration_data.py now records phix1/phiy1/phiz1
+# too, so the full pose is used here instead of position-only.
+#
+# tool_frame is gripper_right_pal_atc_base_link, NOT gripper_right_tool_holder:
+# everything downstream of arm_right_7_joint down to the marker is rigid and
+# never independently excited in the data (gripper_right_tool_mount_joint is
+# continuous but always recorded at q=0, and every joint origin in that segment
+# has rpy="0 0 0" — pure translation, no rotation). Giving that joint its own
+# d_px..d_phiz params would make them EXACTLY collinear with pEE/phiEE (same
+# regressor columns, not just ill-conditioned) — figaroh's QR base-parameter
+# selection would arbitrarily pick one representative. Stopping the FK chain
+# before that joint lets pEE/phiEE be the single, physically-meaningful owner
+# of that whole fixed offset (mount + tool_holder + true marker mounting).
+#
+# NOTE: joint names in this file must match the Pinocchio model names exactly.
+# Run collect_calibration_data.py with --print-joint-names to verify.
+---
+calibration:
+  calib_level: full_params
+  non_geom: False
+  base_frame: universe
+  tool_frame: gripper_right_pal_atc_base_link
+  markers:
+    - ref_joint: arm_right_7_joint
+      measure: [True, True, True, True, True, True]   # full pose (position + orientation)
+  free_flyer: False
+  # known_baseframe/known_tipframe are NOT read from this YAML by figaroh-plus
+  # (neither the legacy nor unified parser populates them) -- they're set in
+  # TiagoProCalibration.__init__ (run_calibration.py). Both False here: the
+  # mocap->universe transform and the marker mount are co-estimated
+  # (base_px..base_phiz / pEE*, phiEE*), not known a priori.
+  # base_pose: initial guess for mocap->base_footprint transform [tx, ty, tz, rx, ry, rz] (m, rad)
+  # Get value by running: python3 scripts/qualisys.py discover  → position of tiago_base body
+  base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  # tip_pose: initial guess for marker pose rel. to tool_frame (meters, RPY).
+  # Nominal known offset gripper_right_pal_atc_base_link -> gripper_right_tool_holder
+  # = mount_joint origin (0,0,0.10325) + tool_holder_joint origin (0,0,0.038678),
+  # both rpy=0 -> z = 0.141928 m. Seeding this (instead of 0) keeps LM close to
+  # the true solution for that ~14cm known offset; the true marker mount is a
+  # small residual on top of it.
+  tip_pose: [0.0, 0.0, 0.141928, 0.0, 0.0, 0.0]
+  coeff_regularize: 0.01           # L2 regularization weight on joint params
+  outlier_eps: 0.05                # samples with error > 5cm are removed iteratively
+  data_file: data/calibration_samples.csv
+  sample_configs_file: null
+  nb_sample: 100
+...
