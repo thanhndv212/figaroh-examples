@@ -65,6 +65,9 @@ from figaroh.tools.urdf_exporter import (  # noqa: E402
     frame_settings_doc,
 )
 from figaroh.tools.export_validation import URDFComparison  # noqa: E402
+from figaroh.tools.geometric_calibration_export import (  # noqa: E402
+    export_geometric_calibration_yaml,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -313,6 +316,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--geometric-calibration-yaml",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Export the PAL robot_state_publisher geometric_calibration "
+            "deploy YAML (full + conservative/>=2sigma variants) to the "
+            "run directory after calibration. Use "
+            "--no-geometric-calibration-yaml to skip."
+        ),
+    )
+    parser.add_argument(
         "--asset-id",
         type=str,
         default=None,
@@ -361,6 +375,7 @@ def _run_calibration(
     verbose: bool = False,
     validation_data: str | None = None,
     html_report: bool = False,
+    geometric_calibration_yaml: bool = True,
     asset_id: str | None = None,
     operator: str | None = None,
     archive: bool = False,
@@ -398,11 +413,27 @@ def _run_calibration(
 
     # V&V report suite: compute path once, write directly
     run_dir = None
-    if html_report or archive:
+    if html_report or geometric_calibration_yaml or archive:
         run_dir = compute_run_dir(calib)
 
     if html_report:
         calib.export_html_report(output_path=str(run_dir / "report.html"))
+
+    if geometric_calibration_yaml:
+        try:
+            export_geometric_calibration_yaml(
+                calib, str(run_dir / "master_calibration.yaml"),
+                header_comment="TALOS calibration -- full",
+            )
+            export_geometric_calibration_yaml(
+                calib,
+                str(run_dir / "master_calibration_conservative.yaml"),
+                min_sigma=2.0,
+                header_comment="TALOS calibration -- conservative (>=2sigma)",
+            )
+            print(f"Geometric calibration YAML written to {run_dir}")
+        except Exception as e:
+            logger.warning("Skipping geometric_calibration_yaml export: %s", e)
 
     if archive:
         archive_run(calib, run_dir)
@@ -634,6 +665,7 @@ def main() -> None:
                 verbose=args.verbose,
                 validation_data=args.validation_data,
                 html_report=args.html_report,
+                geometric_calibration_yaml=args.geometric_calibration_yaml,
                 asset_id=args.asset_id,
                 operator=args.operator,
                 archive=args.archive,

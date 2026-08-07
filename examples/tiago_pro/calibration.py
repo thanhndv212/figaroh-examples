@@ -49,6 +49,9 @@ from examples.tiago_pro.utils.tiago_pro_tools import (  # noqa: E402
     write_calibration_results,
 )
 from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
+from figaroh.tools.geometric_calibration_export import (  # noqa: E402
+    export_geometric_calibration_yaml,
+)
 
 _HERE = Path(__file__).parent
 _URDF_DEFAULT = _HERE / "urdf" / "tiago_pro.urdf"
@@ -77,6 +80,17 @@ def main():
         help=(
             "Export a self-contained HTML diagnostic report to the run "
             "directory after calibration. Use --no-html-report to skip."
+        ),
+    )
+    parser.add_argument(
+        "--geometric-calibration-yaml",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Export the PAL robot_state_publisher geometric_calibration "
+            "deploy YAML (full + conservative/>=2sigma variants) to the "
+            "run directory after calibration. Use "
+            "--no-geometric-calibration-yaml to skip."
         ),
     )
     parser.add_argument(
@@ -137,12 +151,28 @@ def main():
     write_calibration_results(calib, args.output)
 
     run_dir = None
-    if args.html_report or args.archive:
+    if args.html_report or args.geometric_calibration_yaml or args.archive:
         run_dir = compute_run_dir(calib)
 
     if args.html_report:
         calib.export_html_report(output_path=str(run_dir / "report.html"))
         print(f"HTML quality report written to {run_dir / 'report.html'}")
+
+    if args.geometric_calibration_yaml:
+        try:
+            export_geometric_calibration_yaml(
+                calib, str(run_dir / "master_calibration.yaml"),
+                header_comment="Tiago Pro calibration -- full",
+            )
+            export_geometric_calibration_yaml(
+                calib,
+                str(run_dir / "master_calibration_conservative.yaml"),
+                min_sigma=2.0,
+                header_comment="Tiago Pro calibration -- conservative (>=2sigma)",
+            )
+            print(f"Geometric calibration YAML written to {run_dir}")
+        except Exception as e:
+            print(f"Skipping geometric_calibration_yaml export: {e}")
 
     if args.archive:
         archive_run(calib, run_dir)
