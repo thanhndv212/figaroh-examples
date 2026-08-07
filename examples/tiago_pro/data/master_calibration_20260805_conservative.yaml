@@ -1,0 +1,37 @@
+# Generated from calibration_results_20260805_1246.yaml (migrated run:
+# figaroh-plus v0.4.7, BaseCalibration + SE3 log-map residuals)
+# Deploy to /etc/calibration/master_calibration.yaml on the robot.
+#
+# CONSERVATIVE variant: drops the 9/38 params below 1 sigma (indistinguishable
+# from noise given 48 samples) -- see calibration_reliability_20260805.md.
+# Threshold loosened from the previous run's >=2sigma gate to >=1sigma: the
+# SE3 log-map fix (vs. the legacy script's RPY-wraparound patch) genuinely
+# tightened most parameter estimates -- 22/38 are now >=3sigma "solid" (was
+# 8/38) -- and a held-out validation re-check (4 random 36/12 splits) found
+# the full 38-param set no longer generalizes meaningfully worse than a
+# restricted subset (~33-34mm mean either way on held-out data), unlike the
+# earlier run where the gap was ~1.6x. Only the genuine <1sigma noise floor
+# is excluded here, not everything below 2sigma.
+#
+# Not included (same as the full variant): base_*, pEE*/phiEE*,
+# gripper_right_tool_mount_joint — see master_calibration_20260805.yaml's
+# header for why.
+robot_state_publisher:
+  geometric_calibration:
+    arm_right_2_dx: 0.0004909698755662188        # 1.64 sigma
+    arm_right_2_dy: 0.0012467253766651702         # 3.10 sigma
+    arm_right_2_droll: -0.0037875308081525526     # 11.53 sigma
+    arm_right_3_dy: -0.0012511843469979727        # 2.57 sigma
+    arm_right_3_droll: 0.010192000690019354       # 30.11 sigma
+    arm_right_4_dx: 0.001871508267017465          # 5.07 sigma
+    arm_right_4_dy: 0.0008619307706199845         # 2.76 sigma
+    arm_right_4_droll: -0.0016983980924235385     # 5.50 sigma
+    arm_right_4_dyaw: 0.024763870739137675        # 67.50 sigma
+    arm_right_5_dx: -0.004722589095151311         # 12.67 sigma
+    arm_right_5_droll: -0.0012248152914815086     # 3.42 sigma
+    arm_right_6_dx: -0.0004686296927352342        # 1.46 sigma
+    arm_right_6_droll: -0.00850007737938395       # 28.76 sigma
+    arm_right_6_dpitch: -0.10066064639460819      # 8.32 sigma
+    arm_right_7_dx: 0.008233344637611316          # 9.82 sigma
+    arm_right_7_droll: 0.001204223441737454       # 3.85 sigma
+    arm_right_7_dyaw: 0.13039484111794947         # 10.78 sigma

@@ -1,0 +1,161 @@
+metadata:
+  position_rmse_mm: 7.111
+  position_mae_mm: 6.551
+  orientation_rmse_deg: 1.9168
+  orientation_mae_deg: 1.6739
+  n_samples: 48
+  n_outliers: 1
+  condition_number: 201.6329909957938
+calibrated_parameters:
+  base_px:
+    value: -0.0070394345445247255
+    std_dev: 0.0013831802673837047
+    unit: m
+  base_py:
+    value: -0.004759309499010701
+    std_dev: 0.002968616201249185
+    unit: m
+  base_pz:
+    value: 0.011620376817893546
+    std_dev: 0.0005151127990349674
+    unit: m
+  base_phix:
+    value: -0.007005149340123186
+    std_dev: 0.0030826946710463903
+    unit: rad
+  base_phiy:
+    value: 0.005386899757531642
+    std_dev: 0.0011615050468174154
+    unit: rad
+  base_phiz:
+    value: 0.006334926494757165
+    std_dev: 0.0018162214906131454
+    unit: rad
+  d_px_arm_right_2_joint:
+    value: 0.0004909698755662188
+    std_dev: 0.00029880867182800535
+    unit: m
+  d_py_arm_right_2_joint:
+    value: 0.0012467253766651702
+    std_dev: 0.0004022265716116258
+    unit: m
+  d_phix_arm_right_2_joint:
+    value: -0.0037875308081525526
+    std_dev: 0.00032848596704805247
+    unit: rad
+  d_phiy_arm_right_2_joint:
+    value: -0.011312216355148088
+    std_dev: 0.012526679680440007
+    unit: rad
+  d_phiz_arm_right_2_joint:
+    value: -0.0026593993465387593
+    std_dev: 0.0037808620865544046
+    unit: rad
+  d_px_arm_right_3_joint:
+    value: -0.0006709514434775216
+    std_dev: 0.002181479535153692
+    unit: m
+  d_py_arm_right_3_joint:
+    value: -0.0012511843469979727
+    std_dev: 0.0004864028669461763
+    unit: m
+  d_phix_arm_right_3_joint:
+    value: 0.010192000690019354
+    std_dev: 0.000338514781180067
+    unit: rad
+  d_phiz_arm_right_3_joint:
+    value: -0.011162946498644136
+    std_dev: 0.012526957967569599
+    unit: rad
+  d_px_arm_right_4_joint:
+    value: 0.001871508267017465
+    std_dev: 0.0003688646556495477
+    unit: m
+  d_py_arm_right_4_joint:
+    value: 0.0008619307706199845
+    std_dev: 0.00031205743028754986
+    unit: m
+  d_phix_arm_right_4_joint:
+    value: -0.0016983980924235385
+    std_dev: 0.0003089903208834344
+    unit: rad
+  d_phiz_arm_right_4_joint:
+    value: 0.024763870739137675
+    std_dev: 0.00036688741169791267
+    unit: rad
+  d_px_arm_right_5_joint:
+    value: -0.004722589095151311
+    std_dev: 0.0003728240434278594
+    unit: m
+  d_py_arm_right_5_joint:
+    value: 0.00021302765918244755
+    std_dev: 0.01262051863117378
+    unit: m
+  d_phix_arm_right_5_joint:
+    value: -0.0012248152914815086
+    std_dev: 0.0003586281469894268
+    unit: rad
+  d_px_arm_right_6_joint:
+    value: -0.0004686296927352342
+    std_dev: 0.00032098880949783435
+    unit: m
+  d_py_arm_right_6_joint:
+    value: -0.00010577050271616976
+    std_dev: 0.012619587018624262
+    unit: m
+  d_pz_arm_right_6_joint:
+    value: 0.0002120238854559124
+    std_dev: 0.012620527994470625
+    unit: m
+  d_phix_arm_right_6_joint:
+    value: -0.00850007737938395
+    std_dev: 0.0002955308779900517
+    unit: rad
+  d_phiy_arm_right_6_joint:
+    value: -0.10066064639460819
+    std_dev: 0.012095400933032883
+    unit: rad
+  d_px_arm_right_7_joint:
+    value: 0.008233344637611316
+    std_dev: 0.0008380019860095544
+    unit: m
+  d_pz_arm_right_7_joint:
+    value: 0.00010407339748473238
+    std_dev: 0.012620077667209923
+    unit: m
+  d_phix_arm_right_7_joint:
+    value: 0.001204223441737454
+    std_dev: 0.000312433444124954
+    unit: rad
+  d_phiy_arm_right_7_joint:
+    value: -0.00015744467147534954
+    std_dev: 0.017845841714684164
+    unit: rad
+  d_phiz_arm_right_7_joint:
+    value: 0.13039484111794947
+    std_dev: 0.012100605805741928
+    unit: rad
+  pEEx_1:
+    value: -0.004672157094272131
+    std_dev: 0.0003086206616715107
+    unit: m
+  pEEy_1:
+    value: -0.0010321812938915915
+    std_dev: 0.00031125276549182356
+    unit: m
+  pEEz_1:
+    value: 0.1287760134809472
+    std_dev: 0.0009998343028458309
+    unit: m
+  phiEEx_1:
+    value: -0.019201082697614492
+    std_dev: 0.00030108688921015716
+    unit: rad
+  phiEEy_1:
+    value: -0.006209330308195395
+    std_dev: 0.0002942580981203216
+    unit: rad
+  phiEEz_1:
+    value: 0.033893729987488824
+    std_dev: 0.017847954434042967
+    unit: rad

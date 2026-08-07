@@ -1,0 +1,52 @@
+# Generated from calibration_results_20260805_1246.yaml (migrated run:
+# figaroh-plus v0.4.7, BaseCalibration + SE3 log-map residuals — see
+# run_calibration.py / calibration_reliability_20260805.md)
+# (48 samples, 1 outlier flagged (not excluded), position RMSE 7.11mm/MAE
+# 6.55mm, orientation RMSE 1.92deg/MAE 1.67deg)
+# Deploy to /etc/calibration/master_calibration.yaml on the robot.
+#
+# See calibration_reliability_20260805.md for the per-param significance
+# (sigma) breakdown. Consider master_calibration_20260805_conservative.yaml
+# instead, which drops the 9/38 params below 1 sigma (pure noise given 48
+# samples) -- unlike the previous (legacy-script) run, held-out validation
+# here shows negligible difference between the full and conservative sets
+# (~33-34mm mean either way on 12-sample held-out splits), because the
+# SE3 log-map fix genuinely tightened most parameter estimates rather than
+# leaving them noise-dominated. The conservative variant is still offered
+# as the safer default; deploying all 38 is no longer the risk it was.
+#
+# Not included:
+#   - base_*: mocap->universe / torso_lift_joint own placement merged
+#     (known_baseframe=False), not a pure robot calibration value.
+#   - pEE*/phiEE*: mocap marker offset, not a robot joint — see
+#     mocap_frame_correction_20260805.md.
+#   - gripper_right_tool_mount_joint: no longer has its own params
+#     (tool_frame=gripper_right_pal_atc_base_link excludes it).
+robot_state_publisher:
+  geometric_calibration:
+    arm_right_2_dx: 0.0004909698755662188        # 1.64 sigma, marginal
+    arm_right_2_dy: 0.0012467253766651702         # 3.10 sigma, solid
+    arm_right_2_droll: -0.0037875308081525526     # 11.53 sigma, solid
+    arm_right_2_dpitch: -0.011312216355148088     # 0.90 sigma, noise
+    arm_right_2_dyaw: -0.0026593993465387593      # 0.70 sigma, noise
+    arm_right_3_dx: -0.0006709514434775216        # 0.31 sigma, noise
+    arm_right_3_dy: -0.0012511843469979727        # 2.57 sigma, acceptable
+    arm_right_3_droll: 0.010192000690019354       # 30.11 sigma, solid
+    arm_right_3_dyaw: -0.011162946498644136       # 0.89 sigma, noise
+    arm_right_4_dx: 0.001871508267017465          # 5.07 sigma, solid
+    arm_right_4_dy: 0.0008619307706199845         # 2.76 sigma, acceptable
+    arm_right_4_droll: -0.0016983980924235385     # 5.50 sigma, solid
+    arm_right_4_dyaw: 0.024763870739137675        # 67.50 sigma, solid
+    arm_right_5_dx: -0.004722589095151311         # 12.67 sigma, solid
+    arm_right_5_dy: 0.00021302765918244755        # 0.02 sigma, noise
+    arm_right_5_droll: -0.0012248152914815086     # 3.42 sigma, solid
+    arm_right_6_dx: -0.0004686296927352342        # 1.46 sigma, marginal
+    arm_right_6_dy: -0.00010577050271616976       # 0.01 sigma, noise
+    arm_right_6_dz: 0.0002120238854559124          # 0.02 sigma, noise
+    arm_right_6_droll: -0.00850007737938395       # 28.76 sigma, solid
+    arm_right_6_dpitch: -0.10066064639460819      # 8.32 sigma, solid
+    arm_right_7_dx: 0.008233344637611316          # 9.82 sigma, solid
+    arm_right_7_dz: 0.00010407339748473238         # 0.01 sigma, noise
+    arm_right_7_droll: 0.001204223441737454       # 3.85 sigma, solid
+    arm_right_7_dpitch: -0.00015744467147534954   # 0.01 sigma, noise
+    arm_right_7_dyaw: 0.13039484111794947         # 10.78 sigma, solid
