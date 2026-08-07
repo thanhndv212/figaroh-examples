@@ -410,22 +410,24 @@ def _run_calibration(
     np.savez(saved_path, result=result.x, param_names=param_names)
     print(f"Calibration results saved to {saved_path}")
 
-    # Print log-map residual statistics (full 6-DOF: position + orientation)
-    PEE_est = ur10_calib.get_pose_from_measure(result.x)
-    residuals = ur10_calib._compute_logmap_residuals(
-        ur10_calib.PEE_measured, PEE_est
-    )
-    calib_config = ur10_calib.calib_config
-    n_dofs = calib_config["calibration_index"]
-    n_samples = calib_config["NbSample"]
-    residuals_2d = residuals.reshape((n_dofs, n_samples))
-    rmse_pos = np.sqrt(np.mean(np.sum(residuals_2d[:3] ** 2, axis=0)))
-    rmse_orient = np.sqrt(np.mean(np.sum(residuals_2d[3:] ** 2, axis=0)))
-    rmse = np.sqrt(np.mean(residuals**2))
+    # Post-calibration residual summary -- read from evaluation_metrics
+    # (already computed and printed in more detail by print_quality_report()
+    # inside solve()) rather than recomputing independently, so there's a
+    # single source of truth for "RMSE" instead of several numbers that
+    # used to differ depending on which convention each computation
+    # happened to use.
+    metrics = ur10_calib.evaluation_metrics
+    overall = metrics["per_dof_stats"]["overall"]
     print(f"\nPost-calibration residual statistics (log map):")
-    print(f"  Position RMSE:    {rmse_pos * 1000:.2f} mm")
-    print(f"  Orientation RMSE: {rmse_orient * 180 / np.pi:.4f} deg")
-    print(f"  Overall RMSE:     {rmse:.6f}")
+    print(f"  Position RMSE:    {overall['pos_rmse_mm']:.2f} mm")
+    print(f"  Orientation RMSE: {overall['orient_rmse_deg']:.4f} deg")
+    print(f"  Position MAE:     {overall['pos_mae_mm']:.2f} mm")
+    print(f"  Orientation MAE:  {overall['orient_mae_deg']:.4f} deg")
+    # Combined 6-DOF aggregate -- mixes position (m) and orientation (rad)
+    # into one norm, unlike the position-only/orientation-only figures
+    # above; kept for backward compatibility with saved .npz comparisons.
+    print(f"  Overall RMSE:     {metrics['rmse']:.6f}")
+    print(f"  Overall MAE:      {metrics['mae']:.6f}")
 
     return result.x, param_names, saved_path
 
