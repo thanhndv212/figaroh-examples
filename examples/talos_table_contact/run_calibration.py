@@ -47,6 +47,11 @@ from generate_synthetic_data import (
     build_dataset,
 )
 from utils.talos_table_tools import TalosTableContactCalibration
+from export_report import (
+    build_single_chain_report,
+    write_html_report,
+    write_yaml_report,
+)
 
 from figaroh.calibration.calibration_tools import cartesian_to_SE3
 
@@ -99,7 +104,22 @@ def main():
         default=0.0,
         help="Joint-encoder noise std, in degrees (0 = noiseless).",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="If set, write a YAML + HTML calibration report here "
+        "(default: results/, use --no-save-results to skip).",
+    )
+    parser.add_argument(
+        "--no-save-results",
+        action="store_true",
+        help="Don't write any report files, just print to stdout.",
+    )
     args = parser.parse_args()
+    output_dir = None
+    if not args.no_save_results:
+        output_dir = args.output_dir or str(HERE / "results")
 
     if args.regenerate or not (DATA_DIR / "table_contact_train.csv").exists():
         df_train, df_val, ground_truth, robot = build_dataset(
@@ -158,12 +178,33 @@ def main():
         "Training-set gap (postures the solver saw):", train_before, train_after
     )
 
+    n_train = len(df_train)
     _load_split(calib, df_val)
     val_before = calib.gap_metrics(var0)
     val_after = calib.gap_metrics(result.x)
     _print_metrics(
         "Held-out validation gap (postures it never saw):", val_before, val_after
     )
+
+    if output_dir is not None:
+        report = build_single_chain_report(
+            calib,
+            result,
+            train_before,
+            train_after,
+            val_before,
+            val_after,
+            n_train=n_train,
+            n_val=len(df_val),
+        )
+        write_yaml_report(
+            report, str(Path(output_dir) / "synthetic_calibration_report.yaml")
+        )
+        write_html_report(
+            report,
+            str(Path(output_dir) / "synthetic_calibration_report.html"),
+            title="TALOS Table-Contact Calibration -- Left Chain (Synthetic)",
+        )
 
     split = calib.split_params(result.x)
     print(

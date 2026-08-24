@@ -58,6 +58,8 @@ Stack-of-Tasks repo, not part of FIGAROH; see "What's not here" below).
   estimates.
 - `run_calibration_real_data.py` -- runs the same calibration against
   **real hardware data** -- see "Real-hardware validation" below.
+- `export_report.py` -- writes the YAML + HTML calibration-results
+  report both scripts produce by default -- see "Results report" below.
 - `config/talos_table_left_config.yaml` / `talos_table_right_config.yaml`
   -- legacy-format FIGAROH config for the left and right chains (see "Why
   legacy config, not unified" below).
@@ -88,15 +90,54 @@ python run_calibration.py
 # Resynthesize synthetic data with realistic joint-encoder noise
 python run_calibration.py --regenerate --noise-deg 0.05 --seed 42
 
-# Calibrate against real hardware data (left, right, and two-chain)
+# Calibrate against real hardware data (left, right, and two-chain);
+# writes results/{left,right,two_chain}_calibration_report.{yaml,html}
 python run_calibration_real_data.py
+
+# Same reports for the synthetic run -> results/synthetic_calibration_report.{yaml,html}
+python run_calibration.py
+
+# Skip writing report files, print to stdout only
+python run_calibration_real_data.py --no-save-results
 
 # Round-trip / validation test suites (from the figaroh-examples root)
 cd ../..
 pytest tests/test_talos_table_contact.py -v               # single-chain, synthetic
 pytest tests/test_talos_table_contact_multichain.py -v    # two-chain, synthetic
 pytest tests/test_talos_table_contact_real_data.py -v     # real hardware data
+pytest tests/test_export_report.py -v                     # results-report export
 ```
+
+### Results report
+
+`run_calibration.py` and `run_calibration_real_data.py` both write a
+calibration-results report by default, `results/<name>_calibration_report.{yaml,html}`
+-- the same `metadata` / `calibrated_parameters` YAML shape
+`examples/tiago_pro/run_calibration.py`'s `write_calibration_results`
+uses, plus a self-contained HTML summary (before/after gap tables,
+calibrated-parameter values and standard errors). `--output-dir <path>`
+changes the destination; `--no-save-results` skips writing files
+entirely.
+
+This is built by `export_report.py` rather than reusing core FIGAROH's
+`BaseCalibration.export_html_report`/`generate_calibration_report`
+directly (as `examples/tiago/calibration.py` does): that pipeline is
+built around `solve()`'s own residual model (`self.PEE_measured`, a
+6-DOF-per-sample pose comparison, `calc_stddev()`'s divisor assuming
+exactly `NbSample * calibration_index` residuals) which
+`TalosTableContactCalibration.cost_function()` deliberately doesn't
+share (a 3-DOF gap target-is-zero residual plus a regularization tail --
+see "The idea, in one paragraph" above) and bypasses `solve()` entirely.
+`export_report.py` computes the same *kind* of information -- RMSE/MAE,
+parameter standard deviation via the identical linearized-uncertainty
+formula core's `calc_stddev` uses, condition number -- from this class's
+own gap-based residual instead of forcing an incompatible pipeline to
+work. One consequence worth knowing: when the measurement count barely
+exceeds the parameter count (the real left chain's 21 postures &times; 3
+measured DOF = 63, almost exactly its 63 total parameters), the
+degrees-of-freedom denominator in that formula hits zero and `std_dev`
+is reported as `null` rather than a fabricated number -- an honest
+"not enough data to estimate uncertainty here", not a bug.
 
 ## Verification & validation
 

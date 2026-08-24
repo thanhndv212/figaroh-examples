@@ -60,6 +60,12 @@ from generate_synthetic_data import (
     _load_robot,
 )
 from utils.talos_table_tools import MultiChainCalibration, TalosTableContactCalibration
+from export_report import (
+    build_single_chain_report,
+    build_two_chain_report,
+    write_html_report,
+    write_yaml_report,
+)
 
 HERE = Path(__file__).parent
 DATA_DIR = HERE / "data" / "real"
@@ -180,16 +186,17 @@ def _build_chain(robot, config_path, train_csv):
     return calib
 
 
-def _run_single_chain(label, robot, config_path, train_csv, val_csv):
+def _run_single_chain(label, robot, config_path, train_csv, val_csv, output_dir=None):
     print(f"\n{'=' * 60}\n{label}\n{'=' * 60}")
     calib = _build_chain(robot, config_path, train_csv)
+    n_train = calib._fk_config["NbSample"]
     df_val = _load_real_touches(val_csv)
 
     print(
         f"Chain: {calib.calib_config['start_frame']} -> "
         f"{calib.calib_config['end_frame']}"
     )
-    print(f"Training postures:   {calib._fk_config['NbSample']}")
+    print(f"Training postures:   {n_train}")
     print(f"Validation postures: {len(df_val)}")
     print(f"Identifiable joint-placement (Delta X) parameters: {calib.n_deltaX}")
 
@@ -224,13 +231,37 @@ def _run_single_chain(label, robot, config_path, train_csv, val_csv):
         f"phix={np.rad2deg(contact['contact_phix']):+.4f}deg "
         f"thetay={np.rad2deg(contact['contact_thetay']):+.4f}deg"
     )
+
+    if output_dir is not None:
+        side = "left" if "left" in str(train_csv) else "right"
+        report = build_single_chain_report(
+            calib,
+            result,
+            train_before,
+            train_after,
+            val_before,
+            val_after,
+            n_train=n_train,
+            n_val=len(df_val),
+        )
+        write_yaml_report(
+            report, str(Path(output_dir) / f"{side}_calibration_report.yaml")
+        )
+        write_html_report(
+            report,
+            str(Path(output_dir) / f"{side}_calibration_report.html"),
+            title=f"TALOS Table-Contact Calibration -- {side.title()} Chain (Real Data)",
+        )
+
     return calib, result
 
 
-def _run_two_chain(robot):
+def _run_two_chain(robot, output_dir=None):
     print(f"\n{'=' * 60}\nTwo-chain, shared torso (real data)\n{'=' * 60}")
     calib_left = _build_chain(robot, LEFT_CONFIG, DATA_DIR / "left_train.csv")
     calib_right = _build_chain(robot, RIGHT_CONFIG, DATA_DIR / "right_train.csv")
+    n_train_left = calib_left._fk_config["NbSample"]
+    n_train_right = calib_right._fk_config["NbSample"]
     coupler = MultiChainCalibration(calib_left, calib_right)
 
     print(f"Left Delta X: {calib_left.n_deltaX}  Right Delta X: {calib_right.n_deltaX}")
@@ -255,8 +286,50 @@ def _run_two_chain(robot):
     _print_metrics("Left held-out gap:", val_before["left"], val_after["left"])
     _print_metrics("Right held-out gap:", val_before["right"], val_after["right"])
 
+    if output_dir is not None:
+        report = build_two_chain_report(
+            coupler,
+            result,
+            train_before,
+            train_after,
+            val_before,
+            val_after,
+            n_train_left=n_train_left,
+            n_train_right=n_train_right,
+            n_val_left=len(df_left_val),
+            n_val_right=len(df_right_val),
+        )
+        write_yaml_report(
+            report, str(Path(output_dir) / "two_chain_calibration_report.yaml")
+        )
+        write_html_report(
+            report,
+            str(Path(output_dir) / "two_chain_calibration_report.html"),
+            title="TALOS Table-Contact Calibration -- Two-Chain Shared Torso (Real Data)",
+        )
+
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="If set, write YAML + HTML calibration reports here "
+        "(default: results/, use --no-save-results to skip).",
+    )
+    parser.add_argument(
+        "--no-save-results",
+        action="store_true",
+        help="Don't write any report files, just print to stdout.",
+    )
+    args = parser.parse_args()
+    output_dir = None
+    if not args.no_save_results:
+        output_dir = args.output_dir or str(HERE / "results")
+
     robot = _load_robot()
 
     _run_single_chain(
@@ -265,6 +338,7 @@ def main():
         LEFT_CONFIG,
         DATA_DIR / "left_train.csv",
         DATA_DIR / "left_validation.csv",
+        output_dir=output_dir,
     )
     _run_single_chain(
         "Right chain (real data: right_sole_link -> gripper_right_base_link)",
@@ -272,8 +346,9 @@ def main():
         RIGHT_CONFIG,
         DATA_DIR / "right_train.csv",
         DATA_DIR / "right_validation.csv",
+        output_dir=output_dir,
     )
-    _run_two_chain(robot)
+    _run_two_chain(robot, output_dir=output_dir)
 
 
 if __name__ == "__main__":
