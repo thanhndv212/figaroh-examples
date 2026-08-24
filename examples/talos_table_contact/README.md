@@ -1,9 +1,10 @@
 # TALOS table-contact example (whole-body plane calibration)
 
 This folder implements **whole-body kinematic calibration of TALOS's
-leg-torso-arm chain from repeated flush contact with a single flat
-table** -- no external metrology at all: no motion capture, no laser
-tracker, no camera. It is a from-scratch FIGAROH port of the method
+leg-torso-arm chains (both sides, sharing the torso) from repeated flush
+contact with a single flat table** -- no external metrology at all: no
+motion capture, no laser tracker, no camera. It is a from-scratch FIGAROH
+port of the method
 described in the project's own manuscript, *"Humanoid Robot Whole-body
 Geometric Calibration with Embedded Sensors and a Single Plane"*
 (internal, anonymized for review), which reduced cross-validated pose
@@ -38,7 +39,10 @@ Stack-of-Tasks repo, not part of FIGAROH; see "What's not here" below).
   `calculate_base_kinematics_regressor`); replaces the measurement model
   entirely (`load_data_set`, `cost_function`) since there is no
   externally-measured target to load. Also exposes `solve_touch_ik`, a
-  small damped-least-squares IK helper reused by the data generator.
+  small damped-least-squares IK helper reused by the data generator, and
+  `MultiChainCalibration`, which couples a left- and a right-chain
+  instance so their shared torso joint-placement corrections are fit as
+  one value (see "Two-chain coupling" below).
 - `generate_synthetic_data.py` -- there is no real hardware CSV bundled
   with this example (see "What's not here"). This script instead builds
   a *known* ground truth (injected joint-placement errors, table pose,
@@ -46,18 +50,26 @@ Stack-of-Tasks repo, not part of FIGAROH; see "What's not here" below).
   against it, so the true model's predicted gap is exactly zero at every
   recorded posture -- exactly as a real successful contact would be.
   That known ground truth is what makes the calibration verifiable.
+  `build_two_chain_dataset` does the same for both chains at once,
+  sharing one injected torso error and one physical table between them.
+- `generate_table_configs.py` -- a *different* generator: runs against
+  the plain nominal model (no injected error) to produce whole-body,
+  double-support-*checked* candidate postures for an actual data-collection
+  session (see "Posture generation" below).
 - `run_calibration.py` -- runs the calibration end-to-end and prints
   before/after gap metrics on both the training set and a held-out
   validation set, plus the recovered plane/contact-frame estimates.
-- `config/talos_table_left_config.yaml` -- legacy-format FIGAROH config
-  for the `left_sole_link -> gripper_left_base_link` chain (see "Why
+- `config/talos_table_left_config.yaml` / `talos_table_right_config.yaml`
+  -- legacy-format FIGAROH config for the left and right chains (see "Why
   legacy config, not unified" below).
 - `data/` -- a committed demo dataset (noiseless synthetic touches,
   `generate_synthetic_data.py`'s defaults) so `run_calibration.py` has
   something to run against out of the box; `--regenerate` resynthesizes
   it (optionally with `--noise-deg` for realistic joint-encoder noise).
-- `../../tests/test_talos_table_contact.py` -- the round-trip validation
-  suite (see "Verification & validation" below).
+- `../../tests/test_talos_table_contact.py`,
+  `test_talos_table_contact_multichain.py`,
+  `test_generate_table_configs.py` -- the round-trip validation suites
+  (see "Verification & validation" below).
 
 ## Run
 
@@ -70,8 +82,16 @@ python run_calibration.py
 # Resynthesize data with realistic joint-encoder noise
 python run_calibration.py --regenerate --noise-deg 0.05 --seed 42
 
-# Round-trip test suite (from the figaroh-examples root)
-cd ../.. && pytest tests/test_talos_table_contact.py -v
+# Round-trip test suites (from the figaroh-examples root)
+cd ../..
+pytest tests/test_talos_table_contact.py -v               # single-chain
+pytest tests/test_talos_table_contact_multichain.py -v    # two-chain, shared torso
+pytest tests/test_generate_table_configs.py -v             # posture generator
+
+# Generate double-support-checked candidate postures (nominal model, no
+# ground truth -- see "Posture generation" below)
+cd examples/talos_table_contact
+python generate_table_configs.py --n-candidates 500
 ```
 
 ## Verification & validation
@@ -149,6 +169,102 @@ What *does* have to match, and is asserted directly, is the held-out
 gap: if the calibration is wrong, it stops predicting new touches
 correctly, whatever the individual parameter values happen to be.
 
+## Two-chain coupling
+
+`MultiChainCalibration` fits the left chain (`left_sole_link ->
+gripper_left_base_link`) and the right chain (`right_sole_link ->
+gripper_right_base_link`) *jointly*, so a joint-placement correction both
+chains can identify -- physically, this means a torso joint, the only
+joint set on the kinematic path of both -- is fit as one shared value
+instead of two independent (and generally inconsistent) per-chain
+estimates of what is really the same physical offset.
+
+This is sound, not just convenient, because of how
+`calc_updated_fkm` (core FIGAROH, unmodified) consumes parameter names:
+each chain's own QR-based base-parameter reduction reports a
+well-conditioned *subset* of the raw, single-`(joint, axis)`
+`d_px_<joint>`/... names -- never a combined linear-combination under a
+new name -- and `calc_updated_fkm` looks each one up by a literal
+substring match against the joint's own name. A raw name's meaning ("the
+correction to this joint's own placement") therefore doesn't depend on
+which chain is evaluating it, so if the *same* name is independently
+found identifiable by both chains, treating it as one shared scalar fed
+into both chains' forward kinematics is exactly the coupling a real
+two-armed calibration needs -- see `MultiChainCalibration`'s docstring
+for the full argument.
+
+`tests/test_talos_table_contact_multichain.py` validates this the same
+way as the single-chain suite (inject a *known* ground truth -- one
+shared torso error, one physical table, independent per-side leg/arm
+errors and gripper offsets -- synthesize touches for both chains,
+calibrate jointly, check training + held-out gap reduction on both), plus
+two structural checks specific to the coupling itself:
+
+- the union of both chains' identifiable Delta-X parameters is strictly
+  smaller than the naive sum `left.n_deltaX + right.n_deltaX` -- proof
+  that sharing actually happened, not just that the code ran;
+- every shared parameter name references a torso joint -- the only
+  physically-shared joint set, so anything else showing up there would
+  indicate a bug, not a feature.
+
+## Posture generation
+
+`generate_table_configs.py` produces candidate whole-body postures for an
+*actual* data-collection session -- a different job from
+`generate_synthetic_data.py`'s (which injects a fake ground truth purely
+to make the calibration round-trip testable). Given a random touch target
+on the table, it:
+
+1. solves the flush-contact IK for the left chain (as in
+   `generate_synthetic_data.py`);
+2. re-solves the right leg back to a flat, neutral double-support stance
+   *given that posture's torso lean* -- closing the loop on only
+   `(z, roll, pitch)`, the same "3 informative DOF" convention the
+   table-contact measurement model itself uses (a standing robot isn't
+   required to plant its foot at one exact `(x, y, yaw)`, only flat; the
+   full 6-DOF pose over-constrains the redundant, limited-range leg and
+   fails to converge for postures that are perfectly fine physically);
+3. rejects the candidate if any active joint (21 total: the 15-joint left
+   chain plus the 6-joint right leg) sits within a limit margin, or if
+   the resulting whole-body center of mass falls outside the convex hull
+   of both feet's footprints (a real, if approximate, double-support
+   quasi-static equilibrium check, via `pin.centerOfMass` and a
+   `scipy.spatial.Delaunay` point-in-hull test).
+
+`tests/test_generate_table_configs.py` independently re-verifies every
+physical claim an accepted posture makes -- flush contact, flat right
+foot, CoM in the support polygon, no joint past its limit -- by
+recomputing them from scratch off the recorded joint angles, rather than
+trusting the generator's own bookkeeping.
+
+**Expect a low acceptance rate** (low single-digit percent at the
+defaults) -- this IK has no whole-body posture-comfort prior (unlike a
+real task-priority controller), so a fair number of otherwise-valid
+touches end up needing some joint at its limit once the right leg also
+has to re-plant. This is an honest property of a bare kinematic
+generator, not a bug; budget `--n-candidates` in the hundreds to a few
+thousand, or narrow the sampling range for a higher yield.
+
+Its CSV output uses the same joint-angle-column schema as
+`generate_synthetic_data.py`'s, so it can be fed directly as
+`TalosTableContactCalibration`'s `data_file` -- or, via
+`figaroh.calibration.calibration_tools.load_data`, into
+`BaseOptimalCalibration.load_candidate_configurations()`'s CSV path,
+letting core FIGAROH's SOCP + **IROC** optimal-configuration selection
+(`calculate_optimal_configurations(selection_method="iroc")`, added to
+`figaroh.optimal.base_optimal_calibration` alongside this example -- rank
+candidates by SOCP weight, then grow the selected subset until the
+normalized D-optimality criterion plateaus, an automatic minimal-count
+selection instead of a fixed weight threshold) pick the minimal
+informative subset of these physically-valid candidates to actually
+execute on the robot.
+
+**Not checked: mesh-level self-collision.** TALOS's URDF in this repo
+ships no SRDF collision-pairs/exclusion list, and naively calling
+`collision_model.addAllCollisionPairs()` without one flags every
+anatomically-adjacent, permanently-touching link pair as a "collision" --
+false positives, not a real check. Left as future work.
+
 ## Why legacy config, not unified
 
 `BaseCalibration.load_param()` auto-detects the unified (`extends:` +
@@ -170,26 +286,28 @@ natural next step -- see the engineering report's Option B.
 ## What's not here
 
 The admittance controller (force-normal-to-plane, zero-wrist-moment
-regulation, force/torque-based contact detection and release), the HPP
-whole-body-equilibrium-and-contact-constraint path planning, and the
-traveling-salesman posture ordering that a *real* run of this method
-needs are **not FIGAROH's job** and are not implemented here. They live
-in a separate ROS/HPP/Stack-of-Tasks stack:
+regulation, force/torque-based contact detection and release), and the
+HPP whole-body-equilibrium-and-contact-constraint path planning /
+execution that a *real* run of this method needs on the physical robot
+are **not FIGAROH's job** and are not implemented here. They live in a
+separate ROS/HPP/Stack-of-Tasks stack:
 [`agimus-demos/talos/calibration/contact`](https://github.com/agimus/agimus-demos/tree/master/talos/calibration/contact).
 This example assumes that stack (or an equivalent) has already produced
 a CSV of joint angles per successful contact -- the same assumption the
 other CSV-driven examples in this repo make about their own data.
+`generate_table_configs.py` (above) covers the *offline candidate
+selection* half of posture generation (which configurations are worth
+attempting, kinematically and w.r.t. balance) but not mesh-level
+self-collision, nor the real-time execution/planning itself.
 
 ## Notes
 
-- Chain: `left_sole_link -> gripper_left_base_link` (left leg, torso,
-  left arm -- 15 joints), matching the manuscript's chain definition.
-  Extending to the matching right-leg/right-arm chain, and solving both
-  jointly so the shared torso parameters get constrained by both feet at
-  once (the full "whole-body" claim), is a natural next step; this
-  example validates the single-chain mechanism first, deliberately, per
-  the incremental-implementation practice the rest of this workspace
-  follows.
+- Chains: `left_sole_link -> gripper_left_base_link` and
+  `right_sole_link -> gripper_right_base_link` (each leg + torso + arm --
+  15 joints), matching the manuscript's chain definitions, solved jointly
+  via `MultiChainCalibration` (see "Two-chain coupling" above) so the
+  shared torso parameters get constrained by both feet at once -- the
+  full "whole-body" claim.
 - The nominal table pose and contact-frame offset
   (`generate_synthetic_data.NOMINAL_TABLE_POSE` /
   `NOMINAL_CONTACT_OFFSET`) were picked by probing TALOS's own reachable
