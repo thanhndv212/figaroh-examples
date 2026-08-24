@@ -50,6 +50,7 @@ from utils.talos_table_tools import TalosTableContactCalibration
 
 from figaroh.calibration.calibration_tools import cartesian_to_SE3
 from figaroh.tools.geometric_calibration_export import export_geometric_calibration_yaml
+from figaroh.tools.run_archive import archive_run, compute_run_dir
 
 HERE = Path(__file__).parent
 CONFIG_PATH = HERE / "config" / "talos_table_left_config.yaml"
@@ -118,10 +119,22 @@ def main():
         action="store_true",
         help="Don't write any report files, just print to stdout.",
     )
+    parser.add_argument(
+        "--archive",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Archive this run to results/runs/<asset>/calibration/"
+            "<timestamp>/ (provenance, config snapshot, parameters, and "
+            "the HTML report) and append a summary line to "
+            "results/runs/index.jsonl. Never overwrites a prior run. "
+            "Use --no-archive to skip. Ignored with --no-save-results."
+        ),
+    )
     args = parser.parse_args()
-    output_dir = None
-    if not args.no_save_results:
-        output_dir = args.output_dir or str(HERE / "results")
+    save_results = not args.no_save_results
+    archive = save_results and args.archive
+    results_root = args.output_dir or str(HERE / "results")
 
     if args.regenerate or not (DATA_DIR / "table_contact_train.csv").exists():
         df_train, df_val, ground_truth, robot = build_dataset(
@@ -204,17 +217,19 @@ def main():
         "Held-out validation gap (postures it never saw):", val_before, val_after
     )
 
-    if output_dir is not None:
-        html_path = str(Path(output_dir) / "synthetic_calibration_report.html")
-        yaml_path = str(Path(output_dir) / "synthetic_master_calibration.yaml")
+    if save_results:
+        run_dir = compute_run_dir(calib, root=str(Path(results_root) / "runs"))
+        html_path = str(run_dir / "synthetic_calibration_report.html")
+        yaml_path = str(run_dir / "synthetic_master_calibration.yaml")
         calib.export_html_report(output_path=html_path)
         export_geometric_calibration_yaml(
             calib,
             yaml_path,
             header_comment="TALOS table-contact calibration (synthetic)",
         )
-        print(f"\nHTML report written to:\n  {html_path}")
-        print(f"Geometric calibration YAML written to:\n  {yaml_path}")
+        if archive:
+            archive_run(calib, run_dir)
+        print(f"\nRun archived to:\n  {run_dir}")
 
     split = calib.split_params(result.x)
     print(

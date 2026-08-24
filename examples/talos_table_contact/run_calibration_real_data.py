@@ -49,6 +49,7 @@ been physically nudged between the two days for the left chain specifically.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -63,6 +64,7 @@ from utils.talos_table_tools import MultiChainCalibration, TalosTableContactCali
 from export_report import build_two_chain_report, write_html_report, write_yaml_report
 
 from figaroh.tools.geometric_calibration_export import export_geometric_calibration_yaml
+from figaroh.tools.run_archive import archive_run, compute_run_dir
 
 HERE = Path(__file__).parent
 DATA_DIR = HERE / "data" / "real"
@@ -174,7 +176,7 @@ def _print_metrics(label: str, before: dict, after: dict) -> None:
         )
 
 
-def _build_chain(robot, config_path, train_csv):
+def _build_chain(robot, config_path, train_csv, asset_id=None):
     df_train = _load_real_touches(train_csv)
     staged_path = Path(str(train_csv) + ".staged.csv")
     df_train.to_csv(staged_path, index=False)
@@ -182,6 +184,14 @@ def _build_chain(robot, config_path, train_csv):
     calib = TalosTableContactCalibration(robot, str(config_path))
     calib.calib_config["data_file"] = str(staged_path)
     calib._data_path = str(staged_path)
+    if asset_id:
+        # Distinguishes the left/right chains in the run archive -- both
+        # configs otherwise share the same (unspecified) asset_id, which
+        # would collide compute_run_dir's path if both chains solve
+        # within the same wall-clock second.
+        instance = dict(calib.calib_config.get("instance") or {})
+        instance["asset_id"] = asset_id
+        calib.calib_config["instance"] = instance
     calib.set_nominal_table_poses([NOMINAL_TABLE_POSE])
     calib.set_nominal_contact_offset(NOMINAL_CONTACT_OFFSET)
     calib.initialize()
@@ -189,9 +199,12 @@ def _build_chain(robot, config_path, train_csv):
     return calib
 
 
-def _run_single_chain(label, robot, config_path, train_csv, val_csv, output_dir=None):
+def _run_single_chain(
+    label, robot, config_path, train_csv, val_csv, results_root=None, archive=True
+):
     print(f"\n{'=' * 60}\n{label}\n{'=' * 60}")
-    calib = _build_chain(robot, config_path, train_csv)
+    side = "left" if "left" in str(train_csv) else "right"
+    calib = _build_chain(robot, config_path, train_csv, asset_id=f"talos-{side}")
     n_train = calib._fk_config["NbSample"]
     df_val = _load_real_touches(val_csv)
 
@@ -246,26 +259,31 @@ def _run_single_chain(label, robot, config_path, train_csv, val_csv, output_dir=
         f"thetay={np.rad2deg(contact['contact_thetay']):+.4f}deg"
     )
 
-    if output_dir is not None:
-        side = "left" if "left" in str(train_csv) else "right"
-        html_path = str(Path(output_dir) / f"{side}_calibration_report.html")
-        yaml_path = str(Path(output_dir) / f"{side}_master_calibration.yaml")
+    if results_root is not None:
+        run_dir = compute_run_dir(calib, root=str(Path(results_root) / "runs"))
+        html_path = str(run_dir / f"{side}_calibration_report.html")
+        yaml_path = str(run_dir / f"{side}_master_calibration.yaml")
         calib.export_html_report(output_path=html_path)
         export_geometric_calibration_yaml(
             calib,
             yaml_path,
             header_comment=f"TALOS table-contact calibration -- {side} chain (real data)",
         )
-        print(f"\nHTML report written to:\n  {html_path}")
-        print(f"Geometric calibration YAML written to:\n  {yaml_path}")
+        if archive:
+            archive_run(calib, run_dir)
+        print(f"\nRun archived to:\n  {run_dir}")
 
     return calib, result
 
 
-def _run_two_chain(robot, output_dir=None):
+def _run_two_chain(robot, results_root=None):
     print(f"\n{'=' * 60}\nTwo-chain, shared torso (real data)\n{'=' * 60}")
-    calib_left = _build_chain(robot, LEFT_CONFIG, DATA_DIR / "left_train.csv")
-    calib_right = _build_chain(robot, RIGHT_CONFIG, DATA_DIR / "right_train.csv")
+    calib_left = _build_chain(
+        robot, LEFT_CONFIG, DATA_DIR / "left_train.csv", asset_id="talos-dual"
+    )
+    calib_right = _build_chain(
+        robot, RIGHT_CONFIG, DATA_DIR / "right_train.csv", asset_id="talos-dual"
+    )
     n_train_left = calib_left._fk_config["NbSample"]
     n_train_right = calib_right._fk_config["NbSample"]
     coupler = MultiChainCalibration(calib_left, calib_right)
@@ -292,7 +310,15 @@ def _run_two_chain(robot, output_dir=None):
     _print_metrics("Left held-out gap:", val_before["left"], val_after["left"])
     _print_metrics("Right held-out gap:", val_before["right"], val_after["right"])
 
-    if output_dir is not None:
+    if results_root is not None:
+        # MultiChainCalibration isn't a BaseCalibration, so it has no
+        # _run_provenance and can't use compute_run_dir/archive_run --
+        # mirror their timestamped-directory convention by hand instead
+        # of dumping straight into results/ (see export_report.py's
+        # module docstring for why this class needs its own reporting).
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        run_dir = Path(results_root) / "runs" / "talos-dual" / "two_chain" / ts
+        run_dir.mkdir(parents=True, exist_ok=True)
         report = build_two_chain_report(
             coupler,
             result,
@@ -305,14 +331,13 @@ def _run_two_chain(robot, output_dir=None):
             n_val_left=len(df_left_val),
             n_val_right=len(df_right_val),
         )
-        write_yaml_report(
-            report, str(Path(output_dir) / "two_chain_calibration_report.yaml")
-        )
+        write_yaml_report(report, str(run_dir / "two_chain_calibration_report.yaml"))
         write_html_report(
             report,
-            str(Path(output_dir) / "two_chain_calibration_report.html"),
+            str(run_dir / "two_chain_calibration_report.html"),
             title="TALOS Table-Contact Calibration -- Two-Chain Shared Torso (Real Data)",
         )
+        print(f"\nRun archived to:\n  {run_dir}")
 
 
 def main():
@@ -331,10 +356,22 @@ def main():
         action="store_true",
         help="Don't write any report files, just print to stdout.",
     )
+    parser.add_argument(
+        "--archive",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Archive each single-chain run to results/runs/<asset>/"
+            "calibration/<timestamp>/ (provenance, config snapshot, "
+            "parameters, and the HTML report) and append a summary line "
+            "to results/runs/index.jsonl. Never overwrites a prior run. "
+            "Use --no-archive to skip. Ignored with --no-save-results."
+        ),
+    )
     args = parser.parse_args()
-    output_dir = None
-    if not args.no_save_results:
-        output_dir = args.output_dir or str(HERE / "results")
+    save_results = not args.no_save_results
+    archive = save_results and args.archive
+    results_root = args.output_dir or str(HERE / "results") if save_results else None
 
     robot = _load_robot()
 
@@ -344,7 +381,8 @@ def main():
         LEFT_CONFIG,
         DATA_DIR / "left_train.csv",
         DATA_DIR / "left_validation.csv",
-        output_dir=output_dir,
+        results_root=results_root,
+        archive=archive,
     )
     _run_single_chain(
         "Right chain (real data: right_sole_link -> gripper_right_base_link)",
@@ -352,9 +390,10 @@ def main():
         RIGHT_CONFIG,
         DATA_DIR / "right_train.csv",
         DATA_DIR / "right_validation.csv",
-        output_dir=output_dir,
+        results_root=results_root,
+        archive=archive,
     )
-    _run_two_chain(robot, output_dir=output_dir)
+    _run_two_chain(robot, results_root=results_root)
 
 
 if __name__ == "__main__":
