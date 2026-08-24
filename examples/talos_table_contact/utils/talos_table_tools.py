@@ -80,7 +80,6 @@ from figaroh.calibration.calibration_tools import (
     cartesian_to_SE3,
     get_rel_jac,
     get_rel_transform,
-    initialize_variables,
 )
 
 PLANE_TPL = ["plane_z", "plane_phix", "plane_thetay"]
@@ -298,10 +297,39 @@ class TalosTableContactCalibration(BaseCalibration):
         self._fk_config["calibration_index"] = 6
         self._fk_config["param_name"] = self.calib_config["param_name"][: self.n_deltaX]
 
+    def _compute_validation_metrics(self):
+        """Override of ``BaseCalibration._compute_validation_metrics``:
+        the base implementation calls
+        ``calc_updated_fkm(..., self.calib_config)`` directly (not
+        :meth:`get_pose_from_measure`), and asserts every name in
+        ``calib_config["param_name"]`` matches a raw joint-offset
+        parameter -- which fails for this class's ``PLANE_TPL``/
+        ``CONTACT_TPL`` entries (there is no joint named ``plane_z_s0``).
+        ``solve()`` calls this unconditionally, so it must not raise.
+        Returning ``None`` is this method's own documented contract for
+        "no validation available" (see the base docstring), which
+        ``export_html_report`` renders as a "no-validation" note rather
+        than a broken/absent section. Held-out validation for this
+        method is instead done manually in run_calibration*.py via
+        :meth:`gap_metrics` on a swapped-in dataset -- see the README's
+        "Results report" section for why.
+        """
+        return None
+
     # ------------------------------------------------------------------
     # Measurement model: predicted (z, roll, pitch) gap, target is zero
     # ------------------------------------------------------------------
-    def cost_function(self, var: np.ndarray) -> np.ndarray:
+    def get_pose_from_measure(self, var: np.ndarray) -> np.ndarray:
+        """Override of ``BaseCalibration.get_pose_from_measure``: the
+        default implementation always calls
+        ``calc_updated_fkm(..., self.calib_config)`` and returns its raw
+        chain-pose output, which is meaningless here (this method's
+        "measurement" is the plane/contact-frame gap composed on top of
+        the chain pose, not the chain pose itself). Returns the predicted
+        gap, flat DOF-major ``(3 * NbSample,)`` -- the same layout
+        :meth:`cost_function` and the base class's own
+        ``_compute_logmap_residuals``/``_evaluate_solution`` expect.
+        """
         n_dx = self.n_deltaX
         n_plane = 3 * self.n_sessions
         var_dx = var[:n_dx]
@@ -339,34 +367,26 @@ class TalosTableContactCalibration(BaseCalibration):
             )
             gap[:, i] = gap_of_pose(sM_plane, sM_contact)
 
-        reg = np.sqrt(self.regularization_coefficient) * var
-        return np.concatenate([gap.flatten("C"), reg])
+        return gap.flatten("C")
 
-    # ------------------------------------------------------------------
-    # Solve
-    # ------------------------------------------------------------------
-    def solve_lm(self, **least_squares_kwargs):
-        """Levenberg-Marquardt solve of :meth:`cost_function`.
-
-        Deliberately bypasses ``BaseCalibration.solve()`` /
-        ``solve_optimisation()``: their outlier-detection and evaluation
-        machinery assumes a residual laid out as one row per (sample,
-        measured DOF) matching ``self.PEE_measured`` -- a shape this
-        class's residual (gap rows + a regularization tail, and no
-        externally measured target at all) does not share. Driving
-        ``scipy.optimize.least_squares`` directly here keeps that
-        mismatch from ever becoming a silent bug.
-
-        Returns the ``scipy.optimize.OptimizeResult`` and stores it as
-        ``self.LM_result``; also sets ``self.STATUS``.
+    def cost_function(self, var: np.ndarray) -> np.ndarray:
+        """Residual = core FIGAROH's own SE3 log-map error
+        (``_compute_logmap_residuals``, unmodified) between the target
+        (``self.PEE_measured``, fixed at zero -- a flush touch's gap
+        *is* the measurement, and it must read zero) and the predicted
+        gap (:meth:`get_pose_from_measure`), plus an L2 regularization
+        tail -- the same structure
+        ``examples/tiago/utils/tiago_tools.py``'s own ``cost_function``
+        uses (position residual + regularization, via ``np.append``),
+        so this class drives the standard ``solve()`` /
+        ``export_html_report()`` / ``export_geometric_calibration_yaml``
+        pipeline instead of a bespoke one.
         """
-        var0, _ = initialize_variables(self.calib_config, mode=0)
-        kwargs = dict(method="lm", xtol=1e-12, ftol=1e-12, max_nfev=2000)
-        kwargs.update(least_squares_kwargs)
-        result = least_squares(self.cost_function, var0, **kwargs)
-        self.LM_result = result
-        self.STATUS = "CALIBRATED"
-        return result
+        residuals = self._compute_logmap_residuals(
+            self.PEE_measured, self.get_pose_from_measure(var)
+        )
+        reg = np.sqrt(self.regularization_coefficient) * var
+        return np.append(residuals, reg)
 
     # ------------------------------------------------------------------
     # Convenience accessors

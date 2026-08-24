@@ -16,26 +16,30 @@
 # limitations under the License.
 
 """
-Export a calibration results report -- YAML (parity with
-examples/tiago_pro/run_calibration.py's write_calibration_results) plus a
-self-contained HTML summary -- for TalosTableContactCalibration and
-MultiChainCalibration.
+Export a calibration results report -- YAML (same metadata /
+calibrated_parameters shape as examples/tiago_pro/run_calibration.py's
+write_calibration_results) plus a self-contained HTML summary -- for
+``MultiChainCalibration`` specifically.
 
-Why not reuse figaroh core's BaseCalibration.export_html_report /
-generate_calibration_report directly (as examples/tiago/calibration.py
-does): that pipeline is built around solve()'s own residual model --
-self.PEE_measured, a 6-DOF-per-sample pose comparison, calc_stddev()'s
-divisor formula assuming exactly NbSample*calibration_index residuals.
-This example's cost_function() deliberately doesn't share that shape (a
-3-DOF gap target-is-zero residual plus a regularization tail, see
-TalosTableContactCalibration's docstring for why) and bypasses solve()
-entirely, so evaluation_metrics/PEE_measured are never populated the way
-that pipeline expects. Rather than force-fit incompatible internals, this
-module computes the same *kind* of information (RMSE/MAE, parameter
-std-dev via the same linearized-uncertainty formula core's calc_stddev
-uses, condition number) from this class's own gap-based residual, and
-lays it out in the same metadata / calibrated_parameters YAML shape
-tiago_pro's report uses.
+Why only ``MultiChainCalibration``: ``TalosTableContactCalibration`` (the
+single-chain case) now drives figaroh core's own standard pipeline
+directly -- ``solve()`` -> ``export_html_report()`` ->
+``figaroh.tools.geometric_calibration_export.export_geometric_calibration_yaml``,
+exactly as ``examples/tiago/calibration.py`` does -- via
+``get_pose_from_measure``/``cost_function`` overrides that route its
+plane/contact gap residual through core's own SE3 log-map machinery (see
+``utils/talos_table_tools.py``) instead of a bespoke one; see
+``run_calibration.py``/``run_calibration_real_data.py`` for that path.
+
+``MultiChainCalibration`` isn't a ``BaseCalibration`` subclass at all --
+it couples two independent ``TalosTableContactCalibration`` instances
+into one joint solve -- so none of core's `solve()`/report machinery
+applies to it, and there is no "standard multi-chain calibration report"
+in figaroh to match. This module computes the same *kind* of information
+(RMSE/MAE, parameter std-dev via the identical linearized-uncertainty
+formula core's ``calc_stddev`` uses, condition number) from the coupled
+solve's own residual, laid out in the same YAML shape tiago_pro's report
+uses, purely for this one case.
 """
 
 from __future__ import annotations
@@ -46,7 +50,7 @@ from typing import Optional
 import numpy as np
 import yaml
 
-from utils.talos_table_tools import MultiChainCalibration, TalosTableContactCalibration
+from utils.talos_table_tools import MultiChainCalibration
 
 
 def _param_std_dev(result, n_measured_residuals: int) -> Optional[np.ndarray]:
@@ -86,73 +90,6 @@ def _param_unit(name: str) -> str:
     if "phi" in name or "theta" in name:
         return "rad"
     return "m"
-
-
-def build_single_chain_report(
-    calib: TalosTableContactCalibration,
-    result,
-    train_before: dict,
-    train_after: dict,
-    val_before: Optional[dict] = None,
-    val_after: Optional[dict] = None,
-    n_train: Optional[int] = None,
-    n_val: Optional[int] = None,
-) -> dict:
-    """Build the report dict for one TalosTableContactCalibration solve."""
-    names = calib.calib_config["param_name"]
-    std_dev = _param_std_dev(result, 3 * (n_train or calib._fk_config["NbSample"]))
-
-    metadata = {
-        "chain": f"{calib.calib_config['start_frame']} -> {calib.calib_config['end_frame']}",
-        "n_identifiable_delta_x": calib.n_deltaX,
-        "n_sessions": calib.n_sessions,
-        "n_training_samples": n_train,
-        "training": {
-            "z_rmse_mm": {
-                "before": train_before["z_rmse_mm"],
-                "after": train_after["z_rmse_mm"],
-            },
-            "roll_rmse_deg": {
-                "before": train_before["roll_rmse_deg"],
-                "after": train_after["roll_rmse_deg"],
-            },
-            "pitch_rmse_deg": {
-                "before": train_before["pitch_rmse_deg"],
-                "after": train_after["pitch_rmse_deg"],
-            },
-        },
-        "optimization_success": bool(result.success),
-        "cost": float(result.cost),
-        "n_function_evals": int(getattr(result, "nfev", 0)),
-        "condition_number": _condition_number(result),
-    }
-    if val_before is not None and val_after is not None:
-        metadata["n_validation_samples"] = n_val
-        metadata["validation"] = {
-            "z_rmse_mm": {
-                "before": val_before["z_rmse_mm"],
-                "after": val_after["z_rmse_mm"],
-            },
-            "roll_rmse_deg": {
-                "before": val_before["roll_rmse_deg"],
-                "after": val_after["roll_rmse_deg"],
-            },
-            "pitch_rmse_deg": {
-                "before": val_before["pitch_rmse_deg"],
-                "after": val_after["pitch_rmse_deg"],
-            },
-        }
-
-    calibrated_parameters = {
-        name: {
-            "value": float(value),
-            "std_dev": float(std_dev[i]) if std_dev is not None else None,
-            "unit": _param_unit(name),
-        }
-        for i, (name, value) in enumerate(zip(names, result.x))
-    }
-
-    return {"metadata": metadata, "calibrated_parameters": calibrated_parameters}
 
 
 def build_two_chain_report(
@@ -305,51 +242,7 @@ def write_html_report(report: dict, output_path: str, title: str) -> None:
         f"condition number={meta.get('condition_number')}</p>"
     ]
 
-    if "training" in meta and "z_rmse_mm" in meta["training"]:
-        t = meta["training"]
-        body_parts.append("<h2>Training-set gap</h2>")
-        body_parts.append(
-            _metric_table(
-                [
-                    ("z", t["z_rmse_mm"]["before"], t["z_rmse_mm"]["after"], "mm"),
-                    (
-                        "roll",
-                        t["roll_rmse_deg"]["before"],
-                        t["roll_rmse_deg"]["after"],
-                        "deg",
-                    ),
-                    (
-                        "pitch",
-                        t["pitch_rmse_deg"]["before"],
-                        t["pitch_rmse_deg"]["after"],
-                        "deg",
-                    ),
-                ]
-            )
-        )
-        if "validation" in meta:
-            v = meta["validation"]
-            body_parts.append("<h2>Held-out validation gap</h2>")
-            body_parts.append(
-                _metric_table(
-                    [
-                        ("z", v["z_rmse_mm"]["before"], v["z_rmse_mm"]["after"], "mm"),
-                        (
-                            "roll",
-                            v["roll_rmse_deg"]["before"],
-                            v["roll_rmse_deg"]["after"],
-                            "deg",
-                        ),
-                        (
-                            "pitch",
-                            v["pitch_rmse_deg"]["before"],
-                            v["pitch_rmse_deg"]["after"],
-                            "deg",
-                        ),
-                    ]
-                )
-            )
-    elif "training" in meta:  # two-chain: left/right nested
+    if "training" in meta:  # two-chain: left/right nested
         for side in ("left", "right"):
             t = meta["training"][side]
             body_parts.append(f"<h2>{side.title()} chain &mdash; training-set gap</h2>")
@@ -406,7 +299,7 @@ def write_html_report(report: dict, output_path: str, title: str) -> None:
     body_parts.append(_params_table(report["calibrated_parameters"]))
 
     subtitle_bits = []
-    for key in ("chain", "left_chain", "right_chain"):
+    for key in ("left_chain", "right_chain"):
         if key in meta:
             subtitle_bits.append(f"{key}: {meta[key]}")
     subtitle = " &nbsp;|&nbsp; ".join(subtitle_bits)

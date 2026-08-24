@@ -54,7 +54,13 @@ def robot():
 def _solve(calib):
     var0 = np.zeros(len(calib.calib_config["param_name"]))
     before = calib.gap_metrics(var0)
-    result = calib.solve_lm()
+    result = calib.solve(
+        method="lm",
+        max_iterations=3,
+        outlier_threshold=3.0,
+        enable_logging=False,
+        html_report=False,
+    )
     after = calib.gap_metrics(result.x)
     return var0, result, before, after
 

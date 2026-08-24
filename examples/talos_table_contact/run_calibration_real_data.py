@@ -60,12 +60,9 @@ from generate_synthetic_data import (
     _load_robot,
 )
 from utils.talos_table_tools import MultiChainCalibration, TalosTableContactCalibration
-from export_report import (
-    build_single_chain_report,
-    build_two_chain_report,
-    write_html_report,
-    write_yaml_report,
-)
+from export_report import build_two_chain_report, write_html_report, write_yaml_report
+
+from figaroh.tools.geometric_calibration_export import export_geometric_calibration_yaml
 
 HERE = Path(__file__).parent
 DATA_DIR = HERE / "data" / "real"
@@ -155,6 +152,12 @@ def _load_split(calib: TalosTableContactCalibration, df: pd.DataFrame) -> None:
     calib.q_measured = q
     calib.session_ids = np.zeros(N, dtype=int)
     calib._fk_config["NbSample"] = N
+    # _compute_logmap_residuals (core) reads calib_config["NbSample"] and
+    # PEE_measured's own length, not _fk_config's -- all three must stay
+    # in sync for a held-out split (PEE_measured is always the zero
+    # vector -- the flush-contact target -- just resized).
+    calib.calib_config["NbSample"] = N
+    calib.PEE_measured = np.zeros(3 * N)
 
 
 def _print_metrics(label: str, before: dict, after: dict) -> None:
@@ -202,13 +205,24 @@ def _run_single_chain(label, robot, config_path, train_csv, val_csv, output_dir=
 
     var0 = np.zeros(len(calib.calib_config["param_name"]))
     train_before = calib.gap_metrics(var0)
-    result = calib.solve_lm()
-    print(
-        f"\nLM solve: success={result.success}  cost={result.cost:.3e}  nfev={result.nfev}"
+
+    # Standard FIGAROH calibration entry point (as examples/tiago/calibration.py
+    # uses) -- see run_calibration.py's own comment on solve()/get_pose_from_measure
+    # for how this class's plane/contact gap residual feeds through core's own
+    # SE3 log-map machinery instead of a bespoke one.
+    result = calib.solve(
+        method="lm",
+        max_iterations=3,
+        outlier_threshold=3.0,
+        enable_logging=False,
+        html_report=False,
     )
     train_after = calib.gap_metrics(result.x)
     _print_metrics("Training-set gap:", train_before, train_after)
 
+    # Held-out validation done manually (not via BaseCalibration's own
+    # _compute_validation_metrics) -- see run_calibration.py's comment on
+    # TalosTableContactCalibration._compute_validation_metrics for why.
     _load_split(calib, df_val)
     val_before = calib.gap_metrics(var0)
     val_after = calib.gap_metrics(result.x)
@@ -234,24 +248,16 @@ def _run_single_chain(label, robot, config_path, train_csv, val_csv, output_dir=
 
     if output_dir is not None:
         side = "left" if "left" in str(train_csv) else "right"
-        report = build_single_chain_report(
+        html_path = str(Path(output_dir) / f"{side}_calibration_report.html")
+        yaml_path = str(Path(output_dir) / f"{side}_master_calibration.yaml")
+        calib.export_html_report(output_path=html_path)
+        export_geometric_calibration_yaml(
             calib,
-            result,
-            train_before,
-            train_after,
-            val_before,
-            val_after,
-            n_train=n_train,
-            n_val=len(df_val),
+            yaml_path,
+            header_comment=f"TALOS table-contact calibration -- {side} chain (real data)",
         )
-        write_yaml_report(
-            report, str(Path(output_dir) / f"{side}_calibration_report.yaml")
-        )
-        write_html_report(
-            report,
-            str(Path(output_dir) / f"{side}_calibration_report.html"),
-            title=f"TALOS Table-Contact Calibration -- {side.title()} Chain (Real Data)",
-        )
+        print(f"\nHTML report written to:\n  {html_path}")
+        print(f"Geometric calibration YAML written to:\n  {yaml_path}")
 
     return calib, result
 

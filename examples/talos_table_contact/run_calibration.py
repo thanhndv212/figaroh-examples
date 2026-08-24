@@ -47,13 +47,9 @@ from generate_synthetic_data import (
     build_dataset,
 )
 from utils.talos_table_tools import TalosTableContactCalibration
-from export_report import (
-    build_single_chain_report,
-    write_html_report,
-    write_yaml_report,
-)
 
 from figaroh.calibration.calibration_tools import cartesian_to_SE3
+from figaroh.tools.geometric_calibration_export import export_geometric_calibration_yaml
 
 HERE = Path(__file__).parent
 CONFIG_PATH = HERE / "config" / "talos_table_left_config.yaml"
@@ -74,6 +70,12 @@ def _load_split(calib: TalosTableContactCalibration, df: pd.DataFrame) -> None:
     calib.q_measured = q
     calib.session_ids = df["session_id"].to_numpy().astype(int)
     calib._fk_config["NbSample"] = N
+    # _compute_logmap_residuals (core) reads calib_config["NbSample"] and
+    # PEE_measured's own length, not _fk_config's -- all three must stay
+    # in sync for a held-out split (PEE_measured is always the zero
+    # vector -- the flush-contact target -- just resized).
+    calib.calib_config["NbSample"] = N
+    calib.PEE_measured = np.zeros(3 * N)
 
 
 def _print_metrics(label: str, before: dict, after: dict) -> None:
@@ -167,10 +169,20 @@ def main():
     var0 = np.zeros(len(calib.calib_config["param_name"]))
     train_before = calib.gap_metrics(var0)
 
-    result = calib.solve_lm()
-    print(
-        f"\nLM solve: success={result.success}  "
-        f"cost={result.cost:.3e}  nfev={result.nfev}"
+    # Standard FIGAROH calibration entry point (as
+    # examples/tiago/calibration.py uses) -- runs solve_optimisation()'s
+    # outlier-removal loop, then _evaluate_solution()/calc_stddev(),
+    # printing the same terminal quality report TIAGo's own calibration
+    # prints. See TalosTableContactCalibration.get_pose_from_measure /
+    # cost_function for how this class feeds its plane/contact gap
+    # residual through core's own SE3 log-map machinery instead of a
+    # bespoke one.
+    result = calib.solve(
+        method="lm",
+        max_iterations=3,
+        outlier_threshold=3.0,
+        enable_logging=False,
+        html_report=False,  # exported explicitly below, with a chosen path
     )
 
     train_after = calib.gap_metrics(result.x)
@@ -178,7 +190,13 @@ def main():
         "Training-set gap (postures the solver saw):", train_before, train_after
     )
 
-    n_train = len(df_train)
+    # Held-out validation: done manually here, not via BaseCalibration's
+    # own _compute_validation_metrics/_load_validation_data -- those call
+    # calc_updated_fkm(..., self.calib_config) directly with the *full*
+    # param_name list, which includes this class's PLANE_TPL/CONTACT_TPL
+    # entries that aren't raw joint-offset parameters and make that path
+    # assert-fail (see TalosTableContactCalibration._compute_validation_metrics,
+    # overridden to return None so solve() itself doesn't crash on this).
     _load_split(calib, df_val)
     val_before = calib.gap_metrics(var0)
     val_after = calib.gap_metrics(result.x)
@@ -187,24 +205,16 @@ def main():
     )
 
     if output_dir is not None:
-        report = build_single_chain_report(
+        html_path = str(Path(output_dir) / "synthetic_calibration_report.html")
+        yaml_path = str(Path(output_dir) / "synthetic_master_calibration.yaml")
+        calib.export_html_report(output_path=html_path)
+        export_geometric_calibration_yaml(
             calib,
-            result,
-            train_before,
-            train_after,
-            val_before,
-            val_after,
-            n_train=n_train,
-            n_val=len(df_val),
+            yaml_path,
+            header_comment="TALOS table-contact calibration (synthetic)",
         )
-        write_yaml_report(
-            report, str(Path(output_dir) / "synthetic_calibration_report.yaml")
-        )
-        write_html_report(
-            report,
-            str(Path(output_dir) / "synthetic_calibration_report.html"),
-            title="TALOS Table-Contact Calibration -- Left Chain (Synthetic)",
-        )
+        print(f"\nHTML report written to:\n  {html_path}")
+        print(f"Geometric calibration YAML written to:\n  {yaml_path}")
 
     split = calib.split_params(result.x)
     print(

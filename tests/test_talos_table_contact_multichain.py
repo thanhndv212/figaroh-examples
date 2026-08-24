@@ -106,6 +106,12 @@ def _load_split(calib: TalosTableContactCalibration, df) -> None:
     calib.q_measured = q
     calib.session_ids = df["session_id"].to_numpy().astype(int)
     calib._fk_config["NbSample"] = N
+    # _compute_logmap_residuals (core) reads calib_config["NbSample"] and
+    # PEE_measured's own length, not _fk_config's -- all three must stay
+    # in sync for a held-out split (PEE_measured is always the zero
+    # vector -- the flush-contact target -- just resized).
+    calib.calib_config["NbSample"] = N
+    calib.PEE_measured = np.zeros(3 * N)
 
 
 @pytest.fixture(scope="module")

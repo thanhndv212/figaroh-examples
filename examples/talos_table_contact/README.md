@@ -59,7 +59,10 @@ Stack-of-Tasks repo, not part of FIGAROH; see "What's not here" below).
 - `run_calibration_real_data.py` -- runs the same calibration against
   **real hardware data** -- see "Real-hardware validation" below.
 - `export_report.py` -- writes the YAML + HTML calibration-results
-  report both scripts produce by default -- see "Results report" below.
+  report for `MultiChainCalibration` specifically (the single-chain case
+  uses core FIGAROH's own `export_html_report`/
+  `export_geometric_calibration_yaml` directly) -- see "Results report"
+  below.
 - `config/talos_table_left_config.yaml` / `talos_table_right_config.yaml`
   -- legacy-format FIGAROH config for the left and right chains (see "Why
   legacy config, not unified" below).
@@ -111,33 +114,69 @@ pytest tests/test_export_report.py -v                     # results-report expor
 ### Results report
 
 `run_calibration.py` and `run_calibration_real_data.py` both write a
-calibration-results report by default, `results/<name>_calibration_report.{yaml,html}`
--- the same `metadata` / `calibrated_parameters` YAML shape
-`examples/tiago_pro/run_calibration.py`'s `write_calibration_results`
-uses, plus a self-contained HTML summary (before/after gap tables,
-calibrated-parameter values and standard errors). `--output-dir <path>`
-changes the destination; `--no-save-results` skips writing files
-entirely.
+results report by default: `results/<name>_calibration_report.html` and
+a `results/<name>_master_calibration.yaml` deploy-style YAML.
+`--output-dir <path>` changes the destination; `--no-save-results` skips
+writing files entirely.
 
-This is built by `export_report.py` rather than reusing core FIGAROH's
-`BaseCalibration.export_html_report`/`generate_calibration_report`
-directly (as `examples/tiago/calibration.py` does): that pipeline is
-built around `solve()`'s own residual model (`self.PEE_measured`, a
-6-DOF-per-sample pose comparison, `calc_stddev()`'s divisor assuming
-exactly `NbSample * calibration_index` residuals) which
-`TalosTableContactCalibration.cost_function()` deliberately doesn't
-share (a 3-DOF gap target-is-zero residual plus a regularization tail --
-see "The idea, in one paragraph" above) and bypasses `solve()` entirely.
-`export_report.py` computes the same *kind* of information -- RMSE/MAE,
-parameter standard deviation via the identical linearized-uncertainty
-formula core's `calc_stddev` uses, condition number -- from this class's
-own gap-based residual instead of forcing an incompatible pipeline to
-work. One consequence worth knowing: when the measurement count barely
-exceeds the parameter count (the real left chain's 21 postures &times; 3
-measured DOF = 63, almost exactly its 63 total parameters), the
-degrees-of-freedom denominator in that formula hits zero and `std_dev`
-is reported as `null` rather than a fabricated number -- an honest
-"not enough data to estimate uncertainty here", not a bug.
+**Single chain** (`TalosTableContactCalibration`) uses core FIGAROH's own
+standard pipeline, unmodified -- the same one
+`examples/tiago/calibration.py` uses:
+`calib.solve(method="lm", ...)` -> `calib.export_html_report(...)` ->
+`figaroh.tools.geometric_calibration_export.export_geometric_calibration_yaml(calib, ...)`.
+This required adapting how the class exposes its measurement, not just
+calling `solve()` instead of a bespoke driver:
+
+- `get_pose_from_measure(var)` -- overridden to return the predicted
+  plane/contact gap (flat, DOF-major) instead of the base
+  implementation's raw `calc_updated_fkm` chain pose, which has no
+  meaning for this method.
+- `cost_function(var)` -- now builds its residual via core's own
+  `_compute_logmap_residuals(self.PEE_measured, self.get_pose_from_measure(var))`
+  (a proper SE3 log-map error, geometrically more correct than the
+  RPY-component subtraction the earlier version did) plus an L2
+  regularization tail, the exact same "position residual +
+  regularization, `np.append`'d together" structure
+  `examples/tiago/utils/tiago_tools.py`'s own `cost_function` uses.
+  `self.PEE_measured` is the constant zero vector -- a flush touch's gap
+  target -- so this is a faithful reuse, not a workaround.
+- `_compute_validation_metrics()` -- overridden to return `None`. The
+  base implementation calls `calc_updated_fkm(..., self.calib_config)`
+  directly (bypassing `get_pose_from_measure`) and asserts every name in
+  `calib_config["param_name"]` matches a raw joint-offset parameter,
+  which fails for this class's `PLANE_TPL`/`CONTACT_TPL` entries (there
+  is no joint named `plane_z_s0`). `solve()` calls this unconditionally,
+  so it must not raise; returning `None` is that method's own documented
+  contract for "no validation available" -- `export_html_report` renders
+  it as a plain "no-validation" note. Held-out validation for this
+  method is instead done manually in `run_calibration*.py` (swap in a
+  different dataset, recompute `gap_metrics`) and printed to the
+  terminal alongside the standard report.
+
+One consequence worth knowing, inherited as-is from core (this is not
+worked around, to stay faithful to what TIAGo's own calibration does):
+when the measurement count barely exceeds the parameter count (the real
+left chain's 21 postures &times; 3 measured DOF = 63, almost exactly its
+63 total parameters), `calc_stddev`'s degrees-of-freedom denominator
+hits zero and every parameter's `std_dev` comes out as `inf` rather than
+a fabricated number -- an honest "not enough data to estimate
+uncertainty here", not a crash (division by zero on a float just gives
+`inf` in Python/NumPy). Also inherited, cosmetic only: the printed
+per-DOF table always labels the three measured axes "X/Y/Z (mm)" even
+though they're actually (z, roll, pitch) here -- `_compute_per_dof_stats`
+takes the first `n` names off a fixed `["X","Y","Z","rx","ry","rz"]`
+list rather than indexing by which DOFs are actually marked measured.
+The *values* are correct; only that one label is generic.
+
+**Two-chain** (`MultiChainCalibration`) isn't a `BaseCalibration`
+subclass at all -- it couples two independent
+`TalosTableContactCalibration` instances into one joint solve -- so none
+of the above applies, and there is no "standard multi-chain calibration
+report" in figaroh to match. `export_report.py` builds a comparable YAML
++ HTML report by hand for this one case, computing the same *kind* of
+information (RMSE/MAE, parameter std-dev via the identical
+linearized-uncertainty formula `calc_stddev` uses, condition number)
+from the coupled solve's own residual.
 
 ## Verification & validation
 

@@ -1,9 +1,17 @@
-"""Tests for examples/talos_table_contact/export_report.py -- the
-YAML + HTML calibration-results report (same metadata /
-calibrated_parameters YAML shape as examples/tiago_pro's
-write_calibration_results, adapted for TalosTableContactCalibration's
-own gap-based residual since it bypasses BaseCalibration.solve() -- see
-export_report.py's module docstring for why).
+"""Report-export tests, split by which pipeline generates the report:
+
+- Single-chain (``TalosTableContactCalibration``): the *standard*
+  FIGAROH pipeline -- ``solve()`` -> ``export_html_report()`` ->
+  ``figaroh.tools.geometric_calibration_export.export_geometric_calibration_yaml``,
+  the same one ``examples/tiago/calibration.py`` uses. This class feeds
+  its plane/contact gap residual through core's own SE3 log-map
+  machinery (``get_pose_from_measure``/``cost_function`` overrides, see
+  ``utils/talos_table_tools.py``) specifically so it *can* use this
+  pipeline unmodified, rather than a bespoke report generator.
+- Two-chain (``MultiChainCalibration``): not a ``BaseCalibration``
+  subclass at all (it couples two independent instances), so none of
+  the above applies -- ``examples/talos_table_contact/export_report.py``
+  builds a comparable YAML + HTML report by hand for this case only.
 """
 
 from __future__ import annotations
@@ -24,21 +32,19 @@ if str(EXAMPLE_DIR) not in sys.path:
 
 pinocchio = pytest.importorskip("pinocchio")
 
-from export_report import (  # noqa: E402
-    build_single_chain_report,
-    build_two_chain_report,
-    write_html_report,
-    write_yaml_report,
-)
+from export_report import build_two_chain_report  # noqa: E402
 from generate_synthetic_data import (  # noqa: E402
     NOMINAL_CONTACT_OFFSET,
     NOMINAL_TABLE_POSE,
     build_dataset,
 )
-from utils.talos_table_tools import (
+from utils.talos_table_tools import (  # noqa: E402
     MultiChainCalibration,
     TalosTableContactCalibration,
-)  # noqa: E402
+)
+from figaroh.tools.geometric_calibration_export import (  # noqa: E402
+    export_geometric_calibration_yaml,
+)
 
 CONFIG_PATH = EXAMPLE_DIR / "config" / "talos_table_left_config.yaml"
 
@@ -58,108 +64,71 @@ def solved_chain(tmp_path_factory):
     calib.set_nominal_contact_offset(NOMINAL_CONTACT_OFFSET)
     calib.initialize()
 
-    var0 = np.zeros(len(calib.calib_config["param_name"]))
-    train_before = calib.gap_metrics(var0)
-    result = calib.solve_lm()
-    train_after = calib.gap_metrics(result.x)
-    n_train = calib._fk_config["NbSample"]
-
-    return {
-        "calib": calib,
-        "result": result,
-        "train_before": train_before,
-        "train_after": train_after,
-        "n_train": n_train,
-    }
+    result = calib.solve(
+        method="lm",
+        max_iterations=3,
+        outlier_threshold=3.0,
+        enable_logging=False,
+        html_report=False,
+    )
+    return {"calib": calib, "result": result}
 
 
-class TestBuildSingleChainReport:
-    def test_report_has_expected_top_level_keys(self, solved_chain):
-        report = build_single_chain_report(
-            solved_chain["calib"],
-            solved_chain["result"],
-            solved_chain["train_before"],
-            solved_chain["train_after"],
-            n_train=solved_chain["n_train"],
-        )
-        assert set(report.keys()) == {"metadata", "calibrated_parameters"}
+class TestStandardSingleChainPipeline:
+    """calib.solve() populates everything export_html_report() and
+    export_geometric_calibration_yaml() need -- this is the thing that
+    was broken before TalosTableContactCalibration.get_pose_from_measure/
+    cost_function/_compute_validation_metrics were adapted to core's own
+    residual/validation contracts (see utils/talos_table_tools.py)."""
 
-    def test_metadata_matches_the_solve(self, solved_chain):
-        report = build_single_chain_report(
-            solved_chain["calib"],
-            solved_chain["result"],
-            solved_chain["train_before"],
-            solved_chain["train_after"],
-            n_train=solved_chain["n_train"],
-        )
-        meta = report["metadata"]
-        assert meta["n_identifiable_delta_x"] == solved_chain["calib"].n_deltaX
-        assert meta["optimization_success"] == bool(solved_chain["result"].success)
-        assert meta["training"]["z_rmse_mm"]["after"] == pytest.approx(
-            solved_chain["train_after"]["z_rmse_mm"]
-        )
-        assert "validation" not in meta  # not passed here
+    def test_solve_populates_evaluation_metrics(self, solved_chain):
+        calib = solved_chain["calib"]
+        assert solved_chain["result"].success
+        assert hasattr(calib, "evaluation_metrics")
+        assert calib.evaluation_metrics["rmse"] >= 0
+        assert calib.evaluation_metrics["condition_number"] > 0
 
-    def test_every_calibrated_parameter_is_present_with_a_unit(self, solved_chain):
-        report = build_single_chain_report(
-            solved_chain["calib"],
-            solved_chain["result"],
-            solved_chain["train_before"],
-            solved_chain["train_after"],
-            n_train=solved_chain["n_train"],
-        )
-        names = solved_chain["calib"].calib_config["param_name"]
-        assert set(report["calibrated_parameters"].keys()) == set(names)
-        for p in report["calibrated_parameters"].values():
-            assert p["unit"] in ("m", "rad")
+    def test_solve_populates_parameter_uncertainty(self, solved_chain):
+        """40 training postures * 3 measured DOF = 120 residuals, well
+        above this chain's ~57+6 parameters -- std_dev should be real,
+        finite numbers here (see the real-data report's own note on the
+        degrees-of-freedom edge case when postures are scarce)."""
+        calib = solved_chain["calib"]
+        assert hasattr(calib, "std_dev")
+        assert len(calib.std_dev) == len(calib.calib_config["param_name"])
+        assert all(np.isfinite(s) and s >= 0 for s in calib.std_dev)
 
-    def test_std_dev_is_populated_when_dof_is_positive(self, solved_chain):
-        """40 training samples * 3 measured DOF = 120 residuals, well
-        above this chain's ~57+6 parameters -- std_dev should be real
-        numbers, not the None fallback used when dof <= 0."""
-        report = build_single_chain_report(
-            solved_chain["calib"],
-            solved_chain["result"],
-            solved_chain["train_before"],
-            solved_chain["train_after"],
-            n_train=solved_chain["n_train"],
-        )
-        std_devs = [p["std_dev"] for p in report["calibrated_parameters"].values()]
-        assert all(s is not None for s in std_devs)
-        assert all(s >= 0 for s in std_devs)
-
-
-class TestWriteReports:
-    def test_yaml_and_html_round_trip(self, solved_chain, tmp_path):
-        report = build_single_chain_report(
-            solved_chain["calib"],
-            solved_chain["result"],
-            solved_chain["train_before"],
-            solved_chain["train_after"],
-            n_train=solved_chain["n_train"],
-        )
-        yaml_path = tmp_path / "sub" / "report.yaml"
+    def test_export_html_report(self, solved_chain, tmp_path):
+        calib = solved_chain["calib"]
         html_path = tmp_path / "sub" / "report.html"
+        html_path.parent.mkdir(parents=True, exist_ok=True)
+        calib.export_html_report(output_path=str(html_path))
 
-        write_yaml_report(report, str(yaml_path))
-        write_html_report(report, str(html_path), title="Test Report")
+        assert html_path.exists()
+        html = html_path.read_text()
+        assert html.count("<table") == html.count("</table>")
+        assert "CALIBRATION" in html.upper()
+
+    def test_export_geometric_calibration_yaml(self, solved_chain, tmp_path):
+        """Only the raw joint-placement (d_p*) parameters belong in a
+        PAL-style deploy YAML -- this class's PLANE_TPL/CONTACT_TPL
+        entries (plane_z_s0, contact_z, ...) are this method's own
+        estimates, not robot joint offsets, and must NOT appear here."""
+        calib = solved_chain["calib"]
+        yaml_path = tmp_path / "sub" / "master_calibration.yaml"
+        yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        export_geometric_calibration_yaml(calib, str(yaml_path))
 
         assert yaml_path.exists()
-        assert html_path.exists()
-
         import yaml as yaml_module
 
         with open(yaml_path) as f:
-            reloaded = yaml_module.safe_load(f)
-        assert (
-            reloaded["metadata"]["n_identifiable_delta_x"]
-            == solved_chain["calib"].n_deltaX
+            content = yaml_module.safe_load(f)
+        calib_section = content["robot_state_publisher"]["geometric_calibration"]
+        assert len(calib_section) > 0
+        assert not any(
+            k.startswith("plane_") or k.startswith("contact_") for k in calib_section
         )
-
-        html = html_path.read_text()
-        assert "Test Report" in html
-        assert html.count("<table") == html.count("</table>")
-        assert "converged" in html
 
 
 class TestBuildTwoChainReport:
@@ -167,7 +136,6 @@ class TestBuildTwoChainReport:
         df_train_l, _, gt, robot = build_dataset(
             n_sessions=1, n_train_per_session=30, n_val_per_session=5, seed=1
         )
-        import pandas as pd
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
