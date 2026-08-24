@@ -201,14 +201,31 @@ genuinely disjoint held-out set recorded on a different day, when this
 implementation's own faithful cost function (not the prototype's cruder
 session-mean-centering trick) is fit to it.
 
-**A real data-quality bug, found and fixed while wiring this up:** 3 of
-the 4 CSVs have a header missing its leading placeholder columns, which
-silently shifts every column by 4 if read with `pandas.read_csv`'s own
-header -- putting metadata strings like `"talos/left_gripper"` where a
-joint angle should be. `run_calibration_real_data.py` parses the raw row
-layout directly instead of trusting the header (see its docstring), and
-`test_talos_table_contact_real_data.py::test_joint_values_are_within_talos_limits`
-guards against this regressing silently again.
+**Two real bugs, found and fixed while wiring this up:**
+
+1. *Column-alignment.* 3 of the 4 CSVs have a header missing its leading
+   placeholder columns, which silently shifts every column by 4 if read
+   with `pandas.read_csv`'s own header -- putting metadata strings like
+   `"talos/left_gripper"` where a joint angle should be.
+   `run_calibration_real_data.py` parses the raw row layout directly
+   instead of trusting the header (see its docstring), and
+   `test_joint_values_are_within_talos_limits` guards against this
+   regressing silently again.
+2. *Sample-starved identifiability.* `create_param_list()`'s QR-based
+   rank-revealing check (`calculate_base_kinematics_regressor`) samples
+   `calib_config["NbSample"]` *random* configurations internally to test
+   which raw parameters are structurally identifiable -- it never reads
+   the real training data at all for this step. Since `NbSample` was
+   being read from however many real postures happened to be loaded, the
+   left chain's only 21 training postures meant only 21 random probes,
+   which under-detected weakly-identifiable directions: **50/90** raw
+   parameters found identifiable, instead of the chain's true rank of
+   57 (confirmed by forcing more probes with the same chain). Fixed in
+   `TalosTableContactCalibration.initialize()`: the identifiability
+   check now always runs with at least
+   `MIN_IDENTIFIABILITY_SAMPLES = 65` random probes, decoupled from how
+   much real data is actually available for the fit itself. Both chains
+   now correctly report 57.
 
 **Results** (`python run_calibration_real_data.py`; nominal table pose
 and contact offset are the same rough guesses `generate_synthetic_data.py`
@@ -218,40 +235,82 @@ gap, which `PLANE_TPL`/`CONTACT_TPL` absorb by design):
 
 | single chain | Training z | Training roll | Training pitch | Held-out z | Held-out roll | Held-out pitch |
 |---|---:|---:|---:|---:|---:|---:|
-| Left | 292.0 &rarr; 0.78 mm (372x) | 1.44&deg; &rarr; 0.17&deg; (8.6x) | 1.43&deg; &rarr; 0.16&deg; (8.9x) | 288.2 &rarr; 9.26 mm (31x) | 1.21&deg; &rarr; 0.75&deg; (1.6x) | 1.46&deg; &rarr; 0.52&deg; (2.8x) |
-| Right | 281.8 &rarr; 1.33 mm (212x) | 2.51&deg; &rarr; 0.32&deg; (7.8x) | 0.87&deg; &rarr; 0.38&deg; (2.3x) | 292.0 &rarr; 8.03 mm (36x) | 1.88&deg; &rarr; 0.98&deg; (1.9x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
+| Left | 292.0 &rarr; 0.48 mm (603x) | 1.44&deg; &rarr; 0.13&deg; (11.4x) | 1.43&deg; &rarr; 0.19&deg; (7.6x) | 288.2 &rarr; 5.76 mm (50x) | 1.21&deg; &rarr; 0.42&deg; (2.8x) | 1.46&deg; &rarr; 0.49&deg; (3.0x) |
+| Right | 281.8 &rarr; 1.33 mm (211x) | 2.51&deg; &rarr; 0.32&deg; (7.8x) | 0.87&deg; &rarr; 0.38&deg; (2.3x) | 292.0 &rarr; 8.01 mm (36x) | 1.88&deg; &rarr; 0.98&deg; (1.9x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
 
-Fitting both chains jointly via `MultiChainCalibration` shares 3 torso
-axes (`d_phix_torso_2_joint`, `d_phiy_torso_2_joint`, `d_px_torso_2_joint`
--- union 104 identifiable params vs. the naive sum of 107) and *improves*
-the left chain's held-out generalization noticeably (it has less
-training data of its own, so it benefits more from borrowing the shared
-torso correction the right chain's 29 postures help pin down):
+Fitting both chains jointly via `MultiChainCalibration` shares 5 torso
+axes this time (`d_phix_torso_2_joint`, `d_phiz_torso_1_joint`,
+`d_px_torso_2_joint`, `d_py_torso_1_joint`, `d_py_torso_2_joint` -- union
+109 identifiable params vs. the naive sum of 114):
 
 | two-chain, shared torso | Held-out z | Held-out roll | Held-out pitch |
 |---|---:|---:|---:|
-| Left | 288.2 &rarr; 4.86 mm (59x) | 1.21&deg; &rarr; 0.44&deg; (2.7x) | 1.46&deg; &rarr; 0.50&deg; (2.9x) |
-| Right | 292.0 &rarr; 7.91 mm (37x) | 1.88&deg; &rarr; 0.98&deg; (1.9x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
+| Left | 288.2 &rarr; 12.32 mm (23x) | 1.21&deg; &rarr; 0.68&deg; (1.8x) | 1.46&deg; &rarr; 0.51&deg; (2.8x) |
+| Right | 292.0 &rarr; 7.46 mm (39x) | 1.88&deg; &rarr; 0.95&deg; (2.0x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
 
-These held-out residuals (5-9mm, 0.4-1&deg;) land in the same order of
-magnitude as the manuscript's own reported held-out numbers (mm-scale,
-sub-degree-to-1&deg; tilt) -- not identical (different day, and this
-rig's real table pose/contact offset were never independently measured
-here, unlike the manuscript's own experiment), but the same qualitative
-result: a real, substantial, held-out-generalizing improvement from
-fitting this exact cost function to real recordings, not just to
-synthetic data built to match it.
+Worth being honest about: unlike the synthetic two-chain test (where
+sharing consistently *helped* the data-poorer side), here the left
+chain's held-out z gets *worse* under sharing (5.76mm alone vs. 12.32mm
+shared) even though training improves. With 5 shared axes instead of the
+synthetic case's smaller overlap, the joint solve is trading off a
+better fit to the *combined* training set against generalization on the
+left chain's specific held-out postures -- a real, visible bias/variance
+trade-off from sharing parameters across two datasets recorded 11 days
+apart on what may not be perfectly identical mechanical conditions,
+not a bug. The right chain (more of its own training data) is
+essentially unaffected either way.
 
-**One expected identifiability artifact, worth naming rather than
-hiding:** the recovered `plane_z` and `contact_z` corrections are close
-to equal and opposite (e.g. left: plane -110.5mm, contact +110.7mm).
-This is the same single-chain aliasing already documented above (a
-table-height error and a contact-offset error shift the same observed
-gap) -- here it's large because the *nominal* guesses for both were
-never calibrated to this specific rig, so the fit correctly absorbs
-nearly all of that gap into the sum, without being able to separate
-which one it came from. It doesn't affect the held-out prediction
-quality, which is what's actually asserted.
+### Detailed comparison against the manuscript's own numbers
+
+The manuscript reports (real hardware, one representative chain):
+
+| | Manuscript training (31 postures) | Manuscript held-out (9 postures) |
+|---|---:|---:|
+| z | 9.19 &rarr; 2.88 mm (3.2x) | 9.89 &rarr; 4.54 mm (2.2x) |
+| roll | 1.12&deg; &rarr; 0.31&deg; (3.6x) | 1.18&deg; &rarr; 0.56&deg; (2.1x) |
+| pitch | 1.02&deg; &rarr; 0.33&deg; (3.1x) | 0.98&deg; &rarr; 0.34&deg; (2.9x) |
+
+Reading this against the tables above:
+
+- **Structural match, exact.** Both chains here identify 57 base
+  parameters, matching the manuscript's own count for this 15-joint
+  chain -- once the sample-starved-identifiability bug above was fixed.
+  This is the single most important number in the comparison: it means
+  the chain definition, the DOF mask, and the QR reduction are all
+  faithful to the manuscript, independent of any tuning.
+- **Pre-calibration ("before") numbers are not comparable, and that's
+  expected, not a discrepancy.** The manuscript's own before-gap
+  (~9-10mm) implies they started from a nominal table pose that was
+  already reasonably well characterized (measured or CAD-derived) for
+  their specific rig. This port's nominal table pose/contact offset are
+  arbitrary placeholders (borrowed from the synthetic demo, since this
+  specific physical rig's exact geometry was never independently
+  surveyed here) -- hence the ~280-290mm before-gap. `PLANE_TPL` is
+  designed to absorb exactly this kind of large, unknown nominal error,
+  and the after-calibration numbers show it does.
+- **Post-calibration (held-out) numbers *are* comparable, and they
+  land in the same regime.** 5.76-8.01mm here vs. 4.54mm in the
+  manuscript; 0.42-0.98&deg; here vs. 0.34-0.56&deg; in the manuscript.
+  Same order of magnitude, right chain closer to the manuscript's own
+  number than left. Given the manuscript's rig had an accurately-known
+  nominal table pose and this one doesn't, landing within roughly 2x of
+  their held-out residual on real data neither of us tuned for is a
+  meaningful result, not a coincidence.
+- **Posture counts differ.** Manuscript: 31 training / 9 held-out per
+  chain. Here: 21 (left) / 29 (right) training, 9 / 9 held-out. The
+  held-out counts match exactly; the training counts don't, and it's not
+  known from the data alone whether the manuscript's "31" refers to a
+  different chain, a combined count, or a superset of what ended up in
+  these specific compiled CSVs -- flagged rather than silently assumed
+  to line up.
+- **The recovered `plane_z`/`contact_z` split is not meaningful in
+  isolation.** They come out close to equal and opposite (e.g. left:
+  plane &minus;61.4mm, contact +61.7mm) -- the same single-chain
+  aliasing already documented above (a table-height error and a
+  contact-offset error shift the same observed gap identically), made
+  large here specifically because neither nominal guess was calibrated
+  to this rig. It doesn't affect the held-out prediction quality above,
+  which is what's actually being compared.
 
 `tests/test_talos_table_contact_real_data.py` (11 tests) asserts:
 training-gap reduction, held-out generalization, held-out residual

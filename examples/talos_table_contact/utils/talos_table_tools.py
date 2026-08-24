@@ -243,8 +243,33 @@ class TalosTableContactCalibration(BaseCalibration):
     # ------------------------------------------------------------------
     # Parameter list: Delta X (base params, via core FIGAROH) + Delta P
     # ------------------------------------------------------------------
+    # Below this many samples, calculate_base_kinematics_regressor's
+    # internal random-config identifiability check (see initialize())
+    # can under-detect weakly-identifiable directions and report fewer
+    # base parameters than the chain structurally has -- observed on
+    # real data (21 postures -> 50/90, vs. the true 57 recovered at 65+
+    # random configs). This has nothing to do with how much real data is
+    # available for the actual fit; it is purely how many random probe
+    # configurations the rank-revealing QR step gets to test against.
+    MIN_IDENTIFIABILITY_SAMPLES = 65
+
     def initialize(self):
-        super().initialize()  # load_data_set() + create_param_list()
+        self.load_data_set()
+
+        # The structural identifiability check inside create_param_list()
+        # (via calculate_base_kinematics_regressor) samples NbSample
+        # random configurations internally -- it does not use the real
+        # training data at all. Run it with enough random probes to
+        # reveal the chain's true rank regardless of how many real
+        # postures happen to be loaded, then restore the real count
+        # before anything that touches the actual data (cost_function,
+        # _fk_config's NbSample, etc.).
+        real_nb_sample = self.calib_config["NbSample"]
+        self.calib_config["NbSample"] = max(
+            real_nb_sample, self.MIN_IDENTIFIABILITY_SAMPLES
+        )
+        self.create_param_list()
+        self.calib_config["NbSample"] = real_nb_sample
 
         if not self._nominal_table_pose:
             raise RuntimeError("Call set_nominal_table_poses(...) before initialize().")
