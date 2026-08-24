@@ -1,0 +1,38 @@
+# TALOS table-contact calibration -- right leg -> torso -> right arm chain
+#
+# The mirror of talos_table_left_config.yaml (see there for the field-by-
+# field notes); paired with it via utils.talos_table_tools.MultiChainCalibration
+# to couple the two chains' shared torso-joint corrections.
+
+calibration:
+  # 3 of 6 end-effector pose DOF are informative from a flush table
+  # touch: height along the table normal (z) and the two in-plane tilts
+  # (roll, pitch). Position on the table (x, y) and yaw about the normal
+  # are not observable and are left out.
+  markers:
+    - measure: [false, false, true, true, true, false]
+
+  calib_level: full_params
+  base_frame: right_sole_link
+  tool_frame: gripper_right_base_link
+
+  free_flyer: false
+  non_geom: false
+
+  # Overwritten by TalosTableContactCalibration.load_data_set() with the
+  # actual row count of data_file; must be a positive placeholder here.
+  nb_sample: 1
+
+  # Joint-angle-only CSV (plus a session_id column); see
+  # generate_synthetic_data.py for the exact schema. Overridden
+  # programmatically by the demo/test scripts to point at the right-chain
+  # dataset.
+  data_file: data/table_contact_train.csv
+
+  # get_param_from_yaml() reads the 4 fields below as a single
+  # all-or-nothing dict update -- if any one key is missing, it silently
+  # resets data_file to None too, so the 3 unused ones must still be
+  # declared explicitly (see figaroh.calibration.calibration_tools).
+  coeff_regularize: null
+  sample_configs_file: null
+  outlier_eps: null

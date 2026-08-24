@@ -52,6 +52,7 @@ if str(HERE) not in sys.path:
 
 from figaroh.calibration.calibration_tools import (
     cartesian_to_SE3,
+    get_rel_transform,
     get_sup_joints,
     update_joint_placement,
 )
@@ -78,12 +79,39 @@ ACTIVE_JOINT_NAMES = [
     "arm_left_7_joint",
 ]
 
+# The right-side mirror of the chain above -- right leg -> torso -> right
+# arm, rooted at the right foot instead of the left. Used by
+# build_two_chain_dataset() together with the left chain to exercise
+# MultiChainCalibration's shared-torso coupling (utils.talos_table_tools).
+RIGHT_BASE_FRAME = "right_sole_link"
+RIGHT_WRIST_FRAME = "gripper_right_base_link"
+RIGHT_ACTIVE_JOINT_NAMES = [
+    "leg_right_1_joint",
+    "leg_right_2_joint",
+    "leg_right_3_joint",
+    "leg_right_4_joint",
+    "leg_right_5_joint",
+    "leg_right_6_joint",
+    "torso_1_joint",
+    "torso_2_joint",
+    "arm_right_1_joint",
+    "arm_right_2_joint",
+    "arm_right_3_joint",
+    "arm_right_4_joint",
+    "arm_right_5_joint",
+    "arm_right_6_joint",
+    "arm_right_7_joint",
+]
+
 # Nominal rig, expressed in the BASE_FRAME (left_sole_link): a table in
 # front-left of the standing robot, roughly at gripper-reach height, and
 # a contact-point offset roughly matching the real fingertip depth ahead
 # of gripper_left_base_link (see README.md for how these were probed).
 NOMINAL_TABLE_POSE = cartesian_to_SE3([0.30, 0.28, 1.00, 0.0, 0.0, 0.0])
 NOMINAL_CONTACT_OFFSET = cartesian_to_SE3([0.0, 0.0, -0.12, 0.0, 0.0, 0.0])
+# The right gripper's own nominal fingertip offset -- same rough depth,
+# independent gripper/session from the left one.
+RIGHT_NOMINAL_CONTACT_OFFSET = cartesian_to_SE3([0.0, 0.0, -0.12, 0.0, 0.0, 0.0])
 
 FULL_PARAMTPL = ["d_px", "d_py", "d_pz", "d_phix", "d_phiy", "d_phiz"]
 
@@ -183,6 +211,10 @@ def synthesize_touches(
     table_half_extent=(0.16, 0.11),
     yaw_range=np.deg2rad(25.0),
     encoder_noise_std: float = 0.0,
+    base_frame: str = BASE_FRAME,
+    wrist_frame: str = WRIST_FRAME,
+    active_joint_names=ACTIVE_JOINT_NAMES,
+    seed_joints: Optional[dict] = None,
 ):
     """Solve IK for random touch points on each session's true table.
 
@@ -194,6 +226,14 @@ def synthesize_touches(
     joint angle -- the touch itself is still geometrically exact (the IK
     solve is unaffected) -- mimicking finite encoder resolution/noise on
     an otherwise perfect physical contact.
+
+    ``base_frame``/``wrist_frame``/``active_joint_names`` default to the
+    left chain (module-level ``BASE_FRAME``/``WRIST_FRAME``/
+    ``ACTIVE_JOINT_NAMES``); pass the ``RIGHT_*`` equivalents to
+    synthesize touches for the right chain instead (see
+    ``build_two_chain_dataset``). ``seed_joints`` likewise defaults to a
+    left-arm-reaching seed; pass a right-arm equivalent for the right
+    chain.
     """
     true_model = ground_truth["true_model"]
     true_data = true_model.createData()
@@ -207,13 +247,14 @@ def synthesize_touches(
     # starting basin, so each target gets a few randomized-seed retries
     # before being counted as failed -- a standard, robust IK pattern.
     q0_base = pin.neutral(model)
-    seed_joints = {
-        "torso_2_joint": 0.15,
-        "arm_left_1_joint": 0.3,
-        "arm_left_2_joint": 0.2,
-        "arm_left_3_joint": -0.2,
-        "arm_left_4_joint": -1.4,
-    }
+    if seed_joints is None:
+        seed_joints = {
+            "torso_2_joint": 0.15,
+            "arm_left_1_joint": 0.3,
+            "arm_left_2_joint": 0.2,
+            "arm_left_3_joint": -0.2,
+            "arm_left_4_joint": -1.4,
+        }
     for name, val in seed_joints.items():
         q0_base[model.joints[model.getJointId(name)].idx_q] = val
 
@@ -237,8 +278,8 @@ def synthesize_touches(
                 q, ok = solve_touch_ik(
                     true_model,
                     true_data,
-                    BASE_FRAME,
-                    WRIST_FRAME,
+                    base_frame,
+                    wrist_frame,
                     ground_truth["true_contact_offset"],
                     target_contact_pose,
                     q0,
@@ -250,7 +291,7 @@ def synthesize_touches(
                 n_failed += 1
                 continue
             row = {"session_id": s}
-            for name in ACTIVE_JOINT_NAMES:
+            for name in active_joint_names:
                 idx = model.joints[model.getJointId(name)].idx_q
                 noise = rng.normal(0.0, encoder_noise_std) if encoder_noise_std else 0.0
                 row[name] = float(q[idx]) + noise
@@ -259,6 +300,219 @@ def synthesize_touches(
     if n_failed:
         print(f"  ({n_failed} touch targets failed to converge and were skipped)")
     return pd.DataFrame(rows)
+
+
+def build_two_chain_ground_truth(
+    model,
+    rng: np.random.Generator,
+    n_sessions: int = 2,
+    joint_trans_std: float = 1.5e-3,
+    joint_rot_std: float = np.deg2rad(0.3),
+    plane_z_std: float = 4e-3,
+    plane_tilt_std: float = np.deg2rad(0.4),
+    contact_z_std: float = 3e-3,
+    contact_tilt_std: float = np.deg2rad(0.4),
+    session_offsets=None,
+):
+    """Like :func:`build_ground_truth`, but for the left *and* right
+    leg-torso-arm chains at once, sharing exactly ONE injected
+    torso-joint error and ONE physical table between them -- the
+    scenario ``utils.talos_table_tools.MultiChainCalibration`` is built
+    to fit (see its docstring for why sharing the raw torso (joint,
+    axis) parameters between chains is physically sound).
+
+    Returns a dict with ``"left"``/``"right"`` sub-dicts, each shaped
+    exactly like :func:`build_ground_truth`'s return value (so
+    :func:`synthesize_touches` can consume either directly), plus the
+    shared/injected ground truth for inspection.
+    """
+    true_model = model.copy()
+
+    left_joint_ids = get_sup_joints(model, BASE_FRAME, WRIST_FRAME)
+    right_joint_ids = get_sup_joints(model, RIGHT_BASE_FRAME, RIGHT_WRIST_FRAME)
+    torso_joint_ids = [j for j in left_joint_ids if j in right_joint_ids]
+
+    delta_x_true: dict = {}
+
+    def _inject(joint_ids):
+        nonlocal true_model
+        for j_id in joint_ids:
+            j_name = model.names[j_id]
+            already_done = f"{FULL_PARAMTPL[0]}_{j_name}" in delta_x_true
+            if already_done:
+                continue
+            xyz_rpy = np.concatenate(
+                [
+                    rng.normal(0.0, joint_trans_std, 3),
+                    rng.normal(0.0, joint_rot_std, 3),
+                ]
+            )
+            for axis_name, val in zip(FULL_PARAMTPL, xyz_rpy):
+                delta_x_true[f"{axis_name}_{j_name}"] = float(val)
+            true_model = update_joint_placement(true_model, j_id, xyz_rpy)
+
+    # Torso first (and only once) -- both chains then reuse these exact
+    # values -- followed by each side's own leg + arm joints.
+    _inject(torso_joint_ids)
+    _inject(left_joint_ids)
+    _inject(right_joint_ids)
+
+    true_data = true_model.createData()
+
+    if session_offsets is None:
+        session_offsets = [(0.0, 0.0)] * n_sessions
+
+    # Same physical table for both chains: the right-side pose is the
+    # left-side pose transformed through the TRUE (error-injected)
+    # foot-to-foot transform, not an independently drawn one.
+    rightSole_M_leftSole_true = get_rel_transform(
+        true_model, true_data, RIGHT_BASE_FRAME, BASE_FRAME
+    )
+
+    plane_true = []
+    left_true_table_pose = []
+    right_true_table_pose = []
+    for s in range(n_sessions):
+        dx, dy = session_offsets[s]
+        session_nominal = NOMINAL_TABLE_POSE * cartesian_to_SE3(
+            [dx, dy, 0.0, 0.0, 0.0, 0.0]
+        )
+        z_p = float(rng.normal(0.0, plane_z_std))
+        phix_p = float(rng.normal(0.0, plane_tilt_std))
+        thetay_p = float(rng.normal(0.0, plane_tilt_std))
+        plane_true.append({"z": z_p, "phix": phix_p, "thetay": thetay_p})
+        table_pose_left = session_nominal * cartesian_to_SE3(
+            [0.0, 0.0, z_p, phix_p, thetay_p, 0.0]
+        )
+        left_true_table_pose.append(table_pose_left)
+        right_true_table_pose.append(rightSole_M_leftSole_true * table_pose_left)
+
+    def _draw_contact(nominal_offset):
+        true_vals = {
+            "z": float(rng.normal(0.0, contact_z_std)),
+            "phix": float(rng.normal(0.0, contact_tilt_std)),
+            "thetay": float(rng.normal(0.0, contact_tilt_std)),
+        }
+        offset = nominal_offset * cartesian_to_SE3(
+            [0.0, 0.0, true_vals["z"], true_vals["phix"], true_vals["thetay"], 0.0]
+        )
+        return true_vals, offset
+
+    left_contact_true, left_true_contact_offset = _draw_contact(NOMINAL_CONTACT_OFFSET)
+    right_contact_true, right_true_contact_offset = _draw_contact(
+        RIGHT_NOMINAL_CONTACT_OFFSET
+    )
+
+    left_gt = {
+        "true_model": true_model,
+        "active_joint_ids": left_joint_ids,
+        "true_table_pose": left_true_table_pose,
+        "true_contact_offset": left_true_contact_offset,
+    }
+    right_gt = {
+        "true_model": true_model,
+        "active_joint_ids": right_joint_ids,
+        "true_table_pose": right_true_table_pose,
+        "true_contact_offset": right_true_contact_offset,
+    }
+    return {
+        "left": left_gt,
+        "right": right_gt,
+        "shared_torso_joint_ids": torso_joint_ids,
+        "shared_torso_joint_names": [str(model.names[j]) for j in torso_joint_ids],
+        "delta_x_true": delta_x_true,
+        "plane_true": plane_true,
+        "left_contact_true": left_contact_true,
+        "right_contact_true": right_contact_true,
+        "session_offsets": session_offsets,
+    }
+
+
+# A "reaching forward" seed for the right arm, mirroring the left-arm
+# seed in synthesize_touches -- signs on arm_right_1/2 are flipped vs.
+# arm_left_1/2 to stay inside TALOS's mirrored joint-limit ranges (see
+# examples/talos/urdf/talos_full_v2.urdf); arm_3/4 use the same sign
+# convention on both sides.
+RIGHT_SEED_JOINTS = {
+    "torso_2_joint": 0.15,
+    "arm_right_1_joint": 0.3,
+    "arm_right_2_joint": -0.2,
+    "arm_right_3_joint": -0.2,
+    "arm_right_4_joint": -1.4,
+}
+
+
+def build_two_chain_dataset(
+    n_sessions: int = 2,
+    n_train_per_session: int = 30,
+    n_val_per_session: int = 8,
+    seed: int = 0,
+    encoder_noise_std: float = 0.0,
+):
+    """Build a two-chain (left + right) train/validation dataset sharing
+    one injected torso error and one physical table, for exercising
+    ``MultiChainCalibration``. Mirrors :func:`build_dataset`'s role for
+    the single-chain case.
+    """
+    rng = np.random.default_rng(seed)
+    robot = _load_robot()
+    model = robot.model
+
+    session_offsets = [(0.0, 0.0), (0.03, -0.05)][:n_sessions]
+    ground_truth = build_two_chain_ground_truth(
+        model, rng, n_sessions=n_sessions, session_offsets=session_offsets
+    )
+
+    df_left_train = synthesize_touches(
+        model,
+        ground_truth["left"],
+        n_sessions,
+        n_train_per_session,
+        rng,
+        encoder_noise_std=encoder_noise_std,
+    )
+    df_left_val = synthesize_touches(
+        model,
+        ground_truth["left"],
+        n_sessions,
+        n_val_per_session,
+        rng,
+        encoder_noise_std=encoder_noise_std,
+    )
+    df_right_train = synthesize_touches(
+        model,
+        ground_truth["right"],
+        n_sessions,
+        n_train_per_session,
+        rng,
+        encoder_noise_std=encoder_noise_std,
+        base_frame=RIGHT_BASE_FRAME,
+        wrist_frame=RIGHT_WRIST_FRAME,
+        active_joint_names=RIGHT_ACTIVE_JOINT_NAMES,
+        seed_joints=RIGHT_SEED_JOINTS,
+    )
+    df_right_val = synthesize_touches(
+        model,
+        ground_truth["right"],
+        n_sessions,
+        n_val_per_session,
+        rng,
+        encoder_noise_std=encoder_noise_std,
+        base_frame=RIGHT_BASE_FRAME,
+        wrist_frame=RIGHT_WRIST_FRAME,
+        active_joint_names=RIGHT_ACTIVE_JOINT_NAMES,
+        seed_joints=RIGHT_SEED_JOINTS,
+    )
+
+    return {
+        "left_train": df_left_train,
+        "left_val": df_left_val,
+        "right_train": df_right_train,
+        "right_val": df_right_val,
+        "ground_truth": ground_truth,
+        "robot": robot,
+        "session_offsets": session_offsets,
+    }
 
 
 def build_dataset(

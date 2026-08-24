@@ -388,3 +388,146 @@ class TalosTableContactCalibration(BaseCalibration):
             "roll_rmse_deg": float(np.sqrt(np.mean(roll**2)) * 180.0 / np.pi),
             "pitch_rmse_deg": float(np.sqrt(np.mean(pitch**2)) * 180.0 / np.pi),
         }
+
+
+class MultiChainCalibration:
+    """Couples two :class:`TalosTableContactCalibration` chains (left and
+    right leg-torso-arm) so that a joint-placement correction shared by
+    both chains -- physically, the torso joints, which sit on the
+    kinematic path of *both* ``left_sole_link -> gripper_left_base_link``
+    and ``right_sole_link -> gripper_right_base_link`` -- is fit as a
+    single, shared value, rather than as two independent (and generally
+    inconsistent) per-chain estimates of what is really the same
+    physical joint offset.
+
+    Why sharing by name is physically sound, not just cosmetic
+    -----------------------------------------------------------------
+    Each chain's own base-parameter reduction (the QR step inside
+    ``BaseCalibration.create_param_list`` /
+    ``calculate_base_kinematics_regressor``) does not report *combined*
+    parameters under new names; it reports a well-conditioned *subset* of
+    the raw, single-(joint, axis) ``d_px_<joint>`` / ... names, dropping
+    the ones that chain cannot identify. ``calc_updated_fkm`` then looks
+    each one up by a literal substring match against the joint's own name
+    (see ``figaroh.calibration.calibration_tools.calc_updated_fkm``), so
+    a raw name's meaning -- "the correction to this joint's own
+    placement" -- does not depend on which chain is evaluating it. If the
+    same ``(joint, axis)`` name is independently found identifiable by
+    *both* chains (expected for the torso here, since torso-axis
+    identifiability is primarily a local/structural property), treating
+    it as one shared scalar fed into both chains' forward kinematics is
+    exactly the coupling a real two-armed calibration needs -- no
+    combined-regressor machinery has to be built or added to core to get
+    it right.
+
+    Everything else -- each session's plane-pose correction, and each
+    side's own gripper contact-frame offset -- stays independent per
+    chain, since those really are physically distinct per side/session.
+
+    Both ``calib_left`` and ``calib_right`` must already be constructed,
+    given their nominal table pose(s)/contact offset, and
+    ``initialize()``-d before being passed in here.
+    """
+
+    def __init__(
+        self,
+        calib_left: TalosTableContactCalibration,
+        calib_right: TalosTableContactCalibration,
+        regularization_coefficient: float = 1e-3,
+    ):
+        self.left = calib_left
+        self.right = calib_right
+        self.regularization_coefficient = regularization_coefficient
+
+        left_dx_names = list(calib_left._fk_config["param_name"])
+        right_dx_names = list(calib_right._fk_config["param_name"])
+        union = list(left_dx_names)
+        for name in right_dx_names:
+            if name not in union:
+                union.append(name)
+        self.dx_names = union
+        self.n_dx = len(union)
+        self.shared_dx_names = sorted(set(left_dx_names) & set(right_dx_names))
+
+        self._left_tail_names = calib_left.calib_config["param_name"][
+            calib_left.n_deltaX :
+        ]
+        self._right_tail_names = calib_right.calib_config["param_name"][
+            calib_right.n_deltaX :
+        ]
+        self.n_left_tail = len(self._left_tail_names)
+        self.n_right_tail = len(self._right_tail_names)
+
+        self.param_name = (
+            self.dx_names
+            + [f"left_{n}" for n in self._left_tail_names]
+            + [f"right_{n}" for n in self._right_tail_names]
+        )
+
+    # ------------------------------------------------------------------
+    # var (union Delta X | left tail | right tail) <-> each chain's own
+    # local layout (that chain's Delta X | that chain's own tail)
+    # ------------------------------------------------------------------
+    def _split_to_chain_vars(self, var: np.ndarray) -> "tuple[np.ndarray, np.ndarray]":
+        n_dx = self.n_dx
+        var_dx = var[:n_dx]
+        var_left_tail = var[n_dx : n_dx + self.n_left_tail]
+        var_right_tail = var[n_dx + self.n_left_tail :]
+
+        dx_dict = dict(zip(self.dx_names, var_dx))
+        var_dx_left = np.array([dx_dict[n] for n in self.left._fk_config["param_name"]])
+        var_dx_right = np.array(
+            [dx_dict[n] for n in self.right._fk_config["param_name"]]
+        )
+        var_left = np.concatenate([var_dx_left, var_left_tail])
+        var_right = np.concatenate([var_dx_right, var_right_tail])
+        return var_left, var_right
+
+    def cost_function(self, var: np.ndarray) -> np.ndarray:
+        var_left, var_right = self._split_to_chain_vars(var)
+
+        n_gap_left = 3 * self.left._fk_config["NbSample"]
+        n_gap_right = 3 * self.right._fk_config["NbSample"]
+        # Slice off each chain's own internal regularization tail (sized
+        # to that chain's local var, not this class's union var) -- one
+        # combined regularization tail over the full union is added once
+        # below instead, so shared torso parameters aren't regularized
+        # twice.
+        gap_left = self.left.cost_function(var_left)[:n_gap_left]
+        gap_right = self.right.cost_function(var_right)[:n_gap_right]
+
+        reg = np.sqrt(self.regularization_coefficient) * var
+        return np.concatenate([gap_left, gap_right, reg])
+
+    def solve_lm(self, **least_squares_kwargs):
+        """Levenberg-Marquardt solve over the coupled parameter vector.
+        See :meth:`TalosTableContactCalibration.solve_lm` for why this
+        drives ``scipy.optimize.least_squares`` directly."""
+        var0 = np.zeros(len(self.param_name))
+        kwargs = dict(method="lm", xtol=1e-12, ftol=1e-12, max_nfev=4000)
+        kwargs.update(least_squares_kwargs)
+        result = least_squares(self.cost_function, var0, **kwargs)
+        self.LM_result = result
+        return result
+
+    def split_params(self, var: np.ndarray) -> dict:
+        n_dx = self.n_dx
+        var_dx = var[:n_dx]
+        var_left_tail = var[n_dx : n_dx + self.n_left_tail]
+        var_right_tail = var[n_dx + self.n_left_tail :]
+        return {
+            "delta_x": dict(zip(self.dx_names, var_dx)),
+            "shared_delta_x_names": list(self.shared_dx_names),
+            "left": dict(zip(self._left_tail_names, var_left_tail)),
+            "right": dict(zip(self._right_tail_names, var_right_tail)),
+        }
+
+    def gap_metrics(self, var: np.ndarray) -> dict:
+        """Per-chain gap metrics (see
+        :meth:`TalosTableContactCalibration.gap_metrics`), evaluated with
+        the shared torso correction plugged into both chains."""
+        var_left, var_right = self._split_to_chain_vars(var)
+        return {
+            "left": self.left.gap_metrics(var_left),
+            "right": self.right.gap_metrics(var_right),
+        }
