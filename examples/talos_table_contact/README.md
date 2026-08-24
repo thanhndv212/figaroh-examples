@@ -52,52 +52,61 @@ Stack-of-Tasks repo, not part of FIGAROH; see "What's not here" below).
   That known ground truth is what makes the calibration verifiable.
   `build_two_chain_dataset` does the same for both chains at once,
   sharing one injected torso error and one physical table between them.
-- `generate_table_configs.py` -- a *different* generator: runs against
-  the plain nominal model (no injected error) to produce whole-body,
-  double-support-*checked* candidate postures for an actual data-collection
-  session (see "Posture generation" below).
-- `run_calibration.py` -- runs the calibration end-to-end and prints
-  before/after gap metrics on both the training set and a held-out
-  validation set, plus the recovered plane/contact-frame estimates.
+- `run_calibration.py` -- runs the calibration end-to-end against
+  synthetic data and prints before/after gap metrics on both the training
+  set and a held-out validation set, plus the recovered plane/contact-frame
+  estimates.
+- `run_calibration_real_data.py` -- runs the same calibration against
+  **real hardware data** -- see "Real-hardware validation" below.
 - `config/talos_table_left_config.yaml` / `talos_table_right_config.yaml`
   -- legacy-format FIGAROH config for the left and right chains (see "Why
   legacy config, not unified" below).
-- `data/` -- a committed demo dataset (noiseless synthetic touches,
+- `data/` -- a committed synthetic demo dataset (noiseless,
   `generate_synthetic_data.py`'s defaults) so `run_calibration.py` has
   something to run against out of the box; `--regenerate` resynthesizes
   it (optionally with `--noise-deg` for realistic joint-encoder noise).
+- `data/real/` -- the actual joint-encoder recordings the manuscript's
+  own results were computed from (see "Real-hardware validation" below).
+- `generate_table_configs.py` -- an exploratory, secondary generator
+  (runs against the nominal model, no injected error, to produce
+  whole-body double-support-*checked* candidate postures). Not part of
+  the core pipeline -- see "Posture generation" for why.
 - `../../tests/test_talos_table_contact.py`,
   `test_talos_table_contact_multichain.py`,
-  `test_generate_table_configs.py` -- the round-trip validation suites
-  (see "Verification & validation" below).
+  `test_talos_table_contact_real_data.py`,
+  `test_generate_table_configs.py` -- the validation suites (see
+  "Verification & validation" / "Real-hardware validation" below).
 
 ## Run
 
 ```bash
 cd examples/talos_table_contact
 
-# Calibrate against the committed noiseless demo data
+# Calibrate against the committed noiseless synthetic demo data
 python run_calibration.py
 
-# Resynthesize data with realistic joint-encoder noise
+# Resynthesize synthetic data with realistic joint-encoder noise
 python run_calibration.py --regenerate --noise-deg 0.05 --seed 42
 
-# Round-trip test suites (from the figaroh-examples root)
-cd ../..
-pytest tests/test_talos_table_contact.py -v               # single-chain
-pytest tests/test_talos_table_contact_multichain.py -v    # two-chain, shared torso
-pytest tests/test_generate_table_configs.py -v             # posture generator
+# Calibrate against real hardware data (left, right, and two-chain)
+python run_calibration_real_data.py
 
-# Generate double-support-checked candidate postures (nominal model, no
-# ground truth -- see "Posture generation" below)
-cd examples/talos_table_contact
-python generate_table_configs.py --n-candidates 500
+# Round-trip / validation test suites (from the figaroh-examples root)
+cd ../..
+pytest tests/test_talos_table_contact.py -v               # single-chain, synthetic
+pytest tests/test_talos_table_contact_multichain.py -v    # two-chain, synthetic
+pytest tests/test_talos_table_contact_real_data.py -v     # real hardware data
 ```
 
 ## Verification & validation
 
-There is no physical rig available in this workspace, so "verified and
-validated" means a **round-trip test with a known ground truth**: inject
+There is no live physical rig to run new experiments on in this
+workspace, but there is real recorded data from one (see "Real-hardware
+validation" below) -- this section covers the synthetic side: a
+**round-trip test with a known ground truth**, which is what makes exact
+mechanism correctness checkable (real data alone can't prove the
+frame-composition/sign conventions are right, only that the fit
+generalizes). Inject
 joint-placement errors, a table pose, and a contact-frame offset;
 synthesize IK-consistent touches for them (so the true gap is exactly
 zero, as with a real successful contact); calibrate a *nominal* model
@@ -105,8 +114,8 @@ against those touches; check that the calibrated model's predicted gap
 is small both on the training postures and on a **held-out validation
 set** the solver never saw. This mirrors exactly how the manuscript
 itself validates the method -- residual before/after in mm and degrees,
-on both a training and a held-out set -- rather than a synthetic-only
-"the numbers look small" claim.
+on both a training and a held-out set -- rather than a "the numbers look
+small" claim with nothing to check them against.
 
 **Structural check.** The 15-joint `left_sole_link -> ... ->
 gripper_left_base_link` chain (6 leg + 2 torso + 7 arm joints) reduces,
@@ -169,6 +178,86 @@ What *does* have to match, and is asserted directly, is the held-out
 gap: if the calibration is wrong, it stops predicting new touches
 correctly, whatever the individual parameter values happen to be.
 
+## Real-hardware validation
+
+Everything above is synthetic. This section is not: `data/real/` holds
+the actual joint-encoder recordings from the physical rig, copied from
+the deprecated FIGAROH repository's `data/talos/contacts/`:
+
+| file | source | postures |
+|---|---|---:|
+| `left_train.csv` | `compiled_measurements_left_1028.csv` (2022-10-28) | 21 |
+| `right_train.csv` | `compiled_measurements_right_1107.csv` (2022-11-07) | 29 |
+| `left_validation.csv` | `validation_left_1107.csv` (2022-11-07) | 9 |
+| `right_validation.csv` | `validation_right_1107.csv` (2022-11-07) | 9 |
+
+These are the exact files the deprecated prototype script
+(`scripts/talos_contact_calibration.py`) used, and the manuscript's own
+2.3x cross-validated pose-error reduction was computed from. There is no
+ground truth to recover here -- this is real, already-uncalibrated
+hardware -- so "verification" means what it means for the manuscript
+itself: does the gap actually drop, on training postures *and* on a
+genuinely disjoint held-out set recorded on a different day, when this
+implementation's own faithful cost function (not the prototype's cruder
+session-mean-centering trick) is fit to it.
+
+**A real data-quality bug, found and fixed while wiring this up:** 3 of
+the 4 CSVs have a header missing its leading placeholder columns, which
+silently shifts every column by 4 if read with `pandas.read_csv`'s own
+header -- putting metadata strings like `"talos/left_gripper"` where a
+joint angle should be. `run_calibration_real_data.py` parses the raw row
+layout directly instead of trusting the header (see its docstring), and
+`test_talos_table_contact_real_data.py::test_joint_values_are_within_talos_limits`
+guards against this regressing silently again.
+
+**Results** (`python run_calibration_real_data.py`; nominal table pose
+and contact offset are the same rough guesses `generate_synthetic_data.py`
+uses -- there was no real prior knowledge of *this* rig's actual table
+position, and the large pre-calibration numbers below mostly reflect that
+gap, which `PLANE_TPL`/`CONTACT_TPL` absorb by design):
+
+| single chain | Training z | Training roll | Training pitch | Held-out z | Held-out roll | Held-out pitch |
+|---|---:|---:|---:|---:|---:|---:|
+| Left | 292.0 &rarr; 0.78 mm (372x) | 1.44&deg; &rarr; 0.17&deg; (8.6x) | 1.43&deg; &rarr; 0.16&deg; (8.9x) | 288.2 &rarr; 9.26 mm (31x) | 1.21&deg; &rarr; 0.75&deg; (1.6x) | 1.46&deg; &rarr; 0.52&deg; (2.8x) |
+| Right | 281.8 &rarr; 1.33 mm (212x) | 2.51&deg; &rarr; 0.32&deg; (7.8x) | 0.87&deg; &rarr; 0.38&deg; (2.3x) | 292.0 &rarr; 8.03 mm (36x) | 1.88&deg; &rarr; 0.98&deg; (1.9x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
+
+Fitting both chains jointly via `MultiChainCalibration` shares 3 torso
+axes (`d_phix_torso_2_joint`, `d_phiy_torso_2_joint`, `d_px_torso_2_joint`
+-- union 104 identifiable params vs. the naive sum of 107) and *improves*
+the left chain's held-out generalization noticeably (it has less
+training data of its own, so it benefits more from borrowing the shared
+torso correction the right chain's 29 postures help pin down):
+
+| two-chain, shared torso | Held-out z | Held-out roll | Held-out pitch |
+|---|---:|---:|---:|
+| Left | 288.2 &rarr; 4.86 mm (59x) | 1.21&deg; &rarr; 0.44&deg; (2.7x) | 1.46&deg; &rarr; 0.50&deg; (2.9x) |
+| Right | 292.0 &rarr; 7.91 mm (37x) | 1.88&deg; &rarr; 0.98&deg; (1.9x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
+
+These held-out residuals (5-9mm, 0.4-1&deg;) land in the same order of
+magnitude as the manuscript's own reported held-out numbers (mm-scale,
+sub-degree-to-1&deg; tilt) -- not identical (different day, and this
+rig's real table pose/contact offset were never independently measured
+here, unlike the manuscript's own experiment), but the same qualitative
+result: a real, substantial, held-out-generalizing improvement from
+fitting this exact cost function to real recordings, not just to
+synthetic data built to match it.
+
+**One expected identifiability artifact, worth naming rather than
+hiding:** the recovered `plane_z` and `contact_z` corrections are close
+to equal and opposite (e.g. left: plane -110.5mm, contact +110.7mm).
+This is the same single-chain aliasing already documented above (a
+table-height error and a contact-offset error shift the same observed
+gap) -- here it's large because the *nominal* guesses for both were
+never calibrated to this specific rig, so the fit correctly absorbs
+nearly all of that gap into the sum, without being able to separate
+which one it came from. It doesn't affect the held-out prediction
+quality, which is what's actually asserted.
+
+`tests/test_talos_table_contact_real_data.py` (11 tests) asserts:
+training-gap reduction, held-out generalization, held-out residual
+magnitude in the manuscript's ballpark, the shared-torso structural
+properties, and the column-alignment regression guard above.
+
 ## Two-chain coupling
 
 `MultiChainCalibration` fits the left chain (`left_sole_link ->
@@ -208,6 +297,20 @@ two structural checks specific to the coupling itself:
   indicate a bug, not a feature.
 
 ## Posture generation
+
+**Status: exploratory, not part of the core pipeline.** In the real
+execution stack, choosing which postures to attempt is
+[HPP](https://github.com/agimus/agimus-demos/tree/master/talos/calibration/contact)'s
+job -- a Gauss-Newton solve over the *actual* whole-body equilibrium and
+contact constraints together (the manuscript's Algorithm 1), not
+something worth re-deriving from a bare kinematic IK in FIGAROH. What
+follows is a best-effort, self-contained approximation built anyway (real
+double-support balance and joint-limit checks, not just random sampling),
+kept because it's genuinely tested and honestly limited rather than
+discarded, but it should not be read as a substitute for HPP's role, and
+no further effort is planned here. Calibrating against real data (above)
+did not depend on it in any way -- that data came from postures HPP (or
+its predecessor) already picked.
 
 `generate_table_configs.py` produces candidate whole-body postures for an
 *actual* data-collection session -- a different job from
