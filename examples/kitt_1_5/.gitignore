@@ -1,0 +1,15 @@
+__pycache__/
+_debug_*.py
+*.pyc
+# Full-robot mesh dump (keep only right-arm STLs needed by submodel)
+mjcf/*.STL
+urdf/*.STL
+!urdf/Base_R.STL
+!urdf/Joint1_R.STL
+!urdf/Joint2_R.STL
+!urdf/Joint3_R.STL
+!urdf/Joint4_R.STL
+!urdf/Joint5_R.STL
+!urdf/Joint6_R.STL
+!urdf/Joint7_R.STL
+!urdf/right_flange_link.STL

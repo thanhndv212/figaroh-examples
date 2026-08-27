@@ -1,0 +1,133 @@
+# KITT1_5V3 Right-Arm Robot Configuration - Unified Format
+# Configuration for the KITT1_5V3 mobile-base dual-arm robot.
+# This config only covers the RIGHT ARM (7-DOF sub-model, up to the
+# flange/tool0 `right_flange_link`). Gripper fingers and camera at the
+# end-effector are intentionally excluded from identification.
+
+extends: "../../templates/manipulator_robot.yaml"
+
+robot:
+  name: "kitt_1_5_right_arm"
+  description: "KITT1_5V3 right arm (7-DOF), flange=tool0, no tool"
+
+  properties:
+    joints:
+      active_joints: [
+        "right_arm_joint_1",
+        "right_arm_joint_2",
+        "right_arm_joint_3",
+        "right_arm_joint_4",
+        "right_arm_joint_5",
+        "right_arm_joint_6",
+        "right_arm_joint_7"
+      ]
+      # From urdf/right_arm_robot.urdf <limit> tags
+      joint_limits:
+        position: [-3.1067, 3.1067, -2.0944, 2.0944, -3.1067, 3.1067, -2.5307, 1.0472, -3.1067, 3.1067, -1.0472, 1.0472, -1.5708, 1.5708]
+        velocity: [3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416]  # [rad/s]
+        acceleration: [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]  # [rad/s²]
+        torque: [108.0, 108.0, 66.0, 66.0, 18.0, 18.0, 18.0]     # [Nm]
+
+    mechanics:
+      reduction_ratios: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      ratio_essential: 1.0
+      friction_coefficients:
+        viscous: [0, 0, 0, 0, 0, 0, 0]  # To be identified
+        static: [0, 0, 0, 0, 0, 0, 0]   # To be identified
+      actuator_inertias: [0, 0, 0, 0, 0, 0, 0]  # To be identified
+      joint_offsets: [0, 0, 0, 0, 0, 0, 0]      # To be calibrated
+
+tasks:
+  calibration:
+    enabled: false  # Right-arm sub-model: kinematic calibration not the focus here
+
+  identification:
+    enabled: true
+
+    problem:
+      include_external_forces: false
+      use_joint_torques: true
+      wls: false
+
+      model_components:
+        friction: false
+        joint_offset: false
+        actuator_inertia: false
+        static_regressor: true
+        inertia_regressor: true
+
+    signal_processing:
+      sampling_frequency: 1000.0  # Hz -- 12s Fourier validation at high rate
+      cutoff_frequency: 50.0      # Hz (fs=1000 -> Nyquist 500)
+      filter_type: "butterworth"
+      filter_order: 4
+
+    data:
+      validation_data_file: "data/validation"
+
+    # Post-process: project / reconstruct toward physically feasible full SIP
+    physical_consistency:
+      enabled: true
+      mass_min: 1.0e-6
+      solver: cvxopt
+      skip_if_feasible: true
+
+    reconstruction:
+      enabled: true
+      method: sdp
+      prior:
+        source: dict       # use URDF-derived standard_parameter as prior
+      mass_min: 1.0e-6
+      psd_eig_tol: -1.0e-10
+      sdp:
+        solver: cvxopt
+        # Soft Mθ≈φ_b: identified φ_b is generally outside the feasible
+        # set image, so hard equality makes the SDP infeasible.
+        base_equality: soft
+        base_weight: 1.0   # weight on ‖Mθ−φ_b‖² vs prior term
+
+  optimal_configuration:
+    enabled: false
+
+  optimal_trajectory:
+    enabled: true
+
+    problem:
+      soft_lim: 0.1
+      max_attempts: 500
+      max_iterations: 60  # fast validation budget; raise to 200 for production runs
+
+    trajectory:
+      waypoints: 5
+      frequency: 100  # Hz (sampling of the generated trajectory)
+      segment_duration: 1.0
+
+    constraints:
+      velocity_scaling: 0.5
+      acceleration_scaling: 0.5
+
+    output:
+      save_trajectory: true
+      output_file: "data/trajectories/right_arm_optimal_trajectory.yaml"
+
+custom:
+  manufacturer: "KITT"
+  model: "KITT1_5V3"
+  arm: "right"
+  dof: 7
+  tool0: "right_flange_link"
+  flange_offset_xyz: [0.0, -0.095, 0.0]
+
+environment:
+  working_directory: "."
+  data_directory: "data"
+  results_directory: "results"
+
+  logging:
+    level: "INFO"
+    console_output: true
+
+  visualization:
+    enabled: true
+    save_plots: true
+    plot_directory: "plots"

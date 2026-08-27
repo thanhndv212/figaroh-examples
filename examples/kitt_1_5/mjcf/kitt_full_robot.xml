@@ -1,0 +1,287 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="KITT1_5V3robot_qiangnao2_urdf">
+  <compiler angle="radian" />
+  <asset>
+    <mesh name="YD_link" content_type="model/stl" file="YD_link.STL" />
+    <mesh name="ZQ_Link" content_type="model/stl" file="ZQ_Link.STL" />
+    <mesh name="ZQL_Link" content_type="model/stl" file="ZQL_Link.STL" />
+    <mesh name="YQ_Link" content_type="model/stl" file="YQ_Link.STL" />
+    <mesh name="YQL_Link" content_type="model/stl" file="YQL_Link.STL" />
+    <mesh name="ZH_Link" content_type="model/stl" file="ZH_Link.STL" />
+    <mesh name="ZHL_Link" content_type="model/stl" file="ZHL_Link.STL" />
+    <mesh name="YH_Link" content_type="model/stl" file="YH_Link.STL" />
+    <mesh name="YHL_Link" content_type="model/stl" file="YHL_Link.STL" />
+    <mesh name="ZLD_Link" content_type="model/stl" file="ZLD_Link.STL" />
+    <mesh name="YLD_Link" content_type="model/stl" file="YLD_Link.STL" />
+    <mesh name="C1_Link" content_type="model/stl" file="C1_Link.STL" />
+    <mesh name="C2_Link" content_type="model/stl" file="C2_Link.STL" />
+    <mesh name="C3_Link" content_type="model/stl" file="C3_Link.STL" />
+    <mesh name="C4_Link" content_type="model/stl" file="C4_Link.STL" />
+    <mesh name="C5_Link" content_type="model/stl" file="C5_Link.STL" />
+    <mesh name="C6_Link" content_type="model/stl" file="C6_Link.STL" />
+    <mesh name="C7_Link" content_type="model/stl" file="C7_Link.STL" />
+    <mesh name="C8_Link" content_type="model/stl" file="C8_Link.STL" />
+    <mesh name="IMU_Link" content_type="model/stl" file="IMU_Link.STL" />
+    <mesh name="XJ_Link" content_type="model/stl" file="XJ_Link.STL" />
+    <mesh name="Trunk_base" content_type="model/stl" file="Trunk_base.STL" />
+    <mesh name="Trunk1" content_type="model/stl" file="Trunk1.STL" />
+    <mesh name="Trunk2" content_type="model/stl" file="Trunk2.STL" />
+    <mesh name="Trunk3" content_type="model/stl" file="Trunk3.STL" />
+    <mesh name="Trunk4" content_type="model/stl" file="Trunk4.STL" />
+    <mesh name="Base_L" content_type="model/stl" file="Base_L.STL" />
+    <mesh name="Joint1_L" content_type="model/stl" file="Joint1_L.STL" />
+    <mesh name="Joint2_L" content_type="model/stl" file="Joint2_L.STL" />
+    <mesh name="Joint3_L" content_type="model/stl" file="Joint3_L.STL" />
+    <mesh name="Joint4_L" content_type="model/stl" file="Joint4_L.STL" />
+    <mesh name="Joint5_L" content_type="model/stl" file="Joint5_L.STL" />
+    <mesh name="Joint6_L" content_type="model/stl" file="Joint6_L.STL" />
+    <mesh name="Joint7_L" content_type="model/stl" file="Joint7_L.STL" />
+    <mesh name="Base_R" content_type="model/stl" file="Base_R.STL" />
+    <mesh name="Joint1_R" content_type="model/stl" file="Joint1_R.STL" />
+    <mesh name="Joint2_R" content_type="model/stl" file="Joint2_R.STL" />
+    <mesh name="Joint3_R" content_type="model/stl" file="Joint3_R.STL" />
+    <mesh name="Joint4_R" content_type="model/stl" file="Joint4_R.STL" />
+    <mesh name="Joint5_R" content_type="model/stl" file="Joint5_R.STL" />
+    <mesh name="Joint6_R" content_type="model/stl" file="Joint6_R.STL" />
+    <mesh name="Joint7_R" content_type="model/stl" file="Joint7_R.STL" />
+    <mesh name="Head1" content_type="model/stl" file="Head1.STL" />
+    <mesh name="Head2" content_type="model/stl" file="Head2.STL" />
+    <mesh name="cam_install_head" content_type="model/stl" file="cam_install_head.STL" />
+    <mesh name="cam_install_body" content_type="model/stl" file="cam_install_body.STL" />
+    <mesh name="right_flange_link" content_type="model/stl" file="right_flange_link.STL" />
+    <mesh name="cam_install_rightarm" content_type="model/stl" file="cam_install_rightarm.STL" />
+    <mesh name="Rbase_link" content_type="model/stl" file="Rbase_link.STL" />
+    <mesh name="rightfinger1_Link" content_type="model/stl" file="rightfinger1_Link.STL" />
+    <mesh name="rightfinger2_Link" content_type="model/stl" file="rightfinger2_Link.STL" />
+    <mesh name="left_flange_link" content_type="model/stl" file="left_flange_link.STL" />
+    <mesh name="cam_install_leftarm" content_type="model/stl" file="cam_install_leftarm.STL" />
+    <mesh name="Lbase_link" content_type="model/stl" file="Lbase_link.STL" />
+    <mesh name="leftfinger1_Link" content_type="model/stl" file="leftfinger1_Link.STL" />
+    <mesh name="leftfinger2_Link" content_type="model/stl" file="leftfinger2_Link.STL" />
+  </asset>
+  <worldbody>
+    <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="YD_link" />
+    <geom pos="0.220969 0.2007 0.366024" quat="0.255976 0.109346 0.0382559 0.959717" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="ZLD_Link" />
+    <geom pos="-0.22097 -0.2007 0.366024" quat="0.959717 0.0382559 -0.109346 -0.255976" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="YLD_Link" />
+    <geom pos="-0.173909 -0.2725 0.228959" quat="0.707107 0.707107 0 0" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="C1_Link" />
+    <geom pos="0.173974 -0.2725 0.228585" quat="0.707107 0.707107 0 0" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="C2_Link" />
+    <geom pos="0.32715 -0.181305 0.228585" quat="0.575516 0.575516 0.41083 0.41083" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="C3_Link" />
+    <geom pos="0.32715 0.181305 0.228585" quat="0.41083 0.41083 0.575516 0.575516" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="C4_Link" />
+    <geom pos="0.173974 0.2725 0.228585" quat="0 0 0.707107 0.707107" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="C5_Link" />
+    <geom pos="-0.173909 0.2725 0.228959" quat="0 0 -0.707107 -0.707107" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="C6_Link" />
+    <geom pos="-0.321195 0.172186 0.228581" quat="0.459049 0.459049 -0.537842 -0.537842" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="C7_Link" />
+    <geom pos="-0.321195 -0.172186 0.228581" quat="0.537842 0.537842 -0.459049 -0.459049" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="C8_Link" />
+    <geom pos="0 0 0.1" quat="1 0 0 0" type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="IMU_Link" />
+    <geom pos="0.34185 0.0175 0.199" quat="0.499998 0.5 0.500002 0.5" type="mesh" rgba="0.86667 0.9098 1 1" mesh="XJ_Link" />
+    <geom pos="0.1 0 0.062" quat="1 0 0 0" type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="Trunk_base" />
+    <body name="ZQ_Link" pos="0.230716 0.217384 0.206001">
+      <inertial pos="-0.000669849 -0.0241901 -0.0616279" quat="0.663864 -0.25099 0.249538 0.658801" mass="0.649768" diaginertia="0.000791176 0.00076148 0.000312348" />
+      <joint name="ZQ" pos="0 0 0" axis="0 0 -1" />
+      <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="ZQ_Link" />
+      <body name="ZQL_Link" pos="-0.000716532 0.000616031 -0.136" quat="0.707107 0.707107 0 0">
+        <inertial pos="-2.43385e-06 2.85294e-06 0.000784617" quat="0.013698 0.706959 -0.0135967 0.706991" mass="1.22319" diaginertia="0.00376745 0.00205205 0.00205173" />
+        <joint name="ZQL" pos="0 0 0" axis="0 0 1" />
+        <geom type="mesh" rgba="0.25098 0.25098 0.25098 1" mesh="ZQL_Link" />
+      </body>
+    </body>
+    <body name="YQ_Link" pos="0.229283 -0.217384 0.206001">
+      <inertial pos="0.000669849 0.0241901 -0.0616279" quat="0.663864 0.25099 -0.249538 0.658801" mass="0.649768" diaginertia="0.000791176 0.00076148 0.000312348" />
+      <joint name="YQ" pos="0 0 0" axis="0 0 -1" />
+      <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="YQ_Link" />
+      <body name="YQL_Link" pos="0.000716532 -0.000616031 -0.136" quat="0 0 0.707107 0.707107">
+        <inertial pos="-2.43385e-06 2.85294e-06 0.000784617" quat="0.013698 0.706959 -0.0135967 0.706991" mass="1.22319" diaginertia="0.00376745 0.00205205 0.00205173" />
+        <joint name="YQL" pos="0 0 0" axis="0 0 1" />
+        <geom type="mesh" rgba="0.25098 0.25098 0.25098 1" mesh="YQL_Link" />
+      </body>
+    </body>
+    <body name="ZH_Link" pos="-0.229284 0.217384 0.205999">
+      <inertial pos="-0.000669849 -0.0241901 -0.0616279" quat="0.663864 -0.25099 0.249538 0.658801" mass="0.649768" diaginertia="0.000791176 0.00076148 0.000312348" />
+      <joint name="ZH" pos="0 0 0" axis="0 0 -1" />
+      <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="ZH_Link" />
+      <body name="ZHL_Link" pos="-0.000716532 0.000616031 -0.136" quat="0.707107 0.707107 0 0">
+        <inertial pos="-1.64764e-06 3.3687e-06 0.000784617" quat="0.102225 0.699677 -0.102121 0.699696" mass="1.22319" diaginertia="0.00376745 0.00205205 0.00205173" />
+        <joint name="ZHL" pos="0 0 0" axis="0 0 1" />
+        <geom type="mesh" rgba="0.25098 0.25098 0.25098 1" mesh="ZHL_Link" />
+      </body>
+    </body>
+    <body name="YH_Link" pos="-0.230717 -0.217384 0.205999">
+      <inertial pos="0.000669849 0.0241901 -0.0616279" quat="0.663864 0.25099 -0.249538 0.658801" mass="0.649768" diaginertia="0.000791176 0.00076148 0.000312348" />
+      <joint name="YH" pos="0 0 0" axis="0 0 -1" />
+      <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="YH_Link" />
+      <body name="YHL_Link" pos="0.000716532 -0.000616031 -0.136" quat="0 0 0.707107 0.707107">
+        <inertial pos="-2.43385e-06 2.85294e-06 0.000784617" quat="0.013698 0.706959 -0.0135967 0.706991" mass="1.22319" diaginertia="0.00376745 0.00205205 0.00205173" />
+        <joint name="YHL" pos="0 0 0" axis="0 0 1" />
+        <geom type="mesh" rgba="0.25098 0.25098 0.25098 1" mesh="YHL_Link" />
+      </body>
+    </body>
+    <body name="Trunk1" pos="0.1 0 0.19">
+      <inertial pos="0.00237969 0.000911178 0.16627" quat="0.707118 -0.00608137 -0.00596688 0.707044" mass="14.5093" diaginertia="0.117355 0.0910522 0.0345849" />
+      <joint name="trunk_joint_1" pos="0 0 0" axis="0 1 0" range="-1.1781 0" actuatorfrcrange="-411 411" />
+      <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="Trunk1" />
+      <body name="Trunk2" pos="0 0 0.33">
+        <inertial pos="4.69888e-05 -0.0104344 0.190238" quat="0.706996 -0.0102545 -0.0101492 0.707071" mass="11.9271" diaginertia="0.121018 0.105425 0.0223286" />
+        <joint name="trunk_joint_2" pos="0 0 0" axis="0 -1 0" range="-2.5482 1.7453" actuatorfrcrange="-411 411" />
+        <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="Trunk2" />
+        <body name="Trunk3" pos="0 0 0.38" quat="0 0 0 -1">
+          <inertial pos="6.70816e-05 -0.0016552 0.0273619" quat="0.70705 0.00338168 0.00346554 0.707147" mass="7.64391" diaginertia="0.0277826 0.0166595 0.0160071" />
+          <joint name="trunk_joint_3" pos="0 0 0" axis="0 -1 0" range="-1.5708 1.5708" actuatorfrcrange="-411 411" />
+          <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="Trunk3" />
+          <body name="Trunk4" pos="0 0 0.108" quat="0 0 0 1">
+            <inertial pos="0.0100751 -0.00219069 0.249907" quat="0.998453 0.0263266 0.04841 -0.00738414" mass="27.391" diaginertia="0.35341 0.294268 0.138238" />
+            <joint name="trunk_joint_4" pos="0 0 0" axis="0 0 1" range="-3.1416 3.1416" actuatorfrcrange="-102 102" />
+            <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="Trunk4" />
+            <geom pos="0 0.0509 0.413" quat="0.707105 -0.707108 0 0" type="mesh" rgba="1 0 0 1" mesh="Base_L" />
+            <geom pos="0 -0.0509 0.413" quat="0.707105 0.707108 0 0" type="mesh" rgba="1 0 0 1" mesh="Base_R" />
+            <geom pos="0.11189 -0.0115 0.32596" quat="0.499998 -0.5 0.500002 -0.5" type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="cam_install_body" />
+            <body name="Joint1_L" pos="0 0.2254 0.412999" quat="0.707105 -0.707108 0 0">
+              <inertial pos="2.347e-05 0.0055715 -0.03076" quat="0.711599 0.0343691 -0.0341702 0.700912" mass="1.9705" diaginertia="0.00529754 0.00492285 0.00184874" />
+              <joint name="left_arm_joint_1" pos="0 0 0" axis="0 0 1" range="-3.1067 3.1067" actuatorfrcrange="-108 108" damping="0.2" />
+              <geom type="mesh" rgba="0 1 0 1" mesh="Joint1_L" />
+              <body name="Joint2_L" quat="0.707105 0.707108 0 0">
+                <inertial pos="0.00013483 0.0617046 0.00950639" quat="0.643375 0.765551 -3.57328e-05 0.000294349" mass="2.24398" diaginertia="0.0119493 0.0112156 0.00338374" />
+                <joint name="left_arm_joint_2" pos="0 0 0" axis="0 0 1" range="-2.0944 2.0944" actuatorfrcrange="-108 108" damping="0.2" />
+                <geom type="mesh" rgba="0 0 1 1" mesh="Joint2_L" />
+                <body name="Joint3_L" pos="0 0.287 0" quat="0.707105 -0.707108 0 0">
+                  <inertial pos="0.00968562 0.00246599 -0.046273" quat="0.782446 -0.0355285 -0.0735516 0.617337" mass="1.9242" diaginertia="0.00765215 0.00730789 0.0016338" />
+                  <joint name="left_arm_joint_3" pos="0 0 0" axis="0 0 1" range="-3.1067 3.1067" actuatorfrcrange="-66 66" damping="0.2" />
+                  <geom type="mesh" rgba="1 0 0 1" mesh="Joint3_L" />
+                  <body name="Joint4_L" pos="0.018 0 0" quat="-2.59734e-06 2.59735e-06 -0.707108 0.707105">
+                    <inertial pos="0.00850411 -0.0471822 0.00941509" quat="0.741754 0.628694 0.0774999 -0.220317" mass="1.6085" diaginertia="0.00603244 0.00535875 0.00198228" />
+                    <joint name="left_arm_joint_4" pos="0 0 0" axis="0 0 1" range="-2.5307 1.0472" actuatorfrcrange="-66 66" damping="0.2" />
+                    <geom type="mesh" rgba="0 1 0 1" mesh="Joint4_L" />
+                    <body name="Joint5_L" pos="0.018 -0.314 0" quat="-2.59734e-06 2.59735e-06 -0.707108 0.707105">
+                      <inertial pos="0.00051127 0.00101064 -0.112717" quat="0.999438 -0.00995046 -0.00675781 0.0312997" mass="2.0883" diaginertia="0.00626924 0.00564262 0.00243436" />
+                      <joint name="left_arm_joint_5" pos="0 0 0" axis="0 0 1" range="-3.1067 3.1067" actuatorfrcrange="-18 18" damping="0.1" />
+                      <geom type="mesh" rgba="0 0 1 1" mesh="Joint5_L" />
+                      <body name="Joint6_L" quat="0.499998 0.5 -0.5 0.500002">
+                        <inertial pos="0.00032659 0.00531336 -0.00030182" quat="0.718188 -0.0225408 0.00407878 0.695472" mass="0.72496" diaginertia="0.000517351 0.000460362 0.000425057" />
+                        <joint name="left_arm_joint_6" pos="0 0 0" axis="0 0 1" range="-1.0472 1.0472" actuatorfrcrange="-18 18" damping="0.1" />
+                        <geom type="mesh" rgba="1 0 0 1" mesh="Joint6_L" />
+                        <body name="Joint7_L" quat="0.499998 0.5 -0.5 0.500002">
+                          <inertial pos="-0.00451879 -0.134377 -0.00192829" quat="0.708519 0.70505 -0.0299021 -0.00336971" mass="3.80678" diaginertia="0.0137858 0.0129356 0.00379397" />
+                          <joint name="left_arm_joint_7" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-18 18" damping="0.1" />
+                          <geom type="mesh" rgba="0 1 0 1" mesh="Joint7_L" />
+                          <geom pos="0 -0.095 0" quat="0.000563312 0.000562864 0.707388 -0.706825" type="mesh" rgba="0.866667 0.909804 1 1" mesh="left_flange_link" />
+                          <geom pos="-0.00884695 -0.128766 -0.0961031" quat="0.765788 0.643092 -0.000609818 0.000512112" type="mesh" rgba="1 1 1 1" mesh="cam_install_leftarm" />
+                          <geom pos="1.26827e-08 -0.105 -7.96326e-06" quat="0.000563312 0.000562864 0.707388 -0.706825" type="mesh" rgba="0.866667 0.909804 1 1" mesh="Lbase_link" />
+                          <body name="leftfinger1_Link" pos="0.0265722 -0.225489 -0.0132756" quat="0.000563312 0.000562864 0.707388 -0.706825">
+                            <inertial pos="-0.00292894 -0.0122399 0.0387093" quat="0.959608 0.027899 0.00720119 -0.279861" mass="0.0246617" diaginertia="1.85854e-05 1.81975e-05 1.6148e-06" />
+                            <joint name="leftfinger1_joint" pos="0 0 0" axis="1 0 0" type="slide" range="0 0.023" />
+                            <geom type="mesh" rgba="0.894118 0.894118 0.894118 1" mesh="leftfinger1_Link" />
+                          </body>
+                          <body name="leftfinger2_Link" pos="-0.0265718 -0.22551 0.0130678" quat="0.000563312 0.000562864 0.707388 -0.706825">
+                            <inertial pos="0.00292894 0.0122399 0.0387093" quat="0.959608 -0.027899 -0.00720119 -0.279861" mass="0.0246617" diaginertia="1.85854e-05 1.81975e-05 1.6148e-06" />
+                            <joint name="leftfinger2_joint" pos="0 0 0" axis="1 0 0" type="slide" range="-0.023 0" />
+                            <geom type="mesh" rgba="0.894118 0.894118 0.894118 1" mesh="leftfinger2_Link" />
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+            <body name="Joint1_R" pos="0 -0.2254 0.412999" quat="0.707105 0.707108 0 0">
+              <inertial pos="2.347e-05 0.0055715 -0.03076" quat="0.711599 0.0343691 -0.0341702 0.700912" mass="1.9705" diaginertia="0.00529754 0.00492285 0.00184874" />
+              <joint name="right_arm_joint_1" pos="0 0 0" axis="0 0 1" range="-3.1067 3.1067" actuatorfrcrange="-108 108" damping="0.2" />
+              <geom type="mesh" rgba="0 1 0 1" mesh="Joint1_R" />
+              <body name="Joint2_R" quat="0.707105 0.707108 0 0">
+                <inertial pos="0.00013483 0.0617046 0.00950639" quat="0.643375 0.765551 -3.57328e-05 0.000294349" mass="2.24398" diaginertia="0.0119493 0.0112156 0.00338374" />
+                <joint name="right_arm_joint_2" pos="0 0 0" axis="0 0 1" range="-2.0944 2.0944" actuatorfrcrange="-108 108" damping="0.2" />
+                <geom type="mesh" rgba="0 0 1 1" mesh="Joint2_R" />
+                <body name="Joint3_R" pos="0 0.287 0" quat="0.707105 -0.707108 0 0">
+                  <inertial pos="0.00968562 0.00246599 -0.046273" quat="0.782446 -0.0355285 -0.0735516 0.617337" mass="1.9242" diaginertia="0.00765215 0.00730789 0.0016338" />
+                  <joint name="right_arm_joint_3" pos="0 0 0" axis="0 0 1" range="-3.1067 3.1067" actuatorfrcrange="-66 66" damping="0.2" />
+                  <geom type="mesh" rgba="1 0 0 1" mesh="Joint3_R" />
+                  <body name="Joint4_R" pos="0.018 0 0" quat="-2.59734e-06 2.59735e-06 -0.707108 0.707105">
+                    <inertial pos="0.00850411 -0.0471822 0.00941509" quat="0.741754 0.628694 0.0774999 -0.220317" mass="1.6085" diaginertia="0.00603244 0.00535875 0.00198228" />
+                    <joint name="right_arm_joint_4" pos="0 0 0" axis="0 0 1" range="-2.5307 1.0472" actuatorfrcrange="-66 66" damping="0.2" />
+                    <geom type="mesh" rgba="0 1 0 1" mesh="Joint4_R" />
+                    <body name="Joint5_R" pos="0.018 -0.314 0" quat="-2.59734e-06 2.59735e-06 -0.707108 0.707105">
+                      <inertial pos="-0.00051127 -0.00101064 -0.112717" quat="0.999438 0.00995046 0.00675781 0.0312997" mass="2.0883" diaginertia="0.00626924 0.00564262 0.00243436" />
+                      <joint name="right_arm_joint_5" pos="0 0 0" axis="0 0 1" range="-3.1067 3.1067" actuatorfrcrange="-18 18" damping="0.1" />
+                      <geom type="mesh" rgba="0 0 1 1" mesh="Joint5_R" />
+                      <body name="Joint6_R" quat="0.499998 0.5 -0.5 0.500002">
+                        <inertial pos="0.00032659 -0.00531336 0.00030182" quat="0.695472 -0.00407878 0.0225408 0.718188" mass="0.72496" diaginertia="0.000517351 0.000460362 0.000425057" />
+                        <joint name="right_arm_joint_6" pos="0 0 0" axis="0 0 1" range="-1.0472 1.0472" actuatorfrcrange="-18 18" damping="0.1" />
+                        <geom type="mesh" rgba="1 0 0 1" mesh="Joint6_R" />
+                        <body name="Joint7_R" quat="0.499998 0.5 -0.5 0.500002">
+                          <inertial pos="-0.00451879 -0.134377 -0.00192829" quat="0.708519 0.70505 -0.0299021 -0.00336971" mass="3.80678" diaginertia="0.0137858 0.0129356 0.00379397" />
+                          <joint name="right_arm_joint_7" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-18 18" damping="0.1" />
+                          <geom type="mesh" rgba="0 1 0 1" mesh="Joint7_R" />
+                          <geom pos="0 -0.095 0" quat="0.000563312 0.000562864 0.707388 -0.706825" type="mesh" rgba="0.866667 0.909804 1 1" mesh="right_flange_link" />
+                          <geom pos="-0.00884695 -0.128766 -0.0961031" quat="0.765788 0.643092 -0.000609818 0.000512112" type="mesh" rgba="1 1 1 1" mesh="cam_install_rightarm" />
+                          <geom pos="1.26827e-08 -0.105 -7.96326e-06" quat="0.000563312 0.000562864 0.707388 -0.706825" type="mesh" rgba="0.866667 0.909804 1 1" mesh="Rbase_link" />
+                          <body name="rightfinger1_Link" pos="0.0265722 -0.225489 -0.0132756" quat="0.000563312 0.000562864 0.707388 -0.706825">
+                            <inertial pos="-0.00292894 -0.0122399 0.0387093" quat="0.959608 0.027899 0.00720119 -0.279861" mass="0.0246617" diaginertia="1.85854e-05 1.81975e-05 1.6148e-06" />
+                            <joint name="rightfinger1_joint" pos="0 0 0" axis="1 0 0" type="slide" range="0 0.023" />
+                            <geom type="mesh" rgba="0.894118 0.894118 0.894118 1" mesh="rightfinger1_Link" />
+                          </body>
+                          <body name="rightfinger2_Link" pos="-0.0265718 -0.22551 0.0130678" quat="0.000563312 0.000562864 0.707388 -0.706825">
+                            <inertial pos="0.00292894 0.0122399 0.0387093" quat="0.959608 -0.027899 -0.00720119 -0.279861" mass="0.0246617" diaginertia="1.85854e-05 1.81975e-05 1.6148e-06" />
+                            <joint name="rightfinger2_joint" pos="0 0 0" axis="1 0 0" type="slide" range="-0.023 0" />
+                            <geom type="mesh" rgba="0.894118 0.894118 0.894118 1" mesh="rightfinger2_Link" />
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+            <body name="Head1" pos="0.01 0 0.487">
+              <inertial pos="-5.32376e-06 0.00106971 0.0315578" quat="0.43294 0.665536 -0.509054 0.332398" mass="0.516031" diaginertia="0.000124266 0.000123015 0.000107153" />
+              <joint name="head_joint_1" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-6.6 6.6" />
+              <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="Head1" />
+              <body name="Head2" pos="0 -0.0255 0.042">
+                <inertial pos="0.0464546 0.0260958 0.0879487" quat="-0.00814495 0.495805 0.057177 0.866511" mass="2.07851" diaginertia="0.00391101 0.00308266 0.00211175" />
+                <joint name="head_joint_2" pos="0 0 0" axis="0 -1 0" range="-0.3491 0.6981" actuatorfrcrange="-6.6 6.6" />
+                <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="Head2" />
+                <geom pos="0.0759659 0.059 0.0907506" quat="0.5 -0.5 0.5 -0.5" type="mesh" rgba="0 1 0 1" mesh="cam_install_head" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <equality>
+    <joint joint1="rightfinger1_joint" joint2="rightfinger2_joint" polycoef="0 -1.0 0.0 0" />
+    <joint joint1="leftfinger1_joint" joint2="leftfinger2_joint" polycoef="0 -1.0 0.0 0" />
+  </equality>
+  <actuator>
+    <general name="ZQ_actuator" joint="ZQ" gainprm="1" ctrlrange="-3.14 3.14" />
+    <general name="ZQL_actuator" joint="ZQL" gainprm="1" ctrlrange="-3.14 3.14" />
+    <general name="YQ_actuator" joint="YQ" gainprm="1" ctrlrange="-3.14 3.14" />
+    <general name="YQL_actuator" joint="YQL" gainprm="1" ctrlrange="-3.14 3.14" />
+    <general name="ZH_actuator" joint="ZH" gainprm="1" ctrlrange="-3.14 3.14" />
+    <general name="ZHL_actuator" joint="ZHL" gainprm="1" ctrlrange="-3.14 3.14" />
+    <general name="YH_actuator" joint="YH" gainprm="1" ctrlrange="-3.14 3.14" />
+    <general name="YHL_actuator" joint="YHL" gainprm="1" ctrlrange="-3.14 3.14" />
+    <general name="trunk_joint_1_actuator" joint="trunk_joint_1" gainprm="1" ctrlrange="-1.1781 0" />
+    <general name="trunk_joint_2_actuator" joint="trunk_joint_2" gainprm="1" ctrlrange="-2.5482 1.7453" />
+    <general name="trunk_joint_3_actuator" joint="trunk_joint_3" gainprm="1" ctrlrange="-1.5708 1.5708" />
+    <general name="trunk_joint_4_actuator" joint="trunk_joint_4" gainprm="1" ctrlrange="-3.1416 3.1416" />
+    <general name="left_arm_joint_1_actuator" joint="left_arm_joint_1" gainprm="1" ctrlrange="-3.1067 3.1067" />
+    <general name="left_arm_joint_2_actuator" joint="left_arm_joint_2" gainprm="1" ctrlrange="-2.0944 2.0944" />
+    <general name="left_arm_joint_3_actuator" joint="left_arm_joint_3" gainprm="1" ctrlrange="-3.1067 3.1067" />
+    <general name="left_arm_joint_4_actuator" joint="left_arm_joint_4" gainprm="1" ctrlrange="-2.5307 1.0472" />
+    <general name="left_arm_joint_5_actuator" joint="left_arm_joint_5" gainprm="1" ctrlrange="-3.1067 3.1067" />
+    <general name="left_arm_joint_6_actuator" joint="left_arm_joint_6" gainprm="1" ctrlrange="-1.0472 1.0472" />
+    <general name="left_arm_joint_7_actuator" joint="left_arm_joint_7" gainprm="1" ctrlrange="-1.5708 1.5708" />
+    <general name="leftfinger1_joint_actuator" joint="leftfinger1_joint" gainprm="1" ctrlrange="0 0.023" />
+    <general name="right_arm_joint_1_actuator" joint="right_arm_joint_1" gainprm="1" ctrlrange="-3.1067 3.1067" />
+    <general name="right_arm_joint_2_actuator" joint="right_arm_joint_2" gainprm="1" ctrlrange="-2.0944 2.0944" />
+    <general name="right_arm_joint_3_actuator" joint="right_arm_joint_3" gainprm="1" ctrlrange="-3.1067 3.1067" />
+    <general name="right_arm_joint_4_actuator" joint="right_arm_joint_4" gainprm="1" ctrlrange="-2.5307 1.0472" />
+    <general name="right_arm_joint_5_actuator" joint="right_arm_joint_5" gainprm="1" ctrlrange="-3.1067 3.1067" />
+    <general name="right_arm_joint_6_actuator" joint="right_arm_joint_6" gainprm="1" ctrlrange="-1.0472 1.0472" />
+    <general name="right_arm_joint_7_actuator" joint="right_arm_joint_7" gainprm="1" ctrlrange="-1.5708 1.5708" />
+    <general name="rightfinger1_joint_actuator" joint="rightfinger1_joint" gainprm="1" ctrlrange="0 0.023" />
+    <general name="head_joint_1_actuator" joint="head_joint_1" gainprm="1" ctrlrange="-1.5708 1.5708" />
+    <general name="head_joint_2_actuator" joint="head_joint_2" gainprm="1" ctrlrange="-0.3491 0.6981" />
+  </actuator>
+  <keyframe>
+    <key name="home" qpos="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" />
+  </keyframe>
+</mujoco>

@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<mujoco model="kitt_1_5_right_arm">
+  <compiler angle="radian" meshdir="." autolimits="true"/>
+  <option gravity="0 0 -9.81"/>
+  <asset>
+    <mesh name="Base_R.STL" file="Base_R.STL"/>
+    <mesh name="Joint1_R.STL" file="Joint1_R.STL"/>
+    <mesh name="Joint2_R.STL" file="Joint2_R.STL"/>
+    <mesh name="Joint3_R.STL" file="Joint3_R.STL"/>
+    <mesh name="Joint4_R.STL" file="Joint4_R.STL"/>
+    <mesh name="Joint5_R.STL" file="Joint5_R.STL"/>
+    <mesh name="Joint6_R.STL" file="Joint6_R.STL"/>
+    <mesh name="Joint7_R.STL" file="Joint7_R.STL"/>
+    <mesh name="right_flange_link.STL" file="right_flange_link.STL"/>
+  </asset>
+  <worldbody>
+    <body name="Base_R" pos="0 -0.0509 0.413" quat="0.707105483 0.70710808 0 0">
+      <inertial pos="0.00032267 4.798e-05 0.04066353" mass="1.1962" fullinertia="0.00107329 0.00107003 0.00127315 -1.68e-06 -1.05e-05 -3.43e-06"/>
+      <geom type="mesh" mesh="Base_R.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+      <body name="Joint1_R" pos="0 0 0.1745" quat="1 0 0 0">
+        <inertial pos="2.347e-05 0.0055715 -0.03075998" mass="1.9705" fullinertia="0.00492293 0.00526513 0.00188107 5.5e-06 1.93e-06 0.00033232"/>
+        <geom type="mesh" mesh="Joint1_R.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+        <joint name="right_arm_joint_1" type="hinge" axis="0 0 1" pos="0 0 0" range="-3.1067 3.1067"/>
+        <body name="Joint2_R" pos="0 0 0" quat="0.707105483 0.70710808 0 0">
+          <inertial pos="0.00013483 0.0617046 0.00950639" mass="2.24398" fullinertia="0.01194933 0.00361581 0.01098356 3.36e-06 9.1e-07 -0.00132804"/>
+          <geom type="mesh" mesh="Joint2_R.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+          <joint name="right_arm_joint_2" type="hinge" axis="0 0 1" pos="0 0 0" range="-2.0944 2.0944"/>
+          <body name="Joint3_R" pos="0 0.287 0" quat="0.707105483 -0.70710808 0 0">
+            <inertial pos="0.00968562 0.00246599 -0.04627302" mass="1.9242" fullinertia="0.00718224 0.00762563 0.00178597 4.413e-05 0.00089552 0.00022096"/>
+            <geom type="mesh" mesh="Joint3_R.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+            <joint name="right_arm_joint_3" type="hinge" axis="0 0 1" pos="0 0 0" range="-3.1067 3.1067"/>
+            <body name="Joint4_R" pos="0.018 0 0" quat="2.59734347e-06 -2.59735301e-06 0.70710808 -0.707105483">
+              <inertial pos="0.00850411 -0.04718223 0.00941509" mass="1.6085" fullinertia="0.0058048 0.00223807 0.0053306 -0.00066669 -0.00012722 0.00070523"/>
+              <geom type="mesh" mesh="Joint4_R.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+              <joint name="right_arm_joint_4" type="hinge" axis="0 0 1" pos="0 0 0" range="-2.5307 1.0472"/>
+              <body name="Joint5_R" pos="0.018 -0.314 0" quat="2.59734347e-06 -2.59735301e-06 0.70710808 -0.707105483">
+                <inertial pos="-0.00051127 -0.00101064 -0.11271739" mass="2.0883" fullinertia="0.00626603 0.00564387 0.00243632 4.009e-05 -5.338e-05 6.193e-05"/>
+                <geom type="mesh" mesh="Joint5_R.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+                <joint name="right_arm_joint_5" type="hinge" axis="0 0 1" pos="0 0 0" range="-3.1067 3.1067"/>
+                <body name="Joint6_R" pos="0 0 0" quat="0.499998163 0.5 -0.5 0.500001837">
+                  <inertial pos="0.00032659 -0.00531336 0.00030182" mass="0.72496" fullinertia="0.0004604 0.00051716 0.00042521 -1.89e-06 -8.3e-07 -3.46e-06"/>
+                  <geom type="mesh" mesh="Joint6_R.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+                  <joint name="right_arm_joint_6" type="hinge" axis="0 0 1" pos="0 0 0" range="-1.0472 1.0472"/>
+                  <body name="Joint7_R" pos="0 0 0" quat="0.499998163 0.5 -0.5 0.500001837">
+                    <inertial pos="-9.108e-05 -0.03153255 0.00889371" mass="0.68606" fullinertia="0.00173687 0.00089035 0.00139406 -3.45e-06 -1.16e-06 0.0003068"/>
+                    <geom type="mesh" mesh="Joint7_R.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+                    <joint name="right_arm_joint_7" type="hinge" axis="0 0 1" pos="0 0 0" range="-1.5708 1.5708"/>
+                    <body name="right_flange_link" pos="0 -0.095 0" quat="0.000563312174 0.000562863772 0.707388045 -0.706824957">
+                      <inertial pos="-6.94635639e-05 0.0433955397 0.00687767973" mass="0.218954931" fullinertia="0.000120724374 6.29366961e-05 0.000179935533 2.45056754e-07 6.27105754e-09 -2.78729408e-06"/>
+                      <geom type="mesh" mesh="right_flange_link.STL" pos="0 0 0" contype="0" conaffinity="0"/>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
