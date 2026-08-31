@@ -1,5 +1,7 @@
 # TIAGo Pro — right-arm geometric calibration
 
+Contributed by [Clement Pene](https://github.com/clementPene).
+
 Identifies full kinematic parameters for the chain `base_footprint → gripper_right_pal_atc_base_link`
 (torso + arm_right_1..7 DH offsets, base-frame pose, marker mount) from external
 end-effector pose measurements (Qualisys mocap or any other 6DOF source), using

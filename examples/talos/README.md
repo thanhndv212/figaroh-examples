@@ -3,6 +3,10 @@
 This folder contains a runnable example for **kinematic calibration** of the
 TALOS humanoid robot's torso/arm kinematic chain using FIGAROH.
 
+> For whole-body (leg-torso-arm, both sides) calibration from single-plane
+> table contact instead of external metrology, see
+> [`../talos_table_contact/README.md`](../talos_table_contact/README.md).
+
 ## What's included
 
 - `calibration_upperbody.py`: all-in-one entry-point for calibration, URDF
