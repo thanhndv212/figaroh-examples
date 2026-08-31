@@ -35,6 +35,8 @@ SCRIPTS_TO_IMPORT = [
     "examples.tiago.identification",
     "examples.tiago.optimal_config",
     "examples.tiago.optimal_trajectory",
+    "examples.tiago.suspension_identification",
+    "examples.tiago.backlash_empirical_surface",
     "examples.talos.calibration_upperbody",
     "examples.talos.update_model",
     "examples.staubli_tx40.identification",

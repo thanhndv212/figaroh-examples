@@ -1,0 +1,18 @@
+# Experimental TIAGo generalized-base suspension identification.
+experiment:
+  type: tiago_generalized_base_suspension
+  status: experimental
+data:
+  source: data/suspension/tiago_xyz_vicon_1640.csv
+  frame: base_link
+  units: SI
+  provenance:
+    origin_ref: figaroh-plus
+    origin_path: examples/tiago/data/identification/suspension/creps/vicon/tiago_xyz_vicon_1640.csv
+    source_commit: 2218d77638e0148afd3b358fa51702f8b82f4100
+model:
+  marker_to_base_transform: required_for_real_data
+  parameter_order: [kx, cx, ky, cy, kz, cz, krx, crx, kry, cry, krz, crz]
+solver:
+  method: linear_least_squares
+  reject_rank_deficient: true

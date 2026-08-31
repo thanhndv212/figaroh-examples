@@ -1,0 +1,27 @@
+# Experimental TIAGo empirical backlash compensation surface.
+experiment:
+  type: tiago_empirical_backlash_surface
+  status: experimental
+data:
+  source: data/backlash/sinus_amp3_period10_2023-07-24-13-28-42
+  units: SI
+  provenance:
+    origin_ref: figaroh-plus
+    origin_path: examples/tiago/data/calibration/backlash/sinus_amp3_period10_2023-07-24-13-28-42
+    source_commit: 2218d77638e0148afd3b358fa51702f8b82f4100
+model:
+  # degree 5 matches the historical figaroh-plus default (orders=[5, 5] in
+  # backlash_inspection.py's __main__, swept for all seven arm joints).
+  # Its own order-selection study (surface_fitting_rho100_0202.csv) found
+  # degree 1 reaches only R2=0.72 vs. degree 5's R2=0.90 on arm_6_joint.
+  degree: 5
+  transition_steepness: 100.0
+  reject_extrapolation: true
+  target: absolute_encoder_minus_relative_encoder
+  # Pinocchio generalized gravity torque, reconstructed from every logged
+  # arm/torso/head joint position (see backlash_empirical_surface.py
+  # --load-feature). Matches the historical tau_g feature; the logged
+  # effort signal is too quantized to use directly on arm_5..arm_7.
+  load_feature: pinocchio_generalized_gravity
+solver:
+  method: linear_least_squares
