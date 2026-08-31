@@ -228,6 +228,63 @@ subject to:
 
 ---
 
+### 5. Experimental: Suspension Identification & Empirical Backlash Compensation
+
+> **Status: research/experimental.** These two scripts are standalone —
+> neither subclasses nor modifies `BaseIdentification` — and are not part
+> of the core calibration/identification workflow above. See
+> `docs/decisions/tiago-suspension-backlash-and-modular-terms-plan.md` in
+> the main `figaroh` repository for the full design rationale and
+> promotion criteria before relying on either for anything beyond
+> exploratory research.
+
+#### `suspension_identification.py` — generalized-base suspension
+
+Identifies TIAGo's mobile base as one 12-parameter generalized 6-DOF
+spring-damper (`[kx,cx,ky,cy,kz,cz,krx,crx,kry,cry,krz,crz]`) from a
+fixed marker-to-base transform, using Vicon base-marker motion and
+force-plate wrench measurements. Weighted linear least squares with
+rank/condition-number diagnostics (`fit_generalized_base_suspension`);
+rejects rank-deficient excitation rather than returning an unreliable fit.
+
+```bash
+cd examples/tiago
+python suspension_identification.py --data synthetic   # exact recovery, sanity check
+python suspension_identification.py --data real         # bundled historical Vicon/force-plate log
+```
+
+#### `backlash_empirical_surface.py` — empirical backlash-compensation surface
+
+Ports the historical `figaroh-plus` `SurfaceFitting` prototype: a
+direction-gated polynomial surface (`EmpiricalBacklashSurface`) predicting
+the relative-minus-absolute encoder difference from joint position and
+Pinocchio generalized gravity torque, blended by a logistic gate on
+velocity direction. Fit as an equivalent weighted linear least-squares
+problem instead of the original's nonlinear `scipy.optimize.least_squares`
+(the coefficients are linear once the gate steepness is fixed).
+
+```bash
+cd examples/tiago
+python backlash_empirical_surface.py --data synthetic
+python backlash_empirical_surface.py --data real --joint arm_6_joint
+python backlash_empirical_surface.py --data real --joint all   # sweep all 7 arm
+                                                                  # joints + full
+                                                                  # HTML report
+```
+
+`--joint all` fits every arm joint (with automatic per-joint polynomial-
+degree backoff and structurally-zero design-matrix column removal for
+joints whose rotation axis doesn't couple to gravity) and writes a
+self-contained HTML report — statistics table, fit-quality comparison
+chart, and per-joint interactive 3D regression plots — to
+`results/backlash/real_all_joints_report.html`, alongside the JSON report.
+
+Both examples' fixture datasets are copied verbatim from the reachable
+`figaroh-plus` ref at commit `2218d77638e0148afd3b358fa51702f8b82f4100`;
+see `data/README.md` for provenance and known caveats.
+
+---
+
 ## Installation and Dependencies
 
 ### Required Packages
@@ -396,12 +453,20 @@ examples/tiago/
 ├── identification.py                  # Dynamic parameter identification
 ├── optimal_config.py                  # Optimal config generation
 ├── optimal_trajectory.py              # Optimal trajectory generation
+├── suspension_identification.py       # [experimental] generalized-base suspension
+├── backlash_empirical_surface.py      # [experimental] empirical backlash surface
 ├── utils/
 │   ├── tiago_tools.py                 # All TIAGo-specific classes
 │   ├── simplified_collision_model.py  # Collision geometry
-│   └── cubic_spline.py                # Trajectory generation
+│   ├── cubic_spline.py                # Trajectory generation
+│   ├── suspension_data.py             # [experimental] Vicon/force-plate loader
+│   ├── suspension_model.py            # [experimental] generalized-base regressor
+│   ├── backlash_surface.py            # [experimental] EmpiricalBacklashSurface
+│   └── reporting.py                   # [experimental] plots + JSON/HTML reports
 ├── config/
 │   ├── tiago_unified_config.yaml      # Main unified config (default)
+│   ├── tiago_suspension_config.yaml   # [experimental] suspension example config
+│   ├── tiago_backlash_surface_config.yaml  # [experimental] backlash example config
 │   └── archive/                       # Legacy configs
 ├── data/
 │   ├── calibration/
@@ -410,6 +475,8 @@ examples/tiago/
 │   │   └── optimal_configurations/    # Generated optimal configs
 │   ├── identification/                # Raw identification datasets
 │   ├── identification/                # Raw identification datasets
+│   ├── suspension/                    # [experimental] Vicon/force-plate log
+│   ├── backlash/                      # [experimental] PAL introspection log
 │   └── optimal_configurations/        # Generated optimal configs
 └── urdf/
     ├── tiago_48_schunk.urdf              # Nominal URDF
