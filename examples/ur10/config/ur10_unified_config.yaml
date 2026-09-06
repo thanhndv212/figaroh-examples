@@ -78,7 +78,10 @@ tasks:
     data:
       source_file: "data/calibration.csv"
       validation_data_file: ""
-      sample_configurations_file: None
+      # Empty = no candidate pool; the generator falls back to random
+      # configurations. Do NOT write `None` here: YAML parses a bare None
+      # as the string "None", which is then treated as a filename.
+      sample_configurations_file: ""
       number_of_samples: 29
 
   identification:
@@ -112,9 +115,14 @@ tasks:
   optimal_configuration:
     enabled: true
 
-    parameters:
-      number_of_samples: 50
-      optimization_objectives: ["condition_number", "dexterity"]
+    # NOTE: `parameters` is omitted here on purpose. Neither
+    # `number_of_samples` nor `optimization_objectives` is read by
+    # figaroh: selection is threshold-based on the SOCP weights, so the
+    # configuration count is emergent rather than requested, and the
+    # objective is fixed (D-optimality). Kept commented, not deleted, so
+    # the original intent stays on record without looking like a knob.
+    # number_of_samples: 50
+    # optimization_objectives: ["condition_number", "dexterity"]
 
     constraints:
       joint_limit_margin: 0.1

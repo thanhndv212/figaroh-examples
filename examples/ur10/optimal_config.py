@@ -128,7 +128,9 @@ def main(args: argparse.Namespace) -> None:
 
         print("\n" + "=" * 50)
         print("UR10 Optimal Configuration Generation Completed!")
-        print("Results saved to 'results/' directory")
+        # Honours tasks.optimal_configuration.output.output_file when set,
+        # so report where the files actually went rather than assuming.
+        print(f"Results saved to '{opt_calib.get_optimal_output_dir()}/'")
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         raise

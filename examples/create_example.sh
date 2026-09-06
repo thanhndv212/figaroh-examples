@@ -55,6 +55,8 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 EXAMPLES_DIR="$SCRIPT_DIR"
 TEMPLATE_DIR="$EXAMPLES_DIR/tiago"
+# The complete example that generated placeholders point readers at.
+REFERENCE_EXAMPLE="ur10"
 NEW_DIR="$EXAMPLES_DIR/$ROBOT_NAME_LOWER"
 
 print_info "Creating new example for robot: $ROBOT_NAME"
@@ -103,6 +105,11 @@ print_success "Directory structure created!"
 replace_robot_name() {
     local content="$1"
     # Ordered by descending placeholder length: longer patterns first
+    # REF_EXAMPLE must resolve BEFORE the tiago rules below: it marks pointers
+    # to a real, complete example that must survive substitution. Without it
+    # the tiago->robot rewrite turns "refer to examples/REF_EXAMPLE/x.py" into a
+    # self-reference to the placeholder being generated.
+    content="${content//REF_EXAMPLE/$REFERENCE_EXAMPLE}"
     # Generic placeholders used in templates
     content="${content//ROBOT_TITLE/$ROBOT_NAME_TITLE}"
     content="${content//robot_lower/$ROBOT_NAME_LOWER}"
@@ -151,7 +158,7 @@ def main():
     # 5. Save results
 
     print("Calibration workflow not yet implemented!")
-    print("Please refer to examples/tiago/calibration.py for reference.")
+    print("Please refer to examples/REF_EXAMPLE/calibration.py for reference.")
 
 
 if __name__ == "__main__":
@@ -195,7 +202,7 @@ def main():
     # 5. Validate and save parameters
 
     print("Identification workflow not yet implemented!")
-    print("Please refer to examples/tiago/identification.py for reference.")
+    print("Please refer to examples/REF_EXAMPLE/identification.py for reference.")
 
 
 if __name__ == "__main__":
@@ -239,7 +246,7 @@ def main():
     # 5. Save optimal configurations
 
     print("Optimal configuration generation not yet implemented!")
-    print("Please refer to examples/tiago/optimal_config.py for reference.")
+    print("Please refer to examples/REF_EXAMPLE/optimal_config.py for reference.")
 
 
 if __name__ == "__main__":
@@ -283,7 +290,7 @@ def main():
     # 5. Save trajectory
 
     print("Optimal trajectory generation not yet implemented!")
-    print("Please refer to examples/tiago/optimal_trajectory.py for reference.")
+    print("Please refer to examples/REF_EXAMPLE/optimal_trajectory.py for reference.")
 
 
 if __name__ == "__main__":
@@ -356,7 +363,7 @@ class OptimalTrajectoryIPOPT:
             dict: Results containing trajectory segments and metrics
         """
         print("Trajectory optimization not yet implemented!")
-        print("Please refer to examples/tiago/utils/tiago_tools.py for reference.")
+        print("Please refer to examples/REF_EXAMPLE/utils/REF_EXAMPLE_tools.py for reference.")
         return {'T_F': None}
 
     def plot_results(self):
@@ -435,83 +442,151 @@ print_success "Utils module created!"
 # Create configuration files
 print_info "Creating configuration files..."
 
-cat > "$NEW_DIR/config/${ROBOT_NAME_LOWER}_config.yaml" << 'EOF'
-# Configuration file for ROBOT_TITLE robot calibration and identification
+cat > "$NEW_DIR/config/${ROBOT_NAME_LOWER}_unified_config.yaml" << 'EOF'
+# Unified configuration for ROBOT_TITLE.
+#
+# This is the format figaroh actually parses. Every available key is documented
+# in examples/templates/base_robot_config.yaml; examples/REF_EXAMPLE/config/
+# REF_EXAMPLE_unified_config.yaml is a complete worked example.
+#
+# Swap the template below for humanoid_robot.yaml if the robot has a mobile or
+# floating base.
+extends: "../../templates/manipulator_robot.yaml"
 
 robot:
   name: "robot_lower"
-  description: "ROBOT_TITLE robot configuration"
+  description: "ROBOT_TITLE robot"
 
-  # Robot model parameters
-  model:
-    urdf_path: "path/to/robot_lower.urdf"
-    package_name: "robot_lower_description"
+  properties:
+    joints:
+      # TODO: use the EXACT joint names from your URDF. Print them with:
+      #   cd examples/robot_lower && python -c "\
+      #     from figaroh.tools.robot import load_robot; \
+      #     r = load_robot('urdf/robot_lower.urdf', \
+      #                    package_dirs='../../models', load_by_urdf=True); \
+      #     print([n for n in r.model.names])"
+      active_joints:
+        - "joint_1"
+        - "joint_2"
+        - "joint_3"
+        - "joint_4"
+        - "joint_5"
+        - "joint_6"
 
-  # Joint configuration
-  joints:
-    active_joints:
-      # TODO: List your robot's active joint names
-      - "joint_1"
-      - "joint_2"
-      - "joint_3"
-      - "joint_4"
-      - "joint_5"
-      - "joint_6"
+      # One [min, max] pair per active joint, flattened.
+      joint_limits:
+        position: [-3.14, 3.14, -3.14, 3.14, -3.14, 3.14,
+                   -3.14, 3.14, -3.14, 3.14, -3.14, 3.14]
+        velocity: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0]          # rad/s
+        acceleration: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # rad/s^2
+        torque: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0]  # Nm
 
-    # Joint limits [min, max] in radians
-    limits:
-      joint_1: [-3.14, 3.14]
-      joint_2: [-3.14, 3.14]
-      joint_3: [-3.14, 3.14]
-      joint_4: [-3.14, 3.14]
-      joint_5: [-3.14, 3.14]
-      joint_6: [-3.14, 3.14]
+    mechanics:
+      reduction_ratios: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      friction_coefficients:
+        viscous: [0, 0, 0, 0, 0, 0]   # 0 = to be identified
+        static: [0, 0, 0, 0, 0, 0]
+      actuator_inertias: [0, 0, 0, 0, 0, 0]
+      joint_offsets: [0, 0, 0, 0, 0, 0]  # 0 = to be calibrated
 
-# Calibration settings
-calibration:
-  method: "least_squares"
-  max_iterations: 100
-  tolerance: 1e-6
+tasks:
+  calibration:
+    enabled: true
 
-  # Parameters to calibrate
-  parameters:
-    - "link_lengths"
-    - "joint_offsets"
-    - "link_twists"
+    parameters:
+      calibration_level: "full_params"   # or "joint_offset"
+      include_non_geometric: false
+      outlier_threshold: 0.02            # metres
 
-# Identification settings
-identification:
-  method: "weighted_least_squares"
-  regularization: 1e-4
+    kinematics:
+      base_frame: "universe"
+      tool_frame: "TODO_tool_link"       # must exist in the URDF
 
-  # Parameters to identify
-  parameters:
-    - "masses"
-    - "inertias"
-    - "friction_viscous"
-    - "friction_coulomb"
+    measurements:
+      # measurable_dof decides which columns the CSV must have, per marker:
+      #   [true]*6 -> x1,y1,z1,phix1,phiy1,phiz1
+      #   position only -> x1,y1,z1
+      # Joint columns use the exact URDF joint names listed above.
+      markers:
+        - name: "tool_marker"
+          reference_joint: "TODO_last_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+      poses:
+        base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        tool_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-# Optimal trajectory settings
-optimal_trajectory:
-  duration: 10.0  # seconds
-  frequency: 100  # Hz
-  n_segments: 5
+    data:
+      source_file: "data/calibration.csv"
+      # Independent acquisition only -- never a split of the training file.
+      # Empty falls back to the training data with a warning.
+      validation_data_file: ""
+      number_of_samples: 50
 
-  constraints:
-    position_bounds: true
-    velocity_bounds: true
-    acceleration_bounds: true
-    collision_avoidance: false
+  identification:
+    enabled: false
 
-# Data paths
-data:
-  calibration_data: "data/calibration/"
-  identification_data: "data/identification/"
-  output_dir: "data/optimal_configurations/"
+    problem:
+      include_external_forces: false
+      use_joint_torques: true
+      wls: false
+      model_components:
+        friction: false
+        joint_offset: false
+        actuator_inertia: false
+        static_regressor: true
+        inertia_regressor: true
+
+    signal_processing:
+      sampling_frequency: 100.0   # Hz -- must match the real log rate
+      cutoff_frequency: 10.0      # Hz
+      filter_type: "butterworth"
+      filter_order: 4
+
+    data:
+      validation_data_file: ""
+
+  optimal_configuration:
+    enabled: false
+
+    constraints:
+      joint_limit_margin: 0.1
+      collision_checking: true
+
+    output:
+      save_configurations: true
+      # Only the DIRECTORY part is used; filenames are timestamped.
+      output_file: "data/optimal_configurations/robot_lower_optimal_configs.yaml"
+
+  optimal_trajectory:
+    enabled: false
+
+    problem:
+      soft_lim: 0.1
+      max_attempts: 500
+
+    trajectory:
+      waypoints: 5
+      frequency: 100              # Hz -- keep consistent with
+                                  # identification.signal_processing
+      segment_duration: 2.0       # seconds
+
+    constraints:
+      velocity_scaling: 0.5
+      acceleration_scaling: 0.5
+
+    output:
+      save_trajectory: true
+      output_file: "data/trajectories/robot_lower_optimal_trajectory.yaml"
+
+environment:
+  working_directory: "."
+  data_directory: "data"
+  results_directory: "results"
 EOF
 
-replace_robot_name "$(cat "$NEW_DIR/config/${ROBOT_NAME_LOWER}_config.yaml")" > "$NEW_DIR/config/${ROBOT_NAME_LOWER}_config.yaml.tmp"
-mv "$NEW_DIR/config/${ROBOT_NAME_LOWER}_config.yaml.tmp" "$NEW_DIR/config/${ROBOT_NAME_LOWER}_config.yaml"
+replace_robot_name "$(cat "$NEW_DIR/config/${ROBOT_NAME_LOWER}_unified_config.yaml")" > "$NEW_DIR/config/${ROBOT_NAME_LOWER}_unified_config.yaml.tmp"
+mv "$NEW_DIR/config/${ROBOT_NAME_LOWER}_unified_config.yaml.tmp" "$NEW_DIR/config/${ROBOT_NAME_LOWER}_unified_config.yaml"
 
 print_success "Configuration files created!"
 
@@ -542,7 +617,7 @@ robot_lower/
 ├── optimal_trajectory.py       # Optimal trajectory generation
 ├── README.md                   # This file
 ├── config/                     # Configuration files
-│   ├── robot_lower_config.yaml
+│   ├── robot_lower_unified_config.yaml
 │   └── templates/
 ├── data/                       # Data storage
 │   ├── calibration/
@@ -597,7 +672,7 @@ This is a template directory. To complete the implementation for your ROBOT_TITL
 ### 1. Robot Model Setup
 - [ ] Add URDF file to `urdf/` directory
 - [ ] Update robot package name in config files
-- [ ] Define active joints in `config/robot_lower_config.yaml`
+- [ ] Define active joints in `config/robot_lower_unified_config.yaml`
 - [ ] Set joint limits and constraints
 
 ### 2. Calibration Implementation
@@ -624,7 +699,7 @@ This is a template directory. To complete the implementation for your ROBOT_TITL
 
 ## Configuration
 
-Edit `config/robot_lower_config.yaml` to customize:
+Edit `config/robot_lower_unified_config.yaml` to customize:
 - Robot model parameters
 - Active joints and limits
 - Calibration parameters
@@ -653,7 +728,7 @@ Store trajectory data in `data/identification/`:
 ## Reference
 
 This template is based on the TIAGo example. For detailed implementation examples, see:
-- `examples/tiago/` - Complete TIAGo implementation
+- `examples/REF_EXAMPLE/` - Complete reference implementation
 - FIGAROH documentation: [link to docs]
 
 ## Troubleshooting
@@ -779,7 +854,7 @@ The following directory structure and files have been automatically generated:
 - `optimal_trajectory.py` - Optimal trajectory generation
 
 ### ⚙️ Configuration
-- `config/robot_lower_config.yaml` - Main configuration file
+- `config/robot_lower_unified_config.yaml` - Main configuration file
 
 ### 📚 Documentation
 - `README.md` - Main documentation
@@ -793,7 +868,7 @@ Follow these steps to complete your implementation:
 ### Step 1: Robot Model Setup
 1. Obtain the URDF file for your ROBOT_TITLE robot
 2. Place it in the `urdf/` directory
-3. Update `config/robot_lower_config.yaml`:
+3. Update `config/robot_lower_unified_config.yaml`:
    - Set `model.urdf_path` to your URDF file
    - Update `model.package_name` if needed
    - List all active joints in `joints.active_joints`
@@ -858,11 +933,11 @@ print(f"Loaded robot with {robot.nq} DOF")
 
 ## 🔍 Reference Implementation
 
-For detailed examples, refer to the TIAGo implementation:
-- `examples/tiago/calibration.py`
-- `examples/tiago/identification.py`
-- `examples/tiago/optimal_config.py`
-- `examples/tiago/optimal_trajectory.py`
+For detailed examples, refer to the REF_EXAMPLE implementation:
+- `examples/REF_EXAMPLE/calibration.py`
+- `examples/REF_EXAMPLE/identification.py`
+- `examples/REF_EXAMPLE/optimal_config.py`
+- `examples/REF_EXAMPLE/optimal_trajectory.py`
 
 ## 📚 Resources
 
@@ -927,7 +1002,7 @@ echo ""
 print_info "What's been created:"
 echo "  ✓ Directory structure (config/, data/, urdf/, utils/, docs/)"
 echo "  ✓ Python example files (calibration.py, identification.py, etc.)"
-echo "  ✓ Configuration files (robot_lower_config.yaml)"
+echo "  ✓ Configuration files (robot_lower_unified_config.yaml)"
 echo "  ✓ Utility modules (robot_lower_tools.py, simplified_collision_model.py)"
 echo "  ✓ Documentation (README.md, SETUP_GUIDE.md)"
 echo "  ✓ Data format guides"
@@ -935,7 +1010,7 @@ echo ""
 print_info "Next steps:"
 echo "  1. Read SETUP_GUIDE.md for detailed implementation steps"
 echo "  2. Add your robot's URDF file to urdf/ directory"
-echo "  3. Update config/robot_lower_config.yaml with your robot's parameters"
+echo "  3. Update config/robot_lower_unified_config.yaml with your robot's parameters"
 echo "  4. Implement the TODO items in each Python file"
 echo "  5. Refer to examples/tiago/ for reference implementation"
 echo ""
