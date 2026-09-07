@@ -30,5 +30,9 @@ repos:
     rev: 7.1.1
     hooks:
     -   id: flake8
-        args: ['--ignore=E501,W503,E203']
+        # --extend-ignore, not --ignore: the latter REPLACES flake8's default
+        # ignore list. W503 is already a default; it was listed here only to
+        # undo that clobbering. E203 is not a default and stays explicit
+        # (black emits it).
+        args: ['--extend-ignore=E501,E203']
         additional_dependencies: ['importlib-metadata<7.0']

@@ -87,8 +87,10 @@ def _discover_npz_files(data_dir: str = DATA_DIR) -> list[Path]:
     if not files:
         files = sorted(Path("data").glob("calibration_results_*.npz"))
     if not files:
-        for p in [Path(data_dir) / "calibration_results.npz",
-                  Path("data") / "calibration_results.npz"]:
+        for p in [
+            Path(data_dir) / "calibration_results.npz",
+            Path("data") / "calibration_results.npz",
+        ]:
             if p.exists():
                 files = [p]
                 break
@@ -399,9 +401,7 @@ def _run_calibration(
             instance["operator"] = operator
         ur10_calib.calib_config["instance"] = instance
     ur10_calib.initialize()
-    result = ur10_calib.solve(
-        plotting=plot, enable_logging=verbose, html_report=False
-    )
+    result = ur10_calib.solve(plotting=plot, enable_logging=verbose, html_report=False)
     param_names = ur10_calib.calib_config["param_name"]
 
     # V&V report suite: compute path once, write directly
@@ -415,7 +415,8 @@ def _run_calibration(
     if geometric_calibration_yaml:
         try:
             export_geometric_calibration_yaml(
-                ur10_calib, str(run_dir / "master_calibration.yaml"),
+                ur10_calib,
+                str(run_dir / "master_calibration.yaml"),
                 header_comment="UR10 calibration -- full",
             )
             export_geometric_calibration_yaml(
@@ -510,9 +511,7 @@ def export_with_verification(
 
     # Print metrology-frame params (not auto-applied)
     frame_params = {
-        k: v
-        for k, v in params.items()
-        if k.startswith(("base_", "pEE", "phiEE"))
+        k: v for k, v in params.items() if k.startswith(("base_", "pEE", "phiEE"))
     }
     if frame_params:
         print("\nMetrology frame parameters (NOT auto-applied to URDF):")
@@ -544,12 +543,28 @@ def export_with_verification(
 # ── Visual validation ───────────────────────────────────────────────
 
 
-def show_validation(comp: URDFComparison):
+def show_validation(comp: URDFComparison, *, force: bool = False):
     """Open interactive viser validation with trajectory, static comparison,
     error plots, replay, and opacity controls.
 
+    The viser server ends in ``sleep_forever()``, so this never returns until
+    the viewer is interrupted -- correct for someone looking at a browser, but
+    it blocks any non-interactive caller (CI, a test subprocess, a piped run)
+    until something kills it. Without a TTY the step is therefore skipped,
+    unless *force* is set by an explicit ``--viz-validation`` request.
+
+    Args:
+        comp: The nominal-vs-modified URDF comparison to display.
+        force: Open the viewer even without a TTY, for a caller that asked
+            for visualisation specifically.
+
     See :meth:`URDFComparison.show_interactive_validation` for details.
     """
+    if not force and not sys.stdin.isatty():
+        print("  Non-interactive session; skipping visual validation.")
+        print("  Run `python calibration.py --viz-validation` to open it.")
+        return
+
     try:
         import viser  # noqa: F401
     except ImportError:
@@ -597,7 +612,8 @@ def _run_viz_validation(args: argparse.Namespace) -> None:
     print(f"  Against nominal: {args.urdf}")
 
     comp = URDFComparison(str(args.urdf), modified_path)
-    show_validation(comp)
+    # Explicit request: honour it even when stdout is piped.
+    show_validation(comp, force=True)
 
 
 # ── Main ────────────────────────────────────────────────────────────
@@ -647,7 +663,9 @@ def main() -> None:
 
         # Auto-enable dependencies
         if "viz" in steps and "export" not in steps:
-            print("Note: 'viz' requires a modified URDF. Including 'export' + 'verify'.")
+            print(
+                "Note: 'viz' requires a modified URDF. Including 'export' + 'verify'."
+            )
             steps.extend(["export", "verify"])
 
         # Validate config (needed by calibration step)

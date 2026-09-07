@@ -35,7 +35,9 @@ calibration:
   coeff_regularize: 0.001 # L2 regularization weight on identified offsets
   outlier_eps: 0.02 # meters; residual above this is dropped as an outlier
   data_file: data/talos_left_arm_02_10_contact.csv # recorded (q, marker pose) samples
-  sample_configs_file: None # optional cross-reference file; unused here
+  # optional cross-reference file; unused here. Empty, not `None`: a bare
+  # None in YAML is the string "None" and would be read as a filename.
+  sample_configs_file: ""
 identification:
   robot_params:
     # q/dq/ddq/tau_lim_def: joint limit margins. Parsed into the config

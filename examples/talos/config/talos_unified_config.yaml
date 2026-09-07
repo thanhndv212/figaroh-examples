@@ -116,9 +116,14 @@ tasks:
   optimal_configuration:
     enabled: true
 
-    parameters:
-      number_of_samples: 75
-      optimization_objectives: ["condition_number", "manipulability"]
+    # NOTE: `parameters` is omitted here on purpose. Neither
+    # `number_of_samples` nor `optimization_objectives` is read by
+    # figaroh: selection is threshold-based on the SOCP weights, so the
+    # configuration count is emergent rather than requested, and the
+    # objective is fixed (D-optimality). Kept commented, not deleted, so
+    # the original intent stays on record without looking like a knob.
+    # number_of_samples: 50
+    # optimization_objectives: ["condition_number", "manipulability"]
 
     constraints:
       joint_limit_margin: 0.05  # Smaller margin for humanoid flexibility
