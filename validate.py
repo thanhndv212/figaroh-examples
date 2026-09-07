@@ -32,24 +32,36 @@ REPO_ROOT = Path(__file__).resolve().parent
 #   extra_args is an optional list of CLI flags to pass to the script.
 EXAMPLE_SCRIPTS = {
     "ur10": [
-        ("calibration.py", 120, False,
-         ["--calibrate-only", "--no-plot", "--html-report"]),
+        (
+            "calibration.py",
+            120,
+            False,
+            ["--calibrate-only", "--no-plot", "--html-report"],
+        ),
         ("update_model.py", 120, False),
         ("identification.py", 120, False, ["--verify", "--html-report"]),
         ("optimal_config.py", 600, True),
         ("optimal_trajectory.py", 600, True),
     ],
     "tiago": [
-        ("calibration.py", 120, False,
-         ["--calibrate-only", "--no-plot", "--html-report"]),
+        (
+            "calibration.py",
+            120,
+            False,
+            ["--calibrate-only", "--no-plot", "--html-report"],
+        ),
         ("update_model.py", 120, False),
         ("identification.py", 120, False, ["--verify", "--html-report"]),
         ("optimal_config.py", 120, False),
         ("optimal_trajectory.py", 600, True),
     ],
     "talos": [
-        ("calibration_upperbody.py", 120, False,
-         ["--calibrate-only", "--no-plot", "--html-report"]),
+        (
+            "calibration_upperbody.py",
+            120,
+            False,
+            ["--calibrate-only", "--no-plot", "--html-report"],
+        ),
         ("update_model.py", 120, False),
     ],
     "staubli_tx40": [
@@ -117,10 +129,17 @@ def run_pytest():
     result = Result("pytest", "test")
     start = time.time()
 
+    # The suite runs ~3m40s: eight example scripts as subprocesses plus the
+    # talos table-contact fixtures, which alone account for ~2 minutes of
+    # setup. 180s used to be unreachable for a different reason -- three
+    # calibration scripts each burned a full 120s timeout on the interactive
+    # viser step -- so raising this only became meaningful once that was
+    # fixed. Keep the headroom: a machine slower than this one still needs to
+    # finish, and a genuine hang is caught by the per-script timeouts below.
     rc, stdout, stderr, timed_out = run_command(
         [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
         cwd=REPO_ROOT,
-        timeout=180,
+        timeout=600,
     )
 
     result.duration = time.time() - start

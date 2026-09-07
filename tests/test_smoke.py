@@ -68,30 +68,40 @@ def test_script_imports(module_name: str) -> None:
 # ===========================================================================
 # Subprocess smoke tests  (slow, integration)
 # ===========================================================================
-# Each entry: (robot_directory, script_name, timeout_seconds)
+# Each entry: (robot_directory, script_name, timeout_seconds, extra_args)
 # These are run as isolated subprocesses from the robot's working directory
 # so that relative paths (urdf/, config/, data/) resolve correctly.
+#
+# These tests answer one question: does the script run to completion without
+# crashing? They deliberately do NOT judge result quality -- that is
+# validate.py's job, which runs the same scripts with --verify and gates on
+# the verdict. So identification scripts run with --no-verify here: a failed
+# quality threshold is a verdict about the data, not a crash, and letting it
+# fail this suite would conflate "the example is broken" with "this robot's
+# dataset is poorly conditioned".
 
-SUBPROCESS_SCRIPTS: list[tuple[str, str, int]] = [
-    ("ur10", "calibration.py", 120),
-    ("ur10", "identification.py", 120),
-    ("tiago", "calibration.py", 120),
-    ("tiago", "identification.py", 120),
-    ("tiago", "optimal_config.py", 120),
-    ("talos", "calibration_upperbody.py", 120),
-    ("talos", "update_model.py", 120),
-    ("staubli_tx40", "identification.py", 120),
+SUBPROCESS_SCRIPTS: list[tuple[str, str, int, list[str]]] = [
+    ("ur10", "calibration.py", 120, []),
+    ("ur10", "identification.py", 120, ["--no-verify"]),
+    ("tiago", "calibration.py", 120, []),
+    ("tiago", "identification.py", 120, ["--no-verify"]),
+    ("tiago", "optimal_config.py", 120, []),
+    ("talos", "calibration_upperbody.py", 120, []),
+    ("talos", "update_model.py", 120, []),
+    ("staubli_tx40", "identification.py", 120, ["--no-verify"]),
 ]
 
 
 @pytest.mark.slow
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    "robot_dir,script_name,timeout",
+    "robot_dir,script_name,timeout,extra_args",
     SUBPROCESS_SCRIPTS,
-    ids=[f"{d}/{s.replace('.py', '')}" for d, s, _ in SUBPROCESS_SCRIPTS],
+    ids=[f"{d}/{s.replace('.py', '')}" for d, s, _, _ in SUBPROCESS_SCRIPTS],
 )
-def test_script_subprocess(robot_dir: str, script_name: str, timeout: int) -> None:
+def test_script_subprocess(
+    robot_dir: str, script_name: str, timeout: int, extra_args: list[str]
+) -> None:
     """Verify each example script runs without crashing via subprocess.
 
     Runs the script in a subprocess from its robot directory so that
@@ -119,7 +129,7 @@ def test_script_subprocess(robot_dir: str, script_name: str, timeout: int) -> No
     env = {**os.environ, "MPLBACKEND": "Agg"}
     try:
         result = subprocess.run(
-            [sys.executable, str(script_path)],
+            [sys.executable, str(script_path), *extra_args],
             cwd=str(cwd),
             capture_output=True,
             text=True,
