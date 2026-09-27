@@ -199,7 +199,9 @@ class SO101Identification(BaseIdentification):
                 f"{data_dir} is sampled at {meta['rate_hz']:.2f} Hz but the config "
                 f"says signal_processing.sampling_frequency: {fs:g}"
             )
-        if meta.get("simulated") and not meta.get("synthetic_torque"):
+        # A soarm-identify-record --dry-run log: real format, all-zero torque.
+        dry_run = bool(meta.get("simulated") and not meta.get("synthetic_torque"))
+        if dry_run:
             logger.warning(
                 "%s is a soarm-identify-record --dry-run log: its currents are all "
                 "zero, so nothing meaningful can be identified from it",
@@ -209,7 +211,7 @@ class SO101Identification(BaseIdentification):
         tau = read_log_columns(data_dir, self.signal, self.active_joints)
         t = pd.read_csv(os.path.join(data_dir, "q.csv"))["t"].to_numpy(dtype=float)
 
-        if self.signal == "current_mA":
+        if self.signal == "current_mA" and not dry_run:
             moving = np.ptp(q, axis=0) > 0.1
             one_sided = moving & ((tau.min(axis=0) >= 0) | (tau.max(axis=0) <= 0))
             if one_sided.any():
