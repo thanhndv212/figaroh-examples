@@ -158,7 +158,6 @@ class SO101Identification(BaseIdentification):
         self.nm_per_unit = float(scales[self.signal])
         regressor = self.custom.get("regressor", {}) or {}
         self.inertial_terms = bool(regressor.get("inertial_terms", False))
-        self.qr_relative_tolerance = regressor.get("qr_relative_tolerance", 1e-3)
 
         self.active_joints = list(
             self.identif_config.get("active_joints") or ARM_JOINTS
@@ -171,19 +170,6 @@ class SO101Identification(BaseIdentification):
         self.identif_config["act_idxq"] = [J.idx_q for J in act_J]
         self.identif_config["act_idxv"] = [J.idx_v for J in act_J]
         self.identif_config["idx_act_joints"] = [jid - 1 for jid in act_Jid]
-
-        # Set explicitly: a unified config's signal_processing.filter_params
-        # is empty by default, which would leave figaroh's own defaults
-        # (f_sample=100 Hz) in force whatever the log's real rate is.
-        self.filter_config = {
-            "differentiation_method": "gradient",
-            "filter_params": {
-                "nbutter": 4,
-                "f_butter": self.identif_config["cut_off_frequency_butterworth"],
-                "med_fil": 5,
-                "f_sample": 1.0 / self.identif_config["ts"],
-            },
-        }
 
     # -- data --------------------------------------------------------------
 
@@ -238,44 +224,7 @@ class SO101Identification(BaseIdentification):
         self.processed_data["torques"] = tau
         return tau
 
-    def initialize_standard_parameters(self) -> None:
-        """Standard (CAD) parameters, each read from its own joint's body.
-
-        figaroh 0.4.8's ``get_standard_parameters`` pairs ``model.names[1:]``
-        with ``model.inertias[i]`` from 0, so every joint is given the body
-        *before* it (``inertias[0]`` is the universe/base). Base parameters
-        come from the regressor and are unaffected, but the CAD prior used
-        for the "nominal" validation torque and for reconstruction is
-        shifted by one body. Rewrite the values from the right index;
-        harmless once the library is fixed.
-        """
-        super().initialize_standard_parameters()
-        keys = ("m", "mx", "my", "mz", "Ixx", "Ixy", "Iyy", "Ixz", "Iyz", "Izz")
-        for idx, jname in enumerate(self.model.names[1:]):
-            values = self.model.inertias[idx + 1].toDynamicParameters()
-            for key, value in zip(keys, values):
-                self.standard_parameter[f"{key}_{jname}"] = float(value)
-
     # -- solve -------------------------------------------------------------
-
-    def solve(self, decimate=True, decimation_factor=10, **kwargs):
-        """Solve, with the QR rank threshold scaled to this regressor.
-
-        figaroh's default rank threshold is an absolute 1e-6. On this arm
-        several gravity combinations are excited only through millimetre
-        joint offsets out of the arm's plane: their columns are tiny but not
-        zero, pass that threshold, and then soak up the noise (condition
-        numbers ~1e8, masses in the thousands). A threshold relative to the
-        largest column keeps exactly the well-excited combinations.
-        """
-        if self.qr_relative_tolerance:
-            scale = np.linalg.norm(self.dynamic_regressor, axis=0).max()
-            if decimate:
-                scale /= np.sqrt(decimation_factor)  # fewer rows after decimation
-            self.tol_qr = float(self.qr_relative_tolerance) * scale
-        return super().solve(
-            decimate=decimate, decimation_factor=decimation_factor, **kwargs
-        )
 
     # -- regressor ---------------------------------------------------------
 
@@ -293,9 +242,6 @@ class SO101Identification(BaseIdentification):
             self.robot, q, zeros, zeros, self.identif_config
         )
         self.dynamic_regressor[:, : 10 * nv] = W_static[:, : 10 * nv]
-        # Actuator inertia multiplies acceleration: out of this model.
-        start = 12 * nv
-        self.dynamic_regressor[:, start : start + nv] = 0.0
 
     def _compute_validation_metrics(self):
         """Validate against the same model that was fitted.

@@ -98,23 +98,16 @@ If a joint's current never changes sign during the run, the servo may be
 reporting magnitude only; `identification.py` warns, and
 `--signal load_percent` fits the signed PWM duty instead.
 
-## Things this example works around
+## Notes
 
 - **QR rank threshold.** figaroh's absolute default (1e-6) keeps gravity
   combinations excited only through millimetre out-of-plane joint offsets;
   they fit noise (condition number ~5e8, masses in the thousands).
-  `custom.regressor.qr_relative_tolerance: 1e-3` scales the threshold to the
-  regressor: condition number 429, validation correlation 0.9995.
-- **CAD prior off by one body** (figaroh 0.4.8): `get_standard_parameters`
-  reads `model.inertias[i]` for the i-th joint name, i.e. the body before
-  it. `SO101Identification.initialize_standard_parameters` rewrites the
-  values from the right index — without it the "nominal" validation RMSE
-  and the reconstruction prior are wrong.
-- **Filter sample rate.** A unified config leaves `filter_params` empty,
-  so figaroh's filter defaults (`f_sample=100`) would apply whatever the
-  log's rate; the subclass sets them from `signal_processing`.
-- **`joint_offset` needs `actuator_inertia`** in figaroh's regressor column
-  layout; both are on, and the actuator-inertia columns are zeroed.
+  `tasks.identification.problem.qr_relative_tolerance: 1e-4` drops them:
+  condition number 429, validation correlation 0.9995.
+- This example needs figaroh with the fixes for figaroh-plus #11-#14 (CAD
+  prior per body, regressor column layout, filter rates from
+  `signal_processing`, `qr_relative_tolerance`).
 
 ## Files
 

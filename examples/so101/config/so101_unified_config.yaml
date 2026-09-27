@@ -48,15 +48,18 @@ tasks:
     problem:
       include_external_forces: false
       use_joint_torques: true
+      # QR rank threshold, relative to the largest pivot. The absolute
+      # default (1e-6) keeps gravity combinations excited only through
+      # millimetre out-of-plane joint offsets, which then fit noise
+      # (condition number ~5e8). 1e-4 to 3e-3 all keep the same 23.
+      qr_relative_tolerance: 1.0e-4
       wls: true  # joints carry very different torque levels (pan ~0, lift ~0.5 Nm)
 
       model_components:
         friction: true
-        # Must stay true whenever joint_offset is: figaroh lays the offset
-        # columns out after an actuator-inertia block. The gravity-only
-        # regressor (custom.regressor.inertial_terms: false) zeroes those
-        # columns, so they are dropped as unidentifiable, not fitted.
-        actuator_inertia: true
+        # Actuator inertia multiplies acceleration, which the gravity-only
+        # regressor (custom.regressor.inertial_terms: false) leaves out.
+        actuator_inertia: false
         joint_offset: true
         static_regressor: true
         inertia_regressor: true
@@ -98,11 +101,6 @@ custom:
     # excitation is slow (<= 0.5 rad/s) and STS3215 current is too coarse to
     # see inertial torque, so fitting inertias only adds noise.
     inertial_terms: false
-    # QR rank threshold, relative to the largest regressor column. figaroh's
-    # absolute default (1e-6) keeps combinations excited only through
-    # millimetre out-of-plane joint offsets, which then fit noise
-    # (condition number ~1e8). null: figaroh's default.
-    qr_relative_tolerance: 1.0e-3
   locked_joints:
     # joint name -> held angle (rad, URDF frame). null: use the mean of the
     # recorded angle for that joint.
