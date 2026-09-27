@@ -64,6 +64,9 @@ Examples use CSV logs for measurements and trajectories. The required files/colu
   from single-plane table contact, no external metrology):
   [examples/talos_table_contact/README.md](examples/talos_table_contact/README.md)
 - Staubli TX40 (manipulator): [examples/staubli_tx40/README.md](examples/staubli_tx40/README.md)
+- SO-101 (desktop arm, STS3215 servos — gravity + friction from servo current,
+  deployed to [soarm_sdk](https://github.com/thanhndv212/soarm_sdk)):
+  [examples/so101/README.md](examples/so101/README.md)
 - Templates and config starting points: [examples/templates/README.md](examples/templates/README.md)
 
 ## Common layout (per robot)

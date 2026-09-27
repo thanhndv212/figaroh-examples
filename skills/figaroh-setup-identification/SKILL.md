@@ -25,7 +25,7 @@ standard parameters, and projects onto the physically-consistent set.
 
 | Situation | Do this |
 |---|---|
-| Robot has `identification.py` | Go to Step 2. Today: `ur10`, `tiago`, `staubli_tx40`. |
+| Robot has `identification.py` | Go to Step 2. Today: `ur10`, `tiago`, `staubli_tx40`, `so101`. |
 | Robot exists, calibration only | Add `tasks.identification` to its config and an `identification.py` + a `BaseIdentification` subclass modelled on `examples/ur10/`. |
 | No folder for this robot | Run **`figaroh-setup-new-robot`** first. |
 

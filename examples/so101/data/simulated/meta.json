@@ -1,0 +1,28 @@
+{
+  "format": "soarm_sdk.dynamics.log/v1",
+  "joint_names": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll",
+    "gripper"
+  ],
+  "n_samples": 3001,
+  "rate_hz": 50.0,
+  "frame": "urdf",
+  "units": {
+    "q": "rad",
+    "dq": "rad/s",
+    "current_mA": "mA",
+    "load_percent": "percent",
+    "q_cmd": "rad"
+  },
+  "arm_id": "simulated",
+  "simulated": true,
+  "synthetic_torque": true,
+  "generator": "figaroh-examples/examples/so101/generate_simulated_data.py",
+  "seed": 0,
+  "noise_mA": 15.0,
+  "nm_per_mA": 0.001
+}
