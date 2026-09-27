@@ -1,0 +1,107 @@
+# SO-101 Robot Configuration - Unified Format
+# TheRobotStudio SO-101: 5-DOF arm + 1-DOF jaw, Feetech STS3215 servos (1:345).
+#
+# Identification only. The data comes from soarm_sdk's `soarm-identify-record`
+# (https://github.com/thanhndv212/soarm_sdk, soarm_sdk.dynamics): a slow
+# Fourier excitation, joint angles in this URDF's joint frame, and servo
+# current (or load) as the torque signal. See ../README.md.
+
+extends: "../../templates/manipulator_robot.yaml"
+
+robot:
+  name: "so101"
+  description: "SO-101 5-DOF desktop arm (STS3215 servos), gripper locked"
+
+  # instance:
+  #   asset_id: "thanh_arm"
+  #   operator: ""
+
+  properties:
+    joints:
+      # The gripper jaw is locked (welded into wrist_roll's body) in
+      # utils/so101_tools.load_so101_robot(), so the model has these five.
+      active_joints: [
+        "shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"
+      ]
+      joint_limits:
+        position: [-1.91986, 1.91986, -1.74533, 1.74533, -1.69, 1.69,
+                   -1.65806, 1.65806, -2.74385, 2.84121]
+        velocity: [2.0, 2.0, 2.0, 2.0, 2.0]        # [rad/s]
+        acceleration: [10.0, 10.0, 10.0, 10.0, 10.0]  # [rad/s^2]
+        torque: [2.94, 2.94, 2.94, 2.94, 2.94]      # [Nm] 12 V STS3215 stall, nominal
+
+    mechanics:
+      # Joint-side torque comes from the servo's own reading (see
+      # custom.torque_sensing below), so no motor->joint reduction is applied.
+      reduction_ratios: [1.0, 1.0, 1.0, 1.0, 1.0]
+      ratio_essential: 30.0
+      friction_coefficients:
+        viscous: [0, 0, 0, 0, 0]  # To be identified
+        static: [0, 0, 0, 0, 0]   # To be identified
+      actuator_inertias: [0, 0, 0, 0, 0]
+      joint_offsets: [0, 0, 0, 0, 0]  # constant torque bias, to be identified
+
+tasks:
+  identification:
+    enabled: true
+
+    problem:
+      include_external_forces: false
+      use_joint_torques: true
+      # QR rank threshold, relative to the largest pivot. The absolute
+      # default (1e-6) keeps gravity combinations excited only through
+      # millimetre out-of-plane joint offsets, which then fit noise
+      # (condition number ~5e8). 1e-4 to 3e-3 all keep the same 23.
+      qr_relative_tolerance: 1.0e-4
+      wls: true  # joints carry very different torque levels (pan ~0, lift ~0.5 Nm)
+
+      model_components:
+        friction: true
+        # Actuator inertia multiplies acceleration, which the gravity-only
+        # regressor (custom.regressor.inertial_terms: false) leaves out.
+        actuator_inertia: false
+        joint_offset: true
+        static_regressor: true
+        inertia_regressor: true
+
+    signal_processing:
+      sampling_frequency: 50.0   # Hz — must equal the log's rate (checked on load)
+      cutoff_frequency: 4.0      # Hz — the excitation's content is below ~0.5 Hz
+      filter_type: "butterworth"
+      filter_order: 4
+
+    data:
+      # A directory in the same soarm_sdk log format, recorded separately.
+      validation_data_file: ""
+
+    # Standard (per-body) parameters from base parameters, with the URDF's
+    # CAD values as the prior for the combinations the data cannot separate.
+    # update_model.py needs this to write per-body masses.
+    reconstruction:
+      enabled: true
+      method: "nullspace"
+
+custom:
+  manufacturer: "TheRobotStudio / Feetech"
+  torque_sensing:
+    # Which recorded signal stands in for joint torque, and its scale.
+    #   current_mA:    N·m per mA. 12 V STS3215: ~30 kg·cm stall at ~2.7 A,
+    #                  i.e. ~1 N·m/A — a nominal figure, not a measurement.
+    #   load_percent:  N·m per % PWM duty. ~2.94 N·m stall / 100 %.
+    # A wrong scale scales every identified mass by the same factor, and the
+    # runtime (soarm_sdk.dynamics.IdentifiedDynamics) divides by it again,
+    # so gravity compensation in servo units is unaffected. Identify once
+    # with a known payload to pin it down physically.
+    signal: "current_mA"
+    nm_per_unit:
+      current_mA: 0.001
+      load_percent: 0.0294
+  regressor:
+    # false: fit tau = g(q) + fv*qd + fs*sign(qd) + offset only. The
+    # excitation is slow (<= 0.5 rad/s) and STS3215 current is too coarse to
+    # see inertial torque, so fitting inertias only adds noise.
+    inertial_terms: false
+  locked_joints:
+    # joint name -> held angle (rad, URDF frame). null: use the mean of the
+    # recorded angle for that joint.
+    gripper: null

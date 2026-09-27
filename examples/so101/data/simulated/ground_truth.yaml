@@ -1,0 +1,51 @@
+bodies:
+  shoulder_pan:
+    m: 0.100006
+    mx: -0.0030762245624
+    my: -1.6673700362e-06
+    mz: -0.0025272816278
+  shoulder_lift:
+    m: 0.11844999999999999
+    mx: -0.010642388994999993
+    my: -0.000992876327999999
+    mz: 0.0021805342049999983
+  elbow_flex:
+    m: 0.1144
+    mx: -0.011219219439999999
+    my: 0.000371086144
+    mz: 0.00209158664
+  wrist_flex:
+    m: 0.0948
+    mx: -9.7939776e-06
+    my: -0.0036606356399999994
+    mz: 0.00266535888
+  wrist_roll:
+    m: 0.139000001
+    mx: 0.0002420861599896193
+    my: 1.5622329212791147e-05
+    mz: -0.005232362748750214
+friction:
+  shoulder_pan:
+    fv: 0.03
+    fs: 0.03
+  shoulder_lift:
+    fv: 0.045
+    fs: 0.05
+  elbow_flex:
+    fv: 0.04
+    fs: 0.045
+  wrist_flex:
+    fv: 0.02
+    fs: 0.025
+  wrist_roll:
+    fv: 0.015
+    fs: 0.02
+offset:
+  shoulder_pan: 0.002
+  shoulder_lift: -0.01
+  elbow_flex: 0.006
+  wrist_flex: -0.004
+  wrist_roll: 0.001
+held_positions:
+  gripper: 0.0
+nm_per_unit: 0.001

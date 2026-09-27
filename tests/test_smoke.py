@@ -40,6 +40,9 @@ SCRIPTS_TO_IMPORT = [
     "examples.talos.calibration_upperbody",
     "examples.talos.update_model",
     "examples.staubli_tx40.identification",
+    "examples.so101.identification",
+    "examples.so101.update_model",
+    "examples.so101.generate_simulated_data",
 ]
 
 
@@ -89,6 +92,8 @@ SUBPROCESS_SCRIPTS: list[tuple[str, str, int, list[str]]] = [
     ("talos", "calibration_upperbody.py", 120, []),
     ("talos", "update_model.py", 120, []),
     ("staubli_tx40", "identification.py", 120, ["--no-verify"]),
+    ("so101", "identification.py", 120, ["--no-verify"]),
+    ("so101", "update_model.py", 120, ["--output", "results/so101_dynamics.yaml"]),
 ]
 
 

@@ -67,6 +67,10 @@ EXAMPLE_SCRIPTS = {
     "staubli_tx40": [
         ("identification.py", 120, False, ["--verify", "--html-report"]),
     ],
+    "so101": [
+        ("identification.py", 120, False, ["--verify", "--html-report"]),
+        ("update_model.py", 120, False),
+    ],
 }
 
 # --- Helpers -------------------------------------------------------------
@@ -323,7 +327,7 @@ def main():
         "--robot",
         type=str,
         default=None,
-        help="Run scripts for a single robot (ur10, tiago, talos, staubli_tx40).",
+        help="Run scripts for a single robot (ur10, tiago, talos, staubli_tx40, so101).",
     )
     parser.add_argument(
         "--quick",
