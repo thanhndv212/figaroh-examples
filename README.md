@@ -68,7 +68,9 @@ Examples use CSV logs for measurements and trajectories. The required files/colu
 ## Examples
 
 - UR10 (manipulator): [examples/ur10/README.md](examples/ur10/README.md)
-- TIAGo (mobile manipulator): [examples/tiago/README.md](examples/tiago/README.md)
+- TIAGo (mobile manipulator): [examples/tiago/README.md](examples/tiago/README.md) —
+  identification, calibration, optimal config/trajectory, plus experimental
+  suspension identification and empirical backlash-surface examples
 - TIAGo Pro (mobile manipulator, right-arm calibration — contributed by
   [Clement Pene](https://github.com/clementPene)): [examples/tiago_pro/README.md](examples/tiago_pro/README.md)
 - TALOS (humanoid, torso/arm chain): [examples/talos/README.md](examples/talos/README.md)
