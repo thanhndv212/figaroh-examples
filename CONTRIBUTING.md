@@ -26,6 +26,15 @@ sibling core `figaroh/src/figaroh/`. It is not an installable Python package.
 - Do not add another repository-level roadmap. Core owns cross-repository
   milestones; link its plan and create examples issues for concrete local work.
 
+## Adding an example
+
+Use the [new-example guide](docs/new-example-guide.md) and copy its
+[experiment brief](docs/experiment-brief-template.md) into the robot folder.
+Review data availability, model scope, method objectives, acquisition/processing
+and validation before adapting scripts. A scaffold or reference workflow alone
+does not establish a validated example. The brief is documentation, not a new
+configuration schema or runtime requirement.
+
 ## Environment and reproduction
 
 All tests, scripts, hooks and Python runs use **`figaroh-dev`**, defined in the
