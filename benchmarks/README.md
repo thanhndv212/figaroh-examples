@@ -148,3 +148,9 @@ independent trajectories and pass the eventual numerical/robustness gates.
 Mandatory repository validation and hosted checks are recorded in the PR;
 passing this private runner's assertions does not make current model-quality
 verification gates pass.
+
+See the [dated validation audit](validation-2026-10-02.md) for the full
+repository failures and the reproduced final-joint acceleration defect
+tracked in core #32. The analytic synthetic spike is unaffected, while these
+UR10 dataset comparisons cannot yet qualify as verified physical-acceleration
+evidence.
