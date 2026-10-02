@@ -100,6 +100,7 @@ tasks:
         inertia_regressor: true
 
     signal_processing:
+      # CSVs have no timestamps: this rate is an assumption (see data/README.md).
       sampling_frequency: 500.0  # Hz
       cutoff_frequency: 50.0     # Hz
       filter_type: "butterworth"

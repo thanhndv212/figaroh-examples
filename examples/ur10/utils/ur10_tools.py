@@ -21,7 +21,6 @@ from yaml.loader import SafeLoader
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.optimize import least_squares
 from typing import Any, Dict, List
 
 from figaroh.calibration.calibration_tools import (
@@ -33,11 +32,8 @@ from figaroh.calibration.calibration_tools import (
 from figaroh.calibration.base_calibration import BaseCalibration
 from figaroh.identification.base_identification import BaseIdentification
 from figaroh.optimal.base_optimal_calibration import BaseOptimalCalibration
-from figaroh.utils.results_manager import ResultsManager
 from figaroh.utils.error_handling import (
-    CalibrationError,
     IdentificationError,
-    validate_robot_config,
     handle_calibration_errors,
 )
 from figaroh.identification.identification_tools import (
@@ -52,19 +48,11 @@ from figaroh.tools.regressor import (
 from figaroh.tools.qrdecomposition import get_baseParams
 from figaroh.identification.parameter import (
     get_standard_parameters,
-    add_standard_additional_parameters,
-    add_custom_parameters,
 )
 from figaroh.optimal.base_optimal_trajectory import (
     BaseOptimalTrajectory,
     BaseTrajectoryIPOPTProblem,
 )
-
-# Fallback for config manager and data processor if needed
-try:
-    from .data_processing import DataProcessor
-except ImportError:
-    print("DataProcessor module not found, using basic data loading methods.")
 
 
 class UR10Calibration(BaseCalibration):
@@ -112,9 +100,7 @@ class UR10Calibration(BaseCalibration):
         )
 
         # Main residual: SE3 log map (geometrically correct pose error)
-        raw_residuals = self._compute_logmap_residuals(
-            self.PEE_measured, PEEe
-        )
+        raw_residuals = self._compute_logmap_residuals(self.PEE_measured, PEEe)
 
         # Apply unit-aware weighting using BaseCalibration utility method
         # This handles position (meters) vs orientation (radians) properly
@@ -151,10 +137,14 @@ class UR10Identification(BaseIdentification):
         super().__init__(robot, config_file)
         print("UR10 Dynamic Identification initialized")
 
-    def load_trajectory_data(
-        self, data_source: str = None
-    ) -> Dict[str, np.ndarray]:
-        """Load trajectory data from CSV files using DataProcessor.
+    def load_trajectory_data(self, data_source: str = None) -> Dict[str, np.ndarray]:
+        """Load named CSV channels using one configured clock.
+
+        The files contain no timestamps; ``ts`` is an explicit assumption,
+        not a measured sample period. Returns the historical trailing-two-row
+        trim. Interval velocities are centered half a timestep after the
+        returned position timestamps. The base pipeline performs filtering.
+        Inspect ``trajectory_provenance`` for source counts/indices and limits.
 
         Args:
             data_source: Optional directory override. When given, the
@@ -169,54 +159,91 @@ class UR10Identification(BaseIdentification):
             'velocities', 'accelerations', 'torques'
         """
         print("Loading UR10 trajectory data...")
-        data_dir = data_source or "data"
+        data_dir = os.path.abspath(data_source or "data")
+        q_path = os.path.join(data_dir, "identification_q_simulation.csv")
+        tau_path = os.path.join(data_dir, "identification_tau_simulation.csv")
 
         try:
-            # Use DataProcessor for improved data loading
-            q_df = DataProcessor.load_csv_data(
-                os.path.join(data_dir, "identification_q_simulation.csv")
+            # CSV names encode configuration/effort order; never rely on file
+            # column order or silently interpret a clock/current as a joint.
+            q_frame = pd.read_csv(q_path)
+            tau_frame = pd.read_csv(tau_path)
+            q_columns = [f"q{i}" for i in range(self.model.nq)]
+            tau_columns = [f"tau{i}" for i in range(1, self.model.nv + 1)]
+            for frame, columns, path in [
+                (q_frame, q_columns, q_path),
+                (tau_frame, tau_columns, tau_path),
+            ]:
+                if set(frame.columns) != set(columns):
+                    raise ValueError(f"{path}: expected CSV columns {columns}")
+            q_raw = q_frame[q_columns].to_numpy(dtype=float)
+            tau_raw = tau_frame[tau_columns].to_numpy(dtype=float)
+            if not np.all(np.isfinite(q_raw)) or not np.all(np.isfinite(tau_raw)):
+                raise ValueError("Configuration and effort CSVs must be finite")
+            if len(tau_raw) not in (len(q_raw), len(q_raw) - 2):
+                raise ValueError(
+                    "Effort rows must match position rows or the historical "
+                    "trailing-two-sample derivative trim"
+                )
+
+            dt = float(self.identif_config["ts"])
+            if not np.isfinite(dt) or dt <= 0:
+                raise ValueError("Configured ts must be positive and finite")
+            filter_rate = self.filter_config.get("filter_params", {}).get(
+                "f_sample", 1 / dt
             )
-            tau_df = DataProcessor.load_csv_data(
-                os.path.join(data_dir, "identification_tau_simulation.csv")
-            )
+            if not np.isclose(filter_rate, 1 / dt):
+                raise ValueError("Filter sample rate must match configured 1/ts")
 
-            q_raw = q_df  # Convert to numpy array
-            tau_raw = tau_df  # Convert to numpy array
+            source_q_rows, source_tau_rows = len(q_raw), len(tau_raw)
+            max_samples = min(source_q_rows, self.identif_config.get("nb_samples", 100))
+            q_raw = q_raw[:max_samples]
 
-            print(f"Loaded {len(q_raw)} samples from CSV files")
-
-            # Limit samples if needed
-            max_samples = min(len(q_raw), self.identif_config.get("nb_samples", 100))
-            q_raw = q_raw[:max_samples, :]
-            tau_raw = tau_raw[:max_samples, :]
-
-            # Apply data filtering if available
-            if hasattr(DataProcessor, "apply_lowpass_filter"):
-                q_raw = DataProcessor.apply_lowpass_filter(q_raw, cutoff=10.0, fs=100.0)
-
-            # Calculate derivatives using FIGAROH function
+            # This adapter supplies unfiltered interval derivatives. The core
+            # process_kinematics_data stage filters q/dq/ddq once using the
+            # resolved filter configuration; there is no loader prefilter.
             q_filtered, dq_filtered, ddq_filtered = (
                 calculate_first_second_order_differentiation(
                     self.model, q_raw, self.identif_config
                 )
             )
+            count = len(q_filtered)
+            time_vector = np.arange(count) * dt
 
-            # Create time vector (assuming 100Hz sampling)
-            dt = 0.01  # 100Hz
-            time_vector = np.arange(len(q_filtered)) * dt
-
-            print(f"Processed trajectory data: {len(q_filtered)} samples")
+            # Keep metadata outside the array-only raw-data contract (which
+            # the base pipeline truncates). Retain training/validation entries.
+            if not hasattr(self, "trajectory_provenance"):
+                self.trajectory_provenance = {}
+            self.trajectory_provenance[data_dir] = {
+                "position_file": q_path,
+                "effort_file": tau_path,
+                "timing_source": "configured_assumption",
+                "configuration_columns": q_columns,
+                "effort_columns": tau_columns,
+                "assumed_position_units": "rad",
+                "assumed_effort_units": "Nm (joint-side)",
+                "sample_period_s": dt,
+                "source_position_rows": source_q_rows,
+                "source_effort_rows": source_tau_rows,
+                "loaded_position_rows": max_samples,
+                "source_sample_range": [0, count],
+                "velocity_time_offset_s": dt / 2,
+                "torque_generation_verified": False,
+            }
+            print(f"Processed trajectory data: {count} samples")
 
             return {
                 "timestamps": time_vector.reshape(-1, 1),
                 "positions": q_filtered,
                 "velocities": dq_filtered,
                 "accelerations": ddq_filtered,
-                "torques": tau_raw[: len(q_filtered)],  # Match length
+                "torques": tau_raw[:count],
             }
 
         except Exception as e:
-            raise IdentificationError(f"Failed to load UR10 trajectory data: {e}")
+            raise IdentificationError(
+                f"Failed to load UR10 trajectory data from {data_dir}: {e}"
+            ) from e
 
 
 class UR10OptimalCalibration(BaseOptimalCalibration):
