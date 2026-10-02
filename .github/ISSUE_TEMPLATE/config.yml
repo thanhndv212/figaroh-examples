@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How to read FIGAROH delivery issues
+    url: https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/plans/README.md#how-to-read-delivery-issues
+    about: 'Package IDs, roadmap milestones and status labels. Delivery trackers live in figaroh-plus.'
+  - name: Roadmap
+    url: https://github.com/thanhndv212/figaroh-plus/blob/devel/ROADMAP.md
+    about: Check whether your idea is already planned before opening an issue.
+  - name: Core library problems (figaroh-plus)
+    url: https://github.com/thanhndv212/figaroh-plus/issues
+    about: 'Bugs or features in the figaroh package itself (identification, calibration, optimal, tools) belong there.'
