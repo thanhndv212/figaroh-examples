@@ -232,9 +232,9 @@ subject to:
 
 > **Status: research/experimental.** These two scripts are standalone —
 > neither subclasses nor modifies `BaseIdentification` — and are not part
-> of the core calibration/identification workflow above. See
-> `docs/decisions/tiago-suspension-backlash-and-modular-terms-plan.md` in
-> the main `figaroh` repository for the full design rationale and
+> of the core calibration/identification workflow above. See the
+> [TIAGo suspension/backlash decision record](https://github.com/thanhndv212/figaroh-plus/blob/main/docs/decisions/tiago-suspension-backlash-examples.md)
+> in the main FIGAROH repository for the full design rationale and
 > promotion criteria before relying on either for anything beyond
 > exploratory research.
 
