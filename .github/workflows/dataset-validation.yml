@@ -19,6 +19,7 @@ jobs:
       MPLBACKEND: Agg
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
+      ROS_PACKAGE_PATH: ${{ github.workspace }}/ci-models:${{ github.workspace }}/ci-models/tiago_robot:${{ github.workspace }}/ci-models/pal_wsg_gripper:${{ github.workspace }}/ci-models/pmb2_robot
       PIP_CONSTRAINT: ${{ github.workspace }}/ci-constraints.txt
     steps:
       - uses: actions/checkout@v4
@@ -32,11 +33,45 @@ jobs:
           ref: b134888a26dcbc15231f9a6070ab89b0305da5a2
           path: figaroh
 
+      - uses: actions/checkout@v4
+        with:
+          repository: agimus/agimus-demos
+          ref: 7858fd3da9b31b4a17cc265722a4647567cda8cd
+          path: ci-models/agimus-demos
+          sparse-checkout: meshes
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pal-robotics/tiago_robot
+          ref: 234b653b2a063e89bcdf7c9b2c419272531eab5a
+          path: ci-models/tiago_robot
+          sparse-checkout: tiago_description/meshes/arm
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pal-robotics/pal_wsg_gripper
+          ref: ee542262a264f220142c787c0e005b5664bffa66
+          path: ci-models/pal_wsg_gripper
+          sparse-checkout: pal_wsg_gripper_description/meshes
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pal-robotics/pmb2_robot
+          ref: 90b419d64a786cbcf3ba22623b68259f354698aa
+          path: ci-models/pmb2_robot
+          sparse-checkout: pmb2_description/meshes/wheels
+
       - name: Prepare constrained environment
         env:
           PINOCCHIO_VERSION: ${{ matrix.pinocchio }}
         run: |
           cp "figaroh/ci/pinocchio-${PINOCCHIO_VERSION}.txt" "$PIP_CONSTRAINT"
+          cat >> "$PIP_CONSTRAINT" <<'PINS'
+          numpy==2.3.2
+          scipy==1.16.1
+          picos==2.6.1
+          cvxopt==1.3.2
+          PINS
           # Install editable core after activation, from its actual directory.
           sed '/  - pip:/,$d' figaroh/environment.yml > ci-environment.yml
 
