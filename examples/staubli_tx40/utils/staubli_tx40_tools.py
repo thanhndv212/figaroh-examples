@@ -26,21 +26,13 @@ import os
 
 import numpy as np
 import pandas as pd
-from scipy import signal
 
 # Import base classes from figaroh
 from figaroh.identification.base_identification import BaseIdentification
 from figaroh.utils.error_handling import (
     validate_input_data,
-    RobotInitializationError,
     DataProcessingError,
 )
-
-# Import yaml for config loading
-import yaml
-
-from figaroh.tools.regressor import build_regressor_basic
-from figaroh.identification.identification_tools import get_standard_parameters
 
 
 class TX40Identification(BaseIdentification):
@@ -118,9 +110,7 @@ class TX40Identification(BaseIdentification):
         data_dir = data_source or "data"
         try:
             # Load current (torque) and position data
-            curr_data = pd.read_csv(
-                os.path.join(data_dir, "curr_data.csv")
-            ).to_numpy()
+            curr_data = pd.read_csv(os.path.join(data_dir, "curr_data.csv")).to_numpy()
             pos_data = pd.read_csv(
                 os.path.join(data_dir, "pos_read_data.csv")
             ).to_numpy()
@@ -238,7 +228,12 @@ class TX40Identification(BaseIdentification):
             tau_processed, filter_config["filter_params"]
         )
 
-        # Synchronize torque data with kinematic data dimensions
+        # Apply the same window to kinematics: shortening only at the tail
+        # pairs torque sample i + nbord with state sample i.
+        for key in ("timestamps", "positions", "velocities", "accelerations"):
+            self.processed_data[key] = self._remove_border_effects(
+                self.processed_data[key], filter_config["filter_params"]
+            )
         self._sync_torque_w_kinematics()
 
         return self.processed_data["torques"]

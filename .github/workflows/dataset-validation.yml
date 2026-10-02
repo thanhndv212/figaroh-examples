@@ -1,0 +1,76 @@
+name: Dataset validation
+
+on:
+  push:
+    branches: [main, devel]
+  pull_request:
+    branches: [main, devel]
+
+jobs:
+  test:
+    name: Examples (pinocchio-${{ matrix.pinocchio }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        pinocchio: ['3.7.0', '4.1.0']
+    env:
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      PIP_CONSTRAINT: ${{ github.workspace }}/ci-constraints.txt
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: figaroh-examples
+
+      - uses: actions/checkout@v4
+        with:
+          repository: thanhndv212/figaroh-plus
+          # Temporary exact dependency on core PR #31's private spike.
+          ref: b134888a26dcbc15231f9a6070ab89b0305da5a2
+          path: figaroh
+
+      - name: Prepare constrained environment
+        env:
+          PINOCCHIO_VERSION: ${{ matrix.pinocchio }}
+        run: |
+          cp "figaroh/ci/pinocchio-${PINOCCHIO_VERSION}.txt" "$PIP_CONSTRAINT"
+          # Install editable core after activation, from its actual directory.
+          sed '/  - pip:/,$d' figaroh/environment.yml > ci-environment.yml
+
+      - name: Set up conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: ci-environment.yml
+          activate-environment: figaroh-dev
+
+      - name: Install figaroh and run tests
+        shell: bash -el {0}
+        run: |
+          python -m pip install -e './figaroh[dev]'
+          python -m pip check
+          cd figaroh-examples
+          python -m pytest tests/ -v
+
+      - name: Run offline dataset comparisons
+        shell: bash -el {0}
+        env:
+          PYTHONPATH: ${{ github.workspace }}/figaroh-examples:${{ github.workspace }}/figaroh/src
+        run: |
+          cd figaroh-examples
+          mkdir -p ci-results
+          for robot in ur10 staubli_tx40 tiago; do
+            python benchmarks/log_cholesky_datasets.py --robot "$robot" \
+              --spike-path ../figaroh/docs/development/spikes/log_cholesky_feasibility.py \
+              --output "ci-results/${robot}.json"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: examples-pinocchio-${{ matrix.pinocchio }}
+          path: |
+            figaroh-examples/ci-results/*.json
+            ci-constraints.txt
