@@ -16,7 +16,7 @@ hooks pass. Source datasets are unchanged.
 The initial examples CI exposed hidden geometry dependencies on the local
 `ROS_PACKAGE_PATH=/Users/thanhndv212/Develop/:/Users/thanhndv212/Develop/robot_models/`.
 UR10 needs Agimus mount/tip meshes; TIAGo needs older wrist, WSG gripper and
-PMB2 wheel meshes absent from this checkout. CI now fetches the precise
+PMB2 base/wheel meshes absent from this checkout. CI now fetches the precise
 upstream repositories/revisions listed in `dataset-validation.yml`, supplies
 its own ROS package search path, and pins the scientific versions above.
 Assets are fetched into the runner, not copied into this repository.
@@ -82,3 +82,22 @@ These are preserved in this protocol, not silently compensated. Before a
 production go decision or closure of examples #11, fix/audit acceleration
 provenance and rates and repeat the relevant benchmark with a newly frozen
 protocol. Real-data temporal blocks do not replace independent experiments.
+
+## Hosted CI status
+
+Run [37026334637](https://github.com/thanhndv212/figaroh-examples/actions/runs/37026334637)
+passed the new TX40 regression and UR10 smoke tests on both profiles, but
+reported 4 failures / 129 passes / 9 skips on Pinocchio 3.7 and
+3 failures / 130 passes / 9 skips on 4.1. Three TIAGo smoke failures required
+additional PMB2 base geometry; CI now fetches the complete PMB2/TIAGo mesh
+folders. The additional 3.7 failure is the existing TALOS held-out multichain
+regression (right z RMSE 2.9431 -> 2.5258 mm, below the required improvement).
+It remains enabled and is tracked in
+[examples #14](https://github.com/thanhndv212/figaroh-examples/issues/14).
+Scientific version pins did not resolve it.
+
+Dataset comparisons run after successful dependency installation even if
+pytest fails, retaining their artifacts while preserving the job's failed
+test status. These results distinguish dataset execution from a green
+repository regression suite. The companion PR remains draft while these
+hosted validation issues are unresolved.
