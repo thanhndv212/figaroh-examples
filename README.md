@@ -35,6 +35,11 @@ python calibration.py
 
 ## Basic workflow
 
+For a new robot or dataset, start with the [new-example guide](docs/new-example-guide.md)
+and [experiment brief](docs/experiment-brief-template.md). They cover available
+measurements, model/method selection, experiment design, processing, fit
+interpretation and held-out validation before the commands below.
+
 1. Choose an example under `examples/<robot>/`.
 2. Review the YAML files under `examples/<robot>/config/`.
 3. Place or update CSV logs under `examples/<robot>/data/` (or update paths in the YAML).
@@ -94,7 +99,9 @@ Most robot folders follow this pattern:
 
 ## Creating a new example
 
-Use the scaffold script to create a new robot folder based on the TIAGo template:
+First fill in the [experiment brief](docs/experiment-brief-template.md) using the
+[new-example guide](docs/new-example-guide.md). Then, if needed, use the scaffold
+script to create a new robot folder based on the TIAGo template:
 
 ```bash
 cd examples
