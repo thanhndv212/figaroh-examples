@@ -4,6 +4,13 @@ Examples for the [FIGAROH PLUS](https://github.com/thanhndv212/figaroh-plus) lib
 
 Working with an AI coding agent? [`skills/`](skills/) holds agent skills that set up a calibration, identification, optimal-experiment-design, or new-robot task for you — start with [`skills/figaroh-start`](skills/figaroh-start/SKILL.md), which points at the right package, directory, config keys, and data layout for the job.
 
+## Development planning
+
+Review the [draft contributor guide](CONTRIBUTING.md) and the
+[core delivery proposal](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/plans/identification-calibration-delivery.md)
+for the planned parallel identification/calibration workstreams. These are
+discussion drafts; they do not claim new solver or pipeline support.
+
 ## Install
 
 ```bash
