@@ -85,7 +85,10 @@ model order, and rejects nonfinite values or incompatible effort row counts.
 It retains all stored values/signs and the historical cap followed by `N-2`
 trailing trim. Source counts and retained indices are exposed separately as
 `trajectory_provenance`, with `timing_source="configured_assumption"` and
-`torque_generation_verified=False`. Removed dead prefilter code changes no
+`torque_generation_verified=False`. This attribute is available in memory; the
+existing run-archive serializer does not automatically include it. The data
+contract and this report preserve the audited indices/hashes; general run-level
+provenance integration is outside this adapter fix. Removed dead prefilter code changes no
 numerical signal values in the tested environment.
 
 Training has 500 position / 498 effort rows; validation has 400 / 398. The default
@@ -135,8 +138,44 @@ column reordering, row-count errors, nonfinite values, unexpected channels and
 filter-clock disagreement. The real UR10 CLI also completes on Pinocchio 4.1
 with the same displayed condition/RMSE and the same expected verification
 failure (exit 1). CSV/model hashes matched the independent baseline worktree.
-Full repository before/after results are recorded
-below after completion.
+Full repository validation completed with identical check statuses: **11 passed,
+4 failed, 0 skipped and 1 timed out**, exit 1 in both runs. These are counts of
+validator checks (one pytest-suite check plus 15 scripts), not pytest test cases.
+
+| Check | Baseline | Changed |
+|---|---|---|
+| `test/pytest` | PASS (201.7 s) | PASS (239.4 s) |
+| `script/ur10/calibration.py` | PASS (2.7 s) | PASS (2.8 s) |
+| `script/ur10/update_model.py` | PASS (1.4 s) | PASS (1.4 s) |
+| `script/ur10/identification.py` | FAIL (2.6 s) | FAIL (2.7 s) |
+| `script/ur10/optimal_config.py` | PASS (65.2 s) | PASS (61.5 s) |
+| `script/ur10/optimal_trajectory.py` | TIMEOUT (600.1 s) | TIMEOUT (600.2 s) |
+| `script/tiago/calibration.py` | PASS (5.1 s) | PASS (8.8 s) |
+| `script/tiago/update_model.py` | PASS (1.6 s) | PASS (2.4 s) |
+| `script/tiago/identification.py` | FAIL (5.8 s) | FAIL (6.5 s) |
+| `script/tiago/optimal_config.py` | PASS (15.8 s) | PASS (15.7 s) |
+| `script/tiago/optimal_trajectory.py` | FAIL (244.0 s) | FAIL (259.1 s) |
+| `script/talos/calibration_upperbody.py` | PASS (5.2 s) | PASS (3.9 s) |
+| `script/talos/update_model.py` | PASS (1.9 s) | PASS (1.5 s) |
+| `script/staubli_tx40/identification.py` | FAIL (27.2 s) | FAIL (22.6 s) |
+| `script/so101/identification.py` | PASS (2.8 s) | PASS (2.3 s) |
+| `script/so101/update_model.py` | PASS (2.5 s) | PASS (1.9 s) |
+
+The three identification failures are existing quality gates: UR10 condition
+21302.77 > 1000 and improvement 7.30% < 50%; TIAGo condition 3617.75 > 1000;
+TX40 improvement 12.74% < 50%. Baseline and changed verdicts agree. UR10 trajectory
+optimization reaches the validator's 600 s timeout in both runs. TIAGo trajectory
+optimization exits unsuccessfully in both (244.0/259.1 s); the validator prints
+only trailing parameter warnings and does not expose its cause. That cause
+remains unresolved; it is not classified as an identification-gate failure or
+an IPOPT timeout. No additional failed check was introduced by the adapter fix.
+
+The full optimizer stdout/stderr was not retained by `validate.py`, which prints
+only excerpts. For debugging, raw full-length identification logs, copied verdicts,
+HTML reports and optimizer rerun commands are indexed locally in
+`/tmp/figaroh-issue19-debug/README.md`; identification reruns are separate from the
+original full validation. No claim is made that those optimizer excerpts are
+complete logs.
 
 ## Input, model and configuration fingerprints
 
@@ -153,3 +192,5 @@ configuration.
 - `examples/ur10/data/identification_tau_simulation.csv`: `95443e9f749afa51db1f89a230c630e1c4e30c3eccee88fc522913c04a860828`
 - `examples/ur10/data/validation/identification_q_simulation.csv`: `95643c9cf273ac5d1fc6207aa85e2fede9e9e5264d466b337c815bb67d4168c7`
 - `examples/ur10/data/validation/identification_tau_simulation.csv`: `730e02b0eeb125e03f8f503001160e6e562d763d6619a7f084984b2e338c6403`
+
+Changed unified-config SHA-256 (comment-only edit): `2f06d850ded44631a4fb4f241c231c25fdeb4d4d9cb31266298de79b8b2ec4ea`.
