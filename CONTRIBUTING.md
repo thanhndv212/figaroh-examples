@@ -58,7 +58,7 @@ assets without checking their redistribution terms.
 2. Reuse an existing issue; otherwise create one only when ready, with the
    *Feature / work item* or *Bug report* template (shared with figaroh-plus;
    see [how to read delivery issues](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/plans/README.md#how-to-read-delivery-issues)).
-   Refer to issues as `figaroh-plus#N` / `figaroh-examples#N`. Specify robot,
+   Refer to issues as `#N` here and `thanhndv212/figaroh-plus#N` for core, which GitHub links. Specify robot,
    core dependency, immutable inputs, failure classification, expected behavior,
    acceptance evidence and out-of-scope changes. Cross-repository changes link
    a core issue/PR and an examples issue/PR.
