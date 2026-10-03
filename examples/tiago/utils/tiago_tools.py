@@ -21,6 +21,7 @@ to use the generalized base classes and new infrastructure.
 
 from __future__ import annotations
 
+import logging
 import os
 from os.path import abspath
 from typing import Any, List, Optional
@@ -40,8 +41,66 @@ from figaroh.optimal.base_optimal_trajectory import (
     BaseOptimalTrajectory,
     BaseTrajectoryIPOPTProblem,
 )
-from figaroh.utils.results_manager import ResultsManager
 from figaroh.utils.error_handling import handle_calibration_errors
+
+logger = logging.getLogger(__name__)
+
+
+def estimate_velocity_lag(
+    timestamps: npt.NDArray[np.float64],
+    positions: npt.NDArray[np.float64],
+    velocities: npt.NDArray[np.float64],
+    max_lag: int = 50,
+) -> int:
+    """Delay of a measured velocity channel relative to d(position)/dt.
+
+    Returns the non-negative sample shift ``L`` minimising, summed over
+    joints, ``||d q/dt [n] - v[n + L]|| / ||d q/dt||``, where the derivative
+    uses the recorded timestamps. ``L = 0`` means the channels are aligned.
+    """
+    deriv = np.gradient(positions, timestamps, axis=0)
+    norms = np.linalg.norm(deriv, axis=0)
+    norms[norms == 0] = 1.0
+    errors = []
+    for lag in range(max_lag + 1):
+        n = len(timestamps) - lag
+        diff = deriv[:n] - velocities[lag : lag + n]
+        errors.append(float(np.sum(np.linalg.norm(diff, axis=0) / norms)))
+    lag = int(np.argmin(errors))
+    if lag == max_lag:
+        raise ValueError(
+            f"Velocity lag estimate hit the search limit ({max_lag} samples)"
+        )
+    return lag
+
+
+def duplicate_channel_fractions(
+    channels: npt.NDArray[np.float64], names: List[str], threshold: float = 0.5
+) -> dict[str, float]:
+    """Pairs of channels that repeat each other's non-zero samples.
+
+    For each pair, the fraction of samples where at least one channel is
+    non-zero and both are equal. Shared zeros are ignored: quantised,
+    mostly-zero channels would otherwise look like copies of each other.
+    """
+    found = {}
+    for i in range(channels.shape[1]):
+        for j in range(i + 1, channels.shape[1]):
+            a, b = channels[:, i], channels[:, j]
+            active = (a != 0) | (b != 0)
+            if not active.any():
+                continue
+            fraction = float(np.mean(a[active] == b[active]))
+            if fraction > threshold:
+                found[f"{names[i]}/{names[j]}"] = fraction
+    return found
+
+
+def zero_fractions(
+    channels: npt.NDArray[np.float64], names: List[str]
+) -> dict[str, float]:
+    """Fraction of exactly-zero samples per channel."""
+    return {n: float(np.mean(channels[:, k] == 0)) for k, n in enumerate(names)}
 
 
 class TiagoCalibration(BaseCalibration):
@@ -91,9 +150,7 @@ class TiagoCalibration(BaseCalibration):
         )
 
         # Main residual: SE3 log map (geometrically correct pose error)
-        position_residuals = self._compute_logmap_residuals(
-            self.PEE_measured, PEEe
-        )
+        position_residuals = self._compute_logmap_residuals(self.PEE_measured, PEEe)
 
         # Regularization term for intermediate parameters (excludes base/tip)
         # This helps stabilize optimization for redundant kinematic chains
@@ -126,8 +183,23 @@ class TiagoIdentification(BaseIdentification):
         super().__init__(robot, config_file)
         print("TiagoIdentification initialized for TIAGo robot")
 
+    #: How to align the measured velocity channel with the positions:
+    #: ``"auto"`` estimates the delay per run (see :func:`estimate_velocity_lag`),
+    #: an ``int`` applies that many samples, ``0`` disables the shift.
+    velocity_lag: int | str = "auto"
+    #: Search range for the automatic lag estimate, in samples.
+    max_velocity_lag: int = 50
+
     def load_trajectory_data(self, data_source: str = None) -> dict[str, Any]:
-        """Load and process CSV data for TIAGo robot.
+        """Load the TIAGo position/velocity/effort CSVs (D2-audited, #20).
+
+        The three files share one recorded clock (column ``t``, ~100 Hz).
+        The configured filter sample rate must match that clock. The
+        measured velocity channel lags the position derivative, so it is
+        shifted earlier by :attr:`velocity_lag` samples and the last samples
+        of the other channels are dropped (no padding). Efforts are returned
+        raw; :meth:`process_torque_data` converts them. Inspect
+        ``trajectory_provenance`` for the clock, lag and data checks.
 
         Args:
             data_source: Optional directory override. When given, the
@@ -143,26 +215,92 @@ class TiagoIdentification(BaseIdentification):
         if data_source:
             pos_path = os.path.join(data_source, os.path.basename(pos_path))
             vel_path = os.path.join(data_source, os.path.basename(vel_path))
-            torque_path = os.path.join(
-                data_source, os.path.basename(torque_path)
+            torque_path = os.path.join(data_source, os.path.basename(torque_path))
+
+        frames = {
+            "position": pd.read_csv(pos_path),
+            "velocity": pd.read_csv(vel_path),
+            "effort": pd.read_csv(torque_path),
+        }
+        joints = self.identif_config["active_joints"]
+        arrays, columns = {}, {}
+        for kind, df in frames.items():
+            # Exact channel names in model order (no substring matching).
+            columns[kind] = [f"- {jn}_{kind}" for jn in joints]
+            missing = [c for c in columns[kind] + ["t"] if c not in df.columns]
+            if missing:
+                raise ValueError(f"TIAGo {kind} CSV is missing columns {missing}")
+            arrays[kind] = df[columns[kind]].to_numpy(float)
+            if not np.all(np.isfinite(arrays[kind])):
+                raise ValueError(f"TIAGo {kind} CSV contains non-finite values")
+
+        ts = frames["position"]["t"].to_numpy(float)
+        for kind in ("velocity", "effort"):
+            if not np.array_equal(ts, frames[kind]["t"].to_numpy(float)):
+                raise ValueError(f"TIAGo {kind} timestamps differ from positions")
+        dt = np.diff(ts)
+        if len(ts) < 3 or not np.all(dt > 0):
+            raise ValueError("TIAGo timestamps must be strictly increasing")
+        recorded_rate = 1.0 / float(np.median(dt))
+
+        filter_rate = float(self.filter_config["filter_params"]["f_sample"])
+        if abs(filter_rate - recorded_rate) > 0.05 * recorded_rate:
+            raise ValueError(
+                f"Filter sample rate {filter_rate:g} Hz does not match the "
+                f"recorded clock ({recorded_rate:.2f} Hz): the Butterworth "
+                "cutoff would be scaled by their ratio"
             )
 
-        ts = pd.read_csv(pos_path, usecols=[0]).to_numpy()
-        pos = pd.read_csv(pos_path)
-        vel = pd.read_csv(vel_path)
-        eff = pd.read_csv(torque_path)
+        q, dq, tau = arrays["position"], arrays["velocity"], arrays["effort"]
+        if self.velocity_lag == "auto":
+            lag = estimate_velocity_lag(ts, q, dq, self.max_velocity_lag)
+        else:
+            lag = int(self.velocity_lag)
+        if not 0 <= lag < len(ts) - 2:
+            raise ValueError(f"Invalid velocity lag {lag}")
+        n = len(ts) - lag
+        dq = dq[lag:]
+        ts, q, tau = ts[:n], q[:n], tau[:n]
 
-        cols: dict[str, list[str]] = {"pos": [], "vel": [], "eff": []}
-        for jn in self.identif_config["active_joints"]:
-            cols["pos"].extend([col for col in pos.columns if jn in col])
-            cols["vel"].extend([col for col in vel.columns if jn in col])
-            cols["eff"].extend([col for col in eff.columns if jn in col])
+        duplicates = duplicate_channel_fractions(arrays["effort"], joints)
+        zeros = zero_fractions(arrays["effort"], joints)
 
-        q = pos[cols["pos"]].to_numpy()
-        dq = vel[cols["vel"]].to_numpy()
-        tau = eff[cols["eff"]].to_numpy()
+        if not hasattr(self, "trajectory_provenance"):
+            self.trajectory_provenance = {}
+        self.trajectory_provenance[data_source or "training"] = {
+            "position_file": pos_path,
+            "velocity_file": vel_path,
+            "effort_file": torque_path,
+            "timing_source": "recorded",
+            "recorded_rate_hz": recorded_rate,
+            "filter_sample_rate_hz": filter_rate,
+            "source_rows": len(frames["position"]),
+            "velocity_lag_samples": lag,
+            "velocity_lag_s": lag / recorded_rate,
+            "velocity_lag_mode": self.velocity_lag,
+            "dropped_trailing_rows": lag,
+            "effort_units": "raw (converted in process_torque_data)",
+            "duplicate_effort_channels": duplicates,
+            "effort_zero_fraction": zeros,
+        }
+        for name, fraction in zeros.items():
+            if fraction > 0.5:
+                logger.warning(
+                    "TIAGo %s effort is exactly zero on %.0f%% of samples; its "
+                    "dynamics are weakly observable from this recording (see #20)",
+                    name,
+                    100 * fraction,
+                )
+        for pair, fraction in duplicates.items():
+            logger.warning(
+                "TIAGo effort channels %s are equal on %.0f%% of their non-zero "
+                "samples; the recording may couple these joints' efforts (see #20)",
+                pair,
+                100 * fraction,
+            )
+
         self.raw_data = {
-            "timestamps": ts,
+            "timestamps": ts.reshape(-1, 1),
             "positions": q,
             "velocities": dq,
             "accelerations": None,
