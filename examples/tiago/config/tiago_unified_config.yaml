@@ -77,6 +77,8 @@ tasks:
     parameters:
       calibration_level: "full_params"
       include_non_geometric: false
+      # Not used by the solver: solve() flags residuals > 3 std devs and does not
+      # remove them (figaroh-plus#98). Kept for provenance only.
       outlier_threshold: 0.05  # 5cm outlier threshold
 
     kinematics:
@@ -90,6 +92,8 @@ tasks:
           measurable_dof: [true, true, true, false, false, false]
           sensor_type: "mocap"
 
+      # Not read by calibration (C1 audit, #24): base and tool frames are
+      # estimated from zero (known_baseframe/known_tipframe = False).
       poses:
         base_pose: [0.0908, 0.08, 0.0, -1.57, 0.0, 0.0]
         tool_pose: [0.2163, 0.03484, 0.004, 0.0, -1.57, -1.57]
