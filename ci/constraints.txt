@@ -1,0 +1,6 @@
+# Pins added on top of figaroh-plus ci/pinocchio-<version>.txt for the examples
+# environment. Used by hosted CI and by docs/development/environment.md.
+numpy==2.3.2
+scipy==1.16.1
+picos==2.6.1
+cvxopt==1.3.2
