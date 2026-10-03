@@ -50,14 +50,14 @@ HERE = Path(__file__).parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-from figaroh.calibration.calibration_tools import (
+from figaroh.calibration.calibration_tools import (  # noqa: E402
     cartesian_to_SE3,
     get_rel_transform,
     get_sup_joints,
     update_joint_placement,
 )
 
-from utils.talos_table_tools import solve_touch_ik
+from utils.talos_table_tools import solve_touch_ik  # noqa: E402
 
 BASE_FRAME = "left_sole_link"
 WRIST_FRAME = "gripper_left_base_link"
@@ -270,11 +270,17 @@ def synthesize_touches(
             target_contact_pose = table_pose * cartesian_to_SE3(
                 [x, y, 0.0, 0.0, 0.0, yaw]
             )
+            # Retry perturbations and encoder noise come from a per-target
+            # stream, so ``rng`` advances by the same amount whether or not
+            # this target's IK needed retries. Otherwise a platform-level
+            # difference in IK convergence would shift every later target
+            # and generate a different dataset (examples#14).
+            target_rng = np.random.default_rng(rng.integers(2**63))
             ok = False
             for attempt in range(n_seed_retries):
                 q0 = q0_base.copy()
                 if attempt > 0:
-                    q0[config_idx] += rng.normal(0.0, 0.25, len(config_idx))
+                    q0[config_idx] += target_rng.normal(0.0, 0.25, len(config_idx))
                 q, ok = solve_touch_ik(
                     true_model,
                     true_data,
@@ -293,7 +299,11 @@ def synthesize_touches(
             row = {"session_id": s}
             for name in active_joint_names:
                 idx = model.joints[model.getJointId(name)].idx_q
-                noise = rng.normal(0.0, encoder_noise_std) if encoder_noise_std else 0.0
+                noise = (
+                    target_rng.normal(0.0, encoder_noise_std)
+                    if encoder_noise_std
+                    else 0.0
+                )
                 row[name] = float(q[idx]) + noise
             rows.append(row)
 
