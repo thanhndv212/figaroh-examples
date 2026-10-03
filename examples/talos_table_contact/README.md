@@ -328,6 +328,20 @@ axes this time (`d_phix_torso_2_joint`, `d_phiz_torso_1_joint`,
 | Left | 288.2 &rarr; 12.32 mm (23x) | 1.21&deg; &rarr; 0.68&deg; (1.8x) | 1.46&deg; &rarr; 0.51&deg; (2.8x) |
 | Right | 292.0 &rarr; 7.46 mm (39x) | 1.88&deg; &rarr; 0.95&deg; (2.0x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
 
+**Reproducibility caveat (C1 audit, #25).** The tables above are one run
+each. The identifiable parameter set is chosen from random configurations
+drawn with Pinocchio's RNG, so results depend on its state
+([figaroh-plus#99](https://github.com/thanhndv212/figaroh-plus/issues/99)).
+Across three draws, single-chain held-out z stays within 5.63–5.76 mm (left)
+and 8.01–8.02 mm (right), but the two-chain fit shares 4 or 5 torso axes and
+its left held-out z ranges 4.69–12.32 mm. Also, core's printed "CALIBRATION
+QUALITY REPORT" labels the three residual rows X/Y/Z in mm; here they are
+contact height (mm), roll and pitch, so use the `Training-set gap` /
+`Held-out validation gap` blocks instead
+([figaroh-plus#100](https://github.com/thanhndv212/figaroh-plus/issues/100)).
+Full observation semantics and baseline:
+[`docs/development/talos-contact-calibration-audit-2026-10-04.md`](../../docs/development/talos-contact-calibration-audit-2026-10-04.md).
+
 Worth being honest about: unlike the synthetic two-chain test (where
 sharing consistently *helped* the data-poorer side), here the left
 chain's held-out z gets *worse* under sharing (5.76mm alone vs. 12.32mm
