@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import numpy as np
 import yaml
 from pathlib import Path
 
@@ -44,6 +45,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="urdf/ur10_robot.urdf",
         help="Path to robot URDF file",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed for the initial waypoints (reproducible runs)",
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose (INFO) logging"
@@ -92,7 +99,8 @@ def main(args: argparse.Namespace) -> None:
         ps["act_idxq"] = [J.idx_q for J in ps["act_J"]]
         ps["act_idxv"] = [J.idx_v for J in ps["act_J"]]
 
-        # Initialize
+        # Initialize (seeded: base indices and waypoints are sampled randomly)
+        np.random.seed(args.seed)
         ur10_traj.initialize()
 
         # Generate optimal trajectory; a segment is kept only if it is feasible

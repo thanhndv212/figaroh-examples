@@ -15,6 +15,7 @@ project_root = Path(__file__).parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+import numpy as np  # noqa: E402
 import yaml  # noqa: E402
 from matplotlib import pyplot as plt  # noqa: E402
 from figaroh.tools.robot import load_robot  # noqa: E402
@@ -42,6 +43,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="urdf/tiago_48_schunk.urdf",
         help="Path to robot URDF file",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed for the initial waypoints (reproducible runs)",
     )
     parser.add_argument(
         "--verbose",
@@ -127,7 +134,8 @@ def main() -> dict:
         ps["act_idxq"] = [J.idx_q for J in ps["act_J"]]
         ps["act_idxv"] = [J.idx_v for J in ps["act_J"]]
 
-        # Initialize
+        # Initialize (seeded: base indices and waypoints are sampled randomly)
+        np.random.seed(args.seed)
         opt_traj.initialize()
 
         # Run trajectory optimization; a segment is kept only if it is feasible
