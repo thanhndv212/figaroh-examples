@@ -48,12 +48,7 @@ jobs:
           PINOCCHIO_VERSION: ${{ matrix.pinocchio }}
         run: |
           cp "figaroh/ci/pinocchio-${PINOCCHIO_VERSION}.txt" "$PIP_CONSTRAINT"
-          cat >> "$PIP_CONSTRAINT" <<'PINS'
-          numpy==2.3.2
-          scipy==1.16.1
-          picos==2.6.1
-          cvxopt==1.3.2
-          PINS
+          cat figaroh-examples/ci/constraints.txt >> "$PIP_CONSTRAINT"
           # Core is installed editable after activation, from its checkout.
           sed '/  - pip:/,$d' figaroh/environment.yml > ci-environment.yml
 
