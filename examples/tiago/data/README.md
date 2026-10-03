@@ -63,3 +63,27 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
 
 `tiago_bp_19_Oct_2024_2320.csv` and `tiago_nov_30_64.csv` are not used by
 `identification.py` and were not audited.
+
+## Mocap calibration data (`calibration/mocap/`)
+
+Audited in [#24](https://github.com/thanhndv212/figaroh-examples/issues/24);
+full report: [`docs/development/tiago-mocap-calibration-audit-2026-10-04.md`](../../../docs/development/tiago-mocap-calibration-audit-2026-10-04.md).
+The raw file is kept unmodified.
+
+`qualysis_base_hand_calibration.csv` (sha256 prefix `d7fcbd96e3e67319`): 34
+static postures, one row each. Columns `x1,y1,z1 … x4,y4,z4` then the eight
+joint positions `torso_lift_joint` (m) and `arm_1_joint` … `arm_7_joint` (rad).
+
+- **No clock:** rows are independent postures; there are no timestamps.
+- **Units:** marker coordinates in metres in the mocap world frame (consistent
+  with a millimetre-level fit); joints in rad (torso in m).
+- **Markers are derived points, not raw measurements:** inter-marker distances
+  vary by only ~0.1 µm across postures (optical noise is ~0.1 mm), so the four
+  points were computed from a rigid-body pose. Marker 4 is an exact copy of
+  marker 3; all markers move with the hand (none is on the base).
+- **Used:** only marker 1, position only (`measurable_dof` xyz), expressed by
+  calibration as a point fixed in `wrist_ft_tool_link`. The three distinct
+  points would also determine orientation; that information is unused.
+- **End effector unrecorded:** the file name says "hand" and the sample set is
+  `…_pmb2_hey5.yaml`, but calibration loads `tiago_48_schunk.urdf` (WSG
+  gripper). Only the estimated tip offset depends on it.
