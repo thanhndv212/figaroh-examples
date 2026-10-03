@@ -59,8 +59,14 @@ shared `models/` (robot description packages) and a Viser-based `web-interface/`
 - `validate.py` sets `MPLBACKEND=Agg` so matplotlib doesn't block on plot windows.
 - Slow scripts (optimal_config, optimal_trajectory) use IPOPT and can take 5+ minutes.
   Use `--quick` for fast feedback loops; run full validation before declaring done.
-- **Exit code 0 = all pass, 1 = any failure.** Timeouts are reported separately from
-  failures — IPOPT timeouts are expected, not bugs.
+- **Exit code 0 only when every required check passes; 1 on any failure or timeout.**
+  A required timeout reports `RESULT: INCOMPLETE` — it is not a pass, even when an
+  IPOPT script is merely slow. Full child stdout/stderr, exit code (negative =
+  killed by signal) and timeout metadata are kept under the git-ignored
+  `validation_logs/`; cite them when classifying a known failure.
+- Identification `--verify` checks the **execution** scope by default (finite,
+  consistent fit outputs). That PASS is not prediction, physical-model or export
+  acceptance — see "Acceptance policy" in `README.md`.
 - `pytest` can also be run directly: `pytest tests/ -v` from repo root.
 - `tests/conftest.py` adds `../figaroh/src` **and** the examples root to `sys.path`, so
   tests assume the sibling `figaroh/` repo is checked out next to this one.

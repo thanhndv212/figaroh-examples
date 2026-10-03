@@ -37,7 +37,7 @@ The script prints a short identification summary (base parameter count, correlat
 
 - prints a terminal quality report (condition number, RMSE, per-joint residuals, base-parameter uncertainty),
 - writes a self-contained HTML diagnostic report with an interactive before/after chart, and
-- checks the run against quality thresholds and writes a machine-readable verdict, exiting non-zero if it fails.
+- runs scoped verification (default `--verification-scope execution`: finite, consistent fit outputs) and writes a machine-readable verdict, exiting non-zero on FAIL or NOT_EVALUATED. An execution PASS is not prediction, physical-model or export acceptance; see the top-level README for `--verification-scope prediction --acceptance-profile`.
 
 Both are archived to `results/runs/<asset>/identification/<timestamp>/` (see `--archive`). To skip either:
 

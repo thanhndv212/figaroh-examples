@@ -328,9 +328,12 @@ All saved files are timestamped to avoid overwriting:
 ### Quality reports & verification
 
 `calibration.py`/`identification.py` write a self-contained HTML diagnostic
-report by default (`--html-report`), and `identification.py` also checks the
-run against quality thresholds and writes a machine-readable verdict
-(`--verify`, exits non-zero on failure — a real CI gate). Both flags default
+report by default (`--html-report`), and `identification.py` also runs scoped
+verification and writes a machine-readable verdict (`--verify`, exits non-zero
+on FAIL or NOT_EVALUATED). The default `--verification-scope execution` checks
+only finite, consistent fit outputs; it is not prediction, physical-model or
+export acceptance. Prediction acceptance needs separate validation data and an
+explicit `--acceptance-profile` (see the top-level README). Both flags default
 to on; `--no-html-report`/`--no-verify` skip them.
 
 To compare two identification runs offline (e.g. two different excitation

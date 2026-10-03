@@ -57,6 +57,7 @@ if str(_project_root) not in sys.path:
 
 from examples.so101 import identification as ident  # noqa: E402
 from examples.so101.utils.so101_tools import identified_dynamics_dict  # noqa: E402
+from examples.verification import print_verdict  # noqa: E402
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -67,7 +68,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument(
         "--allow-unverified",
         action="store_true",
-        help="write the file even if the identification fails verification",
+        help="write the file even if the selected verification scope does not pass",
     )
     args, rest = p.parse_known_args(argv)
     id_args = ident.parse_args(rest + ["--no-html-report", "--no-archive", "--no-plot"])
@@ -122,17 +123,14 @@ def check_with_soarm_sdk(doc: dict, urdf: str, iden) -> None:
 
 def main(args: argparse.Namespace) -> None:
     iden = ident.run_identification(args)
-    verdict = iden.verify()
-    for check in verdict.checks:
-        status = "PASS" if check.passed else "FAIL"
-        print(
-            f"  [{status}] {check.name}: {check.value:.4g} "
-            f"({check.comparison} {check.threshold:.4g})"
-        )
+    thresholds = args.acceptance_profile.thresholds if args.acceptance_profile else None
+    verdict = iden.verify(scope=args.verification_scope, thresholds=thresholds)
+    print_verdict(verdict)
     if not verdict.passed and not args.allow_unverified:
         print(
-            "\nVerification FAILED — not writing a model from this fit. "
-            "Pass --allow-unverified to write it anyway.",
+            f"\nVerification {verdict.status.upper()} ({verdict.scope}) — not "
+            "writing a model from this fit. Pass --allow-unverified to write it "
+            "anyway.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -147,7 +145,14 @@ def main(args: argparse.Namespace) -> None:
         "calibration": meta.get("calibration"),
         "calibration_validated": meta.get("calibration_validated"),
         "config": str(Path(args.config).resolve()),
-        "verification_passed": bool(verdict.passed),
+        # Scoped evidence: an execution PASS is not prediction, physical or
+        # export acceptance, so the legacy boolean tracks prediction only.
+        "verification_passed": verdict.stages["prediction"] == "pass",
+        "verification": {
+            "scope": verdict.scope,
+            "status": verdict.status,
+            "stages": dict(verdict.stages),
+        },
     }
     doc = identified_dynamics_dict(iden, urdf=args.urdf, provenance=provenance)
     check_with_soarm_sdk(doc, args.urdf, iden)

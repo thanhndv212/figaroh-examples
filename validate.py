@@ -13,14 +13,16 @@ Usage:
     python validate.py --robot ur10 # run tests + scripts for one robot
     python validate.py --quick      # skip slow scripts (optimal_config, optimal_trajectory)
 
-Exit code: 0 if all pass, 1 if any fail.
+Exit code: 0 if all required checks complete successfully, 1 on failure or timeout.
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 # --- Configuration -------------------------------------------------------
@@ -98,12 +100,41 @@ class Result:
         return f"[{icon}] {self.category}/{self.name} ({self.duration:.1f}s)"
 
 
-def run_command(cmd, cwd, timeout, env_extra=None):
-    """Run a command, return (returncode, stdout, stderr, timed_out)."""
+def save_command_log(label, cmd, cwd, started, returncode, stdout, stderr, timed_out):
+    """Preserve child output, exit status and timeout evidence."""
+    directory = REPO_ROOT / "validation_logs"
+    directory.mkdir(exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    stem = f"{label.replace('/', '-')}-{stamp}"
+    (directory / f"{stem}.stdout.log").write_text(stdout)
+    (directory / f"{stem}.stderr.log").write_text(stderr)
+    (directory / f"{stem}.json").write_text(
+        json.dumps(
+            {
+                "command": cmd,
+                "cwd": str(cwd),
+                "returncode": returncode,
+                "timed_out": timed_out,
+                "elapsed_s": time.time() - started,
+            },
+            indent=2,
+        )
+    )
+    print(f"  Full output: {directory / stem}")
+
+
+def run_command(cmd, cwd, timeout, env_extra=None, label=None):
+    """Run a command, return (returncode, stdout, stderr, timed_out).
+
+    Full stdout/stderr and exit/timeout metadata are kept under
+    ``validation_logs/<label>-<utc stamp>.*``; a timeout records no exit code.
+    """
+    label = label or f"{Path(cwd).name}-{Path(cmd[-1]).stem}"
     env = os.environ.copy()
     if env_extra:
         env.update(env_extra)
 
+    started = time.time()
     try:
         proc = subprocess.run(
             cmd,
@@ -113,6 +144,9 @@ def run_command(cmd, cwd, timeout, env_extra=None):
             timeout=timeout,
             env=env,
         )
+        save_command_log(
+            label, cmd, cwd, started, proc.returncode, proc.stdout, proc.stderr, False
+        )
         return proc.returncode, proc.stdout, proc.stderr, False
     except subprocess.TimeoutExpired as e:
         out = e.stdout or ""
@@ -121,6 +155,7 @@ def run_command(cmd, cwd, timeout, env_extra=None):
             out = out.decode("utf-8", errors="replace")
         if isinstance(err, bytes):
             err = err.decode("utf-8", errors="replace")
+        save_command_log(label, cmd, cwd, started, None, out, err, True)
         return -1, out, err, True
 
 
@@ -144,6 +179,7 @@ def run_pytest():
         [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
         cwd=REPO_ROOT,
         timeout=600,
+        label="pytest",
     )
 
     result.duration = time.time() - start
@@ -203,6 +239,7 @@ def run_example_script(robot, script, timeout, is_slow, quick=False, extra_args=
         cwd=script_path.parent,
         timeout=timeout,
         env_extra={"MPLBACKEND": "Agg"},  # non-interactive matplotlib
+        label=f"{robot}-{Path(script).stem}",
     )
 
     r.duration = time.time() - start
@@ -268,6 +305,9 @@ def print_summary(test_results, script_results):
 
     all_results = test_results + script_results
 
+    incomplete = not all_results or any(
+        r.status not in {"pass", "fail", "skip", "timeout"} for r in all_results
+    )
     counts = {"pass": 0, "fail": 0, "skip": 0, "timeout": 0}
     for r in all_results:
         counts[r.status] = counts.get(r.status, 0) + 1
@@ -294,16 +334,17 @@ def print_summary(test_results, script_results):
     print("\n" + "-" * 70)
     if counts["fail"] > 0:
         print(f"  RESULT: FAIL ({counts['fail']} failure(s))")
-    elif counts["timeout"] > 0:
+    elif counts["timeout"] > 0 or incomplete:
         print(
-            f"  RESULT: PASS WITH TIMEOUTS ({counts['timeout']} timed out — "
-            "likely IPOPT optimization, not a bug)"
+            f"  RESULT: INCOMPLETE ({counts['timeout']} required timeout(s); empty or unknown evidence also prevents acceptance)"
         )
+    elif counts["skip"] > 0:
+        print(f"  RESULT: PASS ({counts['skip']} skipped check(s) not established)")
     else:
         print("  RESULT: ALL PASS")
     print("-" * 70)
 
-    return counts["fail"] == 0
+    return counts["fail"] == 0 and counts["timeout"] == 0 and not incomplete
 
 
 # --- Main ----------------------------------------------------------------
