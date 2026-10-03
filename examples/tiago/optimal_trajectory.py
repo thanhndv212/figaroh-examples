@@ -79,7 +79,7 @@ def plot_condition_number_evolution(results: dict) -> None:
     plt.show()
 
 
-def main() -> dict | None:
+def main() -> dict:
     """Main function for TIAGo optimal trajectory generation."""
     args = parse_args()
 
@@ -130,15 +130,20 @@ def main() -> dict | None:
         # Initialize
         opt_traj.initialize()
 
-        # Run trajectory optimization
-        results = opt_traj.solve(stack_reps=2)
+        # Run trajectory optimization; a segment is kept only if it is feasible
+        n_segments = 2
+        results = opt_traj.solve(stack_reps=n_segments)
+        n_solved = len(results["T_F"])
 
-        # Plot results
-        if results.get("T_F"):
-            opt_traj.plot_results()
-            plot_condition_number_evolution(results)
-            print(f"Generated {len(results['T_F'])} trajectory segments")
+        if n_solved < n_segments:
+            print(
+                f"Error: {n_solved}/{n_segments} trajectory segments solved",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
+        opt_traj.plot_results()
+        plot_condition_number_evolution(results)
         return results
     except Exception as e:
         print(
@@ -150,9 +155,5 @@ def main() -> dict | None:
 
 if __name__ == "__main__":
     results = main()
-
-    if results and results.get("T_F"):
-        print("\nOptimization completed successfully!")
-        print(f"Generated {len(results['T_F'])} trajectory segments")
-    else:
-        print("\nOptimization failed or produced no results")
+    print("\nOptimization completed successfully!")
+    print(f"Generated {len(results['T_F'])} trajectory segments")

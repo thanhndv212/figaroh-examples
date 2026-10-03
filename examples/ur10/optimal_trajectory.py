@@ -95,18 +95,21 @@ def main(args: argparse.Namespace) -> None:
         # Initialize
         ur10_traj.initialize()
 
-        # Generate optimal trajectory
-        optimal_trajectory = ur10_traj.solve(stack_reps=2)
+        # Generate optimal trajectory; a segment is kept only if it is feasible
+        n_segments = 2
+        results = ur10_traj.solve(stack_reps=n_segments)
+        n_solved = len(results["T_F"])
 
-        if optimal_trajectory is not None:
-            # Display results
-            print("Optimal trajectory generation completed successfully!")
-            # Plot and save results
-            ur10_traj.plot_results()
-        else:
+        if n_solved < n_segments:
             print(
-                "Failed to generate optimal trajectory. Check constraints and parameters."
+                f"Failed to generate optimal trajectory: {n_solved}/{n_segments} "
+                "segments solved. Check constraints and parameters.",
+                file=sys.stderr,
             )
+            sys.exit(1)
+
+        print("Optimal trajectory generation completed successfully!")
+        ur10_traj.plot_results()
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         raise
