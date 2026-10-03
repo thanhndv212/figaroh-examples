@@ -411,8 +411,11 @@ All saved files are timestamped to avoid overwriting:
 diagnostic report and, for identification, a machine-readable pass/fail
 verdict to the run directory (`results/runs/tiago-<asset>/{calibration,
 identification}/<timestamp>/`, or `results/` for a plain `--no-archive` run).
-`identification.py --verify` exits non-zero when the run fails its quality
-thresholds — a real CI gate, not just a printed warning.
+`identification.py --verify` exits non-zero when the selected verification
+scope fails or is not evaluated. The default `--verification-scope execution`
+checks only finite, consistent fit outputs; prediction acceptance needs
+separate validation data and an explicit `--acceptance-profile` (see the
+top-level README).
 
 `identification.py --wls` refines the OLS base-parameter estimate with
 weighted least squares before quality metrics are computed (off by default

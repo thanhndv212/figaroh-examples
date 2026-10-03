@@ -40,6 +40,7 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
+from examples.verification import add_verification_args, run_verification  # noqa: E402
 
 from examples.so101.utils.so101_tools import (  # noqa: E402
     SO101Identification,
@@ -79,11 +80,12 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="override identification.problem.wls",
     )
     p.add_argument("--plot", action=argparse.BooleanOptionalAction, default=False)
+    add_verification_args(p)
     p.add_argument(
         "--verify",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="check against quality thresholds; exit(1) on failure",
+        help="check the selected acceptance scope; exit(1) on failed/incomplete evidence",
     )
     p.add_argument("--html-report", action=argparse.BooleanOptionalAction, default=True)
     p.add_argument("--archive", action=argparse.BooleanOptionalAction, default=True)
@@ -217,21 +219,16 @@ def main(args: argparse.Namespace) -> None:
     failed = False
     if args.verify:
         print("\n" + "=" * 60 + "\nVERIFICATION\n" + "=" * 60)
-        verdict = iden.verify()
-        iden.export_verification_report(output_path=str(run_dir / "verdict.json"))
-        for check in verdict.checks:
-            status = "PASS" if check.passed else "FAIL"
-            print(
-                f"  [{status}] {check.name}: {check.value:.4g} "
-                f"({check.comparison} {check.threshold:.4g})"
-            )
+        verdict = run_verification(
+            iden, run_dir, args.verification_scope, args.acceptance_profile
+        )
         failed = not verdict.passed
     if args.archive:
         archive_run(iden, run_dir)
     if run_dir:
         print(f"\nResults written to: {run_dir}")
     if failed:
-        print("\nVerification FAILED.")
+        print(f"\nVerification {verdict.status.upper()} ({verdict.scope}).")
         sys.exit(1)
     print("\nIdentification completed successfully!")
     print(
