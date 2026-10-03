@@ -144,6 +144,10 @@ tasks:
       # non-smooth, so IPOPT plateaus rather than converging; a feasible
       # final iterate is kept (marked unconverged) at this limit.
       max_iterations: 100
+      # A segment that ends infeasible is solved again from a new random
+      # initial guess. Which starts succeed depends on the numerical stack
+      # (#60); one retry made seeds 0-5 pass on both tested stacks.
+      segment_attempts: 2
 
     trajectory:
       waypoints: 7       # number of waypoints
