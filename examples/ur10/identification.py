@@ -25,9 +25,10 @@ project_root = Path(__file__).parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from examples.ur10.utils.ur10_tools import UR10Identification
-from figaroh.tools.robot import load_robot
-from figaroh.tools.run_archive import archive_run, compute_run_dir
+from examples.ur10.utils.ur10_tools import UR10Identification  # noqa: E402
+from figaroh.tools.robot import load_robot  # noqa: E402
+from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
+from examples.verification import add_verification_args, run_verification  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -50,15 +51,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose (INFO) logging"
     )
+    add_verification_args(parser)
     parser.add_argument(
         "--verify",
         action=argparse.BooleanOptionalAction,
         default=True,
         help=(
-            "Check the identification against quality thresholds "
-            "(condition number, validation correlation/improvement), "
-            "write the verdict to the run directory, and exit(1) if it fails. "
-            "Use --no-verify to skip."
+            "Check the selected execution/prediction scope; exit nonzero "
+            "when required evidence fails or is not evaluated."
         ),
     )
     parser.add_argument(
@@ -219,16 +219,9 @@ def main(args: argparse.Namespace) -> None:
             print("\n" + "=" * 60)
             print("VERIFICATION")
             print("=" * 60)
-            verdict = ur10_identif.verify()
-            ur10_identif.export_verification_report(
-                output_path=str(run_dir / "verdict.json")
+            verdict = run_verification(
+                ur10_identif, run_dir, args.verification_scope, args.acceptance_profile
             )
-            for check in verdict.checks:
-                status = "PASS" if check.passed else "FAIL"
-                print(
-                    f"  [{status}] {check.name}: {check.value:.4g} "
-                    f"({check.comparison} {check.threshold:.4g})"
-                )
             verify_failed = not verdict.passed
 
         if args.archive:
@@ -238,7 +231,7 @@ def main(args: argparse.Namespace) -> None:
             print(f"\nResults written to: {run_dir}")
 
         if verify_failed:
-            print("\nVerification FAILED.")
+            print(f"\nVerification {verdict.status.upper()} ({verdict.scope}).")
             sys.exit(1)
         elif args.verify:
             print("\nVerification PASSED.")

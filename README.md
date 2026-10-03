@@ -46,8 +46,8 @@ interpretation and held-out validation before the commands below.
 4. Run one of: `calibration.py`, `identification.py`, `optimal_config.py`, `optimal_trajectory.py` (if present).
 5. Review printed results/plots. If applicable, use `update_model.py` to materialize estimated parameters.
 6. Add `--html-report` (calibration/identification scripts) for a shareable HTML diagnostic
-   report, and `--verify` (identification scripts) for a machine-readable pass/fail verdict
-   you can gate CI on. See each robot's README for the exact flags it supports, and
+   report, and `--verify` (identification scripts) for a machine-readable scoped verdict
+   you can gate CI on (see "Acceptance policy" below for what a PASS does and does not mean). See each robot's README for the exact flags it supports, and
    FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/reporting_and_verification/)
    for the full walkthrough (HTML reports, `verify()`, and comparing two runs offline).
 7. Add `--wls`/`--no-wls` (identification scripts) to override the config's
@@ -60,6 +60,53 @@ interpretation and held-out validation before the commands below.
    timestamps), and the HTML report if generated — instead of overwriting a
    single `results/` path — and appends a summary line to
    `results/runs/index.jsonl`.
+
+## Acceptance policy
+
+Requires figaroh-plus `devel` with scoped verification
+([figaroh-plus#78](https://github.com/thanhndv212/figaroh-plus/pull/78)); it is not
+in a released version yet: install core from a `devel` checkout
+(`pip install -e <path-to-figaroh-plus>`) rather than `pip install figaroh`.
+
+Identification `--verify` runs with `--verification-scope execution` by default:
+it checks that the fit produced finite, consistent numerical outputs. CLI output
+and `verdict.json` name the scope and per-stage status. An execution PASS is
+**not** independent prediction acceptance, physical feasibility or export
+approval; those stages print NOT_EVALUATED. Improvement over nominal, correlation
+and raw condition number remain reported diagnostics, without the former
+universal 50% / 0.9 / 1000 gates. Existing CSVs and historical verdicts are
+unchanged; a status that changed under this policy is a policy change, not an
+improvement in the fit.
+
+Prediction acceptance needs separately loaded validation data **and** a JSON
+profile with an explicit limit for every active joint, chosen from measurement
+uncertainty and the application before you look at the result:
+
+```json
+{
+  "validation_rmse:<joint>": {"threshold": 0.05, "comparison": "max", "rationale": "..."}
+}
+```
+
+```bash
+cd examples/so101   # ships a separate simulated validation run
+python identification.py --verification-scope prediction --acceptance-profile limits.json
+```
+
+Thresholds are in the joint's effort unit (N·m for revolute joints). Optional
+`required: false` marks a check advisory. The profile is copied into the run
+directory. Missing limits or missing independent data give NOT_EVALUATED and a
+nonzero exit; no example-specific limits are shipped or guessed. A separate file
+alone does not prove an experimentally independent split or adequate coverage.
+`so101/update_model.py` takes the same flags and records the scoped verdict in
+the written YAML; its legacy `verification_passed` field is true only for a
+passed prediction stage.
+
+`validate.py` runs routine execution checks and keeps each child's complete
+stdout/stderr plus exit code and timeout metadata under the git-ignored
+`validation_logs/`. A required timeout gives `RESULT: INCOMPLETE` and exit 1.
+`--quick` skips the slow optimisation scripts; skipped checks are reported as
+not established, not as passed.
 
 ## Data format
 

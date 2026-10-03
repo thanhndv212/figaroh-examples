@@ -100,7 +100,24 @@ def test_fit_is_well_conditioned_and_validates(solved):
     assert val["validation_source"] == "validation_data"
     assert val["correlation"] > 0.99
     assert val["improvement_pct"] > 50
-    assert solved.verify().passed
+    assert solved.verify(scope="execution").passed
+
+
+def test_prediction_acceptance_needs_explicit_limits(solved):
+    joints = solved.result["validation_metrics"]["joint_names"]
+    unscoped = solved.verify()
+    assert unscoped.scope == "prediction"
+    assert unscoped.status == "not_evaluated" and not unscoped.passed
+
+    def limits(nm):
+        return {
+            f"validation_rmse:{j}": {"threshold": nm, "comparison": "max"}
+            for j in joints
+        }
+
+    assert solved.verify(scope="prediction", thresholds=limits(1e3)).passed
+    strict = solved.verify(scope="prediction", thresholds=limits(0.0))
+    assert strict.status == "fail" and strict.stages["prediction"] == "fail"
 
 
 def test_gravity_matches_the_simulated_arm_not_the_cad_model(solved, datasets):
