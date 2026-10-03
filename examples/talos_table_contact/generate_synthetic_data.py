@@ -531,6 +531,7 @@ def build_dataset(
     n_val_per_session: int = 10,
     seed: int = 0,
     encoder_noise_std: float = 0.0,
+    include_truth_objects: bool = False,
 ):
     """Build train + validation DataFrames and the ground-truth dict.
 
@@ -575,6 +576,10 @@ def build_dataset(
         "plane_true": ground_truth["plane_true"],
         "contact_true": ground_truth["contact_true"],
     }
+    if include_truth_objects:
+        # True model, table poses and contact offset (not JSON-serializable);
+        # tests use them to compute the noise floor of the held-out residual.
+        gt["truth_objects"] = ground_truth
     return df_train, df_val, gt, robot
 
 

@@ -113,3 +113,11 @@ jobs:
         run: |
           cd figaroh-examples
           python -m pytest tests/ -v --durations=15
+
+      # TEMPORARY (#48): solve diagnostics for comparison with local runs.
+      - name: TALOS solve diagnostics
+        if: always()
+        shell: bash -el {0}
+        run: |
+          cd figaroh-examples
+          python tests/talos_solve_diagnostics.py 2>/dev/null | grep '^TALOS_DIAG'
