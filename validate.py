@@ -29,6 +29,19 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent
 
+# Single-threaded BLAS/OpenMP for every child, as in hosted CI. Threaded
+# reductions change summation order from run to run, and the trajectory
+# optimizers amplify those last-bit differences: with the same seed,
+# tiago/optimal_trajectory.py gave different trajectories, and sometimes
+# failed, under default threading (#56). These override the parent
+# environment so a validation run is reproducible.
+DETERMINISTIC_THREAD_ENV = {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+}
+
 # Example scripts to validate, grouped by robot.
 # Each entry: (script_name, timeout_seconds, is_slow, [extra_args])
 #   extra_args is an optional list of CLI flags to pass to the script.
@@ -131,6 +144,7 @@ def run_command(cmd, cwd, timeout, env_extra=None, label=None):
     """
     label = label or f"{Path(cwd).name}-{Path(cmd[-1]).stem}"
     env = os.environ.copy()
+    env.update(DETERMINISTIC_THREAD_ENV)
     if env_extra:
         env.update(env_extra)
 
