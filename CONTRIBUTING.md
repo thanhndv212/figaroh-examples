@@ -44,7 +44,9 @@ compatibility evidence includes explicit Pinocchio 3.7/4.1 native profiles;
 record exact dependency versions rather than installing an unconstrained
 latest version and downgrading afterward.
 
-Record the exact core/examples commits validated together. Preserve unrelated
+Record the exact core/examples commits validated together. To reproduce the
+hosted CI environment and record verified pairings, follow
+[docs/development/environment.md](docs/development/environment.md). Preserve unrelated
 changes and existing branches. For a clean environment, reproduce geometry
 resolution using the pinned sources in [models/README.md](models/README.md)
 (`python scripts/fetch_models.py`). A developer's external
