@@ -54,7 +54,7 @@ def Capsule(
     # They should be capsules ... but hppfcl current version is buggy with Capsules...
     # hppgeom = hppfcl.Capsule(radius, length)
     hppgeom = hppfcl.Cylinder(radius, length)
-    geom = pin.GeometryObject(name, joint, hppgeom, placement)
+    geom = pin.GeometryObject(name, joint, placement, hppgeom)
     geom.meshColor = np.array(color)
     return geom
 
@@ -85,7 +85,7 @@ def Box(
     if color is None:
         color = [0.7, 0.7, 0.98, 1.0]
     hppgeom = hppfcl.Box(x, y, z)
-    geom = pin.GeometryObject(name, joint, hppgeom, placement)
+    geom = pin.GeometryObject(name, joint, placement, hppgeom)
     geom.meshColor = np.array(color)
     return geom
 
@@ -112,7 +112,7 @@ def Sphere(
     if color is None:
         color = [0.7, 0.7, 0.98, 1.0]
     hppgeom = hppfcl.Sphere(radius)
-    geom = pin.GeometryObject(name, joint, hppgeom, placement)
+    geom = pin.GeometryObject(name, joint, placement, hppgeom)
     geom.meshColor = np.array(color)
     return geom
 
