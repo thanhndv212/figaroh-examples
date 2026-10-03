@@ -57,6 +57,13 @@ Where:
 
 ### 2. Dynamic Parameter Identification Task (`identification.py`)
 
+Read the [dynamic-data contract](data/README.md) before using the bundled CSVs.
+Their source clock and generating inertial parameters are not replayable;
+current default validation reuses the training trajectory. The
+[signal audit](../../docs/development/ur10-signal-audit-2026-10-02.md) records the
+observed fit and remaining limits. Expected improvements below are illustrative
+objectives, not acceptance results for these files.
+
 #### Problem Statement
 Accurate dynamic models are essential for:
 - High-performance motion control with feedforward compensation
