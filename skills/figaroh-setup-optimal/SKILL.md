@@ -87,6 +87,7 @@ tasks:
       soft_lim: 0.1          # joint-limit discount
       max_attempts: 500      # feasibility retries before giving up
       max_iterations: 100    # IPOPT iterations per segment (default 200)
+      segment_attempts: 2    # retry a failed segment from a new start (default 1)
 
     trajectory:
       waypoints: 7           # cubic-spline waypoints
@@ -121,8 +122,11 @@ tasks:
 - `max_attempts: 500` bounds the search for a feasible initial guess. Waypoint steps
   are clamped to what the velocity limits allow, so the first attempt usually
   succeeds; exhausting it logs a warning and IPOPT starts from an infeasible guess.
-- The example scripts take `--seed` (default 0). Results depend on it: in a sweep of
-  six seeds, one TIAGo seed left segment 2 slightly infeasible and the run failed.
+- The example scripts take `--seed` (default 0). Whether a segment ends feasible
+  depends on its starting point, so on the seed and even on the numerical stack: with
+  a single attempt, two of six TIAGo seeds failed in the CI-recipe environment and one
+  in `figaroh-dev`. `segment_attempts: 2` retries a failed segment from a new random
+  start; with it, seeds 0-5 passed on both stacks (#60).
 - A seed reproduces a run only with single-threaded BLAS. Threaded reductions change
   the last bits, and the optimizer amplifies them into different trajectories (TIAGo
   seed 0 gave a different result on every default-threaded run). `validate.py` and CI

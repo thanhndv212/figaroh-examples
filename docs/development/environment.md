@@ -91,16 +91,21 @@ docs-only commit.
 |---|---|---|---|---|---|---|
 | 2026-10-03 | `d2d8976` | `e681625` | macOS arm64, Python 3.12.0 | pin 3.7.0, ndcurves 2.0.0.1, assimp 5.4.3.1, urdfdom 4.0.1, tinyxml2 10.0.0 | clean / Ready (viser optional, missing) | 15 passed, **1 failed**: `tiago/optimal_trajectory.py` (#60, segment 2 infeasible on this stack) |
 | 2026-10-03 | `d2d8976` | `e681625` | macOS arm64, Python 3.12.0 | pin 4.1.0, ndcurves 2.3.0, assimp 6.0.5, urdfdom 6.0.0, tinyxml2 11.0.0 | clean / Ready (viser optional, missing) | 15 passed, **1 failed**: `tiago/optimal_trajectory.py` (#59, Pinocchio 4 `GeometryObject` signature) |
+| 2026-10-03 | `c6a9c11` + #60 configs | `fe7dc51` | macOS arm64, Python 3.12.0 | pin 3.7.0 (as above) | clean / Ready | **16 passed, 0 failed** — `tiago/optimal_trajectory.py` 351 s: segment 2 failed once, retry succeeded (#60) |
 
-Both: numpy 2.3.2, scipy 1.16.1, cyipopt 1.7.0, picos 2.6.1, cvxopt 1.3.2.
+All: numpy 2.3.2, scipy 1.16.1, cyipopt 1.7.0, picos 2.6.1, cvxopt 1.3.2.
+The two failures in the first rows were fixed in #59 (Pinocchio 4 collision
+primitives) and #60 (retry a failed trajectory segment, `segment_attempts: 2`).
 
 ## Known gaps
 
 - CI does not run the example scripts, so script-level Pinocchio 4 regressions
-  (such as #59) only show up in a local `validate.py` on that profile.
+  (such as #59) only show up in a local `validate.py` on that profile; #59 added
+  a test that builds the TIAGo collision model so CI now covers that path.
 - Only macOS arm64 has local script-level evidence; Linux has CI `pytest` only.
 - Optional packages (`viser`, `soarm_sdk`) are not part of the recipe.
-- The TIAGo trajectory example passes in `figaroh-dev` (conda-forge numpy,
-  cyipopt 1.6.1) but not on the recipe stack (pip numpy with Accelerate,
-  cyipopt 1.7.0) with the same seed (#60). Its outcome depends on the
-  numerical stack, so a pass in one environment does not carry over.
+- The TIAGo trajectory optimisation is sensitive to its starting point, so
+  which segments succeed differs between numerical stacks (#60). The shipped
+  configs retry a failed segment once; with that, seeds 0-5 pass on both the
+  recipe stack and `figaroh-dev`, but a pass in one environment is still
+  verified per environment rather than assumed.
