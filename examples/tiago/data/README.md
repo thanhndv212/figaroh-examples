@@ -31,3 +31,35 @@ copied verbatim from the reachable `figaroh-plus` Git ref at commit
 Both artifacts are research data. Do not use them as a model-parameter source
 without checking hardware identity, sensor calibration, coordinate conventions,
 and the intended use approval.
+## Dynamic identification data (`identification/dynamic/`)
+
+Audited in [#20](https://github.com/thanhndv212/figaroh-examples/issues/20);
+full report: [`docs/development/tiago-signal-audit-2026-10-03.md`](../../../docs/development/tiago-signal-audit-2026-10-03.md).
+The raw files are kept unmodified.
+
+| File | sha256 (prefix) | Columns |
+|---|---|---|
+| `tiago_position.csv` | `4297a60d434ee89f` | `t`, `- <joint>_position` |
+| `tiago_velocity.csv` | `269f681ca7a9511a` | `t`, `- <joint>_velocity` |
+| `tiago_effort.csv` | `12c635987705efad` | `t`, `- <joint>_effort` |
+
+Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
+
+- **Clock:** column `t` is recorded and identical in all three files: 8022
+  rows, 0–80.21 s, median step 9.997 ms (~100 Hz), jitter 7.7–12.3 ms,
+  strictly increasing, no gaps. Filters must be designed at this rate.
+- **Velocity:** a measured channel, consistent with d(position)/dt in units
+  and sign (correlation ≈ 0.99, scale ≈ 1.00), but **delayed by ~18 samples
+  (0.18 s)**. The loader estimates and removes this delay.
+- **Effort:** raw values converted in `process_torque_data` with the
+  per-joint `reduction_ratio × kmotor` set in `identification.py`, plus
+  `9.81 × subtree mass` on the torso. Units, signs and constants are
+  documented assumptions, not verified against a torque reference. The
+  wrist efforts (`arm_5`–`arm_7`) are exactly zero on 88–90% of samples
+  (step 0.001), so wrist dynamics are weakly observable.
+- **Window:** `identification.py` keeps rows 921–6791 (9.21–67.90 s), the
+  excitation; RMS velocity 0.159 rad/s inside vs 0.017 / 0.006 rad/s before /
+  after.
+
+`tiago_bp_19_Oct_2024_2320.csv` and `tiago_nov_30_64.csv` are not used by
+`identification.py` and were not audited.
