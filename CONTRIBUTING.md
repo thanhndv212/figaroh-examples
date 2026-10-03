@@ -46,7 +46,8 @@ latest version and downgrading afterward.
 
 Record the exact core/examples commits validated together. Preserve unrelated
 changes and existing branches. For a clean environment, reproduce geometry
-resolution using documented/pinned fixture sources. A developer's external
+resolution using the pinned sources in [models/README.md](models/README.md)
+(`python scripts/fetch_models.py`). A developer's external
 `ROS_PACKAGE_PATH` is not sufficient CI evidence. Do not copy third-party
 assets without checking their redistribution terms.
 
