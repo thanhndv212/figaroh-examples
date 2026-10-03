@@ -24,6 +24,18 @@ If you use conda, some dependencies may be easier to install via conda:
 conda install -c conda-forge pinocchio cyipopt
 ```
 
+Some robot meshes (UR10 camera mount, TIAGo wrist, base casters and WSG
+gripper) are not vendored. Fetch them at pinned revisions and point
+`ROS_PACKAGE_PATH` at them, or the UR10 and TIAGo examples cannot load
+their geometry:
+
+```bash
+python scripts/fetch_models.py
+export ROS_PACKAGE_PATH="$(python scripts/fetch_models.py --print-ros-package-path)"
+```
+
+See [models/README.md](models/README.md) for sources, revisions and licences.
+
 ## Run
 
 Most scripts assume you run them from inside the corresponding robot folder:
