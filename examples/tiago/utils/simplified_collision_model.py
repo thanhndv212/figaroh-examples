@@ -15,17 +15,11 @@
 
 from __future__ import annotations
 
-from os.path import abspath, dirname, join
 from typing import Any, List
 
 import hppfcl
 import numpy as np
-import numpy.typing as npt
 import pinocchio as pin
-import time
-
-from figaroh.tools.robotcollisions import CollisionWrapper
-from figaroh.visualisation.visualizer import MeshcatVisualizer
 
 
 def Capsule(
