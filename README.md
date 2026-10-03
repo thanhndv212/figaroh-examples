@@ -137,3 +137,10 @@ Apache License 2.0. See `LICENSE`.
 
 - Open an issue in this repository for example-specific questions.
 - Open an issue in the main FIGAROH repository: https://github.com/thanhndv212/figaroh-plus/issues
+
+### Physical-inertia feasibility validation
+
+See [the private log-Cholesky dataset benchmark](benchmarks/README.md) for
+UR10 simulation and TX40/TIAGo real-data comparisons, paired Pinocchio 3.7/4.1
+evidence, convergence failures and held-out-data limitations. This is an
+experimental validation path, not a production identification method.
