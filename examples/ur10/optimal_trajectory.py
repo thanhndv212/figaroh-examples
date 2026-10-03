@@ -27,8 +27,8 @@ project_root = Path(__file__).parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from examples.ur10.utils.ur10_tools import OptimalTrajectoryIPOPT
-from figaroh.tools.robot import load_robot
+from examples.ur10.utils.ur10_tools import OptimalTrajectoryIPOPT  # noqa: E402
+from figaroh.tools.robot import load_robot  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
