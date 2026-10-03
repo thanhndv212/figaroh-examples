@@ -2,6 +2,14 @@
 
 This directory contains YAML template files that serve as reusable starting points for robot-specific unified configuration files. Templates define the canonical structure for robot configurations in the FIGAROH framework, ensuring consistency across all robot examples.
 
+## Before choosing a template
+
+Use the [new-example guide](../../docs/new-example-guide.md) and
+[experiment brief](../../docs/experiment-brief-template.md) to define available
+data, parameter scope and validation. Template defaults are placeholders to
+review: rates, measured DOFs, frames, mechanical terms and enabled tasks must
+match the robot and acquisition rather than its broad robot category.
+
 ## Overview
 
 Templates provide:
@@ -185,7 +193,8 @@ robot:
 
 ### What NOT to put in the template
 
-- Do **not** put `extends:` in the template files — they are the root of the inheritance chain.
+- The base template is the root; specialized templates may use `extends:`
+  to inherit it, as described above.
 - Do **not** put robot-specific joint names or limits in templates — those belong in the robot config.
 - Do **not** delete template keys — override them with your values or leave them as defaults.
 

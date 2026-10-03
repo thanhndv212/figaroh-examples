@@ -4,6 +4,13 @@ Examples for the [FIGAROH PLUS](https://github.com/thanhndv212/figaroh-plus) lib
 
 Working with an AI coding agent? [`skills/`](skills/) holds agent skills that set up a calibration, identification, optimal-experiment-design, or new-robot task for you — start with [`skills/figaroh-start`](skills/figaroh-start/SKILL.md), which points at the right package, directory, config keys, and data layout for the job.
 
+## Development planning
+
+Review the [draft contributor guide](CONTRIBUTING.md) and the
+[core delivery proposal](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/plans/identification-calibration-delivery.md)
+for the planned parallel identification/calibration workstreams. These are
+discussion drafts; they do not claim new solver or pipeline support.
+
 ## Install
 
 ```bash
@@ -27,6 +34,11 @@ python calibration.py
 ```
 
 ## Basic workflow
+
+For a new robot or dataset, start with the [new-example guide](docs/new-example-guide.md)
+and [experiment brief](docs/experiment-brief-template.md). They cover available
+measurements, model/method selection, experiment design, processing, fit
+interpretation and held-out validation before the commands below.
 
 1. Choose an example under `examples/<robot>/`.
 2. Review the YAML files under `examples/<robot>/config/`.
@@ -56,7 +68,9 @@ Examples use CSV logs for measurements and trajectories. The required files/colu
 ## Examples
 
 - UR10 (manipulator): [examples/ur10/README.md](examples/ur10/README.md)
-- TIAGo (mobile manipulator): [examples/tiago/README.md](examples/tiago/README.md)
+- TIAGo (mobile manipulator): [examples/tiago/README.md](examples/tiago/README.md) —
+  identification, calibration, optimal config/trajectory, plus experimental
+  suspension identification and empirical backlash-surface examples
 - TIAGo Pro (mobile manipulator, right-arm calibration — contributed by
   [Clement Pene](https://github.com/clementPene)): [examples/tiago_pro/README.md](examples/tiago_pro/README.md)
 - TALOS (humanoid, torso/arm chain): [examples/talos/README.md](examples/talos/README.md)
@@ -87,7 +101,9 @@ Most robot folders follow this pattern:
 
 ## Creating a new example
 
-Use the scaffold script to create a new robot folder based on the TIAGo template:
+First fill in the [experiment brief](docs/experiment-brief-template.md) using the
+[new-example guide](docs/new-example-guide.md). Then, if needed, use the scaffold
+script to create a new robot folder based on the TIAGo template:
 
 ```bash
 cd examples

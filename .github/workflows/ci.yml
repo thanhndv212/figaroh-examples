@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Examples (pinocchio-${{ matrix.pinocchio }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        pinocchio: ['3.7.0', '4.1.0']
+    env:
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      # Mesh packages referenced by the example URDFs, fetched at pinned
+      # revisions below (never copied into this repository).
+      ROS_PACKAGE_PATH: ${{ github.workspace }}/ci-models:${{ github.workspace }}/ci-models/tiago_robot:${{ github.workspace }}/ci-models/pal_wsg_gripper:${{ github.workspace }}/ci-models/pmb2_robot:${{ github.workspace }}/ci-models/pal_gripper
+      PIP_CONSTRAINT: ${{ github.workspace }}/ci-constraints.txt
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: figaroh-examples
+
+      - uses: actions/checkout@v4
+        with:
+          repository: thanhndv212/figaroh-plus
+          ref: devel
+          path: figaroh
+
+      - uses: actions/checkout@v4
+        with:
+          repository: agimus/agimus-demos
+          ref: 7858fd3da9b31b4a17cc265722a4647567cda8cd
+          path: ci-models/agimus-demos
+          sparse-checkout: meshes
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pal-robotics/tiago_robot
+          ref: 234b653b2a063e89bcdf7c9b2c419272531eab5a
+          path: ci-models/tiago_robot
+          sparse-checkout: tiago_description/meshes
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pal-robotics/pal_wsg_gripper
+          ref: ee542262a264f220142c787c0e005b5664bffa66
+          path: ci-models/pal_wsg_gripper
+          sparse-checkout: pal_wsg_gripper_description/meshes
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pal-robotics/pmb2_robot
+          ref: 90b419d64a786cbcf3ba22623b68259f354698aa
+          path: ci-models/pmb2_robot
+          sparse-checkout: pmb2_description/meshes
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pal-robotics/hey5_description
+          ref: 345a28a6fe52752b4ef26f9028d7565bf015ebe3
+          path: ci-models/hey5_description
+          sparse-checkout: meshes
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pal-robotics/pal_gripper
+          ref: 485b535532c04b0ce31a00ad431d99e2714c0d54
+          path: ci-models/pal_gripper
+          sparse-checkout: pal_gripper_description/meshes
+
+      - name: Prepare constrained environment
+        env:
+          PINOCCHIO_VERSION: ${{ matrix.pinocchio }}
+        run: |
+          cp "figaroh/ci/pinocchio-${PINOCCHIO_VERSION}.txt" "$PIP_CONSTRAINT"
+          cat >> "$PIP_CONSTRAINT" <<'PINS'
+          numpy==2.3.2
+          scipy==1.16.1
+          picos==2.6.1
+          cvxopt==1.3.2
+          PINS
+          # Core is installed editable after activation, from its checkout.
+          sed '/  - pip:/,$d' figaroh/environment.yml > ci-environment.yml
+
+      - name: Set up conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: ci-environment.yml
+          activate-environment: figaroh-dev
+
+      - name: Install figaroh
+        shell: bash -el {0}
+        run: |
+          python -m pip install -e './figaroh[dev]'
+          python -m pip check
+          python -c "import figaroh, pinocchio; print('figaroh', figaroh.__file__, 'pinocchio', pinocchio.__version__)"
+          echo "figaroh-plus devel: $(git -C figaroh rev-parse HEAD)"
+
+      - name: Run examples tests
+        shell: bash -el {0}
+        run: |
+          cd figaroh-examples
+          python -m pytest tests/ -v --durations=15

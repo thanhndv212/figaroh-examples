@@ -36,8 +36,11 @@ venv.bak/
 *.swp
 *.swo
 *~
-.github/
+# Track GitHub workflows and issue/PR templates; keep local agent skills untracked.
+.github/*
 !.github/workflows/
+!.github/ISSUE_TEMPLATE/
+!.github/pull_request_template.md
 .waylog/
 
 # OS
