@@ -37,6 +37,15 @@ def parse_args() -> argparse.Namespace:
         description="TIAGo dynamic parameter identification"
     )
     parser.add_argument(
+        "--velocity-lag",
+        default="auto",
+        help=(
+            "Delay of the measured velocity channel, in samples: 'auto' "
+            "estimates it from the data (default), an integer applies that "
+            "shift, 0 disables it. See docs/development/tiago-signal-audit."
+        ),
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default="config/tiago_unified_config.yaml",
@@ -146,6 +155,9 @@ def main() -> TiagoIdentification | None:
 
         # Create identification object
         tiago_iden = TiagoIdentification(tiago, str(config_path))
+        tiago_iden.velocity_lag = (
+            args.velocity_lag if args.velocity_lag == "auto" else int(args.velocity_lag)
+        )
 
         # Define additional parameters excluded from yaml files
         ps = tiago_iden.identif_config
@@ -207,6 +219,11 @@ def main() -> TiagoIdentification | None:
         # - None: no truncation
         # - (start, end): custom truncation indices
         tiago_iden.initialize(truncate=(921, 6791))
+        prov = tiago_iden.trajectory_provenance["training"]
+        print(
+            f"Recorded clock {prov['recorded_rate_hz']:.2f} Hz; velocity lag "
+            f"{prov['velocity_lag_samples']} samples ({prov['velocity_lag_s']:.3f} s)"
+        )
 
         # Solve identification
         tiago_iden.solve(

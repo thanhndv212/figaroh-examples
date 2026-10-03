@@ -114,11 +114,14 @@ tasks:
         joint_offset: true
         actuator_inertia: true
 
+    # The recorded CSVs share one clock at ~100 Hz (median step 9.997 ms).
+    # The filter must be designed at that rate: designing a 2 Hz cutoff at
+    # 500 Hz, as before, filtered the 100 Hz data at ~0.36 Hz (#20).
     signal_processing:
-      sampling_frequency: 5000.0  # High rate due to 1/0.0002 = 5000Hz
-      cutoff_frequency: 100.0
+      sampling_frequency: 100.0
+      cutoff_frequency: 2.0
       filter_type: "butterworth"
-      filter_params: {"nbutter": 4, "f_butter": 2, "med_fil": 5, "f_sample": 500}
+      filter_params: {"nbutter": 4, "f_butter": 2, "med_fil": 5, "f_sample": 100}
 
   optimal_configuration:
     enabled: true
