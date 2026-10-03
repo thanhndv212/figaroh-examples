@@ -120,14 +120,15 @@ def test_script_subprocess(
     if not script_path.exists():
         pytest.skip(f"Script not found: {script_path}")
 
-    # talos/update_model.py requires calibration_results.npz produced by
-    # calibration_upperbody.py.  If the file is missing, the script will
-    # fail with FileNotFoundError, so we skip gracefully.
+    # talos/update_model.py loads the newest
+    # data/calibration/calibration_results_<timestamp>.npz written by
+    # calibration_upperbody.py (listed before it above). Skip only if no
+    # calibration result exists at all.
     if robot_dir == "talos" and script_name == "update_model.py":
-        calib_file = EXAMPLES_ROOT / robot_dir / "data" / "calibration_results.npz"
-        if not calib_file.exists():
+        calib_dir = EXAMPLES_ROOT / robot_dir / "data" / "calibration"
+        if not any(calib_dir.glob("calibration_results*.npz")):
             pytest.skip(
-                f"calibration_results.npz not found at {calib_file} — "
+                f"no calibration_results*.npz in {calib_dir} — "
                 f"run calibration_upperbody.py first"
             )
 
@@ -149,6 +150,6 @@ def test_script_subprocess(
         f"(exit code {result.returncode}):\n"
         f"--- stdout (last 30 lines) ---\n"
         + "\n".join(result.stdout.strip().splitlines()[-30:])
-        + f"\n--- stderr (last 30 lines) ---\n"
+        + "\n--- stderr (last 30 lines) ---\n"
         + "\n".join(result.stderr.strip().splitlines()[-30:])
     )
