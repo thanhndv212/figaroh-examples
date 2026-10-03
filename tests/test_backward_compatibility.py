@@ -470,80 +470,12 @@ class TestBackwardCompatibility:
 
         except ImportError as e:
             pytest.skip(f"Required modules not available: {e}")
-        except Exception as e:
-            # Log the actual error for debugging
-            print(f"Error in UR10 backward compatibility test: {e}")
-            # For now, we'll allow the test to pass if there are
-            # import/setup issues but log that we couldn't perform comparison
-            pytest.skip(f"Could not complete UR10 compatibility test: {e}")
 
-    def test_ur10_backward_compatibility_identification(self):
-        """Test backward compatibility: compare get_param_from_yaml with unified
-        parser for UR10 identification."""
-        import yaml
-        from pathlib import Path
-        from figaroh.utils.config_parser import (
-            get_param_from_yaml,
-            UnifiedConfigParser,
-            create_task_config,
-        )
-        from figaroh.tools.robot import load_robot
-
-        # Define paths relative to test file
-        test_dir = Path(__file__).parent
-        examples_dir = test_dir.parent / "examples"
-        ur10_dir = examples_dir / "ur10"
-        config_dir = ur10_dir / "config"
-
-        legacy_config_path = config_dir / "ur10_config_new.yaml"
-        unified_config_path = config_dir / "ur10_unified_config.yaml"
-        urdf_path = ur10_dir / "urdf" / "ur10_robot.urdf"
-        models_dir = examples_dir.parent / "models"
-
-        # Skip test if files don't exist
-        required_paths = [legacy_config_path, unified_config_path, urdf_path]
-        if not all(p.exists() for p in required_paths):
-            pytest.skip("Required UR10 config or URDF files not found")
-
-        try:
-            # Load UR10 robot model
-            ur10 = load_robot(
-                str(urdf_path),
-                package_dirs=str(models_dir),
-                load_by_urdf=True,
-            )
-
-            # Load legacy configuration
-            with open(legacy_config_path, "r") as f:
-                legacy_config_data = yaml.safe_load(f)
-
-            # Check if identification section exists in legacy config
-            if "identification" not in legacy_config_data:
-                pytest.skip("Legacy config does not contain identification")
-
-            # Get identification parameters using legacy method
-            legacy_result = get_param_from_yaml(
-                ur10, legacy_config_data, "identification"
-            )
-
-            # Parse unified configuration
-            unified_parser = UnifiedConfigParser(str(unified_config_path))
-            unified_config = unified_parser.parse()
-
-            # Get identification parameters using new method
-            unified_result = create_task_config(ur10, unified_config, "identification")
-
-            # Compare key parameters
-            self._compare_identification_configs(legacy_result, unified_result)
-
-        except ImportError as e:
-            pytest.skip(f"Required modules not available: {e}")
-        except Exception as e:
-            # Log the actual error for debugging
-            print(f"Error in UR10 identification compatibility test: {e}")
-            # For now, we'll allow the test to pass if there are
-            # import/setup issues
-            pytest.skip(f"Could not complete identification test: {e}")
+    # No UR10 legacy-vs-unified *identification* comparison: no legacy UR10
+    # config in examples/ur10/config has the problem/processing/TLS sections
+    # the legacy identification parser requires (ur10_config_new.yaml keeps
+    # only robot_params), so there is nothing valid to compare against
+    # (figaroh-examples#45).
 
     def _compare_calibration_configs(self, legacy_result, unified_result):
         """Compare calibration configuration results between legacy and
@@ -556,10 +488,13 @@ class TestBackwardCompatibility:
         assert "robot_name" in legacy_result, "Legacy result missing robot_name"
         assert "robot_name" in unified_result, "Unified result missing robot_name"
 
-        # Robot names should match (allowing for case differences)
+        # The names come from different sources: the legacy parser uses the
+        # URDF <robot name> ("ur10e"), the unified parser the config's
+        # robot.name, documented as the model type ("ur10"). Require the
+        # same robot family, as test_ur10_backward_compatibility.py does.
         legacy_name = legacy_result["robot_name"].lower()
         unified_name = unified_result["robot_name"].lower()
-        assert legacy_name == unified_name
+        assert "ur10" in legacy_name and "ur10" in unified_name
 
         # Both should have task type
         if "task_type" in legacy_result:
@@ -602,50 +537,6 @@ class TestBackwardCompatibility:
 
             if "tool_frame" in legacy_kin and "tool_frame" in unified_kin:
                 assert legacy_kin["tool_frame"] == unified_kin["tool_frame"]
-
-    def _compare_identification_configs(self, legacy_result, unified_result):
-        """Compare identification configuration results between legacy and
-        unified parsers."""
-        # Both should be dictionaries
-        assert isinstance(legacy_result, dict), "Legacy result should be a dictionary"
-        assert isinstance(unified_result, dict), "Unified result should be a dictionary"
-
-        # Both should have robot name
-        assert "robot_name" in legacy_result, "Legacy result missing robot_name"
-        assert "robot_name" in unified_result, "Unified result missing robot_name"
-
-        # Robot names should match (allowing for case differences)
-        legacy_name = legacy_result["robot_name"].lower()
-        unified_name = unified_result["robot_name"].lower()
-        assert legacy_name == unified_name
-
-        # Both should have task type
-        if "task_type" in legacy_result:
-            assert "task_type" in unified_result
-            assert "identification" in legacy_result["task_type"].lower()
-            assert "identification" in unified_result["task_type"].lower()
-
-        # Compare mechanics parameters if available
-        if "mechanics" in legacy_result and "mechanics" in unified_result:
-            legacy_mech = legacy_result["mechanics"]
-            unified_mech = unified_result["mechanics"]
-
-            # Compare friction coefficients structure
-            if (
-                "friction_coefficients" in legacy_mech
-                and "friction_coefficients" in unified_mech
-            ):
-                legacy_friction = legacy_mech["friction_coefficients"]
-                unified_friction = unified_mech["friction_coefficients"]
-
-                # Check that both have viscous and static/coulomb coefficients
-                friction_types = ["viscous", "static", "coulomb"]
-                legacy_keys = set(legacy_friction.keys())
-                unified_keys = set(unified_friction.keys())
-
-                # At least one common friction type should exist
-                common_types = legacy_keys.intersection(unified_keys)
-                assert len(common_types) > 0, "No common friction types found"
 
 
 class TestConfigMigration:

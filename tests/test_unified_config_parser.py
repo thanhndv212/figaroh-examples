@@ -442,29 +442,29 @@ class TestRealConfigFiles:
         from figaroh.utils.config_parser import UnifiedConfigParser
 
         # Path to UR10 config (adjust if needed)
-        config_path = Path("examples/ur10/config/ur10_unified_config.yaml")
+        config_path = (
+            Path(__file__).parent.parent
+            / "examples/ur10/config/ur10_unified_config.yaml"
+        )
 
         if config_path.exists():
-            try:
-                parser = UnifiedConfigParser(config_path)
-                config = parser.parse()
+            parser = UnifiedConfigParser(config_path)
+            config = parser.parse()
 
-                assert config["robot"]["name"] == "ur10"
-                assert "calibration" in config["tasks"]
-                assert "identification" in config["tasks"]
+            assert config["robot"]["name"] == "ur10"
+            assert "calibration" in config["tasks"]
+            assert "identification" in config["tasks"]
 
-                # Test variant
-                parser_variant = UnifiedConfigParser(
-                    config_path, variant="minimal_calibration"
-                )
-                config_variant = parser_variant.parse()
+            # Test variant
+            parser_variant = UnifiedConfigParser(
+                config_path, variant="minimal_calibration"
+            )
+            config_variant = parser_variant.parse()
 
-                # Verify variant applied
-                cal_task = config_variant["tasks"]["calibration"]
-                assert cal_task["parameters"]["calibration_level"] == "joint_offset"
+            # Verify variant applied
+            cal_task = config_variant["tasks"]["calibration"]
+            assert cal_task["parameters"]["calibration_level"] == "joint_offset"
 
-            except Exception as e:
-                pytest.skip(f"UR10 config test skipped: {e}")
         else:
             pytest.skip("UR10 config file not found")
 
@@ -472,31 +472,28 @@ class TestRealConfigFiles:
         """Test parsing TIAGo unified configuration."""
         from figaroh.utils.config_parser import UnifiedConfigParser
 
-        config_path = Path("examples/tiago/config/tiago_unified_config.yaml")
+        config_path = (
+            Path(__file__).parent.parent
+            / "examples/tiago/config/tiago_unified_config.yaml"
+        )
 
         if config_path.exists():
-            try:
-                parser = UnifiedConfigParser(config_path)
-                config = parser.parse()
+            parser = UnifiedConfigParser(config_path)
+            config = parser.parse()
 
-                assert config["robot"]["name"] == "tiago"
-                assert (
-                    config["robot"]["properties"]["coupling"]["has_coupled_wrist"]
-                    is True
-                )
-                assert "calibration" in config["tasks"]
+            assert config["robot"]["name"] == "tiago"
+            assert (
+                config["robot"]["properties"]["coupling"]["has_coupled_wrist"] is True
+            )
+            assert "calibration" in config["tasks"]
 
-                # Test mocap variant
-                parser_mocap = UnifiedConfigParser(
-                    config_path, variant="mocap_calibration"
-                )
-                config_mocap = parser_mocap.parse()
+            # Test mocap variant
+            parser_mocap = UnifiedConfigParser(config_path, variant="mocap_calibration")
+            config_mocap = parser_mocap.parse()
 
-                mocap_task = config_mocap["tasks"]["calibration"]
-                assert mocap_task["kinematics"]["base_frame"] == "head_2_joint"
+            mocap_task = config_mocap["tasks"]["calibration"]
+            assert mocap_task["kinematics"]["base_frame"] == "head_2_joint"
 
-            except Exception as e:
-                pytest.skip(f"TIAGo config test skipped: {e}")
         else:
             pytest.skip("TIAGo config file not found")
 

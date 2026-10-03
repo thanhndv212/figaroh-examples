@@ -24,9 +24,10 @@ class TestTIAGoBackwardCompatibility:
         config_dir = tiago_dir / "config"
 
         legacy_config_path = config_dir / "tiago_config.yaml"
-        unified_config_path = config_dir / "tiago_unified_config_simple.yaml"
-        urdf_path = tiago_dir / "urdf" / "tiago_no_hand.urdf"
-        models_dir = examples_dir.parent / "models"
+        unified_config_path = (
+            config_dir / "archive" / "tiago_unified_config_simple.yaml"
+        )
+        urdf_path = tiago_dir / "urdf" / "tiago_48_schunk.urdf"
 
         # Skip test if files don't exist
         required_paths = [legacy_config_path, unified_config_path, urdf_path]
@@ -37,8 +38,8 @@ class TestTIAGoBackwardCompatibility:
             # Load TIAGo robot model
             tiago = load_robot(
                 str(urdf_path),
-                package_dirs=str(models_dir),
                 load_by_urdf=True,
+                robot_pkg="tiago_description",  # as examples/tiago scripts load it
             )
 
             # Load legacy configuration
@@ -66,10 +67,6 @@ class TestTIAGoBackwardCompatibility:
 
         except ImportError as e:
             pytest.skip(f"Required modules not available: {e}")
-        except Exception as e:
-            # Log the actual error for debugging
-            print(f"Error in TIAGo backward compatibility test: {e}")
-            pytest.skip(f"Could not complete TIAGo compatibility test: {e}")
 
     def test_tiago_identification_compatibility(self):
         """Test backward compatibility: compare legacy get_param_from_yaml with
@@ -87,9 +84,10 @@ class TestTIAGoBackwardCompatibility:
         config_dir = tiago_dir / "config"
 
         legacy_config_path = config_dir / "tiago_config.yaml"
-        unified_config_path = config_dir / "tiago_unified_config_simple.yaml"
-        urdf_path = tiago_dir / "urdf" / "tiago_no_hand.urdf"
-        models_dir = examples_dir.parent / "models"
+        unified_config_path = (
+            config_dir / "archive" / "tiago_unified_config_simple.yaml"
+        )
+        urdf_path = tiago_dir / "urdf" / "tiago_48_schunk.urdf"
 
         # Skip test if files don't exist
         required_paths = [legacy_config_path, unified_config_path, urdf_path]
@@ -100,8 +98,8 @@ class TestTIAGoBackwardCompatibility:
             # Load TIAGo robot model
             tiago = load_robot(
                 str(urdf_path),
-                package_dirs=str(models_dir),
                 load_by_urdf=True,
+                robot_pkg="tiago_description",  # as examples/tiago scripts load it
             )
 
             # Load legacy configuration
@@ -133,10 +131,6 @@ class TestTIAGoBackwardCompatibility:
 
         except ImportError as e:
             pytest.skip(f"Required modules not available: {e}")
-        except Exception as e:
-            # Log the actual error for debugging
-            print(f"Error in TIAGo identification compatibility test: {e}")
-            pytest.skip(f"Could not complete identification test: {e}")
 
     def _compare_calibration_configs(self, legacy_result, unified_result):
         """Compare calibration configuration results between legacy and
@@ -203,7 +197,7 @@ class TestTIAGoBackwardCompatibility:
                     legacy_markers == unified_markers
                 ), f"Number of markers should match: {legacy_markers} vs {unified_markers}"
 
-        print(f"✓ TIAGo calibration config comparison passed")
+        print("✓ TIAGo calibration config comparison passed")
         print(f"  Legacy: {legacy_result.get('calib_model', 'N/A')} model")
         print(f"  Unified: {unified_result.get('task_type', 'N/A')} task")
         print(f"  Frames: {legacy_start} -> {legacy_end}")
@@ -288,7 +282,7 @@ class TestTIAGoBackwardCompatibility:
                             abs(legacy_ratio - unified_ratio) < 0.1
                         ), f"Reduction ratio {i} mismatch: {legacy_ratio} vs {unified_ratio}"
 
-        print(f"✓ TIAGo identification config comparison passed")
+        print("✓ TIAGo identification config comparison passed")
         print(f"  Legacy robot: {legacy_result.get('robot_name', 'N/A')}")
         print(f"  Unified robot: {unified_result.get('robot_name', 'N/A')}")
         print(f"  Task type: {unified_result.get('task_type', 'N/A')}")
