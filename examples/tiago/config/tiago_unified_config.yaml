@@ -141,11 +141,17 @@ tasks:
     problem:
       soft_lim: 0.1     # joint limit discount (increased from 0.05)
       max_attempts: 500 # maximum attempts to find feasible trajectory
+      # IPOPT iterations per segment. The condition-number objective is
+      # non-smooth, so IPOPT plateaus rather than converging; a feasible
+      # final iterate is kept (marked unconverged) at this limit.
+      max_iterations: 100
 
     trajectory:
-      waypoints: 7       # number of waypoints (reduced from 5)
-      frequency: 100     # frequency in Hz (reduced from 100)
-      segment_duration: 2.0 # window time between waypoints (reduced from 2)
+      waypoints: 7       # number of waypoints
+      # Sampling rate of the regressor built at every objective evaluation.
+      # 20 Hz (was 100) keeps the run within the validate.py budget.
+      frequency: 20
+      segment_duration: 2.0 # window time between waypoints
 
     constraints:
       velocity_scaling: 0.5
