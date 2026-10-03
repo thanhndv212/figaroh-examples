@@ -123,6 +123,11 @@ tasks:
   succeeds; exhausting it logs a warning and IPOPT starts from an infeasible guess.
 - The example scripts take `--seed` (default 0). Results depend on it: in a sweep of
   six seeds, one TIAGo seed left segment 2 slightly infeasible and the run failed.
+- A seed reproduces a run only with single-threaded BLAS. Threaded reductions change
+  the last bits, and the optimizer amplifies them into different trajectories (TIAGo
+  seed 0 gave a different result on every default-threaded run). `validate.py` and CI
+  pin the threads; to reproduce a run by hand, use
+  `OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1`.
 
 ## Step 3 — Run
 
