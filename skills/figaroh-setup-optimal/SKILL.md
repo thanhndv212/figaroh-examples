@@ -86,10 +86,11 @@ tasks:
     problem:
       soft_lim: 0.1          # joint-limit discount
       max_attempts: 500      # feasibility retries before giving up
+      max_iterations: 100    # IPOPT iterations per segment (default 200)
 
     trajectory:
       waypoints: 7           # cubic-spline waypoints
-      frequency: 100         # Hz — the rate you will actually log at
+      frequency: 20          # Hz — spline sampling for the regressor and output
       segment_duration: 2.0  # seconds between waypoints
 
     constraints:
@@ -101,16 +102,27 @@ tasks:
       output_file: "data/trajectories/<robot>_optimal_trajectory.yaml"
 ```
 
-- `frequency` here and `identification.signal_processing.sampling_frequency` describe
-  the same experiment. Keep them consistent with how the robot actually logs, or the
+- `frequency` sets how densely the spline is sampled: every objective evaluation
+  builds the regressor from those samples, so cost grows linearly with it. The
+  waypoints, and so the motion itself, do not depend on it. The shipped UR10 and
+  TIAGo configs use 20 Hz to stay within the `validate.py` budget. Before executing
+  the trajectory, resample the spline at the rate the robot actually logs at; that
+  rate is what `identification.signal_processing.sampling_frequency` must match, or
   identification will derive wrong velocities from correct data.
+- The objective (condition number of the base regressor) is non-smooth, so IPOPT
+  usually stops at `max_iterations` on a plateau rather than converging. A segment
+  is kept when its final iterate satisfies every constraint; it is logged as a
+  warning and recorded with `converged: False`. An infeasible segment fails the run.
 - More `waypoints` and longer `segment_duration` excite more but take much longer to
   solve and to execute.
 - `velocity_scaling`/`acceleration_scaling` at 0.5 is conservative. Raising them
   excites inertial terms more strongly — that is exactly what identification needs —
   but is also where you hit real hardware limits. Raise deliberately.
-- `max_attempts: 500` exists because feasibility is not guaranteed; exhausting it
-  prints a failure rather than raising.
+- `max_attempts: 500` bounds the search for a feasible initial guess. Waypoint steps
+  are clamped to what the velocity limits allow, so the first attempt usually
+  succeeds; exhausting it logs a warning and IPOPT starts from an infeasible guess.
+- The example scripts take `--seed` (default 0). Results depend on it: in a sweep of
+  six seeds, one TIAGo seed left segment 2 slightly infeasible and the run failed.
 
 ## Step 3 — Run
 
