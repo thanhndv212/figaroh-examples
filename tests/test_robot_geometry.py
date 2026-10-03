@@ -63,3 +63,31 @@ def test_example_robot_geometry_resolves(monkeypatch, robot_dir, urdf, kwargs):
         assert meshes, f"{robot_dir}/{urdf}: no mesh geometry in {kind}"
         missing = [m for m in meshes if not os.path.isfile(m)]
         assert not missing, f"{kind} meshes not found: {missing}\n{FETCH_HINT}"
+
+
+def test_tiago_simplified_collision_model_builds(monkeypatch):
+    """The primitive collision model used by tiago/optimal_trajectory.py.
+
+    Pinocchio 4 accepts only GeometryObject(name, joint, placement, geometry);
+    the old (geometry, placement) order failed there before any test ran (#59).
+    """
+    from examples.tiago.utils.simplified_collision_model import (
+        build_tiago_simplified,
+    )
+
+    monkeypatch.chdir(EXAMPLES / "tiago")
+    robot = load_robot(
+        "urdf/tiago_48_schunk.urdf", load_by_urdf=True, robot_pkg="tiago_description"
+    )
+
+    robot = build_tiago_simplified(robot)
+
+    names = {g.name for g in robot.geom_model.geometryObjects}
+    assert {
+        "torso_up_box",
+        "torso_low_box",
+        "base_cap",
+        "forearm_cap",
+        "head_cap",
+    } <= names
+    assert len(robot.geom_model.collisionPairs) == 4
