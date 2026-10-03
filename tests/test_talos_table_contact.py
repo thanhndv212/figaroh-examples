@@ -51,6 +51,12 @@ from examples.talos_table_contact.utils.talos_table_tools import (  # noqa: E402
     TalosTableContactCalibration,
 )
 from figaroh.calibration.calibration_tools import cartesian_to_SE3  # noqa: E402
+from talos_noise_floor import (  # noqa: E402
+    HELD_OUT_FLOOR_MARGIN,
+    IDENTIFIABILITY_SEED,
+    KEYS,
+    true_model_floor,
+)
 
 CONFIG_PATH = (
     PROJECT_ROOT
@@ -94,12 +100,17 @@ def calibrated_result(tmp_path_factory):
     since building the dataset + solving is the expensive part and every
     assertion below is a read-only check on the same result.
     """
+    # 120 training touches per session: with 40, the 57 joint + 9 plane /
+    # contact unknowns were fit from ~56 touches and held-out error landed
+    # 1.7-6x above the noise floor depending on tiny data differences
+    # (#48). At 120 it sits within ~10 % of the floor.
     df_train, df_val, ground_truth, robot = build_dataset(
         n_sessions=2,
-        n_train_per_session=40,
-        n_val_per_session=10,
+        n_train_per_session=120,
+        n_val_per_session=20,
         seed=42,
         encoder_noise_std=ENCODER_NOISE_STD,
+        include_truth_objects=True,
     )
     assert len(df_train) > 0, "No training touches converged -- IK setup regressed."
     assert len(df_val) > 0, "No validation touches converged -- IK setup regressed."
@@ -118,6 +129,7 @@ def calibrated_result(tmp_path_factory):
     ]
     calib.set_nominal_table_poses(nominal_poses)
     calib.set_nominal_contact_offset(NOMINAL_CONTACT_OFFSET)
+    np.random.seed(IDENTIFIABILITY_SEED)
     calib.initialize()
 
     var0 = np.zeros(len(calib.calib_config["param_name"]))
@@ -134,6 +146,9 @@ def calibrated_result(tmp_path_factory):
     _load_split(calib, df_val)
     val_before = calib.gap_metrics(var0)
     val_after = calib.gap_metrics(result.x)
+    val_floor = true_model_floor(
+        robot, ground_truth["truth_objects"], CONFIG_PATH, df_val
+    )
 
     return {
         "calib": calib,
@@ -143,6 +158,7 @@ def calibrated_result(tmp_path_factory):
         "train_after": train_after,
         "val_before": val_before,
         "val_after": val_after,
+        "val_floor": val_floor,
     }
 
 
@@ -194,25 +210,32 @@ class TestTrainingResidual:
 
 class TestHeldOutCrossValidation:
     """The real test: does the calibration generalize to touches the
-    solver never saw, the same way the manuscript's own held-out
-    postures validate its result."""
+    solver never saw? Judged against the noise floor -- the true model's
+    own residual on the same held-out touches -- not against the
+    uncalibrated model, whose error depends on how large the randomly
+    injected errors happen to be (#48)."""
 
-    def test_reduces_by_a_meaningful_factor(self, calibrated_result):
-        before, after = (
-            calibrated_result["val_before"],
-            calibrated_result["val_after"],
-        )
-        for key in ("z_rmse_mm", "roll_rmse_deg", "pitch_rmse_deg"):
-            assert after[key] < before[key] / 2.0, (
-                f"{key} did not improve enough on held-out data: "
-                f"{before[key]:.4f} -> {after[key]:.4f}"
+    def test_within_noise_floor_margin(self, calibrated_result):
+        after = calibrated_result["val_after"]
+        floor = calibrated_result["val_floor"]
+        for key in KEYS:
+            assert after[key] <= HELD_OUT_FLOOR_MARGIN * floor[key], (
+                f"held-out {key} {after[key]:.4f} exceeds "
+                f"{HELD_OUT_FLOOR_MARGIN} x noise floor {floor[key]:.4f}"
             )
 
-    def test_absolute_residual_is_small(self, calibrated_result):
+    def test_calibration_beats_the_uncalibrated_model(self, calibrated_result):
+        before = calibrated_result["val_before"]
         after = calibrated_result["val_after"]
-        assert after["z_rmse_mm"] < 3.0
-        assert after["roll_rmse_deg"] < 0.4
-        assert after["pitch_rmse_deg"] < 0.4
+        floor = calibrated_result["val_floor"]
+        for key in KEYS:
+            # Diagnostic only: improvement depends on the injected error size.
+            print(
+                f"held-out {key}: {before[key]:.4f} -> {after[key]:.4f} "
+                f"({before[key] / after[key]:.1f}x); floor {floor[key]:.4f} "
+                f"(after/floor {after[key] / floor[key]:.2f})"
+            )
+            assert after[key] < before[key]
 
 
 class TestPlaneAndContactRecoveryOrderOfMagnitude:

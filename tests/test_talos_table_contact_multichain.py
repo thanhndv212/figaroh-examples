@@ -45,6 +45,12 @@ from figaroh.calibration.calibration_tools import (  # noqa: E402
     cartesian_to_SE3,
     get_rel_transform,
 )
+from talos_noise_floor import (  # noqa: E402
+    HELD_OUT_FLOOR_MARGIN,
+    IDENTIFIABILITY_SEED,
+    KEYS,
+    true_model_floor,
+)
 
 PROJECT_ROOT_EX = PROJECT_ROOT / "examples" / "talos_table_contact"
 LEFT_CONFIG_PATH = PROJECT_ROOT_EX / "config" / "talos_table_left_config.yaml"
@@ -116,10 +122,12 @@ def _load_split(calib: TalosTableContactCalibration, df) -> None:
 
 @pytest.fixture(scope="module")
 def multichain_result():
+    # 120 training touches per session (was 30); see the single-chain test
+    # and #48 for why held-out checks need this sample size.
     data = build_two_chain_dataset(
         n_sessions=2,
-        n_train_per_session=30,
-        n_val_per_session=10,
+        n_train_per_session=120,
+        n_val_per_session=20,
         seed=7,
         encoder_noise_std=ENCODER_NOISE_STD,
     )
@@ -139,7 +147,7 @@ def multichain_result():
     # axis exists at all -- can otherwise vary from run to run. Seeding
     # here makes that draw reproducible for this test, matching the seed
     # already used for the synthetic-touch generation above.
-    np.random.seed(1234)
+    np.random.seed(IDENTIFIABILITY_SEED)
     calib_left = _build_chain(
         robot, LEFT_CONFIG_PATH, data["left_train"], BASE_FRAME, session_offsets
     )
@@ -158,6 +166,15 @@ def multichain_result():
     _load_split(calib_right, data["right_val"])
     val_before = coupler.gap_metrics(var0)
     val_after = coupler.gap_metrics(result.x)
+    truth = data["ground_truth"]
+    val_floor = {
+        "left": true_model_floor(
+            robot, truth["left"], LEFT_CONFIG_PATH, data["left_val"]
+        ),
+        "right": true_model_floor(
+            robot, truth["right"], RIGHT_CONFIG_PATH, data["right_val"]
+        ),
+    }
 
     return {
         "coupler": coupler,
@@ -166,6 +183,7 @@ def multichain_result():
         "train_after": train_after,
         "val_before": val_before,
         "val_after": val_after,
+        "val_floor": val_floor,
         "ground_truth": data["ground_truth"],
     }
 
@@ -214,21 +232,30 @@ class TestTrainingResidual:
 
 
 class TestHeldOutCrossValidation:
-    def test_both_chains_reduce_by_a_meaningful_factor(self, multichain_result):
-        before, after = (
-            multichain_result["val_before"],
-            multichain_result["val_after"],
-        )
+    """Held-out residual judged against each chain's noise floor (the true
+    model's residual on the same touches); see the single-chain test."""
+
+    def test_both_chains_within_noise_floor_margin(self, multichain_result):
+        after = multichain_result["val_after"]
+        floor = multichain_result["val_floor"]
         for side in ("left", "right"):
-            for key in ("z_rmse_mm", "roll_rmse_deg", "pitch_rmse_deg"):
-                assert after[side][key] < before[side][key] / 1.5, (
-                    f"{side}.{key} did not improve enough on held-out "
-                    f"data: {before[side][key]:.4f} -> {after[side][key]:.4f}"
+            for key in KEYS:
+                assert after[side][key] <= HELD_OUT_FLOOR_MARGIN * floor[side][key], (
+                    f"{side} held-out {key} {after[side][key]:.4f} exceeds "
+                    f"{HELD_OUT_FLOOR_MARGIN} x noise floor {floor[side][key]:.4f}"
                 )
 
-    def test_absolute_residual_is_small(self, multichain_result):
+    def test_calibration_beats_the_uncalibrated_model(self, multichain_result):
+        before = multichain_result["val_before"]
         after = multichain_result["val_after"]
+        floor = multichain_result["val_floor"]
         for side in ("left", "right"):
-            assert after[side]["z_rmse_mm"] < 4.0
-            assert after[side]["roll_rmse_deg"] < 0.5
-            assert after[side]["pitch_rmse_deg"] < 0.5
+            for key in KEYS:
+                # Diagnostic only: improvement depends on the injected errors.
+                print(
+                    f"{side} held-out {key}: {before[side][key]:.4f} -> "
+                    f"{after[side][key]:.4f} "
+                    f"({before[side][key] / after[side][key]:.1f}x); floor "
+                    f"{floor[side][key]:.4f}"
+                )
+                assert after[side][key] < before[side][key]
