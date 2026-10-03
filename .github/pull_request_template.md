@@ -1,8 +1,8 @@
 <!-- Base: `main`. Title: Conventional Commits, e.g. "fix(ur10): align configured timing".
      PRs are merged with a merge commit after maintainer approval. -->
 
-Closes figaroh-examples#
-<!-- Paired core change? Link figaroh-plus#… and give the core commit tested with. -->
+Closes #
+<!-- Paired core change? Link thanhndv212/figaroh-plus#… and give the core commit tested with. -->
 
 ## Why
 
