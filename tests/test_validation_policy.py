@@ -56,6 +56,26 @@ def test_timeout_preserves_partial_output_without_inventing_exit(tmp_path, monke
     assert meta["returncode"] is None and meta["timed_out"]
 
 
+def test_children_run_with_single_threaded_blas(tmp_path, monkeypatch):
+    """Threaded BLAS made optimal_trajectory results irreproducible (#56)."""
+    monkeypatch.setattr(validate, "REPO_ROOT", tmp_path)
+    for name in validate.DETERMINISTIC_THREAD_ENV:
+        monkeypatch.setenv(name, "8")
+    names = sorted(validate.DETERMINISTIC_THREAD_ENV)
+    rc, out, _, _ = validate.run_command(
+        [
+            sys.executable,
+            "-c",
+            f"import os; print([os.environ.get(n) for n in {names!r}])",
+        ],
+        tmp_path,
+        5,
+        label="threads",
+    )
+    assert rc == 0
+    assert out.strip() == str(["1"] * len(names))
+
+
 def test_empty_validation_cannot_pass():
     assert not validate.print_summary([], [])
 
