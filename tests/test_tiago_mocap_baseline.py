@@ -1,9 +1,9 @@
-"""Captured baseline of the TIAGo mocap calibration reference (C1, #24).
+"""Captured baseline of the TIAGo mocap calibration reference (#67).
 
-Pins the observation semantics of the shipped dataset and the current fit,
-so a change in either is visible. These are the *current* values, not
-acceptance thresholds: a held-out protocol is #27 (C2).
-See docs/development/tiago-mocap-calibration-audit-2026-10-04.md.
+Pins the observation semantics of the shipped datasets and the current
+training and held-out fit, so a change in either is visible. Training is the
+clock-corrected 2021-11-30 session, held-out the 2021-11-26 session in the
+same Qualisys ``base_frame`` body (examples/tiago/data/README.md).
 """
 
 import contextlib
@@ -15,41 +15,60 @@ import pandas as pd
 import pinocchio as pin
 import pytest
 
-from figaroh.calibration.calibration_tools import calc_updated_fkm
 from figaroh.tools.robot import load_robot
 
 TIAGO = Path(__file__).resolve().parents[1] / "examples" / "tiago"
-CSV = TIAGO / "data/calibration/mocap/qualysis_base_hand_calibration.csv"
-# The fit depends on which identifiable parameter set Pinocchio's RNG draws
-# (figaroh-plus#99). Observed over draws on macOS/figaroh-dev: RMSE 2.61-3.63
-# mm, max 6.27-7.24 mm; pin.seed(0) gives 2.711 / 6.966 there. The C++ RNG
-# sequence is platform-dependent, so the test checks the envelope.
-RMSE_MM_RANGE, MAX_MM_RANGE = (2.5, 3.8), (6.0, 7.5)
+MOCAP = TIAGO / "data/calibration/mocap"
+TRAIN = MOCAP / "qualisys_2021-11-30_static_postures.csv"
+HELD_OUT = MOCAP / "qualisys_2021-11-26_static_postures.csv"
 JOINTS = ["torso_lift_joint"] + [f"arm_{i}_joint" for i in range(1, 8)]
+MARKER_COLUMNS = [f"{a}{k}" for k in range(1, 5) for a in "xyz"]
+TIMING_COLUMNS = ["t_start_robot", "t_end_robot", "marker_std_mm"]
 
 
 def _markers(df):
     return {k: df[[f"x{k}", f"y{k}", f"z{k}"]].to_numpy() for k in range(1, 5)}
 
 
-def test_mocap_file_layout():
-    df = pd.read_csv(CSV)
-    assert len(df) == 34
-    expected = [f"{a}{k}" for k in range(1, 5) for a in "xyz"] + JOINTS
-    assert list(df.columns) == expected  # no timestamps, no orientation columns
+@pytest.mark.parametrize(
+    "path, n_rows, extra",
+    [(TRAIN, 37, ["shipped_row"]), (HELD_OUT, 62, [])],
+)
+def test_mocap_file_layout(path, n_rows, extra):
+    df = pd.read_csv(path)
+    assert len(df) == n_rows
+    assert list(df.columns) == MARKER_COLUMNS + JOINTS + extra + TIMING_COLUMNS
     assert np.all(np.isfinite(df.to_numpy()))
+    # one row per static plateau, in time order, averaged over >= 1.2 s
+    duration = df.t_end_robot - df.t_start_robot
+    assert duration.min() >= 1.2
+    assert np.all(np.diff(df.t_start_robot) > 0)
 
 
-def test_markers_are_rigid_points_not_raw_measurements():
-    """Inter-marker distances vary by ~0.1 um: derived from a rigid-body pose."""
-    m = _markers(pd.read_csv(CSV))
-    np.testing.assert_array_equal(m[3], m[4])  # marker 4 is a copy of marker 3
-    for a, b in [(1, 2), (1, 3), (2, 3)]:
-        d = np.linalg.norm(m[a] - m[b], axis=1)
-        assert d.max() - d.min() < 1e-6
-    # All markers move with the hand: none is a static base marker.
-    for k in (1, 2, 3):
-        assert np.linalg.norm(m[k].std(axis=0)) > 0.2
+def _distances(path):
+    m = _markers(pd.read_csv(path))
+    return {
+        (a, b): np.linalg.norm(m[a] - m[b], axis=1)
+        for a in range(1, 5)
+        for b in range(a + 1, 5)
+    }
+
+
+def test_markers_are_points_of_one_rigid_body():
+    """BL, BR, TR, TL are virtual points of one Qualisys rigid body.
+
+    Inter-point distances are constant to < 1 um (optical noise is ~0.2 mm,
+    see marker_std_mm), so the four points carry the body's 6D pose rather
+    than four independent measurements. Both days use the same body
+    definition, which is why held-out scoring needs no re-registration.
+    """
+    train, held_out = _distances(TRAIN), _distances(HELD_OUT)
+    for pair, d in train.items():
+        assert d.mean() > 0.05  # distinct points, not copies
+        assert d.std() < 1e-6 and held_out[pair].std() < 1e-6
+        assert d.mean() == pytest.approx(held_out[pair].mean(), abs=1e-4)
+    for path in (TRAIN, HELD_OUT):
+        assert pd.read_csv(path).marker_std_mm.median() < 0.5
 
 
 @pytest.fixture(scope="module")
@@ -60,8 +79,6 @@ def calibrated(monkeypatch_module):
     robot = load_robot(
         "urdf/tiago_48_schunk.urdf", load_by_urdf=True, robot_pkg="tiago_description"
     )
-    # The identifiable parameter set is drawn from Pinocchio's RNG, so the fit
-    # depends on its state (figaroh-plus#99); seed it to pin one draw.
     pin.seed(0)
     np.random.seed(0)
     with contextlib.redirect_stdout(io.StringIO()):
@@ -80,35 +97,37 @@ def monkeypatch_module():
     mp.undo()
 
 
-def _rmse_mm(calib, var):
-    r = calc_updated_fkm(
-        calib.model, calib.data, var, calib.q_measured, calib.calib_config
-    )
-    err = np.linalg.norm((r - calib.PEE_measured).reshape(3, -1), axis=0)
-    return float(np.sqrt(np.mean(err**2)) * 1000), float(err.max() * 1000)
-
-
 def test_observation_semantics(calibrated):
     cc = calibrated.calib_config
+    assert cc["calib_model"] == "joint_offset"
     assert cc["start_frame"] == "universe"
     assert cc["end_frame"] == "wrist_ft_tool_link"
-    assert cc["NbMarkers"] == 1  # only marker 1 is used
+    assert cc["NbMarkers"] == 1  # only marker 1 (BL) is used
     assert cc["measurability"] == [True, True, True, False, False, False]
-    assert cc["NbSample"] == 34
-    names = cc["param_name"]
-    assert len(names) == 32
-    assert names[:6] == [
-        "base_px",
-        "base_py",
-        "base_pz",
-        "base_phix",
-        "base_phiy",
-        "base_phiz",
-    ]
-    assert names[-3:] == ["pEEx_1", "pEEy_1", "pEEz_1"]
+    assert cc["NbSample"] == 37
+    assert cc["validation_data_file"].endswith(HELD_OUT.name)
+    assert cc["param_name"] == (
+        [f"base_p{a}" for a in "xyz"]
+        + [f"base_phi{a}" for a in "xyz"]
+        + ["offsetPZ_torso_lift_joint"]
+        + [f"offsetRZ_arm_{i}_joint" for i in range(1, 7)]
+        + ["pEEx_1", "pEEy_1", "pEEz_1"]
+    )
 
 
 def test_current_fit_baseline(calibrated):
-    rmse, worst = _rmse_mm(calibrated, np.asarray(calibrated.var_, dtype=float))
-    assert RMSE_MM_RANGE[0] < rmse < RMSE_MM_RANGE[1]
-    assert MAX_MM_RANGE[0] < worst < MAX_MM_RANGE[1]
+    """Training and held-out error; arm_5 carries the dominant offset."""
+    rmse = calibrated.evaluation_metrics["rmse"] * 1000
+    assert rmse == pytest.approx(2.90, abs=0.05)
+
+    held_out = calibrated._compute_validation_metrics()
+    assert held_out["validation_source"] == "validation_data"
+    assert held_out["n_val_samples"] == 62
+    assert held_out["pos_rmse_calibrated_mm"] == pytest.approx(4.35, abs=0.05)
+    assert held_out["pos_max_calibrated_mm"] == pytest.approx(12.55, abs=0.2)
+
+    offsets = dict(zip(calibrated.calib_config["param_name"], calibrated.LM_result.x))
+    arm_mrad = {k: offsets[f"offsetRZ_arm_{k}_joint"] * 1000 for k in range(2, 7)}
+    assert arm_mrad[5] == pytest.approx(-37.5, abs=1.0)
+    # the other identifiable arm offsets stay small (|.| < 5 mrad)
+    assert max(abs(arm_mrad[k]) for k in (2, 3, 4, 6)) < 5.0

@@ -66,24 +66,78 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
 
 ## Mocap calibration data (`calibration/mocap/`)
 
-Audited in [#24](https://github.com/thanhndv212/figaroh-examples/issues/24);
-full report: [`docs/development/tiago-mocap-calibration-audit-2026-10-04.md`](../../../docs/development/tiago-mocap-calibration-audit-2026-10-04.md).
-The raw file is kept unmodified.
+Rebuilt from the raw Qualisys recordings in
+[#67](https://github.com/thanhndv212/figaroh-examples/issues/67). The C1 audit
+([#24](https://github.com/thanhndv212/figaroh-examples/issues/24),
+[report](../../../docs/development/tiago-mocap-calibration-audit-2026-10-04.md))
+covers the file these replace.
 
-`qualysis_base_hand_calibration.csv` (sha256 prefix `d7fcbd96e3e67319`): 34
-static postures, one row each. Columns `x1,y1,z1 … x4,y4,z4` then the eight
-joint positions `torso_lift_joint` (m) and `arm_1_joint` … `arm_7_joint` (rad).
+| File | Role | Session | Postures | sha256 (prefix) |
+|---|---|---|---|---|
+| `qualisys_2021-11-30_static_postures.csv` | training (`source_file`) | `calib_mocap_2021-11-30-15-44-33` | 37 | `b6c0051e20c6a077` |
+| `qualisys_2021-11-26_static_postures.csv` | held-out (`validation_data_file`) | `calib_mocap_2021-11-26-11-05-59` | 62 | `7c986df711757c4d` |
 
-- **No clock:** rows are independent postures; there are no timestamps.
-- **Units:** marker coordinates in metres in the mocap world frame (consistent
-  with a millimetre-level fit); joints in rad (torso in m).
-- **Markers are derived points, not raw measurements:** inter-marker distances
-  vary by only ~0.1 µm across postures (optical noise is ~0.1 mm), so the four
-  points were computed from a rigid-body pose. Marker 4 is an exact copy of
-  marker 3; all markers move with the hand (none is on the base).
-- **Used:** only marker 1, position only (`measurable_dof` xyz), expressed by
-  calibration as a point fixed in `wrist_ft_tool_link`. The three distinct
-  points would also determine orientation; that information is unused.
-- **End effector unrecorded:** the file name says "hand" and the sample set is
-  `…_pmb2_hey5.yaml`, but calibration loads `tiago_48_schunk.urdf` (WSG
-  gripper). Only the estimated tip offset depends on it.
+**Columns:**
+- `x1,y1,z1 … x4,y4,z4`: the points BL, BR, TR, TL of the Qualisys hand
+  rigid body, in metres. They are virtual points of one tracked body, not four
+  independent marker measurements: inter-point distances are constant to
+  < 1 µm and identical on both days. So the four points carry the body's 6D
+  pose.
+- The eight joint positions: `torso_lift_joint` (m), `arm_1_joint` …
+  `arm_7_joint` (rad).
+- `t_start_robot`, `t_end_robot`: the averaging window, robot clock (s).
+- `marker_std_mm`: the largest marker standard deviation over that window.
+- `shipped_row` (training file only): the matching row of the replaced file,
+  or −1 for a posture that file did not have.
+
+**How the rows were built:**
+- **Static plateaus:** one row per period where every joint stays within
+  1 mrad over 0.5 s, lasting at least 2 s.
+- **Joints:** averaged over [start + 0.5 s, end − 0.3 s].
+- **Clock correction:** markers are averaged over the same physical interval
+  on the mocap clock, which runs 3.9 s (Nov-30) and 2.6 s (Nov-26) behind the
+  robot clock. Each lag was estimated by cross-correlating joint and marker
+  speed.
+- **Frame:** markers are expressed in the Qualisys `base_frame` rigid body,
+  which is fixed to the robot base. Both sessions share it, so a model fitted
+  on one day can be scored on the other without re-registration.
+- **Noise:** the body's point standard deviation per plateau is 0.2 mm
+  (median).
+
+Raw bags and the extraction scripts (`tools/audit/nov30.py`,
+`tools/audit/figaroh_mocap_csv.py`) are in the private
+`robot-calibration-identification-dataset` repository, under `tiago/`.
+
+**Used by calibration:** marker 1 (BL), position only (`measurable_dof` xyz),
+expressed as a point fixed in `wrist_ft_tool_link`. Core supports one marker
+per sample (`NbMarkers == 1`), so points 2–4 are unused. Since all four come
+from one body pose, a 6D pose measurement would carry the same information. The end effector
+for these sessions was not recorded; calibration loads `tiago_48_schunk.urdf`,
+and only the estimated tip offset depends on that choice.
+
+**Reference result:** `calibration.py`, `calibration_level: joint_offset`,
+base and tool estimated, figaroh-plus `devel` with #101 and #105.
+
+| Training RMSE | Held-out RMSE (Nov-26) | Held-out max | arm_5 offset |
+|---|---|---|---|
+| 2.90 mm | 4.35 mm | 12.6 mm | −37.5 mrad |
+
+With regularisation 1e-4 instead of the default 0.01, arm_5 is −49.7 mrad.
+The default shrinks it (figaroh-plus#102). About 3.7 mm of residual remains in
+every Nov-2021 session after calibration, which is not geometric: it is the
+practical floor for this setup. `full_params` (32 parameters) gains at most
+0.6 mm on held-out postures.
+
+**Deployment:** at `joint_offset` level, `calibration.py` writes an empty PAL
+`master_calibration.yaml` (`geometric_calibration: {}`), because the PAL
+export carries only `full_params` placement corrections. Mapping joint
+offsets to PAL's `arm_k_joint_offset` entries is #28 (C3). The exported URDF
+(`update_model.py`) does contain the offsets, written into each joint's
+`<origin>` (figaroh-plus#101).
+
+**Replaced file:** `qualysis_base_hand_calibration.csv` (34 postures, sha256
+prefix `d7fcbd96e3e67319`; last in commit `45ff19c`). It came from the same
+session, but joints and markers were paired by raw timestamp with the 3.9 s
+clock offset uncorrected. In 16 of 34 rows the marker sample was taken after
+the arm had started moving, with errors up to 7.8 mm (row 29 is the worst).
+Its "marker 4" repeated marker 3, so TL was missing.

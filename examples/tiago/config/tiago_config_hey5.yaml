@@ -45,7 +45,7 @@ calibration:
   coeff_regularize: 0.000 # L2 regularization weight on identified offsets
   outlier_eps: 0.05 # meters; residual above this is dropped as an outlier
   # Recorded (joint configuration, measured marker pose) samples.
-  data_file: data/calibration/mocap/qualysis_base_hand_calibration.csv
+  data_file: data/calibration/mocap/qualisys_2021-11-30_static_postures.csv
   # Optional cross-reference: which planned configuration each data_file
   # row corresponds to (traceability only, not required for the fit).
   sample_configs_file: data/calibration/optimal_configurations/tiago_calibration_joint_configurations_500_pmb2_hey5.yaml
