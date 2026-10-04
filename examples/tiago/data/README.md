@@ -135,8 +135,9 @@ offsets to PAL's `arm_k_joint_offset` entries is #28 (C3). The exported URDF
 (`update_model.py`) does contain the offsets, written into each joint's
 `<origin>` (figaroh-plus#101).
 
-**Replaced file:** `qualysis_base_hand_calibration.csv` (34 postures, sha256
-prefix `d7fcbd96e3e67319`; last in commit `45ff19c`). It came from the same
+**Superseded file, kept unmodified and unused by any config:**
+`qualysis_base_hand_calibration.csv` (34 postures, sha256 prefix
+`d7fcbd96e3e67319`). It came from the same
 session, but joints and markers were paired by raw timestamp with the 3.9 s
 clock offset uncorrected. In 16 of 34 rows the marker sample was taken after
 the arm had started moving, with errors up to 7.8 mm (row 29 is the worst).
