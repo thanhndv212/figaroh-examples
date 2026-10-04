@@ -70,7 +70,7 @@ tasks:
         tool_pose: [0.2163, 0.03484, 0.004, 0.0, -1.57, -1.57]
 
     data:
-      source_file: "data/calibration/mocap/qualysis_base_hand_calibration.csv"
+      source_file: "data/calibration/mocap/qualisys_2021-11-30_static_postures.csv"
       sample_configurations_file: "data/optimal_configs/eye_hand_calibration_tiago_hey5_100.yaml"
       number_of_samples: 500
 

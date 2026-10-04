@@ -6,6 +6,13 @@ This records the observation semantics and the current behaviour of the TIAGo
 geometric calibration reference. It is a capture, not a new reference: the
 held-out protocol and truth fixture are C2 (#26, #27).
 
+> **Superseded data (#67).** The 34-posture file audited here was built with a
+> 3.9 s mocap clock offset left uncorrected, which corrupts 16 of its rows. It
+> has been replaced by clock-corrected training and held-out sessions, and the
+> default level is now `joint_offset`. See
+> [`examples/tiago/data/README.md`](../../examples/tiago/data/README.md). The
+> numbers below describe the replaced file and core v0.5.0.
+
 ## Methodology
 
 - Core figaroh-plus `02f705a` (`v0.5.0`); examples `main` at `cbfa8c6`. The

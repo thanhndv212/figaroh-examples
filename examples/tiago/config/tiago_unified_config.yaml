@@ -75,7 +75,9 @@ tasks:
     enabled: true
 
     parameters:
-      calibration_level: "full_params"
+      # One offset per joint (q + offset, figaroh-plus#101). On held-out
+      # postures full_params gains <= 0.6 mm for twice the parameters (#67).
+      calibration_level: "joint_offset"
       include_non_geometric: false
       # Not used by the solver: solve() flags residuals > 3 std devs and does not
       # remove them (figaroh-plus#98). Kept for provenance only.
@@ -98,9 +100,12 @@ tasks:
         base_pose: [0.0908, 0.08, 0.0, -1.57, 0.0, 0.0]
         tool_pose: [0.2163, 0.03484, 0.004, 0.0, -1.57, -1.57]
 
+    # Qualisys markers BL/BR/TR/TL expressed in the robot's base_frame body,
+    # one row per static plateau, clock-corrected (#67, data/README.md).
+    # Validation is a different day's session in the same frame.
     data:
-      source_file: "data/calibration/mocap/qualysis_base_hand_calibration.csv"
-      validation_data_file: ""
+      source_file: "data/calibration/mocap/qualisys_2021-11-30_static_postures.csv"
+      validation_data_file: "data/calibration/mocap/qualisys_2021-11-26_static_postures.csv"
       sample_configurations_file: "data/calibration/optimal_configurations/tiago_calibration_joint_configurations_500_pmb2_hey5.yaml"
       number_of_samples: 500
 
