@@ -75,7 +75,13 @@ covers the file these replace.
 | File | Role | Session | Postures | sha256 (prefix) |
 |---|---|---|---|---|
 | `qualisys_2021-11-30_static_postures.csv` | training (`source_file`) | `calib_mocap_2021-11-30-15-44-33` | 37 | `b6c0051e20c6a077` |
-| `qualisys_2021-11-26_static_postures.csv` | held-out (`validation_data_file`) | `calib_mocap_2021-11-26-11-05-59` | 62 | `7c986df711757c4d` |
+| `qualisys_2021-11-26_static_postures.csv` | validation (`validation_data_file`) | `calib_mocap_2021-11-26-11-05-59` | 62 | `7c986df711757c4d` |
+| `qualisys_2021-11-30-1403_static_postures.csv` | confirmation (not in any config) | `calib_mocap_2021-11-30-14-03-27` | 63 | `e44c678fbbc1fbc8` |
+| `qualisys_2021-11-30-1504_static_postures.csv` | confirmation (not in any config) | `calib_mocap_2021-11-30-15-04-05` | 59 | `cc19eaa74fe8b74b` |
+
+Roles, freeze rules and results are fixed in the held-out protocol
+([`docs/development/tiago-mocap-heldout-protocol.md`](../../../docs/development/tiago-mocap-heldout-protocol.md),
+#27). Do not tune anything on the confirmation sets.
 
 **Columns:**
 - `x1,y1,z1 … x4,y4,z4`: the points BL, BR, TR, TL of the Qualisys hand
@@ -126,10 +132,17 @@ full rank (condition number 26).
 | 2.88 mm | 4.23 mm | 12.0 mm | −49.8 mrad |
 
 The template's regularisation coefficient of 0.01 shrank arm_5 to
-−37.5 mrad and raised held-out error to 4.35 mm. About 3.7 mm of residual remains in
-every Nov-2021 session after calibration, which is not geometric: it is the
-practical floor for this setup. `full_params` (32 parameters) gains at most
-0.6 mm on held-out postures.
+−37.5 mrad and raised held-out error to 4.35 mm. About 3–4 mm of residual
+remains in every Nov-2021 session after calibration, which is not geometric:
+it is the practical floor for this setup.
+
+The held-out sessions mostly replay training configurations. Of each set's
+59–63 postures, 35–37 are training postures, 16–17 are new but inside the
+training joint ranges, and 8–9 are outside them. On the new in-range
+postures, held-out RMSE is 4.1–4.5 mm for `joint_offset`, 4.7–5.1 mm for
+registration only, and 3.1–3.2 mm for `full_params` (28 identifiable
+parameters). Outside the training ranges every model is at 5–7 mm. See the
+protocol for the full table.
 
 **Deployment:** at `joint_offset` level, `calibration.py` writes an empty PAL
 `master_calibration.yaml` (`geometric_calibration: {}`), because the PAL
