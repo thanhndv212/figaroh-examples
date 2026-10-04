@@ -78,6 +78,10 @@ tasks:
       # One offset per joint (q + offset, figaroh-plus#101). On held-out
       # postures full_params gains <= 0.6 mm for twice the parameters (#67).
       calibration_level: "joint_offset"
+      # No regularisation: core drops the parameters the base/tool frames
+      # absorb (figaroh-plus#102), so the problem is full rank. The template's
+      # 0.01 shrank arm_5 from -49.8 to -37.5 mrad and raised held-out error.
+      regularization_coefficient: 0.0
       include_non_geometric: false
       # Not used by the solver: solve() flags residuals > 3 std devs and does not
       # remove them (figaroh-plus#98). Kept for provenance only.
