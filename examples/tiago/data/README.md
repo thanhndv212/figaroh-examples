@@ -116,14 +116,17 @@ for these sessions was not recorded; calibration loads `tiago_48_schunk.urdf`,
 and only the estimated tip offset depends on that choice.
 
 **Reference result:** `calibration.py`, `calibration_level: joint_offset`,
-base and tool estimated, figaroh-plus `devel` with #101 and #105.
+base and tool estimated, no regularisation, figaroh-plus `devel` with #101,
+#105 and #102. Core drops the torso and arm_1 offsets, which the estimated
+6D base absorbs (vertical axes), so 14 parameters remain and the problem is
+full rank (condition number 26).
 
 | Training RMSE | Held-out RMSE (Nov-26) | Held-out max | arm_5 offset |
 |---|---|---|---|
-| 2.90 mm | 4.35 mm | 12.6 mm | −37.5 mrad |
+| 2.88 mm | 4.23 mm | 12.0 mm | −49.8 mrad |
 
-With regularisation 1e-4 instead of the default 0.01, arm_5 is −49.7 mrad.
-The default shrinks it (figaroh-plus#102). About 3.7 mm of residual remains in
+The template's regularisation coefficient of 0.01 shrank arm_5 to
+−37.5 mrad and raised held-out error to 4.35 mm. About 3.7 mm of residual remains in
 every Nov-2021 session after calibration, which is not geometric: it is the
 practical floor for this setup. `full_params` (32 parameters) gains at most
 0.6 mm on held-out postures.

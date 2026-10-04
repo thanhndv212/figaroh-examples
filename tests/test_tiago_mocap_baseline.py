@@ -106,11 +106,16 @@ def test_observation_semantics(calibrated):
     assert cc["measurability"] == [True, True, True, False, False, False]
     assert cc["NbSample"] == 37
     assert cc["validation_data_file"].endswith(HELD_OUT.name)
+    assert cc["coeff_regularize"] == 0.0
+    # the 6D base absorbs the vertical torso and arm_1 (figaroh-plus#102)
+    assert cc["absorbed_param_name"] == [
+        "offsetPZ_torso_lift_joint",
+        "offsetRZ_arm_1_joint",
+    ]
     assert cc["param_name"] == (
         [f"base_p{a}" for a in "xyz"]
         + [f"base_phi{a}" for a in "xyz"]
-        + ["offsetPZ_torso_lift_joint"]
-        + [f"offsetRZ_arm_{i}_joint" for i in range(1, 7)]
+        + [f"offsetRZ_arm_{i}_joint" for i in range(2, 7)]
         + ["pEEx_1", "pEEy_1", "pEEz_1"]
     )
 
@@ -118,16 +123,16 @@ def test_observation_semantics(calibrated):
 def test_current_fit_baseline(calibrated):
     """Training and held-out error; arm_5 carries the dominant offset."""
     rmse = calibrated.evaluation_metrics["rmse"] * 1000
-    assert rmse == pytest.approx(2.90, abs=0.05)
+    assert rmse == pytest.approx(2.88, abs=0.05)
 
     held_out = calibrated._compute_validation_metrics()
     assert held_out["validation_source"] == "validation_data"
     assert held_out["n_val_samples"] == 62
-    assert held_out["pos_rmse_calibrated_mm"] == pytest.approx(4.35, abs=0.05)
-    assert held_out["pos_max_calibrated_mm"] == pytest.approx(12.55, abs=0.2)
+    assert held_out["pos_rmse_calibrated_mm"] == pytest.approx(4.23, abs=0.05)
+    assert held_out["pos_max_calibrated_mm"] == pytest.approx(11.95, abs=0.2)
 
     offsets = dict(zip(calibrated.calib_config["param_name"], calibrated.LM_result.x))
     arm_mrad = {k: offsets[f"offsetRZ_arm_{k}_joint"] * 1000 for k in range(2, 7)}
-    assert arm_mrad[5] == pytest.approx(-37.5, abs=1.0)
+    assert arm_mrad[5] == pytest.approx(-49.8, abs=1.0)
     # the other identifiable arm offsets stay small (|.| < 5 mrad)
     assert max(abs(arm_mrad[k]) for k in (2, 3, 4, 6)) < 5.0
