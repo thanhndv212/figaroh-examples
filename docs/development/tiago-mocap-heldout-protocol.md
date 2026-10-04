@@ -12,9 +12,10 @@ config wiring) and pins the results.
 
 ## 1. Inventory of recordings
 
-All TIAGo mocap calibration recordings are in the private
-`robot-calibration-identification-dataset` repository (`tiago/`, audited in
-its `AUDIT.md`).
+The original recordings (ROS bags, 2021–2023) are not distributed. The
+posture files below were extracted from them with the rules in
+`examples/tiago/utils/mocap_extraction.py`, which are reviewed and tested
+(`tests/test_tiago_mocap_extraction.py`) in this repository.
 
 | Session | Postures | Frame | Status |
 |---|---|---|---|
@@ -36,13 +37,12 @@ distances agree to < 0.1 mm. So a model fitted on one session (base and tool
 frames included) is evaluated on another **without re-registration**.
 
 **Extraction:** every file was extracted with the same frozen rules, fixed
-before any fit (`tools/audit/nov30.py`, `tools/audit/figaroh_mocap_csv.py` in
-the dataset repository):
+before any fit (`examples/tiago/utils/mocap_extraction.py`):
 - one row per static plateau (all joints within 1 mrad over 0.5 s, ≥ 2 s);
 - joints averaged over [start + 0.5 s, end − 0.3 s];
 - marker points averaged over the same interval on the mocap clock, shifted
-  by the session's measured clock lag (3.9 s on 2021-11-30, 2.6 s on
-  2021-11-26).
+  by the session's clock lag. `estimate_clock_lag` gives 3.9 s on 2021-11-30
+  and 2.6 s on 2021-11-26 (speed correlation 0.95–0.98).
 
 No sample is filtered or removed after extraction. Core does not remove
 outliers (figaroh-plus#98).
@@ -158,8 +158,8 @@ The `joint_offset` fit's only clearly non-zero joint parameter is arm_5,
   `joint_offset`, against 2.88 mm in training.
 - **Residual floor:** about 3–4 mm of residual remains for every model and is
   not explained by geometry. The likely sources are arm_6 backlash (~40 mrad
-  free play, approach-direction dependent) and arm_5's encoder issues. See the
-  raw-data audits (`AUDIT_joints.md` in the dataset repository).
+  free play, approach-direction dependent) and arm_5's encoder issues
+  (#71).
 - **One robot, three days in one week, one end effector, one marker point.**
   Nothing here supports a claim about other units, later dates (arm_5's
   encoder offset shifted by ~90 mrad between 2021 and 2023), or orientation

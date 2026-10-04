@@ -110,9 +110,10 @@ Roles, freeze rules and results are fixed in the held-out protocol
 - **Noise:** the body's point standard deviation per plateau is 0.2 mm
   (median).
 
-Raw bags and the extraction scripts (`tools/audit/nov30.py`,
-`tools/audit/figaroh_mocap_csv.py`) are in the private
-`robot-calibration-identification-dataset` repository, under `tiago/`.
+The original ROS bags are not distributed. The rules above are implemented
+and tested in `examples/tiago/utils/mocap_extraction.py`
+(`tests/test_tiago_mocap_extraction.py`); `read_qualisys_bag` reads an
+original bag when the optional `rosbags` package is installed.
 
 **Used by calibration:** marker 1 (BL), position only (`measurable_dof` xyz),
 expressed as a point fixed in `wrist_ft_tool_link`. Core supports one marker
