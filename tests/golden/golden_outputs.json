@@ -31,6 +31,15 @@
    "n_params": 14
   }
  ],
+ "tiago/calibration.py[excitation]": [
+  {
+   "calib_model": "full_params",
+   "export_dev_mm": 6.4723,
+   "fit_rms_mm": 1.635174,
+   "kind": "calibration",
+   "n_params": 18
+  }
+ ],
  "tiago/identification.py": [
   {
    "kind": "identification",

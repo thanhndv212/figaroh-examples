@@ -1,0 +1,13 @@
+# Variant of tiago_unified_config.yaml for the golden-output check
+# (tests/golden, #76): full_params with core's "excitation" estimation method
+# (figaroh-plus#113), so CI on Linux checks a non-default method against the
+# recorded reference. Not a recommended setting; see figaroh-plus
+# docs/source/tutorials/calibration_estimation_guide.md.
+extends: "tiago_unified_config.yaml"
+
+tasks:
+  calibration:
+    parameters:
+      calibration_level: "full_params"
+      estimation:
+        method: "excitation"

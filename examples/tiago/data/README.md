@@ -117,7 +117,8 @@ original bag when the optional `rosbags` package is installed.
 
 **Used by calibration:** marker 1 (BL), position only (`measurable_dof` xyz),
 expressed as a point fixed in `wrist_ft_tool_link`. Core supports one marker
-per sample (`NbMarkers == 1`), so points 2–4 are unused. Since all four come
+per sample (`NbMarkers == 1`), so points 2–4 are unused; fitting all four
+(or the 6D pose) is figaroh-plus#119. Since all four come
 from one body pose, a 6D pose measurement would carry the same information. The end effector
 for these sessions was not recorded; calibration loads `tiago_48_schunk.urdf`,
 and only the estimated tip offset depends on that choice.
@@ -141,9 +142,10 @@ The held-out sessions mostly replay training configurations. Of each set's
 59–63 postures, 35–37 are training postures, 16–17 are new but inside the
 training joint ranges, and 8–9 are outside them. On the new in-range
 postures, held-out RMSE is 4.1–4.5 mm for `joint_offset`, 4.7–5.1 mm for
-registration only, and 3.1–3.2 mm for `full_params` (28 identifiable
-parameters). Outside the training ranges every model is at 5–7 mm. See the
-protocol for the full table.
+registration only, and 2.6–2.8 mm for `full_params` (31 parameters on macOS,
+30 on Linux; figaroh-plus#110, #113). Outside the training ranges
+registration only and `joint_offset` are at 6–7 mm, `full_params` at
+3.8–5.3 mm. See the protocol for the full table.
 
 **Deployment:** at `joint_offset` level, `calibration.py` writes an empty PAL
 `master_calibration.yaml` (`geometric_calibration: {}`), because the PAL
@@ -151,6 +153,11 @@ export carries only `full_params` placement corrections. Mapping joint
 offsets to PAL's `arm_k_joint_offset` entries is #28 (C3). The exported URDF
 (`update_model.py`) does contain the offsets, written into each joint's
 `<origin>` (figaroh-plus#101).
+
+**Sessions not shipped:** the protocol's inventory lists the other
+recordings and why they are not used. In particular, the 2023-11-07 OptiTrack
+eye-hand runs are unusable for kinematics: the chessboard rigid body flips
+(~170° in 13 of 16 postures).
 
 **Superseded file, kept unmodified and unused by any config:**
 `qualysis_base_hand_calibration.csv` (34 postures, sha256 prefix
