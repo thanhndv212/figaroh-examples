@@ -86,7 +86,8 @@ Files in `examples/tiago/data/calibration/mocap/`:
   point (3D, `pEE*_1`) are estimated on training, together with the joint
   parameters. Core drops joint parameters the frames absorb
   (figaroh-plus#102): at `joint_offset`, the torso and arm_1 offsets (vertical
-  axes, absorbed by base z and yaw); at `full_params`, 4 of the 32. Reported
+  axes, absorbed by base z and yaw); at `full_params`, `d_pz_arm_7` (absorbed
+  by the tool point), plus `d_phiz_arm_1` on Linux (see section 4). Reported
   joint offsets are therefore relative to this gauge. An offset on the torso,
   on arm_1, or on arm_7 roll (not in the observed chain) is not estimable from
   this data.
@@ -107,9 +108,16 @@ Files in `examples/tiago/data/calibration/mocap/`:
 
 ## 4. Results (protocol v1, 2026-10-05)
 
-figaroh-plus `devel` `5591b9d`, figaroh-examples `main` `7a57e16` plus this
-change; `figaroh-dev`, Python 3.12, Pinocchio 3.7.0, single-threaded BLAS.
-`python heldout_protocol.py` from `examples/tiago`.
+figaroh-plus `devel` `825b454`, figaroh-examples `main` `8e3f465` plus this
+change; `figaroh-dev`, Python 3.12, Pinocchio 3.7.0, single-threaded BLAS,
+macOS arm64. `python heldout_protocol.py` from `examples/tiago`.
+
+**Platform:** registration only and `joint_offset` give identical results on
+Linux x86-64 (the CI environment). `full_params` keeps 30 parameters on Linux
+instead of 31: core's structural parameter selection breaks ties between
+equal columns differently by platform (figaroh-plus#113). Its Linux norm RMSE
+is 1.68 / 3.22 / 3.00 / 2.56 mm, up to 0.15 mm higher than below; the test
+pins `full_params` at ± 0.2 mm.
 
 Norm RMSE (mm) per set, with posture-group counts in brackets:
 
@@ -117,7 +125,7 @@ Norm RMSE (mm) per set, with posture-group counts in brackets:
 |---|---|---|---|---|
 | registration only (9) | 3.37 | 4.87 | 4.58 | 4.22 |
 | `joint_offset` (14), **reference** | 2.88 | 4.23 | 4.09 | 3.83 |
-| `full_params` (28) | 1.75 | 3.68 | 3.35 | 2.89 |
+| `full_params` (31) | 1.64 | 3.07 | 2.83 | 2.44 |
 
 By posture group, held-out sets:
 
@@ -125,7 +133,12 @@ By posture group, held-out sets:
 |---|---|---|---|
 | registration only | 3.93 / 3.48 / 3.25 | 5.12 / 4.85 / 4.73 | 7.34 / 7.23 / 6.35 |
 | `joint_offset` | 3.31 / 3.08 / 2.84 | **4.47 / 4.29 / 4.13** | 6.53 / 6.61 / 6.21 |
-| `full_params` | 2.43 / 2.10 / 1.99 | **3.24 / 3.13 / 3.06** | 7.10 / 6.46 / 5.07 |
+| `full_params` | 2.34 / 2.03 / 1.91 | **2.84 / 2.75 / 2.64** | 5.31 / 5.01 / 3.77 |
+
+Before figaroh-plus#110 (core applied `full_params` errors in the parent
+frame with RPY addition, inconsistent with its own parameter selection),
+`full_params` kept 28 parameters and gave 1.75 / 3.68 / 3.35 / 2.89 mm. The
+frozen files and rules are unchanged; only core's model changed.
 
 Per axis, `joint_offset`, mm:
 
@@ -144,20 +157,22 @@ The `joint_offset` fit's only clearly non-zero joint parameter is arm_5,
 - **Calibration helps, modestly, on every held-out set and posture group.**
   On new postures inside the training range, `joint_offset` is 0.56–0.65 mm
   better than registration only (about 12 %). `full_params` is a further
-  1.1–1.2 mm better. Its training-to-held-out gap is larger (1.75 →
-  3.1–3.2 mm on new postures), but it still generalises better within the
+  1.5–1.6 mm better. Its training-to-held-out gap is larger (1.64 →
+  2.6–2.8 mm on new postures), but it still generalises better within the
   training range on this robot and day range.
-- **No better than registration outside the training range.** On out-of-range
-  postures all models are at 5–7 mm. The worst two postures (8.5 and 12 mm in
-  every held-out session) are beyond anything in training: one has arm_3 at
-  −3.14 and arm_7 at −1.58 rad, the other arm_6 at −1.18 and arm_7 at
-  +1.77 rad. A calibration fitted on the 37-posture
-  plan should not be expected to hold there.
+- **Outside the training range, only `full_params` improves on
+  registration.** On out-of-range postures, registration only is at
+  6.4–7.3 mm, `joint_offset` at 6.2–6.6 mm, `full_params` at 3.8–5.3 mm. The
+  worst posture of each session stays at 7.9–12.2 mm for every model; the two
+  worst are beyond anything in training: one has arm_3 at −3.14 and arm_7 at
+  −1.58 rad, the other arm_6 at −1.18 and arm_7 at +1.77 rad. A calibration
+  fitted on the 37-posture plan should not be expected to hold there.
 - **The "repeated" group measures day-to-day repeatability, not
   generalisation.** Same configurations, different day: 2.8–3.3 mm for
   `joint_offset`, against 2.88 mm in training.
-- **Residual floor:** about 3–4 mm of residual remains for every model and is
-  not explained by geometry. The likely sources are arm_6 backlash (~40 mrad
+- **Residual floor:** 2–3 mm of held-out residual remains even for
+  `full_params` (2–4 mm for the other models) and is not explained by
+  geometry. The likely sources are arm_6 backlash (~40 mrad
   free play, approach-direction dependent) and arm_5's encoder issues
   (#71).
 - **One robot, three days in one week, one end effector, one marker point.**
@@ -166,6 +181,8 @@ The `joint_offset` fit's only clearly non-zero joint parameter is arm_5,
   accuracy.
 - **Default level:** the reference stays at `joint_offset`, chosen for
   interpretability (one offset per joint, exported into the URDF), not for
-  held-out error. `full_params` is better by ~1 mm on new in-range postures.
+  held-out error. `full_params` is better by ~1.5 mm on new in-range
+  postures, but its parameter set is not yet platform-independent
+  (figaroh-plus#113).
   Changing the default is a separate decision; per rule 2, it must not be
   made on the confirmation sets alone.

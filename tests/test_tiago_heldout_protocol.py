@@ -106,16 +106,22 @@ HELD_OUT = [n for n, (role, _, _) in FROZEN.items() if role != "training"]
 EXPECTED_RMSE = {
     "registration only": [3.37, 4.87, 4.58, 4.22],
     "joint_offset": [2.88, 4.23, 4.09, 3.83],
-    "full_params": [1.75, 3.68, 3.35, 2.89],
+    "full_params": [1.64, 3.07, 2.83, 2.44],
 }
+# full_params keeps 31 parameters on macOS and 30 on Linux: the structural
+# selection breaks pivot ties by platform, and the two sets differ on the
+# data (figaroh-plus#113). Linux is up to 0.15 mm higher.
+ATOL = {"registration only": 0.05, "joint_offset": 0.05, "full_params": 0.2}
 
 
 def test_protocol_results(protocol):
     names = list(FROZEN)
     for model, expected in EXPECTED_RMSE.items():
         got = [protocol[model]["sets"][n]["rmse"] for n in names]
-        np.testing.assert_allclose(got, expected, atol=0.05, err_msg=model)
+        np.testing.assert_allclose(got, expected, atol=ATOL[model], err_msg=model)
+    assert protocol["registration only"]["n_params"] == 9
     assert protocol["joint_offset"]["n_params"] == 14
+    assert protocol["full_params"]["n_params"] in (30, 31)
     assert protocol["joint_offset"]["arm_5"][0] * 1e3 == pytest.approx(-49.8, abs=1.0)
 
 
@@ -133,4 +139,6 @@ def test_calibration_beats_registration_on_new_postures(protocol):
     for n in HELD_OUT:
         reg = protocol["registration only"]["sets"][n]["strata"]["new"][1]
         cal = protocol["joint_offset"]["sets"][n]["strata"]["new"][1]
+        full = protocol["full_params"]["sets"][n]["strata"]["new"][1]
         assert cal < reg - 0.3, n
+        assert full < cal - 1.0, n
