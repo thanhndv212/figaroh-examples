@@ -100,6 +100,16 @@ full final evidence. Run affected robot commands from their robot folder with
 numerical results. Documentation-only discussion changes use hooks/diff/link
 checks; do not rerun long optimization merely to validate prose.
 
+`tests/test_golden_outputs.py` runs the calibration and identification
+example scripts and compares what they produce (parameter counts, fit RMS,
+exported-model deviation, torque RMSE) with `tests/golden/golden_outputs.json`.
+When a core or example change moves an output on purpose, regenerate the
+reference in the same examples PR with
+`python tests/golden/golden_outputs.py --update`, and state in the PR which
+outputs moved and why. A core PR that moves an output needs that paired
+examples PR; merge the core PR first, since examples CI tests against core
+`devel`. Do not widen `TOL` or `PLATFORM_SPREAD` to absorb a change.
+
 A phase can be accepted only with passing checks or explicitly reproduced,
 known pre-existing failures under the existing agent instructions. Such local
 acceptance does not bypass a required failed hosted merge gate. Keep solver

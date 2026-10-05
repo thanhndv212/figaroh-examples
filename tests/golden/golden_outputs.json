@@ -1,0 +1,57 @@
+{
+ "so101/identification.py": [
+  {
+   "kind": "identification",
+   "n_base": 23,
+   "tau_rmse": 0.008223589
+  }
+ ],
+ "staubli_tx40/identification.py": [
+  {
+   "kind": "identification",
+   "n_base": 58,
+   "tau_rmse": 2.992245271
+  }
+ ],
+ "talos/calibration_upperbody.py": [
+  {
+   "calib_model": "full_params",
+   "export_dev_mm": 43.1167,
+   "fit_rms_mm": 0.325676,
+   "kind": "calibration",
+   "n_params": 38
+  }
+ ],
+ "tiago/calibration.py": [
+  {
+   "calib_model": "joint_offset",
+   "export_dev_mm": 4.4168,
+   "fit_rms_mm": 1.660232,
+   "kind": "calibration",
+   "n_params": 14
+  }
+ ],
+ "tiago/identification.py": [
+  {
+   "kind": "identification",
+   "n_base": 73,
+   "tau_rmse": 0.665947359
+  }
+ ],
+ "ur10/calibration.py": [
+  {
+   "calib_model": "full_params",
+   "export_dev_mm": 4.4215,
+   "fit_rms_mm": 1.691853,
+   "kind": "calibration",
+   "n_params": 30
+  }
+ ],
+ "ur10/identification.py": [
+  {
+   "kind": "identification",
+   "n_base": 36,
+   "tau_rmse": 0.066743777
+  }
+ ]
+}
