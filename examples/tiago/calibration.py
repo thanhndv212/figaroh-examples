@@ -45,7 +45,6 @@ import logging
 import os
 import re
 import sys
-import time
 from pathlib import Path
 
 import numpy as np
@@ -418,16 +417,19 @@ def _run_calibration(
 
     if geometric_calibration_yaml:
         try:
+            # deltas on the nominal URDF's origins as written (figaroh-plus#123)
             export_geometric_calibration_yaml(
                 tiago_calib,
                 str(run_dir / "master_calibration.yaml"),
                 header_comment="TIAGo calibration -- full",
+                nominal_urdf=urdf_path,
             )
             export_geometric_calibration_yaml(
                 tiago_calib,
                 str(run_dir / "master_calibration_conservative.yaml"),
                 min_sigma=2.0,
                 header_comment="TIAGo calibration -- conservative (>=2sigma)",
+                nominal_urdf=urdf_path,
             )
             print(f"Geometric calibration YAML written to {run_dir}")
         except Exception as e:
@@ -443,7 +445,20 @@ def _run_calibration(
     os.makedirs(DATA_DIR, exist_ok=True)
     ts = _timestamp_str()
     saved_path = os.path.join(DATA_DIR, f"calibration_results_{ts}.npz")
-    np.savez(saved_path, result=result.x, param_names=param_names)
+    # The URDF carries the joint corrections (the same values as the PAL
+    # file); the base frame and marker point are the mocap setup and are
+    # kept beside it (figaroh-plus#62, examples#28).
+    corrections = tiago_calib.joint_corrections()
+    frames = tiago_calib.metrology_frames()
+    np.savez(
+        saved_path,
+        result=result.x,
+        param_names=param_names,
+        correction_names=list(corrections),
+        correction_values=list(corrections.values()),
+        frame_names=list(frames),
+        frame_values=list(frames.values()),
+    )
     print(f"Calibration results saved to {saved_path}")
 
     # Post-calibration residual summary -- read from evaluation_metrics
@@ -453,7 +468,7 @@ def _run_calibration(
     # differ by sqrt(n_dofs) depending on which convention each computation
     # happened to use.
     metrics = tiago_calib.evaluation_metrics
-    print(f"\nPost-calibration residual statistics (log map):")
+    print("\nPost-calibration residual statistics (log map):")
     print(f"  Position RMSE: {metrics['rmse'] * 1000:.2f} mm")
     print(f"  Position MAE:  {metrics['mae'] * 1000:.2f} mm")
 
@@ -461,6 +476,27 @@ def _run_calibration(
 
 
 # ── Export + verify ─────────────────────────────────────────────────
+
+
+def _export_params(npz_path: str) -> dict:
+    """Parameters to export from a saved results file.
+
+    The joint corrections (``joint_corrections()``, the values the PAL file
+    carries) plus the metrology frames, which ``export_urdf`` reports but
+    does not write. Results saved before examples#28 hold only the fitted
+    vector: one representative per dependent group, which reproduces the
+    fit at the measured postures but differs from the PAL values.
+    """
+    data = np.load(npz_path)
+    if "correction_names" in data:
+        names = list(data["correction_names"]) + list(data["frame_names"])
+        values = list(data["correction_values"]) + list(data["frame_values"])
+        return dict(zip(names, values))
+    print(
+        "Note: results file predates joint_corrections(); exporting the "
+        "fitted parameters as estimated."
+    )
+    return dict(zip(list(data["param_names"]), data["result"]))
 
 
 def export_with_verification(
@@ -521,9 +557,9 @@ def export_with_verification(
     else:
         print("\nNo metrology frame parameters in calibration result.")
 
-    # URDF export consistency check
-
-    print("URDF export consistency check (nominal vs. exported URDF)")
+    # Not a parity check: how far the corrections move the tool from the
+    # nominal model. Calibrated-vs-exported parity: export_check.py (#28).
+    print("Exported URDF vs nominal (size of the corrections)")
     print("=" * 60)
     comp = URDFComparison(str(nominal_path), modified_path)
     errors = comp.fk_consistency_check(n_samples=200)
@@ -578,10 +614,7 @@ def _run_update_model(args: argparse.Namespace) -> None:
     # Select .npz file
     npz_path = args.model if args.model else _select_npz()
     print(f"\nLoading calibration results from: {npz_path}")
-    data = np.load(npz_path)
-    result_x = data["result"]
-    param_names = list(data["param_names"])
-    params = dict(zip(param_names, result_x))
+    params = _export_params(npz_path)
     print(f"Loaded {len(params)} calibration parameters.")
 
     # Export + verify
@@ -675,8 +708,9 @@ def main() -> None:
         # ── Phase 1: Calibration ──
         result_x = None
         param_names = None
+        npz_path = None
         if "calibrate" in steps:
-            result_x, param_names, saved_path = _run_calibration(
+            result_x, param_names, npz_path = _run_calibration(
                 str(urdf_path),
                 str(config_path),
                 plot=not args.no_plot,
@@ -690,8 +724,8 @@ def main() -> None:
             )
             if args.calibrate_only:
                 print(
-                    f"\nTip: Run `python calibration.py --update-model` "
-                    f"to export URDF and verify FK."
+                    "\nTip: Run `python calibration.py --update-model` "
+                    "to export URDF and verify FK."
                 )
                 return
         else:
@@ -699,12 +733,11 @@ def main() -> None:
             if "export" in steps or "verify" in steps or "viz" in steps:
                 npz_path = _select_npz()
                 print(f"Loading calibration results from: {npz_path}")
-                data = np.load(npz_path)
-                result_x = data["result"]
-                param_names = list(data["param_names"])
+                result_x = np.load(npz_path)["result"]
 
-        params = dict(zip(param_names, result_x))
-        print(f"\nLoaded {len(params)} calibration parameters.")
+        params = _export_params(npz_path) if npz_path else None
+        if params is not None:
+            print(f"\nLoaded {len(params)} calibration parameters.")
 
         # ── Phase 2: Export + verify ──
         comp = None

@@ -43,6 +43,17 @@ TIAGo evidence for the choice:
 [synthetic truth fixture](../../docs/development/tiago-calibration-synthetic-truth.md)
 (`calibration_truth.py --methods` compares the methods against a known truth).
 
+**Outputs.** The calibration writes three things:
+- a modified URDF;
+- a PAL `master_calibration.yaml` with the same joint corrections;
+- the metrology frames (base frame and marker point), which belong to the
+  mocap setup and go in neither file.
+
+[Exported URDF and PAL file](../../docs/development/tiago-calibration-export.md)
+(`export_check.py`) shows that both outputs reproduce the calibrated model
+on all four sessions. It also explains which corrections are identified and
+which are redistributed.
+
 **Mathematical Foundation**:
 ```
 P_measured = forward_kinematics(q, θ_nominal + Δθ) + ε
