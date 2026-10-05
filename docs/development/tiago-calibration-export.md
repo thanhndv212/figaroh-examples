@@ -60,12 +60,19 @@ but leaves the robot model without them.
 
 **`full_params`.**
 
-- **Fitted:** 22 joint placement parameters, plus `d_pz_arm_7_joint`,
-  which the frames absorb.
+- **Fitted:** 22 joint placement parameters on macOS. The frames absorb
+  `d_pz_arm_7_joint`, which is not fitted. On Linux they also absorb
+  `d_phiz_arm_1_joint`: the default `structural` selection depends on the
+  platform (figaroh-plus#113).
 - **Written:** `joint_corrections()` spreads them over all 47 placement
   parameters with the weighted minimum-norm lift (figaroh-plus#111),
-  weighted by the expected error sizes. Rows the base frame carries and the
-  absorbed parameter are held at 0.
+  weighted by the expected error sizes.
+  - The directions the base frame carries, and those of absorbed
+    parameters, are held at 0.
+  - An absorbed parameter can still take a share of another dependent
+    group, so its written value is not necessarily 0 (Linux:
+    `d_phiz_arm_1_joint` = −0.64 mrad).
+  - Parity holds either way.
 - **Example of a dependent group:** `d_px_arm_5_joint` is fitted at
   8.5 mm, but `d_pz_arm_4_joint` moves the same direction. The written
   values are 4.2 mm each.

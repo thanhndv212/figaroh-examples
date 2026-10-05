@@ -66,11 +66,14 @@ def test_identified_vs_written(result):
         "pEEz_1",
     }
     assert not set(frames) & set(corrections)
-    for name in result["absorbed"]:
-        assert abs(corrections.get(name, 0.0)) < 1e-9
     pal_joints = {k.rsplit("_", 1)[0] + "_joint" for k in result["pal"]}
     assert pal_joints == set(result["changed"]["joints"])
     if result["level"] == "joint_offset":
+        # no dependent groups: absorbed offsets are written as 0 (at
+        # full_params an absorbed parameter can share another group, and
+        # which are absorbed depends on the platform, figaroh-plus#113)
+        for name in result["absorbed"]:
+            assert abs(corrections.get(name, 0.0)) < 1e-9
         # one offset per joint: identified values are written unchanged
         for name, (value, _) in result["fitted"].items():
             assert corrections[name] == pytest.approx(value, abs=1e-12)
