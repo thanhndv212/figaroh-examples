@@ -192,7 +192,9 @@ def run_pytest():
     rc, stdout, stderr, timed_out = run_command(
         [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
         cwd=REPO_ROOT,
-        timeout=600,
+        # golden outputs, held-out protocol and export checks rerun the
+        # examples: ~10 min on a laptop (examples#28)
+        timeout=1200,
         label="pytest",
     )
 
