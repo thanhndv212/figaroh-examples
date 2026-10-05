@@ -33,6 +33,16 @@ The calibration process uses external position measurements (from cameras, laser
 3. **Error Modeling**: Model systematic errors as deviations from nominal kinematic parameters
 4. **Validation**: Verify improved accuracy across robot workspace
 
+**Which parameters are estimated** is a choice (`parameters.estimation` in
+`config/tiago_unified_config.yaml`): the default `structural`, or
+`excitation`, `map`, `map_cv`, `cv_subset`. See figaroh-plus's
+[guide](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/source/tutorials/calibration_estimation_guide.md).
+TIAGo evidence for the choice:
+[held-out protocol](../../docs/development/tiago-mocap-heldout-protocol.md)
+(real mocap sessions) and
+[synthetic truth fixture](../../docs/development/tiago-calibration-synthetic-truth.md)
+(`calibration_truth.py --methods` compares the methods against a known truth).
+
 **Mathematical Foundation**:
 ```
 P_measured = forward_kinematics(q, θ_nominal + Δθ) + ε

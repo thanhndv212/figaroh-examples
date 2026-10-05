@@ -84,6 +84,13 @@ tasks:
       # absorb (figaroh-plus#102), so the problem is full rank. The template's
       # 0.01 shrank arm_5 from -49.8 to -37.5 mrad and raised held-out error.
       regularization_coefficient: 0.0
+      # Which parameters to estimate and how (figaroh-plus#113). The default
+      # "structural" keeps the protocol's results; excitation, map, map_cv and
+      # cv_subset are compared on the synthetic truth in
+      # docs/development/tiago-calibration-synthetic-truth.md. Guide:
+      # figaroh-plus docs/source/tutorials/calibration_estimation_guide.md
+      # estimation:
+      #   method: map_cv
       include_non_geometric: false
       # Not used by the solver: solve() flags residuals > 3 std devs and does not
       # remove them (figaroh-plus#98). Kept for provenance only.

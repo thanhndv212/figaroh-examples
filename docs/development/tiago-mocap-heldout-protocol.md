@@ -182,7 +182,12 @@ The `joint_offset` fit's only clearly non-zero joint parameter is arm_5,
 - **Default level:** the reference stays at `joint_offset`, chosen for
   interpretability (one offset per joint, exported into the URDF), not for
   held-out error. `full_params` is better by ~1.5 mm on new in-range
-  postures, but its parameter set is not yet platform-independent
-  (figaroh-plus#113).
-  Changing the default is a separate decision; per rule 2, it must not be
-  made on the confirmation sets alone.
+  postures, but with the default `structural` method its parameter set is
+  not platform-independent (figaroh-plus#113).
+  Core's other estimation methods (`excitation`, `map`, `map_cv`,
+  `cv_subset`; see the
+  [guide](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/source/tutorials/calibration_estimation_guide.md))
+  have been compared on the synthetic truth fixture
+  ([section 4](tiago-calibration-synthetic-truth.md#4-estimation-methods)),
+  not on these sets. Changing the default level or method is a separate
+  decision; per rule 2, it must not be made on the confirmation sets alone.

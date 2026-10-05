@@ -22,6 +22,13 @@ real postures, FIGAROH fits them, and the fit is judged against the truth.
 
     python calibration_truth.py                 # default grid, from examples/tiago
     python calibration_truth.py --seeds 0 1 2 --noise 0.5 2.0
+    python calibration_truth.py --methods       # compare core estimation methods
+
+``--methods`` fits every truth with each of core's estimation methods
+(figaroh-plus#113; ``ESTIMATION_FITS``), including ``map`` with priors 10x
+too small and too large, so the effect of each choice can be compared
+against the known truth. Guide: figaroh-plus
+``docs/source/tutorials/calibration_estimation_guide.md``.
 """
 
 from __future__ import annotations
@@ -66,6 +73,31 @@ FRAMES = {
 # manufacturing-sized.
 TRUTH_SIGMA = {"offset": 0.02, "p": 1e-3, "phi": 2e-3}
 TRAINING = hp.SETS[0][1]
+
+_PRIORS = {
+    "translation": TRUTH_SIGMA["p"],
+    "rotation": TRUTH_SIGMA["phi"],
+    "joint_offset": TRUTH_SIGMA["offset"],
+    "prismatic_offset": 2e-3,
+}
+# label -> (calibration level, core estimation settings); "map" gets the
+# truth's own sizes, the x0.1 / x10 variants show a wrong guess
+ESTIMATION_FITS = {
+    "joint_offset structural": ("joint_offset", {}),
+    "full structural": ("full_params", {}),
+    "full excitation": ("full_params", {"method": "excitation", "priors": _PRIORS}),
+    "full map": ("full_params", {"method": "map", "priors": _PRIORS}),
+    "full map priors x0.1": (
+        "full_params",
+        {"method": "map", "priors": {k: v * 0.1 for k, v in _PRIORS.items()}},
+    ),
+    "full map priors x10": (
+        "full_params",
+        {"method": "map", "priors": {k: v * 10 for k, v in _PRIORS.items()}},
+    ),
+    "full map_cv": ("full_params", {"method": "map_cv", "priors": _PRIORS}),
+    "full cv_subset": ("full_params", {"method": "cv_subset", "priors": _PRIORS}),
+}
 HELD_OUT = [f for _, f in hp.SETS[1:]]
 
 
@@ -124,8 +156,14 @@ def simulate(calib, kind, truth, q, noise_mm, seed) -> pd.DataFrame:
     return pd.concat([df, q.reset_index(drop=True)], axis=1)
 
 
-def run_case(truth_kind, fit_level, seed, noise_mm, workdir) -> dict:
-    """Draw, simulate, fit, and judge one case."""
+def run_case(
+    truth_kind, fit_level, seed, noise_mm, workdir, estimation=None, label=None
+) -> dict:
+    """Draw, simulate, fit, and judge one case.
+
+    ``estimation`` is core's ``calib_config["estimation"]`` (figaroh-plus#113);
+    ``label`` names the fit in the result (default ``fit_level``).
+    """
     probe = hp.fit("joint_offset", frames_only=True)  # model and config only
     truth = make_truth(truth_kind, seed, probe.model)
     train = simulate(probe, truth_kind, truth, postures(TRAINING), noise_mm, seed)
@@ -135,14 +173,16 @@ def run_case(truth_kind, fit_level, seed, noise_mm, workdir) -> dict:
     frames_only = fit_level == "registration only"
     level = "joint_offset" if frames_only else fit_level
     with contextlib.redirect_stdout(io.StringIO()):
-        calib = hp.fit(level, frames_only=frames_only, data_file=str(path))
+        calib = hp.fit(
+            level, frames_only=frames_only, data_file=str(path), estimation=estimation
+        )
     names = list(calib.calib_config["param_name"])
     x = calib.LM_result.x
     fitted = dict(zip(names, x))
 
     result = {
         "truth": truth_kind,
-        "fit": fit_level,
+        "fit": label or fit_level,
         "seed": seed,
         "noise_mm": noise_mm,
         "n_params": len(x),
@@ -185,14 +225,24 @@ def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
     parser.add_argument("--noise", type=float, nargs="+", default=[0.5, 2.0])
+    parser.add_argument(
+        "--methods",
+        action="store_true",
+        help="compare core estimation methods (ESTIMATION_FITS)",
+    )
     args = parser.parse_args(argv)
-    fits = ["registration only", "joint_offset", "full_params"]
+    if args.methods:
+        fits = {k: v for k, v in ESTIMATION_FITS.items()}
+    else:
+        fits = {
+            f: (f, None) for f in ("registration only", "joint_offset", "full_params")
+        }
     with tempfile.TemporaryDirectory() as tmp:
         rows = [
-            run_case(t, f, s, n, tmp)
+            run_case(t, level, s, n, tmp, estimation=est, label=label)
             for t in ("joint_offset", "full_params")
             for n in args.noise
-            for f in fits
+            for label, (level, est) in fits.items()
             for s in args.seeds
         ]
     df = pd.DataFrame(rows)

@@ -53,7 +53,12 @@ tasks:
     parameters:
       calibration_level: "full_params"  # full_params, joint_offset, custom
       include_non_geometric: false      # Include non-geometric parameters
-      regularization_coefficient: 0.01  # Regularization for optimization
+      regularization_coefficient: 0.01  # Regularization for optimization (0 with map/map_cv)
+      # Which parameters to estimate and how: structural (default), excitation,
+      # map, map_cv, cv_subset. See figaroh-plus
+      # docs/source/tutorials/calibration_estimation_guide.md
+      # estimation:
+      #   method: structural
       outlier_threshold: 0.05           # Outlier detection threshold [m]
       tolerance: 1e-3                   # Convergence tolerance
       max_iterations: 100               # Maximum optimization iterations

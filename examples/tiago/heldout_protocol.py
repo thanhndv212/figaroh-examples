@@ -57,15 +57,21 @@ MODELS = {
 
 
 def fit(
-    level: str, frames_only: bool = False, data_file: str | None = None
+    level: str,
+    frames_only: bool = False,
+    data_file: str | None = None,
+    estimation: dict | None = None,
 ) -> TiagoCalibration:
     """Fit on the training session (config source_file) only.
 
-    ``data_file`` replaces the training file (synthetic fixture,
-    ``calibration_truth.py``); the protocol itself never sets it.
+    ``data_file`` replaces the training file and ``estimation`` sets core's
+    estimation method (synthetic fixture, ``calibration_truth.py``); the
+    protocol itself sets neither.
     """
     robot = load_robot(str(URDF), load_by_urdf=True, robot_pkg="tiago_description")
     calib = TiagoCalibration(robot, str(CONFIG), del_list=[])
+    if estimation is not None:
+        calib.calib_config["estimation"] = dict(estimation)
     if data_file is not None:
         calib.calib_config["data_file"] = str(data_file)
         calib._data_path = str(Path(data_file).resolve())
