@@ -46,6 +46,11 @@ CASES = {
     "ur10/calibration.py": (CALIBRATE, "urdf/ur10_robot.urdf"),
     "tiago/calibration.py": (CALIBRATE, "urdf/tiago_48_schunk.urdf"),
     "talos/calibration_upperbody.py": (CALIBRATE, "urdf/talos_full_v2.urdf"),
+    # a non-default estimation method (figaroh-plus#113), checked on Linux CI
+    "tiago/calibration.py[excitation]": (
+        CALIBRATE + ["--config", "config/tiago_calibration_excitation.yaml"],
+        "urdf/tiago_48_schunk.urdf",
+    ),
     "ur10/identification.py": (["--verify"], None),
     "tiago/identification.py": (["--verify"], None),
     "staubli_tx40/identification.py": (["--verify"], None),
@@ -76,10 +81,16 @@ PLATFORM_SPREAD = {
 }
 
 
+def _robot_script(case: str) -> tuple[str, str]:
+    """``"tiago/calibration.py[excitation]"`` -> ("tiago", "calibration.py")."""
+    robot, rest = case.split("/", 1)
+    return robot, rest.split("[")[0]
+
+
 def run_case(case: str) -> list[dict]:
     """Run one example script; return the records the hook wrote."""
     args, _ = CASES[case]
-    robot, script = case.split("/")
+    robot, script = _robot_script(case)
     with tempfile.TemporaryDirectory() as tmp:
         log = Path(tmp) / "records.jsonl"
         env = dict(os.environ, **THREADS, MPLBACKEND="Agg")
