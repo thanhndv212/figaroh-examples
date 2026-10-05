@@ -104,10 +104,13 @@ def calibrated_result(tmp_path_factory):
     # contact unknowns were fit from ~56 touches and held-out error landed
     # 1.7-6x above the noise floor depending on tiny data differences
     # (#48). At 120 it sits within ~10 % of the floor.
+    # 40 held-out touches per session: with 20 (~26 converged), one badly
+    # placed touch could move held-out z from 1.1 to 1.6 x the floor
+    # (figaroh-plus#110 changed the generated dataset at this seed).
     df_train, df_val, ground_truth, robot = build_dataset(
         n_sessions=2,
         n_train_per_session=120,
-        n_val_per_session=20,
+        n_val_per_session=40,
         seed=42,
         encoder_noise_std=ENCODER_NOISE_STD,
         include_truth_objects=True,
