@@ -36,7 +36,7 @@ with the truth one by one. Recovery is judged in identifiable coordinates:
 
 The truth is drawn from the same model class the fit uses, so this measures
 estimation and excitation, not model mismatch (no backlash, deflection or
-encoder errors; see section 4).
+encoder errors; see section 5).
 
 ## 2. Results
 
@@ -84,12 +84,51 @@ are calibrated, slightly conservative.
   are fitted to noise and extrapolate badly (held-out maximum 24 mm).
 - **Selection is an excitation question, not only an identifiability one.**
   Parameters that are identifiable in principle should not all be estimated
-  freely from these postures. This is the evidence for figaroh-plus#113: a
-  selection rule (excitation threshold, or a prior) should be chosen on this
-  fixture, where the truth is known, and not on the real held-out sets
-  (protocol rule 2).
+  freely from these postures. Core now offers several estimation methods for
+  that (figaroh-plus#113); section 4 compares them on this fixture, where the
+  truth is known, rather than on the real held-out sets (protocol rule 2).
 
-## 4. What it does not support
+## 4. Estimation methods
+
+Core lets users choose how parameters are selected and estimated
+(`parameters.estimation.method`, figaroh-plus#113): see the guide
+[Calibration: choosing what to estimate](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/source/tutorials/calibration_estimation_guide.md)
+and the
+[method reference](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/source/concepts/calibration_estimation.md).
+`python calibration_truth.py --methods` fits every case with each method
+(`ESTIMATION_FITS`). `map` gets the truth's own error sizes as priors; the
+×0.1 and ×10 variants show a wrong guess. All are at `full_params` except the
+first column.
+
+Held-out prediction error against the truth (norm RMSE, mm), mean over seeds
+0–4:
+
+| Truth / σ | `joint_offset` | `structural` | `excitation` | `map` | `map` ×0.1 | `map` ×10 | `map_cv` | `cv_subset` |
+|---|---|---|---|---|---|---|---|---|
+| `full_params` / 0.5 | 1.16 | 1.09 | 0.65 | **0.49** | 1.21 | 0.78 | 0.56 | 0.69 |
+| `full_params` / 2.0 | 1.50 | 3.23 | 1.50 | **1.21** | 3.05 | 2.54 | 1.54 | 1.59 |
+| `joint_offset` / 0.5 | **0.25** | 1.17 | 0.64 | 0.47 | 0.71 | 0.79 | 0.42 | 0.33 |
+| `joint_offset` / 2.0 | **0.98** | 3.45 | **0.98** | 1.12 | 3.44 | 2.55 | 1.32 | 1.27 |
+
+Fit time per case on this problem: `structural`, `excitation` and `map` 1–3 s;
+`map_cv` ~25 s; `cv_subset` ~45 s. The full `--methods` grid takes about
+45 minutes in one process.
+
+- Every method other than `structural` improves on it; up to 3× at
+  `full_params`.
+- `map` is best when its priors are right. With priors off by 10× it loses
+  most of the gain, in both directions.
+- `map_cv` and `cv_subset` need no error sizes and stay close to correct-prior
+  `map`.
+- When the truth is simple (`joint_offset` class), the simple model wins.
+  `cv_subset` and `map_cv` come close to it unprompted; `excitation` at 2 mm
+  noise reduces itself to the joint offsets.
+
+The TIAGo reference keeps `structural` at `joint_offset`
+(`config/tiago_unified_config.yaml`). Switching it is a separate decision,
+to be made on this kind of evidence and not on the confirmation sets.
+
+## 5. What it does not support
 
 - **Model mismatch is absent.** The real sessions have a 2–3 mm residual
   floor from effects this fixture does not simulate (arm_6 backlash, arm_5

@@ -69,7 +69,11 @@ and enabled task settings from measured facts rather than accepting defaults.
    filtering, tuning or selecting a method. Record unavailable validation.
 4. Establish a supported nominal/base or geometric-fit baseline. Add physical
    reconstruction, projection or research methods only under their own named
-   objectives, termination and acceptance checks.
+   objectives, termination and acceptance checks. For calibration, choose and
+   record the estimation method (`parameters.estimation`; see figaroh-plus's
+   [guide](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/source/tutorials/calibration_estimation_guide.md));
+   the TIAGo truth fixture (`examples/tiago/calibration_truth.py --methods`)
+   shows how to compare methods against a known truth.
 5. Report training fit, parameter interpretation and unused-data prediction
    separately. Confirm that the validation adapter actually consumes the
    declared held-out input; config presence alone is not proof.

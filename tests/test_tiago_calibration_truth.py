@@ -82,3 +82,20 @@ def test_truth_and_measurements_are_seeded(truth):
     )
     assert a.equals(b)
     assert not a.equals(c)
+
+
+def test_estimation_method_reaches_core(truth):
+    """``estimation`` is passed to core (figaroh-plus#113): map keeps all 57."""
+    ct, tmp = truth
+    r = ct.run_case(
+        "full_params",
+        "full_params",
+        0,
+        0.5,
+        tmp,
+        estimation={"method": "map"},
+        label="m",
+    )
+    assert r["fit"] == "m"
+    assert r["n_params"] == 6 + 48 + 3
+    assert r["heldout_rmse_mm"] < 1.0
