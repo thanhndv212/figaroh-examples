@@ -75,8 +75,10 @@ tasks:
     enabled: true
 
     parameters:
-      # One offset per joint (q + offset, figaroh-plus#101). On held-out
-      # postures full_params gains <= 0.6 mm for twice the parameters (#67).
+      # One offset per joint (q + offset, figaroh-plus#101). full_params is
+      # ~1.5 mm better on real held-out postures but overfits a known truth
+      # at these 37 postures (docs/development: held-out protocol, synthetic
+      # truth; figaroh-plus#113).
       calibration_level: "joint_offset"
       # No regularisation: core drops the parameters the base/tool frames
       # absorb (figaroh-plus#102), so the problem is full rank. The template's

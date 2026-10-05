@@ -56,10 +56,19 @@ MODELS = {
 }
 
 
-def fit(level: str, frames_only: bool = False) -> TiagoCalibration:
-    """Fit on the training session (config source_file) only."""
+def fit(
+    level: str, frames_only: bool = False, data_file: str | None = None
+) -> TiagoCalibration:
+    """Fit on the training session (config source_file) only.
+
+    ``data_file`` replaces the training file (synthetic fixture,
+    ``calibration_truth.py``); the protocol itself never sets it.
+    """
     robot = load_robot(str(URDF), load_by_urdf=True, robot_pkg="tiago_description")
     calib = TiagoCalibration(robot, str(CONFIG), del_list=[])
+    if data_file is not None:
+        calib.calib_config["data_file"] = str(data_file)
+        calib._data_path = str(Path(data_file).resolve())
     calib.calib_config["calib_model"] = level
     calib.calib_config["validation_data_file"] = None  # no held-out at fit time
     calib.calib_config["known_baseframe"] = False
