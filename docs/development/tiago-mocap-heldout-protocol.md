@@ -73,7 +73,10 @@ Files in `examples/tiago/data/calibration/mocap/`:
    after figaroh-plus#102). So treat the confirmation sets as the
    independent check.
 4. **Frozen files.** Changing a frozen file, or a file's role, needs a new
-   protocol version, with the reason and the old hashes kept here.
+   protocol version, with the reason and the old hashes kept here, and in
+   `examples/tiago/data/calibration/mocap/protocol.yaml`, the same table as a
+   data-contract `Protocol` that refuses changed files
+   ([adapters](data-contract-adapters.md), #17).
 
 ## 3. What is measured
 

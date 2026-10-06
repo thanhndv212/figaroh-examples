@@ -125,6 +125,51 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def configure_identification(tiago_iden: TiagoIdentification) -> None:
+    """TIAGo settings not in the YAML: drive constants, joints, data files.
+
+    Shared by :func:`main` and the data-contract adapter test (examples#17).
+    """
+    ps = tiago_iden.identif_config
+    ps["reduction_ratio"] = {
+        "torso_lift_joint": 1,
+        "arm_1_joint": 100,
+        "arm_2_joint": 100,
+        "arm_3_joint": 100,
+        "arm_4_joint": 100,
+        "arm_5_joint": 336,
+        "arm_6_joint": 336,
+        "arm_7_joint": 336,
+    }
+    ps["kmotor"] = {
+        "torso_lift_joint": 1,
+        "arm_1_joint": 0.136,
+        "arm_2_joint": 0.136,
+        "arm_3_joint": -0.087,
+        "arm_4_joint": -0.087,
+        "arm_5_joint": -0.0613,
+        "arm_6_joint": -0.0613,
+        "arm_7_joint": -0.0613,
+    }
+
+    # active_joints is already resolved (extends-aware) by load_param()
+    # into identif_config — read it from there rather than re-parsing
+    # config_path raw, which would silently drop anything inherited
+    # via extends: (e.g. a per-asset overlay config).
+    ps["active_joints"] = ps.get("active_joints", [])
+
+    # Joint parameters
+    ps["act_Jid"] = [tiago_iden.model.getJointId(i) for i in ps["active_joints"]]
+    ps["act_J"] = [tiago_iden.model.joints[jid] for jid in ps["act_Jid"]]
+    ps["act_idxq"] = [J.idx_q for J in ps["act_J"]]
+    ps["act_idxv"] = [J.idx_v for J in ps["act_J"]]
+
+    # Dataset paths
+    ps["pos_data"] = "data/identification/dynamic/tiago_position.csv"
+    ps["vel_data"] = "data/identification/dynamic/tiago_velocity.csv"
+    ps["torque_data"] = "data/identification/dynamic/tiago_effort.csv"
+
+
 def main() -> TiagoIdentification | None:
     """Main function for Tiago dynamic parameter identification."""
     args = parse_args()
@@ -176,43 +221,7 @@ def main() -> TiagoIdentification | None:
                 instance["operator"] = args.operator
             ps["instance"] = instance
 
-        ps["reduction_ratio"] = {
-            "torso_lift_joint": 1,
-            "arm_1_joint": 100,
-            "arm_2_joint": 100,
-            "arm_3_joint": 100,
-            "arm_4_joint": 100,
-            "arm_5_joint": 336,
-            "arm_6_joint": 336,
-            "arm_7_joint": 336,
-        }
-        ps["kmotor"] = {
-            "torso_lift_joint": 1,
-            "arm_1_joint": 0.136,
-            "arm_2_joint": 0.136,
-            "arm_3_joint": -0.087,
-            "arm_4_joint": -0.087,
-            "arm_5_joint": -0.0613,
-            "arm_6_joint": -0.0613,
-            "arm_7_joint": -0.0613,
-        }
-
-        # active_joints is already resolved (extends-aware) by load_param()
-        # into identif_config — read it from there rather than re-parsing
-        # config_path raw, which would silently drop anything inherited
-        # via extends: (e.g. a per-asset overlay config).
-        ps["active_joints"] = ps.get("active_joints", [])
-
-        # Joint parameters
-        ps["act_Jid"] = [tiago_iden.model.getJointId(i) for i in ps["active_joints"]]
-        ps["act_J"] = [tiago_iden.model.joints[jid] for jid in ps["act_Jid"]]
-        ps["act_idxq"] = [J.idx_q for J in ps["act_J"]]
-        ps["act_idxv"] = [J.idx_v for J in ps["act_J"]]
-
-        # Dataset paths
-        ps["pos_data"] = "data/identification/dynamic/tiago_position.csv"
-        ps["vel_data"] = "data/identification/dynamic/tiago_velocity.csv"
-        ps["torque_data"] = "data/identification/dynamic/tiago_effort.csv"
+        configure_identification(tiago_iden)
 
         # Initialize identification process
         # Note: truncate parameter now accepts:
