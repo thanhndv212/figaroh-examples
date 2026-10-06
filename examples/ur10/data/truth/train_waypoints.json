@@ -1,0 +1,432 @@
+{
+  "interval_s": 2.0,
+  "waypoints": [
+    [
+      -2.5132741228718345,
+      -1.4707963267948965,
+      1.315240771239341,
+      -0.82412966012823,
+      -1.6007963267948966,
+      -0.5099999999999999
+    ],
+    [
+      -0.7261019505813393,
+      -2.280786658589354,
+      1.670626688937637,
+      -0.6109634237535296,
+      -0.9088629333529477,
+      0.9291867874604124
+    ],
+    [
+      1.0611062570784904,
+      -2.2807797812894544,
+      1.6541237099995358,
+      -1.8822690587645547,
+      -1.6176665817972848,
+      0.929537602510792
+    ],
+    [
+      1.1468330676576437,
+      -2.2807219876963005,
+      0.8611346074757551,
+      -2.5542677710744144,
+      -1.6175643149230128,
+      -1.2565836133854085
+    ],
+    [
+      1.1477696286386552,
+      -2.2807686394722166,
+      1.6669722043974715,
+      -2.0361819177274825,
+      -0.2416399944214328,
+      -1.256647224361393
+    ],
+    [
+      -0.6840760589421574,
+      -1.470808557827726,
+      1.670529874236088,
+      -2.035861559847619,
+      -0.6300450729427165,
+      -1.256187591783555
+    ],
+    [
+      1.103125573619561,
+      -1.470819624609546,
+      1.6707277276940282,
+      -0.6114673665988571,
+      -0.24120098061144774,
+      0.9297256729327524
+    ],
+    [
+      0.8274465183100065,
+      -1.4725927231694123,
+      1.6527155648228369,
+      -2.5004349134131405,
+      -0.34207548043710223,
+      -1.2016330887867506
+    ],
+    [
+      -0.9953360413586593,
+      -2.2801646093506553,
+      1.1476778154118472,
+      -2.5443284169259153,
+      -1.5991521308658763,
+      -1.2191178923460815
+    ],
+    [
+      0.7912056207408595,
+      -2.2798973043866955,
+      0.9158083869228285,
+      -2.53424994976349,
+      -1.6039563472616767,
+      -1.235218920439196
+    ],
+    [
+      0.6935375972653117,
+      -2.279562450163391,
+      1.293058427884573,
+      -0.6583305250160051,
+      -1.1328832743603279,
+      -1.2351219164872007
+    ],
+    [
+      2.4712588506966546,
+      -1.4715992291311961,
+      0.9434808295515307,
+      -0.6231567428606121,
+      -1.170834407104006,
+      0.9176642375727977
+    ],
+    [
+      0.6401294248454638,
+      -1.4716611636075223,
+      0.876042773181192,
+      -1.6236656362101733,
+      -0.8895649933572499,
+      0.905386137578211
+    ]
+  ],
+  "selection": {
+    "kind": "core optimal trajectory (IPOPT, base-regressor condition number)",
+    "config": "examples/ur10/config/ur10_unified_config.yaml",
+    "segments": 2,
+    "joint_box_rad": {
+      "low": [
+        -3.141592653589793,
+        -2.3707963267948964,
+        0.7707963267948965,
+        -2.7707963267948967,
+        -1.7707963267948965,
+        -1.5
+      ],
+      "high": [
+        3.141592653589793,
+        -1.3707963267948966,
+        1.7707963267948965,
+        -0.3707963267948966,
+        -0.07079632679489656,
+        1.2
+      ]
+    },
+    "optimizer_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "seed": 15,
+    "condition_number": 61.735516658756744,
+    "runs": [
+      {
+        "seed": 0,
+        "result": "feasible",
+        "condition_number": 128.18436491492716,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 1,
+        "result": "feasible",
+        "condition_number": 130.4366880628802,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 2,
+        "result": "feasible",
+        "condition_number": 73.48050439314139,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 3,
+        "result": "feasible",
+        "condition_number": 118.23247293290484,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 4,
+        "result": "feasible",
+        "condition_number": 88.02087292068587,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 5,
+        "result": "feasible",
+        "condition_number": 84.50589472156479,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 6,
+        "result": "feasible",
+        "condition_number": 63.96080209760948,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 7,
+        "result": "feasible",
+        "condition_number": 74.78418698015578,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 8,
+        "result": "feasible",
+        "condition_number": 79.29537657762543,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 9,
+        "result": "feasible",
+        "condition_number": 75.72831440130297,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 10,
+        "result": "feasible",
+        "condition_number": 76.43644654251013,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 11,
+        "result": "feasible",
+        "condition_number": 66.79618574945752,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 12,
+        "result": "feasible",
+        "condition_number": 73.62488605786093,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 13,
+        "result": "feasible",
+        "condition_number": 100.90474450387416,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 14,
+        "result": "feasible",
+        "condition_number": 75.16371605403305,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "seed": 15,
+        "result": "feasible",
+        "condition_number": 61.735516658756744,
+        "segments": [
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          },
+          {
+            "status": -1,
+            "converged": false,
+            "attempt": 1
+          }
+        ]
+      }
+    ],
+    "environment": {
+      "pinocchio": "3.7.0",
+      "numpy": "2.3.4",
+      "python": "3.12.11"
+    },
+    "note": "seeds run in parallel processes, one optimize_training([seed]) each; equivalent to one sequential --optimize run"
+  }
+}
