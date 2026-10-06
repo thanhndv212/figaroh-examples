@@ -32,19 +32,19 @@ noise:
       wrist_2_joint: 0.0
       wrist_3_joint: 0.0
     low:
-      shoulder_pan_joint: 0.04483975005539655
-      shoulder_lift_joint: 0.47193304991418045
-      elbow_joint: 0.22063469489757295
-      wrist_1_joint: 0.018828845815112193
-      wrist_2_joint: 0.0025157756448722225
-      wrist_3_joint: 0.0006996137149665519
+      shoulder_pan_joint: 0.03456421450724977
+      shoulder_lift_joint: 0.3800279215134282
+      elbow_joint: 0.265945862865316
+      wrist_1_joint: 0.028278266833172607
+      wrist_2_joint: 0.0026239810184429248
+      wrist_3_joint: 0.0006770635878003992
     high:
-      shoulder_pan_joint: 0.22419875027698277
-      shoulder_lift_joint: 2.3596652495709023
-      elbow_joint: 1.1031734744878647
-      wrist_1_joint: 0.09414422907556097
-      wrist_2_joint: 0.012578878224361113
-      wrist_3_joint: 0.0034980685748327595
+      shoulder_pan_joint: 0.17282107253624887
+      shoulder_lift_joint: 1.9001396075671408
+      elbow_joint: 1.3297293143265803
+      wrist_1_joint: 0.14139133416586303
+      wrist_2_joint: 0.013119905092214624
+      wrist_3_joint: 0.003385317939001996
   seeds:
     train:
     - 101
@@ -77,7 +77,6 @@ rank:
   - 13
   base_parameters: 36
   base_indices:
-  - 0
   - 1
   - 2
   - 4
@@ -87,23 +86,24 @@ rank:
   - 8
   - 10
   - 11
+  - 13
   - 14
   - 15
   - 16
   - 17
   - 18
   - 20
-  - 21
   - 23
   - 24
   - 26
   - 27
+  - 28
   - 30
-  - 33
+  - 32
   - 34
-  - 35
   - 36
   - 37
+  - 38
   - 40
   - 41
   - 42
@@ -114,8 +114,6 @@ rank:
   - 47
   - 48
   base_names:
-  - Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 1.0*Ixx_elbow_joint + 0.030328*m_wrist_1_joint
-    + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.030328*m_wrist_2_joint + 0.030328*m_wrist_3_joint
   - mx_shoulder_lift_joint - 0.6127*m_elbow_joint - 0.6127*m_wrist_1_joint - 0.6127*m_wrist_2_joint -
     0.6127*m_wrist_3_joint
   - my_shoulder_lift_joint
@@ -129,145 +127,152 @@ rank:
     + 0.375401*m_wrist_3_joint
   - mx_elbow_joint - 0.57155*m_wrist_1_joint - 0.57155*m_wrist_2_joint - 0.57155*m_wrist_3_joint
   - my_elbow_joint
+  - Ixx_elbow_joint + 1.0*Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 0.030328*m_wrist_1_joint
+    + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.030328*m_wrist_2_joint + 0.030328*m_wrist_3_joint
   - Ixy_elbow_joint
-  - Iyy_elbow_joint - 1.0*Ixx_elbow_joint + 0.326669*m_wrist_1_joint + 0.326669*m_wrist_2_joint + 0.326669*m_wrist_3_joint
+  - Iyy_elbow_joint + 1.0*Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 0.356998*m_wrist_1_joint
+    + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.356998*m_wrist_2_joint + 0.356998*m_wrist_3_joint
   - Ixz_elbow_joint + 0.099535*m_wrist_1_joint + 0.57155*mz_wrist_1_joint + 0.099535*m_wrist_2_joint +
     0.099535*m_wrist_3_joint
   - Iyz_elbow_joint
   - Izz_elbow_joint + 0.326669*m_wrist_1_joint + 0.326669*m_wrist_2_joint + 0.326669*m_wrist_3_joint
   - mx_wrist_1_joint
-  - my_wrist_1_joint - 0.11985*m_wrist_2_joint - 1.0*mz_wrist_2_joint - 0.11985*m_wrist_3_joint
-  - Ixx_wrist_1_joint - 1.0*Iyy_wrist_1_joint - 1.0*Izz_wrist_1_joint
+  - Ixx_wrist_1_joint + 0.2397*my_wrist_1_joint - 1.0*Iyy_wrist_1_joint - 0.014364*m_wrist_2_joint + 1.0*Iyy_wrist_2_joint
+    - 0.014364*m_wrist_3_joint
   - Ixy_wrist_1_joint
   - Ixz_wrist_1_joint
   - Iyz_wrist_1_joint
+  - Izz_wrist_1_joint + 0.2397*my_wrist_1_joint - 0.014364*m_wrist_2_joint + 1.0*Iyy_wrist_2_joint - 0.014364*m_wrist_3_joint
   - mx_wrist_2_joint
-  - Ixx_wrist_2_joint + 1.0*Izz_wrist_1_joint + 0.014364*m_wrist_2_joint + 0.2397*mz_wrist_2_joint - 1.0*Izz_wrist_2_joint
-    + 0.014364*m_wrist_3_joint
+  - mz_wrist_2_joint - 1.0*my_wrist_1_joint + 0.11985*m_wrist_2_joint + 0.11985*m_wrist_3_joint
   - Ixy_wrist_2_joint
-  - Iyy_wrist_2_joint + 1.0*Izz_wrist_1_joint + 0.014364*m_wrist_2_joint + 0.2397*mz_wrist_2_joint + 0.014364*m_wrist_3_joint
   - Ixz_wrist_2_joint
   - Iyz_wrist_2_joint
+  - Izz_wrist_2_joint - 1.0*Ixx_wrist_2_joint + 1.0*Iyy_wrist_2_joint
   - mx_wrist_3_joint
   - my_wrist_3_joint
   - mz_wrist_3_joint + 1.0*my_wrist_2_joint + 0.11655*m_wrist_3_joint
-  - Ixx_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Izz_wrist_2_joint - 0.013584*m_wrist_3_joint
+  - Ixx_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Ixx_wrist_2_joint - 1.0*Iyy_wrist_2_joint - 0.013584*m_wrist_3_joint
   - Ixy_wrist_3_joint
-  - Iyy_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Izz_wrist_2_joint - 0.013584*m_wrist_3_joint
+  - Iyy_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Ixx_wrist_2_joint - 1.0*Iyy_wrist_2_joint - 0.013584*m_wrist_3_joint
   - Ixz_wrist_3_joint
   - Iyz_wrist_3_joint
   - Izz_wrist_3_joint
   validation_rank: 36
   base_truth:
-    ? Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 1.0*Ixx_elbow_joint + 0.030328*m_wrist_1_joint
-      + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.030328*m_wrist_2_joint + 0.030328*m_wrist_3_joint
-    : 0.6424142405355411
-    mx_shoulder_lift_joint - 0.6127*m_elbow_joint - 0.6127*m_wrist_1_joint - 0.6127*m_wrist_2_joint - 0.6127*m_wrist_3_joint: -8.035883650104894
-    my_shoulder_lift_joint: 0.1996597113557188
-    Ixy_shoulder_lift_joint: 0.14358514888392582
+    mx_shoulder_lift_joint - 0.6127*m_elbow_joint - 0.6127*m_wrist_1_joint - 0.6127*m_wrist_2_joint - 0.6127*m_wrist_3_joint: -8.03588365010488
+    my_shoulder_lift_joint: 0.19965971135573024
+    Ixy_shoulder_lift_joint: 0.14358514888394103
     ? Iyy_shoulder_lift_joint - 1.0*Ixx_shoulder_lift_joint + 0.375401*m_elbow_joint + 0.375401*m_wrist_1_joint
       + 0.375401*m_wrist_2_joint + 0.375401*m_wrist_3_joint
-    : 4.192969004264839
+    : 4.192969004264804
     ? Ixz_shoulder_lift_joint + 0.6127*mz_elbow_joint + 0.106702*m_wrist_1_joint + 0.6127*mz_wrist_1_joint
       + 0.106702*m_wrist_2_joint + 0.106702*m_wrist_3_joint
-    : 1.11837984390963
-    Iyz_shoulder_lift_joint: -0.04071676833501401
+    : 1.1183798439558268
+    Iyz_shoulder_lift_joint: -0.04071676833499802
     ? Izz_shoulder_lift_joint + 0.375401*m_elbow_joint + 0.375401*m_wrist_1_joint + 0.375401*m_wrist_2_joint
       + 0.375401*m_wrist_3_joint
-    : 4.268647757792269
-    mx_elbow_joint - 0.57155*m_wrist_1_joint - 0.57155*m_wrist_2_joint - 0.57155*m_wrist_3_joint: -3.211735094425489
-    my_elbow_joint: 0.051832119321483704
-    Ixy_elbow_joint: -0.012002786962441699
-    Iyy_elbow_joint - 1.0*Ixx_elbow_joint + 0.326669*m_wrist_1_joint + 0.326669*m_wrist_2_joint + 0.326669*m_wrist_3_joint: 1.6677095996353817
+    : 4.268647757792261
+    mx_elbow_joint - 0.57155*m_wrist_1_joint - 0.57155*m_wrist_2_joint - 0.57155*m_wrist_3_joint: -3.211735094425505
+    my_elbow_joint: 0.0518321193214867
+    ? Ixx_elbow_joint + 1.0*Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 0.030328*m_wrist_1_joint
+      + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.030328*m_wrist_2_joint + 0.030328*m_wrist_3_joint
+    : 0.6424142405618172
+    Ixy_elbow_joint: -0.012002786962436725
+    ? Iyy_elbow_joint + 1.0*Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 0.356998*m_wrist_1_joint
+      + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.356998*m_wrist_2_joint + 0.356998*m_wrist_3_joint
+    : 2.3101238401971975
     ? Ixz_elbow_joint + 0.099535*m_wrist_1_joint + 0.57155*mz_wrist_1_joint + 0.099535*m_wrist_2_joint
       + 0.099535*m_wrist_3_joint
-    : 0.4188236939573132
-    Iyz_elbow_joint: 0.007036174621835524
-    Izz_elbow_joint + 0.326669*m_wrist_1_joint + 0.326669*m_wrist_2_joint + 0.326669*m_wrist_3_joint: 1.6936618620726671
-    mx_wrist_1_joint: 0.015055453127816955
-    my_wrist_1_joint - 0.11985*m_wrist_2_joint - 1.0*mz_wrist_2_joint - 0.11985*m_wrist_3_joint: -0.36766797797197825
-    Ixx_wrist_1_joint - 1.0*Iyy_wrist_1_joint - 1.0*Izz_wrist_1_joint: -0.007255892845859555
-    Ixy_wrist_1_joint: 0.0003269666689301579
-    Ixz_wrist_1_joint: 0.0004966480288880698
-    Iyz_wrist_1_joint: -0.0015451098186363846
-    mx_wrist_2_joint: -0.05012354980510381
-    ? Ixx_wrist_2_joint + 1.0*Izz_wrist_1_joint + 0.014364*m_wrist_2_joint + 0.2397*mz_wrist_2_joint -
-      1.0*Izz_wrist_2_joint + 0.014364*m_wrist_3_joint
-    : 0.05640411540833889
-    Ixy_wrist_2_joint: -0.00171579727315542
-    Iyy_wrist_2_joint + 1.0*Izz_wrist_1_joint + 0.014364*m_wrist_2_joint + 0.2397*mz_wrist_2_joint + 0.014364*m_wrist_3_joint: 0.06353778601178117
-    Ixz_wrist_2_joint: 0.0019482168645510716
-    Iyz_wrist_2_joint: 0.002287344053756777
-    mx_wrist_3_joint: 0.002108499568526797
-    my_wrist_3_joint: -0.013159920160930576
-    mz_wrist_3_joint + 1.0*my_wrist_2_joint + 0.11655*m_wrist_3_joint: -0.02423687093106697
-    Ixx_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Izz_wrist_2_joint - 0.013584*m_wrist_3_joint: 0.02103793615196188
-    Ixy_wrist_3_joint: 7.909625058454639e-05
-    Iyy_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Izz_wrist_2_joint - 0.013584*m_wrist_3_joint: 0.022965475834729264
-    Ixz_wrist_3_joint: -0.00034265986279334966
-    Iyz_wrist_3_joint: -0.0003290563035679769
-    Izz_wrist_3_joint: 0.007644142194713049
+    : 0.41882369400042146
+    Iyz_elbow_joint: 0.007036174621840291
+    Izz_elbow_joint + 0.326669*m_wrist_1_joint + 0.326669*m_wrist_2_joint + 0.326669*m_wrist_3_joint: 1.6936618620726696
+    mx_wrist_1_joint: 0.015055453127798523
+    ? Ixx_wrist_1_joint + 0.2397*my_wrist_1_joint - 1.0*Iyy_wrist_1_joint - 0.014364*m_wrist_2_joint +
+      1.0*Iyy_wrist_2_joint - 0.014364*m_wrist_3_joint
+    : -0.031848121153961836
+    Ixy_wrist_1_joint: 0.0003269666689371091
+    Ixz_wrist_1_joint: 0.0004966480288781328
+    Iyz_wrist_1_joint: -0.0015451098135675241
+    Izz_wrist_1_joint + 0.2397*my_wrist_1_joint - 0.014364*m_wrist_2_joint + 1.0*Iyy_wrist_2_joint - 0.014364*m_wrist_3_joint: -0.02459222830810462
+    mx_wrist_2_joint: -0.050123549805108185
+    mz_wrist_2_joint - 1.0*my_wrist_1_joint + 0.11985*m_wrist_2_joint + 0.11985*m_wrist_3_joint: 0.36766797797196654
+    Ixy_wrist_2_joint: -0.00171579727315572
+    Ixz_wrist_2_joint: 0.0019482168645281175
+    Iyz_wrist_2_joint: 0.0022873440552068827
+    Izz_wrist_2_joint - 1.0*Ixx_wrist_2_joint + 1.0*Iyy_wrist_2_joint: 0.007133670603440623
+    mx_wrist_3_joint: 0.0021084995685308975
+    my_wrist_3_joint: -0.013159920160940792
+    mz_wrist_3_joint + 1.0*my_wrist_2_joint + 0.11655*m_wrist_3_joint: -0.024236870931049623
+    Ixx_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Ixx_wrist_2_joint - 1.0*Iyy_wrist_2_joint - 0.013584*m_wrist_3_joint: 0.013904265548519028
+    Ixy_wrist_3_joint: 7.909625058116811e-05
+    Iyy_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Ixx_wrist_2_joint - 1.0*Iyy_wrist_2_joint - 0.013584*m_wrist_3_joint: 0.015831805231295976
+    Ixz_wrist_3_joint: -0.0003426598627973757
+    Iyz_wrist_3_joint: -0.00032905630356843237
+    Izz_wrist_3_joint: 0.007644142194706212
 scaling:
   effort_nm_per_joint:
-    shoulder_pan_joint: 4.483975005539655
-    shoulder_lift_joint: 47.193304991418046
-    elbow_joint: 22.063469489757296
-    wrist_1_joint: 1.8828845815112194
-    wrist_2_joint: 0.25157756448722224
-    wrist_3_joint: 0.06996137149665518
+    shoulder_pan_joint: 3.456421450724977
+    shoulder_lift_joint: 38.00279215134282
+    elbow_joint: 26.5945862865316
+    wrist_1_joint: 2.8278266833172605
+    wrist_2_joint: 0.26239810184429246
+    wrist_3_joint: 0.06770635878003992
   effort_rule: per-joint RMS of the noise-free training effort; NRMSE divides by it
   base_column_rms:
-    ? Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 1.0*Ixx_elbow_joint + 0.030328*m_wrist_1_joint
-      + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.030328*m_wrist_2_joint + 0.030328*m_wrist_3_joint
-    : 1.5083494510070776
-    mx_shoulder_lift_joint - 0.6127*m_elbow_joint - 0.6127*m_wrist_1_joint - 0.6127*m_wrist_2_joint - 0.6127*m_wrist_3_joint: 4.619451840163531
-    my_shoulder_lift_joint: 8.654291692357603
-    Ixy_shoulder_lift_joint: 1.2621148515001743
+    mx_shoulder_lift_joint - 0.6127*m_elbow_joint - 0.6127*m_wrist_1_joint - 0.6127*m_wrist_2_joint - 0.6127*m_wrist_3_joint: 4.742099903498775
+    my_shoulder_lift_joint: 8.587699837863282
+    Ixy_shoulder_lift_joint: 1.529312359644238
     ? Iyy_shoulder_lift_joint - 1.0*Ixx_shoulder_lift_joint + 0.375401*m_elbow_joint + 0.375401*m_wrist_1_joint
       + 0.375401*m_wrist_2_joint + 0.375401*m_wrist_3_joint
-    : 0.6848194723845217
+    : 0.5945315668662033
     ? Ixz_shoulder_lift_joint + 0.6127*mz_elbow_joint + 0.106702*m_wrist_1_joint + 0.6127*mz_wrist_1_joint
       + 0.106702*m_wrist_2_joint + 0.106702*m_wrist_3_joint
-    : 1.7933829800597791
-    Iyz_shoulder_lift_joint: 1.1819931009647613
+    : 1.4448159299434997
+    Iyz_shoulder_lift_joint: 0.7112173813778647
     ? Izz_shoulder_lift_joint + 0.375401*m_elbow_joint + 0.375401*m_wrist_1_joint + 0.375401*m_wrist_2_joint
       + 0.375401*m_wrist_3_joint
-    : 1.4002372615298475
-    mx_elbow_joint - 0.57155*m_wrist_1_joint - 0.57155*m_wrist_2_joint - 0.57155*m_wrist_3_joint: 10.072674101762411
-    my_elbow_joint: 11.544302318743005
-    Ixy_elbow_joint: 1.5475252719403632
-    Iyy_elbow_joint - 1.0*Ixx_elbow_joint + 0.326669*m_wrist_1_joint + 0.326669*m_wrist_2_joint + 0.326669*m_wrist_3_joint: 0.8530258899158825
+    : 0.48339386964807385
+    mx_elbow_joint - 0.57155*m_wrist_1_joint - 0.57155*m_wrist_2_joint - 0.57155*m_wrist_3_joint: 10.876651970333553
+    my_elbow_joint: 9.326990463301119
+    ? Ixx_elbow_joint + 1.0*Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 0.030328*m_wrist_1_joint
+      + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.030328*m_wrist_2_joint + 0.030328*m_wrist_3_joint
+    : 0.9661448025200554
+    Ixy_elbow_joint: 1.7564479067460141
+    ? Iyy_elbow_joint + 1.0*Izz_shoulder_pan_joint + 1.0*Ixx_shoulder_lift_joint + 0.356998*m_wrist_1_joint
+      + 0.3483*mz_wrist_1_joint + 1.0*Iyy_wrist_1_joint + 0.356998*m_wrist_2_joint + 0.356998*m_wrist_3_joint
+    : 1.3570648958399332
     ? Ixz_elbow_joint + 0.099535*m_wrist_1_joint + 0.57155*mz_wrist_1_joint + 0.099535*m_wrist_2_joint
       + 0.099535*m_wrist_3_joint
-    : 3.2202000859580355
-    Iyz_elbow_joint: 3.142554273478673
-    Izz_elbow_joint + 0.326669*m_wrist_1_joint + 0.326669*m_wrist_2_joint + 0.326669*m_wrist_3_joint: 4.097726123270644
-    mx_wrist_1_joint: 16.61743865174417
-    my_wrist_1_joint - 0.11985*m_wrist_2_joint - 1.0*mz_wrist_2_joint - 0.11985*m_wrist_3_joint: 11.637084584301217
-    Ixx_wrist_1_joint - 1.0*Iyy_wrist_1_joint - 1.0*Izz_wrist_1_joint: 1.1439302400770326
-    Ixy_wrist_1_joint: 2.003768480291178
-    Ixz_wrist_1_joint: 4.91020363306523
-    Iyz_wrist_1_joint: 5.407547863755441
-    mx_wrist_2_joint: 10.11933082962273
-    ? Ixx_wrist_2_joint + 1.0*Izz_wrist_1_joint + 0.014364*m_wrist_2_joint + 0.2397*mz_wrist_2_joint -
-      1.0*Izz_wrist_2_joint + 0.014364*m_wrist_3_joint
-    : 7.551384852593094
-    Ixy_wrist_2_joint: 9.08724235271092
-    Iyy_wrist_2_joint + 1.0*Izz_wrist_1_joint + 0.014364*m_wrist_2_joint + 0.2397*mz_wrist_2_joint + 0.014364*m_wrist_3_joint: 3.3201340311573655
-    Ixz_wrist_2_joint: 6.9083378292368005
-    Iyz_wrist_2_joint: 4.397255605982609
-    mx_wrist_3_joint: 14.251915410228841
-    my_wrist_3_joint: 11.45745675451722
-    mz_wrist_3_joint + 1.0*my_wrist_2_joint + 0.11655*m_wrist_3_joint: 14.562032323450858
-    Ixx_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Izz_wrist_2_joint - 0.013584*m_wrist_3_joint: 6.065746732278208
-    Ixy_wrist_3_joint: 9.511908743822303
-    Iyy_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Izz_wrist_2_joint - 0.013584*m_wrist_3_joint: 6.130047896530095
-    Ixz_wrist_3_joint: 8.442494371797018
-    Iyz_wrist_3_joint: 8.015651703640604
-    Izz_wrist_3_joint: 4.723892202032127
+    : 1.3254699415022828
+    Iyz_elbow_joint: 1.8336288726416785
+    Izz_elbow_joint + 0.326669*m_wrist_1_joint + 0.326669*m_wrist_2_joint + 0.326669*m_wrist_3_joint: 0.8743371519636074
+    mx_wrist_1_joint: 11.822450260963482
+    ? Ixx_wrist_1_joint + 0.2397*my_wrist_1_joint - 1.0*Iyy_wrist_1_joint - 0.014364*m_wrist_2_joint +
+      1.0*Iyy_wrist_2_joint - 0.014364*m_wrist_3_joint
+    : 1.4481677689086627
+    Ixy_wrist_1_joint: 2.1769440430992106
+    Ixz_wrist_1_joint: 2.435739236506249
+    Iyz_wrist_1_joint: 1.9983919696322667
+    Izz_wrist_1_joint + 0.2397*my_wrist_1_joint - 0.014364*m_wrist_2_joint + 1.0*Iyy_wrist_2_joint - 0.014364*m_wrist_3_joint: 2.3319708278102738
+    mx_wrist_2_joint: 9.574884247903023
+    mz_wrist_2_joint - 1.0*my_wrist_1_joint + 0.11985*m_wrist_2_joint + 0.11985*m_wrist_3_joint: 14.059148854630745
+    Ixy_wrist_2_joint: 3.026119205202267
+    Ixz_wrist_2_joint: 3.0770616673836173
+    Iyz_wrist_2_joint: 3.1476570377934063
+    Izz_wrist_2_joint - 1.0*Ixx_wrist_2_joint + 1.0*Iyy_wrist_2_joint: 1.9397427339233806
+    mx_wrist_3_joint: 14.924855167154172
+    my_wrist_3_joint: 11.654473267386788
+    mz_wrist_3_joint + 1.0*my_wrist_2_joint + 0.11655*m_wrist_3_joint: 10.8417259322592
+    Ixx_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Ixx_wrist_2_joint - 1.0*Iyy_wrist_2_joint - 0.013584*m_wrist_3_joint: 2.5473383486848165
+    Ixy_wrist_3_joint: 3.803365428295114
+    Iyy_wrist_3_joint - 0.2331*my_wrist_2_joint + 1.0*Ixx_wrist_2_joint - 1.0*Iyy_wrist_2_joint - 0.013584*m_wrist_3_joint: 2.785222689617234
+    Ixz_wrist_3_joint: 4.296681001438567
+    Iyz_wrist_3_joint: 4.6103878827313345
+    Izz_wrist_3_joint: 3.564323579700295
   base_rule: 'base parameter error times its training column RMS (Nm): effort it accounts for'
   condition_number: of the unscaled training base regressor
-  train_condition_number: 77.01846475975228
+  train_condition_number: 61.735516658756744
 budgets:
   max_iterations: 1000
   max_wall_time_s: 600
