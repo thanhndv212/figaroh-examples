@@ -57,7 +57,6 @@ tasks:
     parameters:
       calibration_level: "full_params"
       include_non_geometric: false
-      regularization_coefficient: 0.001
       outlier_threshold: 0.02  # 2cm outlier threshold
 
     kinematics:
@@ -204,7 +203,6 @@ variants:
     extends: "tasks.calibration"
     parameters:
       outlier_threshold: 0.005  # 0.5mm precision
-      regularization_coefficient: 0.0001
       number_of_samples: 100
     data:
       source_file: "data/precision_calibration.csv"

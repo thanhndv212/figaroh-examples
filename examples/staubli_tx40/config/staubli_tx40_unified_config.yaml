@@ -62,7 +62,6 @@ tasks:
       calibration_level: "full_params"
       include_non_geometric: false
       outlier_threshold: 0.01  # 1cm - high precision for small robot
-      regularization_coefficient: 0.001
 
     kinematics:
       base_frame: "universe"

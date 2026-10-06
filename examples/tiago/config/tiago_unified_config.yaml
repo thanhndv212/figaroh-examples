@@ -80,10 +80,6 @@ tasks:
       # at these 37 postures (docs/development: held-out protocol, synthetic
       # truth; figaroh-plus#113).
       calibration_level: "joint_offset"
-      # No regularisation: core drops the parameters the base/tool frames
-      # absorb (figaroh-plus#102), so the problem is full rank. The template's
-      # 0.01 shrank arm_5 from -49.8 to -37.5 mrad and raised held-out error.
-      regularization_coefficient: 0.0
       # Which parameters to estimate and how (figaroh-plus#113). The default
       # "structural" keeps the protocol's results; excitation, map, map_cv and
       # cv_subset are compared on the synthetic truth in
