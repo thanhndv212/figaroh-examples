@@ -218,16 +218,10 @@ def main():
 
     calib = TiagoProCalibration(robot, args.config, data_path=args.data)
     calib.initialize()
-    # NOTE: BaseCalibration's outlier-removal loop (as of figaroh-plus 0.4.7)
-    # detects outliers each iteration but doesn't actually exclude them from
-    # PEE_measured/q_measured before the next re-fit -- it re-solves the same
-    # problem from the previous solution and reports the same outlier every
-    # time, up to max_iterations. Harmless (each pass is near-instant once
-    # already converged) but doesn't do more with a higher budget, so we
-    # don't ask for one.
+    # Samples whose position error exceeds the config's outlier_threshold
+    # (metres) are excluded and the rest refitted, up to max_iterations fits.
     calib.solve(
         max_iterations=3,
-        outlier_threshold=3.0,
         html_report=args.html_report,
     )
 

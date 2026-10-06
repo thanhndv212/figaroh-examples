@@ -140,7 +140,6 @@ def calibrated_result(tmp_path_factory):
     result = calib.solve(
         method="lm",
         max_iterations=3,
-        outlier_threshold=3.0,
         enable_logging=False,
         html_report=False,
     )
