@@ -71,8 +71,10 @@ Compatibility:
 - Calibration fits one point. `obs.select_points(["BL"]).to_legacy(...)`
   equals core's `load_data` on every session file, bit for bit.
 - `heldout_protocol.py` and `calibration.py` still read the files directly.
-  Moving them onto the manifest is left to the reference workflow (C4,
-  #29), which also decides whether to fit more points (figaroh-plus#119).
+  The reference workflow (`reference_run.py`, #29) checks every session file
+  against the manifest (sha256 and role) before fitting, and keeps marker 1
+  ([reference workflow](tiago-calibration-reference.md); several points,
+  figaroh-plus#119, are supported but not adopted).
 
 ## 3. Revisions and validation
 

@@ -112,7 +112,8 @@ Calibration data roles recorded:
 
 - Other robots' scripts still archive without `reproduction.json`.
   `python -m examples.run_record` reports their gaps. Adding the record
-  belongs to each robot's reference workflow (#23, #29 for TIAGo).
+  belongs to each robot's reference workflow (#23; TIAGo calibration: done
+  by `reference_run.py`, #29).
 - The audit checks hashes and presence. It does not re-run a fit to compare
   numbers; that is `tests/test_golden_outputs.py`.
 
