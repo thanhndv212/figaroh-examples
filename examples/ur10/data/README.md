@@ -4,6 +4,12 @@ These CSVs are historical simulation inputs, not hardware measurements or a
 replayable inertial-ground-truth fixture. See the [dated signal audit](../../../docs/development/ur10-signal-audit-2026-10-02.md)
 for the source-history evidence, corrections and validation results.
 
+For a known truth, use the separate fixture in [`truth/`](truth/) (#21):
+saved truth inertias and URDF, analytic q/dq/ddq, independently checked
+effort, separate training and validation trajectories, seeded noise and a
+frozen benchmark protocol. It is generated and checked by
+`identification_truth.py`; see the [fixture report](../../../docs/development/ur10-dynamic-truth-fixture.md).
+
 ## Channels and units
 
 The position files contain exactly `q0` through `q5`; effort files contain
@@ -71,7 +77,7 @@ The default CLI uses `solve(decimate=False)`: no decimation occurs. The empty
 `validation_data_file` means reported validation metrics reuse training data.
 The separate directory can be configured for a diagnostic run, but it does
 not become verified ground truth merely by being held out. Preserve the raw
-files; issue #21 will supply a fresh, reproducible simulation fixture.
+files; the fresh, reproducible simulation fixture is [`truth/`](truth/).
 
 ## Input fingerprints
 
