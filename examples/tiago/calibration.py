@@ -65,10 +65,17 @@ from figaroh.tools.export_validation import URDFComparison  # noqa: E402
 from figaroh.tools.geometric_calibration_export import (  # noqa: E402
     export_geometric_calibration_yaml,
 )
+from examples.run_record import (  # noqa: E402
+    add_artifacts,
+    describe_file,
+    write_reproduction_record,
+)
+from examples.verification import add_verification_args, run_verification  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
 DATA_DIR = "data/calibration"
+PROTOCOL = "data/calibration/mocap/protocol.yaml"
 URDF_STEM = "tiago_48_schunk"  # stem for discovering modified URDFs
 
 
@@ -352,10 +359,21 @@ def parse_args() -> argparse.Namespace:
         default=True,
         help=(
             "Archive this run to results/runs/<asset>/calibration/"
-            "<timestamp>/ (provenance, config snapshot, parameters, and "
-            "the HTML report if generated) and append a summary line to "
-            "results/runs/index.jsonl. Never overwrites a prior run. "
+            "<timestamp>/ (provenance, config snapshot, parameters, the "
+            "HTML report / JSON verdict if generated, and reproduction.json) "
+            "and append a summary line to results/runs/index.jsonl. Never "
+            "overwrites a prior run. "
             "Use --no-archive to skip."
+        ),
+    )
+    add_verification_args(parser)
+    parser.add_argument(
+        "--verify",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Write the scoped verdict (verdict.json) to the run directory; "
+            "exit nonzero when required evidence fails or is not evaluated."
         ),
     )
     parser.add_argument(
@@ -365,6 +383,33 @@ def parse_args() -> argparse.Namespace:
         help="Enable verbose (INFO) logging.",
     )
     return parser.parse_args()
+
+
+def _mocap_inputs(calib_config: dict) -> tuple[dict, dict]:
+    """The held-out protocol manifest, and the protocol role of each data file.
+
+    A file whose sha256 is not in the manifest has role ``None``: the run
+    does not follow the protocol (examples#27).
+    """
+    import yaml
+
+    protocol = describe_file(PROTOCOL)
+    roles = {}
+    if protocol["sha256"]:
+        manifest = yaml.safe_load(Path(PROTOCOL).read_text())
+        roles = {
+            digest: (s["id"], s["role"])
+            for s in manifest["sessions"]
+            for digest in s["files"].values()
+        }
+    files = {}
+    for key in ("data_file", "validation_data_file"):
+        path = calib_config.get(key)
+        if path:
+            digest = describe_file(path)["sha256"]
+            session, role = roles.get(digest, (None, None))
+            files[key] = {"path": path, "session": session, "role": role}
+    return {"protocol": protocol}, files
 
 
 # ── Calibration ─────────────────────────────────────────────────────
@@ -382,11 +427,15 @@ def _run_calibration(
     asset_id: str | None = None,
     operator: str | None = None,
     archive: bool = False,
-) -> tuple[np.ndarray, list[str], str]:
+    verify: bool = False,
+    verification_scope: str = "execution",
+    acceptance_profile=None,
+) -> tuple[np.ndarray, list[str], str, Path | None]:
     """Run TIAGo calibration.
 
-    Returns (result_vector, param_names, saved_path) where *saved_path*
-    is the timestamped .npz path.
+    Returns (result_vector, param_names, saved_path, run_dir) where
+    *saved_path* is the timestamped .npz path and *run_dir* the run
+    directory (None when nothing was written there).
     """
     tiago = load_robot(urdf_path, load_by_urdf=True, robot_pkg="tiago_description")
     tiago_calib = TiagoCalibration(tiago, config_path, del_list=[])
@@ -409,7 +458,7 @@ def _run_calibration(
 
     # V&V report suite: compute path once, write directly
     run_dir = None
-    if html_report or geometric_calibration_yaml or archive:
+    if html_report or geometric_calibration_yaml or archive or verify:
         run_dir = compute_run_dir(tiago_calib)
 
     if html_report:
@@ -435,11 +484,14 @@ def _run_calibration(
         except Exception as e:
             logger.warning("Skipping geometric_calibration_yaml export: %s", e)
 
-    if archive:
-        archive_run(tiago_calib, run_dir)
-
-    if run_dir:
-        print(f"Results written to: {run_dir}")
+    verdict = None
+    if verify:
+        print("\n" + "=" * 60)
+        print("VERIFICATION")
+        print("=" * 60)
+        verdict = run_verification(
+            tiago_calib, run_dir, verification_scope, acceptance_profile
+        )
 
     # Save with timestamp
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -461,6 +513,25 @@ def _run_calibration(
     )
     print(f"Calibration results saved to {saved_path}")
 
+    if archive:
+        archive_run(tiago_calib, run_dir)
+        inputs, data_roles = _mocap_inputs(tiago_calib.calib_config)
+        write_reproduction_record(
+            run_dir,
+            processing={
+                "known_baseframe": False,
+                "known_tipframe": False,
+                "del_list": [],
+                "verification_scope": verification_scope if verify else None,
+                "data_roles": data_roles,
+            },
+            inputs=inputs,
+            artifacts={"results": describe_file(saved_path)},
+        )
+
+    if run_dir:
+        print(f"Results written to: {run_dir}")
+
     # Post-calibration residual summary -- read from evaluation_metrics
     # (already computed and printed in more detail by print_quality_report()
     # inside solve()) rather than recomputing independently, so there's a
@@ -472,7 +543,11 @@ def _run_calibration(
     print(f"  Position RMSE: {metrics['rmse'] * 1000:.2f} mm")
     print(f"  Position MAE:  {metrics['mae'] * 1000:.2f} mm")
 
-    return result.x, param_names, saved_path
+    if verdict is not None and not verdict.passed:
+        print(f"\nVerification {verdict.status.upper()} ({verdict.scope}).")
+        sys.exit(1)
+
+    return result.x, param_names, saved_path, run_dir if archive else None
 
 
 # ── Export + verify ─────────────────────────────────────────────────
@@ -709,8 +784,9 @@ def main() -> None:
         result_x = None
         param_names = None
         npz_path = None
+        run_dir = None
         if "calibrate" in steps:
-            result_x, param_names, npz_path = _run_calibration(
+            result_x, param_names, npz_path, run_dir = _run_calibration(
                 str(urdf_path),
                 str(config_path),
                 plot=not args.no_plot,
@@ -721,6 +797,9 @@ def main() -> None:
                 asset_id=args.asset_id,
                 operator=args.operator,
                 archive=args.archive,
+                verify=args.verify,
+                verification_scope=args.verification_scope,
+                acceptance_profile=args.acceptance_profile,
             )
             if args.calibrate_only:
                 print(
@@ -749,6 +828,8 @@ def main() -> None:
                 output_path=args.output,
                 verbose=args.verbose,
             )
+            if run_dir and modified_urdf:
+                add_artifacts(run_dir, {"urdf": describe_file(modified_urdf)})
 
         # ── Phase 3: Visual validation ──
         if "viz" in steps and comp is not None:

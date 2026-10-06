@@ -427,16 +427,23 @@ All saved files are timestamped to avoid overwriting:
 
 ### Quality reports & verification
 
-`calibration.py` (`--html-report`, on by default) and `identification.py`
-(`--html-report`/`--verify`, both on by default) write a self-contained HTML
-diagnostic report and, for identification, a machine-readable pass/fail
-verdict to the run directory (`results/runs/tiago-<asset>/{calibration,
-identification}/<timestamp>/`, or `results/` for a plain `--no-archive` run).
-`identification.py --verify` exits non-zero when the selected verification
-scope fails or is not evaluated. The default `--verification-scope execution`
+`calibration.py` and `identification.py` (`--html-report`/`--verify`, both
+on by default) write a self-contained HTML diagnostic report and a
+machine-readable pass/fail verdict to the run directory
+(`results/runs/tiago-<asset>/{calibration,identification}/<timestamp>/`, or
+`results/` for a plain `--no-archive` run). `--verify` exits non-zero when
+the selected verification scope fails or is not evaluated. The default `--verification-scope execution`
 checks only finite, consistent fit outputs; prediction acceptance needs
 separate validation data and an explicit `--acceptance-profile` (see the
 top-level README).
+
+An archived run also holds `reproduction.json`. It records the command
+line, the processing the script applies outside the config, the mocap
+protocol and data roles (calibration), and the generated files written
+elsewhere (results `.npz`, exported URDF), each with its sha256. It ends with
+a checklist that names anything missing; `python -m examples.run_record
+RUN_DIR` (from the repository root) re-checks an archive. See the
+[run archive audit](../../docs/development/run-archive-audit-2026-10-06.md).
 
 `identification.py --wls` refines the OLS base-parameter estimate with
 weighted least squares before quality metrics are computed (off by default
