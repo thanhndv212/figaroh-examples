@@ -8,6 +8,7 @@ analytic data, directly and through the UR10 identification pipeline.
 
 import contextlib
 import hashlib
+import json
 import io
 import sys
 from pathlib import Path
@@ -70,15 +71,12 @@ def test_effort_checked_independently():
     entry = it.manifest()
     for split, info in entry["splits"].items():
         data = it.read_split(split)
-        coefficients = info["coefficients"]
-        checks = it.independent_checks(
-            model, data, it.TRAJECTORIES[split], coefficients
-        )
+        checks = it.independent_checks(model, data, info["definition"])
         for key in ("crba_nle", "pinocchio_regressor", "figaroh_regressor"):
             assert checks[key] < 1e-9, (split, key, checks[key])
         assert checks["aba_ddq"] < 1e-9
         assert checks["power_balance_w"] < 1e-6 * checks["power_scale_w"]
-        # every tangent coordinate: analytic derivatives match the series
+        # every tangent coordinate: analytic derivatives match the curve
         assert max(checks["dq_central_difference"]) < 1e-7
         assert max(checks["ddq_central_difference"]) < 1e-7
 
@@ -88,27 +86,48 @@ def test_every_coordinate_excited_within_limits():
     for split, info in entry["splits"].items():
         data = it.read_split(split)
         assert info["rank"] == 36
-        assert info["base_condition_number"] < 200
-        assert np.all(np.ptp(data["q"], axis=0) > 1.0)
+        assert info["base_condition_number"] < 250
+        assert np.all(np.ptp(data["q"], axis=0) > 0.5)
         assert np.all(np.abs(data["dq"]).max(0) > 0.5)
         assert np.all(np.abs(data["ddq"]).max(0) > 1.0)
         assert np.all(np.sqrt(np.mean(data["tau"] ** 2, axis=0)) > 0.05)
-        assert np.all(
-            np.abs(data["dq"]).max(0)
-            <= it.VELOCITY_FRACTION * np.array(it.VELOCITY_LIMIT) + 1e-12
-        )
+        assert np.all(np.abs(data["dq"]).max(0) <= np.array(it.VELOCITY_LIMIT))
         assert np.all(
             np.abs(data["tau"]).max(0) <= it.TORQUE_FRACTION * np.array(it.TORQUE_LIMIT)
         )
-        assert np.all(np.abs(data["q"] - it.CENTER) <= it.AMPLITUDE_RAD + 1e-12)
         assert np.allclose(np.diff(data["t"]), 1 / it.SAMPLE_RATE_HZ)
+
+
+def test_trajectories_are_collision_free():
+    checker = it.CollisionChecker()
+    for split, info in it.manifest()["splits"].items():
+        assert checker.clear(info["definition"]), split
+        for kind, required in it.CLEARANCE_M.items():
+            assert info["collision"][kind]["min_distance_m"] >= required
+
+
+def test_training_is_the_frozen_optimal_trajectory():
+    waypoints = json.loads((it.FIXTURE_DIR / it.WAYPOINTS_FILE).read_text())
+    selection = waypoints["selection"]
+    assert {"result": "feasible", "seed": selection["seed"]}.items() <= next(
+        r for r in selection["runs"] if r["seed"] == selection["seed"]
+    ).items()
+    defn = it.manifest()["splits"]["train"]["definition"]
+    assert defn["kind"] == "spline"
+    assert defn["waypoints"] == waypoints["waypoints"]
+    # the spline passes through each waypoint at rest
+    q, dq, ddq = it.trajectory_at(defn, it.knots(defn))
+    np.testing.assert_allclose(q, waypoints["waypoints"], atol=1e-12)
+    assert np.abs(dq).max() < 1e-12 and np.abs(ddq).max() < 1e-9
 
 
 def test_splits_are_independent():
     entry = it.manifest()
     train, val = entry["splits"]["train"], entry["splits"]["validation"]
-    assert train["seed"] != val["seed"]
-    assert train["fundamental_hz"] != val["fundamental_hz"]
+    assert (train["definition"]["kind"], val["definition"]["kind"]) == (
+        "spline",
+        "fourier",
+    )
     assert not set(it.NOISE_SEEDS["train"]) & set(it.NOISE_SEEDS["validation"])
     q_train = {tuple(r) for r in np.round(it.read_split("train")["q"], 9)}
     q_val = {tuple(r) for r in np.round(it.read_split("validation")["q"], 9)}
@@ -160,7 +179,7 @@ def test_core_pipeline_recovers_truth():
     names = protocol["rank"]["base_names"]
     assert list(ident.params_base) == names
     truth = np.array([protocol["rank"]["base_truth"][n] for n in names])
-    # core rounds phi_b to 6 decimals (figaroh tools/qrdecomposition.py)
+    # core rounds phi_b to 6 decimals (figaroh-plus#142)
     assert np.abs(np.asarray(ident.phi_base) - truth).max() <= 5e-7 + 1e-12
     assert metrics["validation_source"] == "validation_data"
     assert metrics["n_val_samples"] == 800
