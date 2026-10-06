@@ -29,6 +29,10 @@ from examples.tiago.utils.tiago_tools import TiagoIdentification  # noqa: E402
 from figaroh.tools.robot import load_robot  # noqa: E402
 from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
 from examples.verification import add_verification_args, run_verification  # noqa: E402
+from examples.run_record import write_reproduction_record  # noqa: E402
+
+# Recording window used for identification (rows of the shipped CSVs)
+TRUNCATE = (921, 6791)
 
 
 def parse_args() -> argparse.Namespace:
@@ -117,7 +121,8 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Archive this run to results/runs/<asset>/identification/"
             "<timestamp>/ (provenance, config snapshot, parameters, and "
-            "the HTML report / JSON verdict if generated) and append a "
+            "the HTML report / JSON verdict if generated, and "
+            "reproduction.json) and append a "
             "summary line to results/runs/index.jsonl. Never overwrites "
             "a prior run. Use --no-archive to skip."
         ),
@@ -227,7 +232,7 @@ def main() -> TiagoIdentification | None:
         # Note: truncate parameter now accepts:
         # - None: no truncation
         # - (start, end): custom truncation indices
-        tiago_iden.initialize(truncate=(921, 6791))
+        tiago_iden.initialize(truncate=TRUNCATE)
         prov = tiago_iden.trajectory_provenance["training"]
         print(
             f"Recorded clock {prov['recorded_rate_hz']:.2f} Hz; velocity lag "
@@ -287,6 +292,17 @@ def main() -> TiagoIdentification | None:
 
         if args.archive:
             archive_run(tiago_iden, run_dir)
+            write_reproduction_record(
+                run_dir,
+                processing={
+                    "truncate": list(TRUNCATE),
+                    "decimate": True,
+                    "wls": wls_enabled,
+                    "velocity_lag": args.velocity_lag,
+                    "verification_scope": args.verification_scope,
+                    "trajectory": tiago_iden.trajectory_provenance,
+                },
+            )
 
         if run_dir:
             print(f"\nResults written to: {run_dir}")
