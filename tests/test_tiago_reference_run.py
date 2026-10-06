@@ -117,3 +117,23 @@ def test_heldout_matches_the_protocol(run_dir):
             )
     finally:
         os.chdir(cwd)
+
+
+def test_refuses_inputs_outside_the_frozen_protocol():
+    """A held-out session used as validation data is a protocol mismatch."""
+    from types import SimpleNamespace
+
+    sys.path.insert(0, str(ROOT))
+    from examples.tiago import reference_run as rr
+
+    mocap = "data/calibration/mocap/"
+    ok = {
+        "data_file": mocap + "qualisys_2021-11-30_static_postures.csv",
+        "validation_data_file": mocap + "qualisys_2021-11-26_static_postures.csv",
+    }
+    rr.check_protocol(SimpleNamespace(calib_config=ok))
+    swapped = dict(
+        ok, validation_data_file=mocap + "qualisys_2021-11-30-1403_static_postures.csv"
+    )
+    with pytest.raises(ValueError, match="validation_data_file"):
+        rr.check_protocol(SimpleNamespace(calib_config=swapped))

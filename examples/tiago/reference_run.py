@@ -11,6 +11,9 @@ its reproduction record.
 Steps and what each writes into the run directory
 (``<root>/<asset>/calibration/<timestamp>/``):
 
+0. **Inputs**: every session file must match the frozen protocol manifest
+   (``data/calibration/mocap/protocol.yaml``: sha256 and role), else the
+   run stops before writing anything.
 1. **Fit** (``tiago_unified_config.yaml``: ``joint_offset``, training session,
    validation session as ``validation_data_file``): ``report.html``.
 2. **Held-out report**: per-component error (mm) of marker 1 on every
@@ -51,6 +54,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from figaroh.calibration.calibration_tools import calc_updated_fkm  # noqa: E402
+from figaroh.data import Protocol  # noqa: E402
 from figaroh.tools.geometric_calibration_export import (  # noqa: E402
     build_geometric_calibration,
     export_geometric_calibration_yaml,
@@ -85,6 +89,32 @@ CONFIG = TIAGO / "config/tiago_unified_config.yaml"
 URDF = TIAGO / "urdf/tiago_48_schunk.urdf"
 # reloaded models must predict the fitted marker to float precision (m)
 PARITY_TOL = 1e-9
+
+
+def check_protocol(calib) -> None:
+    """Every session file matches the frozen manifest, in its role.
+
+    Raises ValueError naming the problems: a changed file, a role that
+    differs from the manifest, or a training/validation file that is not
+    the manifest's.
+    """
+    protocol = Protocol.load(TIAGO / PROTOCOL)
+    protocol.verify(root=TIAGO / Path(PROTOCOL).parent)  # sha256 of every file
+    roles = {Path(f).name: s.role for s in protocol.sessions for f in s.files}
+    problems = [
+        f"{name}: role {role}, manifest {roles.get(name)}"
+        for role, name in SETS
+        if roles.get(name) != role
+    ]
+    for key, role in (
+        ("data_file", "training"),
+        ("validation_data_file", "validation"),
+    ):
+        name = Path(calib.calib_config.get(key) or "").name
+        if roles.get(name) != role:
+            problems.append(f"{key} {name!r} is not the protocol's {role} session")
+    if problems:
+        raise ValueError("protocol mismatch: " + "; ".join(problems))
 
 
 def _fit(asset_id: str | None, operator: str | None) -> TiagoCalibration:
@@ -225,6 +255,7 @@ def _print_heldout(heldout: dict) -> None:
 
 def run(args) -> int:
     calib = _fit(args.asset_id, args.operator)
+    check_protocol(calib)
     run_dir = compute_run_dir(calib, root=args.root)
 
     heldout = heldout_report(calib)
