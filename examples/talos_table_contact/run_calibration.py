@@ -183,8 +183,10 @@ def main():
     train_before = calib.gap_metrics(var0)
 
     # Standard FIGAROH calibration entry point (as
-    # examples/tiago/calibration.py uses) -- runs solve_optimisation()'s
-    # outlier-removal loop, then _evaluate_solution()/calc_stddev(),
+    # examples/tiago/calibration.py uses) -- runs solve_optimisation()
+    # (outlier exclusion is off: outlier_eps is null in these configs, and
+    # the gap residual has a single position component), then
+    # _evaluate_solution()/calc_stddev(),
     # printing the same terminal quality report TIAGo's own calibration
     # prints. See TalosTableContactCalibration.get_pose_from_measure /
     # cost_function for how this class feeds its plane/contact gap
@@ -193,7 +195,6 @@ def main():
     result = calib.solve(
         method="lm",
         max_iterations=3,
-        outlier_threshold=3.0,
         enable_logging=False,
         html_report=False,  # exported explicitly below, with a chosen path
     )

@@ -226,7 +226,6 @@ def _run_single_chain(
     result = calib.solve(
         method="lm",
         max_iterations=3,
-        outlier_threshold=3.0,
         enable_logging=False,
         html_report=False,
     )

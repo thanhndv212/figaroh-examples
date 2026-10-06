@@ -406,7 +406,6 @@ def _run_calibration(
     result = calib.solve(
         method="lm",
         max_iterations=3,
-        outlier_threshold=3.0,
         plotting=plot,
         enable_logging=verbose,
         html_report=False,
