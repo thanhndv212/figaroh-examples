@@ -17,7 +17,8 @@
 ``execution`` checks that the fit produced finite, consistent numerical
 outputs. ``prediction`` additionally needs separately loaded validation data
 and an explicit per-joint error-limit profile. Neither scope certifies
-physical feasibility or export; those stages stay NOT_EVALUATED.
+physical feasibility or export; those stages stay NOT_EVALUATED unless the
+caller records them (e.g. ``tiago/reference_run.py`` records the export).
 """
 
 from __future__ import annotations
@@ -138,4 +139,8 @@ def print_verdict(verdict) -> None:
         "Prediction acceptance (declared validation split): "
         f"{verdict.stages['prediction'].upper()}"
     )
-    print("Physical model / export: NOT_EVALUATED by this verifier")
+    stages = verdict.stages
+    print(
+        f"Physical model: {stages.get('physical', 'not_evaluated').upper()}; "
+        f"export: {stages.get('export', 'not_evaluated').upper()}"
+    )
