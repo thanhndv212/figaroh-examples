@@ -42,7 +42,6 @@ tasks:
     parameters:
       calibration_level: "full_params"
       include_non_geometric: false
-      regularization_coefficient: 0.001
       outlier_threshold: 0.02  # 2cm outlier threshold
 
     kinematics:

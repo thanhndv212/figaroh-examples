@@ -36,7 +36,7 @@ calibration:
   # Initial guess [x, y, z, roll, pitch, yaw] (m, rad) for the tool_frame ->
   # marker transform being estimated.
   tip_pose: [0.2163, 0.03484, 0.004, 0.0, -1.57, -1.57]
-  coeff_regularize: 0.01 # L2 regularization weight on identified offsets
+  coeff_regularize: 0.0  # deprecated, keep 0 (figaroh-plus#120)
   outlier_eps: 0.05 #meter -- residual above this is dropped as an outlier
   # Recorded (joint configuration, measured marker pose) samples.
   data_file: data/calibration/mocap/qualisys_2021-11-30_static_postures.csv

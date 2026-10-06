@@ -18,8 +18,7 @@ calibration:
   # Data file path
   data_file: "data/calibration.csv"
 
-  # Regularization coefficient
-  coeff_regularize: 1e-6
+  coeff_regularize: 0.0  # deprecated, keep 0 (figaroh-plus#120)
 
   # Frame knowledge flags
   known_baseframe: false

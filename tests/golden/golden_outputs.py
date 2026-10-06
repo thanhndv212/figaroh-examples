@@ -69,10 +69,11 @@ TOL = {
 # Known platform dependence, measured when the reference was recorded:
 # allowed values per case, with the issue that removes it.
 PLATFORM_SPREAD = {
-    # 38 parameters on macOS, 39 on Linux; fit 0.325676 / 0.325433 mm, export
-    # 43.12 / 42.64 mm (figaroh-plus#113)
+    # estimation.method: map since figaroh-plus#120: every joint parameter is
+    # estimated (63), so the structural 38/39 macOS/Linux split (figaroh-plus
+    # #113) is gone. Fit and export spreads kept from that record until
+    # Linux CI measures the map case.
     "talos/calibration_upperbody.py": {
-        "n_params": (38, 39),
         "fit_rms_mm": 2e-3,
         "export_dev_mm": 1.0,
     },

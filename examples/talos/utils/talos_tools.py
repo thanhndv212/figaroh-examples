@@ -52,9 +52,6 @@ class TALOSCalibration(BaseCalibration):
         """
         super().__init__(robot, config_file, del_list)
 
-        # TALOS-specific initialization
-        self.regularization_coefficient = 1e-3
-
     def initialize_variables(
         self, mode: int = 0, base_position: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, int]:
@@ -83,16 +80,15 @@ class TALOSCalibration(BaseCalibration):
         """
         TALOS-specific cost function for torso-arm calibration.
 
-        Implements regularization for intermediate kinematic parameters
-        while excluding base and marker parameters from regularization.
-        This is particularly important for TALOS due to its complex
-        kinematic structure.
+        SE3 log-map residuals of the measured hand point. No regularisation
+        rows: priors on the joint parameters come from core's
+        ``estimation.method: map`` (figaroh-plus#120).
 
         Args:
             var (ndarray): Parameter vector to evaluate
 
         Returns:
-            ndarray: Weighted residual vector including regularization terms
+            ndarray: Residual vector
         """
         # Calculate forward kinematics with current parameters
         PEEe = calc_updated_fkm(
@@ -100,19 +96,4 @@ class TALOSCalibration(BaseCalibration):
         )
 
         # Main residual: SE3 log map (geometrically correct pose error)
-        main_residuals = self._compute_logmap_residuals(
-            self.PEE_measured, PEEe
-        )
-
-        # TALOS-specific regularization
-        # Exclude base position (first 3 params) and markers (last 3*NbMarkers)
-        n_markers = self.calib_config["NbMarkers"]
-        regularization_params = var[6 : -n_markers * 3]
-        regularization_term = (
-            np.sqrt(self.regularization_coefficient) * regularization_params
-        )
-
-        # Combine residuals
-        total_residuals = np.append(main_residuals, regularization_term)
-
-        return total_residuals
+        return self._compute_logmap_residuals(self.PEE_measured, PEEe)

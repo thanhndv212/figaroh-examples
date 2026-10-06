@@ -11,8 +11,7 @@ bug that motivated this migration), per-parameter standard errors
 and a terminal/HTML quality report.
 
 This subclass only adds what's genuinely TIAGo-Pro-specific on top of that:
-- cost_function(): light L2 regularization on per-joint DH-style offsets
-  only (not on base_*/pEE*/phiEE*) -- see _joint_param_mask().
+- cost_function(): world-frame SE3 log-map residuals, unweighted.
 - solve_optimisation(): seeds base_pose/tip_pose from config as the LM
   initial guess (BaseCalibration always starts from zero otherwise; a
   ~14cm known offset converges far more reliably from a good seed -- see
@@ -73,52 +72,24 @@ class TiagoProCalibration(BaseCalibration):
 
     def cost_function(self, var: np.ndarray) -> np.ndarray:
         """SE3 log-map residuals (BaseCalibration's real fix vs. the legacy
-        script's RPY-wraparound patch) + light L2 regularization on
-        per-joint offsets only.
+        script's RPY-wraparound patch).
 
-        Deliberately does NOT call apply_measurement_weighting(): its
-        default position/orientation weights (1000x / 100x, from
-        measurement_std defaults of 1mm / 0.01rad) blow up the scale
-        mismatch against the (still raw-scale) regularization term enough
-        to break scipy's method="lm" -- confirmed by hand: with the
-        weighting on, `least_squares` hits `xtol` after ~10 evaluations
-        with first-order optimality ~5e5 (nowhere near a real optimum,
-        MINPACK's internal scaling failing on the ~1e5 dynamic range
-        between weighted-residual and regularization column norms); with
-        it off, the same problem reaches `ftol` genuinely (optimality
-        ~2e-5) and a materially better fit. Raw (unweighted) log-map
-        residuals are already well-scaled for position (meters) vs.
-        orientation (radians) here -- see the RMSE/orientation-RMSE split
-        reported separately in write_calibration_results() instead of a
-        single mixed-unit number.
+        Does not call apply_measurement_weighting(): raw log-map residuals
+        are already well-scaled for position (meters) vs. orientation
+        (radians) here -- see the RMSE/orientation-RMSE split reported
+        separately in write_calibration_results().
 
-        Regularization is deliberately NOT applied to base_*/pEE*/phiEE*:
-        those represent a physical mocap-frame offset and marker mounting
-        position, not a redundant joint-placement direction sharing rank
-        with a neighbour -- pulling them toward 0 would bias a real,
-        non-zero physical quantity for no identifiability benefit.
+        No regularisation rows: the former 0.01 L2 term on the d_* joint
+        parameters penalised metres and radians alike and changed this fit
+        by < 0.01 mm; priors come from core's ``estimation.method: map``
+        (figaroh-plus#120).
         """
         PEEe = calc_updated_fkm(
             self.model, self.data, var, self.q_measured, self.calib_config
         )
-        residuals = self._compute_logmap_residuals(
+        return self._compute_logmap_residuals(
             self.PEE_measured, PEEe, position_frame="world"
         )
-
-        coeff = self.calib_config.get("coeff_regularize") or 0.0
-        if coeff:
-            reg_mask = self._joint_param_mask()
-            reg = np.sqrt(coeff) * var[reg_mask]
-            return np.concatenate([residuals, reg])
-        return residuals
-
-    def _joint_param_mask(self) -> np.ndarray:
-        """Boolean mask over calib_config['param_name'], True for per-joint
-        DH-style offsets (d_px_arm_right_2_joint, ...), False for base_*/
-        pEE*/phiEE* -- see cost_function()'s docstring for why those are
-        excluded."""
-        names = self.calib_config["param_name"]
-        return np.array([n.startswith("d_") for n in names])
 
     # ── Initial guess ────────────────────────────────────────────────────────
 

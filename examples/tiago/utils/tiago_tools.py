@@ -135,35 +135,22 @@ class TiagoCalibration(BaseCalibration):
         """
         TIAGo-specific cost function for the optimization problem.
 
-        Implements regularization for intermediate parameters to improve
-        numerical stability and convergence.
+        SE3 log-map residuals of the measured tool point. No regularisation
+        rows: priors on the joint parameters come from core's
+        ``estimation.method: map`` (figaroh-plus#120).
 
         Args:
             var: Parameter vector to evaluate
 
         Returns:
-            Residual vector including regularization terms
+            Residual vector
         """
-        coeff_ = self.calib_config["coeff_regularize"]
         PEEe = calc_updated_fkm(
             self.model, self.data, var, self.q_measured, self.calib_config
         )
 
         # Main residual: SE3 log map (geometrically correct pose error)
-        position_residuals = self._compute_logmap_residuals(self.PEE_measured, PEEe)
-
-        # Regularization term for intermediate parameters (excludes base/tip)
-        # This helps stabilize optimization for redundant kinematic chains
-        n_base_params = 6  # Base frame parameters
-        n_tip_params = (
-            self.calib_config["NbMarkers"] * self.calib_config["calibration_index"]
-        )
-        regularization_params = var[n_base_params:-n_tip_params]
-        regularization_residuals = np.sqrt(coeff_) * regularization_params
-
-        # Combine residuals
-        res_vect = np.append(position_residuals, regularization_residuals)
-        return res_vect
+        return self._compute_logmap_residuals(self.PEE_measured, PEEe)
 
 
 class TiagoIdentification(BaseIdentification):
