@@ -43,13 +43,27 @@ def _write(dirpath, t, q, v, tau, joints=JOINTS):
         df.to_csv(dirpath / f"tiago_{kind}.csv", index=False)
 
 
+def _robot():
+    import types
+
+    import pinocchio as pin
+
+    model = pin.buildModelFromUrdf(str(TIAGO / "urdf" / "tiago_48_schunk.urdf"))
+    return types.SimpleNamespace(model=model, data=model.createData())
+
+
 def _adapter(dirpath, f_sample=100.0, lag="auto"):
     iden = TiagoIdentification.__new__(TiagoIdentification)
+    iden.robot = _robot()
     iden.identif_config = {
         "active_joints": JOINTS,
         "pos_data": str(dirpath / "tiago_position.csv"),
         "vel_data": str(dirpath / "tiago_velocity.csv"),
         "torque_data": str(dirpath / "tiago_effort.csv"),
+        # unit drive constants: the converted effort is the recorded one
+        # (+ the torso gravity term); the recorded one is kept as effort_raw
+        "reduction_ratio": {j: 1 for j in JOINTS},
+        "kmotor": {j: 1 for j in JOINTS},
     }
     iden.filter_config = {"filter_params": {"f_sample": f_sample}}
     iden.velocity_lag = lag
@@ -75,13 +89,15 @@ def test_loader_aligns_velocity_and_keeps_recorded_clock(tmp_path):
     _write(tmp_path, t, q, v, tau)
 
     iden = _adapter(tmp_path)
-    data = iden.load_trajectory_data()
+    traj = iden.load_trajectory_data()
+    data = traj.to_legacy()
 
     n = len(t) - delay
     close = {"rtol": 0, "atol": 1e-12}  # CSV round trip
     np.testing.assert_allclose(data["timestamps"].ravel(), t[:n], **close)
     np.testing.assert_allclose(data["positions"], q[:n], **close)
-    np.testing.assert_allclose(data["torques"], tau[:n], **close)
+    np.testing.assert_allclose(traj.effort_raw, tau[:n], **close)
+    np.testing.assert_array_equal(traj.sample_index, np.arange(n))
     # Shifted velocity equals the true derivative at the same timestamps.
     true_dq = v[delay:]  # v[n + delay] = dq[n]
     np.testing.assert_allclose(data["velocities"], true_dq, **close)
@@ -96,8 +112,8 @@ def test_loader_aligns_velocity_and_keeps_recorded_clock(tmp_path):
 def test_fixed_lag_overrides_estimate(tmp_path):
     t, q, v = _signals(delay=7)
     _write(tmp_path, t, q, v, np.zeros((len(t), 3)))
-    data = _adapter(tmp_path, lag=0).load_trajectory_data()
-    np.testing.assert_allclose(data["velocities"], v, rtol=0, atol=1e-12)
+    traj = _adapter(tmp_path, lag=0).load_trajectory_data()
+    np.testing.assert_allclose(traj.dq, v, rtol=0, atol=1e-12)
 
 
 def test_filter_clock_must_match_recorded_clock(tmp_path):

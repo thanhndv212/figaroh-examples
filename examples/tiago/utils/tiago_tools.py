@@ -190,16 +190,24 @@ class TiagoIdentification(BaseIdentification):
     #: Search range for the automatic lag estimate, in samples.
     max_velocity_lag: int = 50
 
-    def load_trajectory_data(self, data_source: str = None) -> dict[str, Any]:
+    def load_trajectory_data(self, data_source: str = None) -> Any:
         """Load the TIAGo position/velocity/effort CSVs (D2-audited, #20).
 
         The three files share one recorded clock (column ``t``, ~100 Hz).
         The configured filter sample rate must match that clock. The
         measured velocity channel lags the position derivative, so it is
         shifted earlier by :attr:`velocity_lag` samples and the last samples
-        of the other channels are dropped (no padding). Efforts are returned
-        raw; :meth:`process_torque_data` converts them. Inspect
-        ``trajectory_provenance`` for the clock, lag and data checks.
+        of the other channels are dropped (no padding).
+
+        Returns a :class:`~figaroh.data.trajectory.TrajectoryData`
+        (figaroh-plus#55, examples#17): joint order, recorded clock, signal
+        origins, source files with sha256 and source rows travel with the
+        arrays. The recorded effort (``motor_effort``, raw units, unverified
+        per the D2 audit) is converted here with ``reduction_ratio × kmotor``
+        (+ ``9.81 × subtree mass`` on the torso) and kept beside the joint
+        effort: ``joint_force`` in N on the prismatic torso, ``joint_torque``
+        in N·m on the arm. Inspect ``trajectory_provenance`` for the clock,
+        lag and data checks.
 
         Args:
             data_source: Optional directory override. When given, the
@@ -299,40 +307,69 @@ class TiagoIdentification(BaseIdentification):
                 100 * fraction,
             )
 
-        self.raw_data = {
-            "timestamps": ts.reshape(-1, 1),
-            "positions": q,
-            "velocities": dq,
-            "accelerations": None,
-            "torques": tau,
-        }
-        return self.raw_data
+        return self._trajectory(
+            ts, q, dq, tau, lag, (pos_path, vel_path, torque_path), data_source
+        )
 
-    def process_torque_data(self) -> npt.NDArray[np.float64]:
-        """Process torque data with TIAGo-specific motor constants."""
+    def _trajectory(self, ts, q, dq, effort, lag, files, data_source):
+        """The data contract form of a loaded recording (examples#17)."""
         import pinocchio as pin
+        from figaroh.data import (
+            JOINT_FORCE,
+            JOINT_TORQUE,
+            DataSource,
+            Session,
+            TrajectoryData,
+        )
 
-        # Apply TIAGo-specific torque processing (reduction ratios, etc.)
+        joints = list(self.identif_config["active_joints"])
+        ratio = self.identif_config["reduction_ratio"]
+        kmotor = self.identif_config["kmotor"]
         pin.computeSubtreeMasses(self.robot.model, self.robot.data)
-        tau_processed = self.raw_data["torques"].copy()
-
-        for i, joint_name in enumerate(self.identif_config["active_joints"]):
-            if joint_name == "torso_lift_joint":
-                tau_processed[:, i] = (
-                    self.identif_config["reduction_ratio"][joint_name]
-                    * self.identif_config["kmotor"][joint_name]
-                    * self.raw_data["torques"][:, i]
-                    + 9.81
-                    * self.robot.data.mass[self.robot.model.getJointId(joint_name)]
-                )
-            else:
-                tau_processed[:, i] = (
-                    self.identif_config["reduction_ratio"][joint_name]
-                    * self.identif_config["kmotor"][joint_name]
-                    * self.raw_data["torques"][:, i]
-                )
-        self.processed_data["torques"] = tau_processed
-        return self.processed_data["torques"]
+        model = self.robot.model
+        scale = [ratio[j] * kmotor[j] for j in joints]
+        offset = [
+            (
+                9.81 * self.robot.data.mass[model.getJointId(j)]
+                if j == "torso_lift_joint"
+                else 0.0
+            )
+            for j in joints
+        ]
+        prismatic = [
+            model.joints[model.getJointId(j)].shortname().startswith("JointModelP")
+            for j in joints
+        ]
+        recorded = TrajectoryData(
+            t=ts,
+            joint_names=joints,
+            q=q,
+            dq=dq,
+            effort=effort,
+            effort_kind="motor_effort",
+            effort_unit="raw (unverified, D2 audit)",
+            clock="recorded",
+            origin={
+                "q": "measured",
+                "dq": f"measured; shifted {lag} samples earlier (velocity lag)",
+            },
+            # rows of the files; the last `lag` rows are dropped
+            sample_index=np.arange(len(ts)),
+            source=DataSource.from_files(
+                files,
+                adapter="examples.tiago.TiagoIdentification",
+                session=Session(id=os.path.basename(data_source or "training")),
+                notes=f"velocity shifted {lag} samples earlier; "
+                f"last {lag} rows dropped",
+            ),
+        )
+        return recorded.converted(
+            scale,
+            offset,
+            effort_kind=[JOINT_FORCE if p else JOINT_TORQUE for p in prismatic],
+            effort_unit=["N" if p else "N·m" for p in prismatic],
+            description="× reduction_ratio × kmotor; + 9.81 × subtree mass (torso)",
+        )
 
 
 class TiagoOptimalCalibration(BaseOptimalCalibration):

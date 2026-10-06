@@ -1,0 +1,24 @@
+# TIAGo mocap held-out protocol v1 (examples#27) as a data-contract Protocol
+# (figaroh-plus#55, examples#17): which recording plays which role, with each
+# file's sha256. Paths are relative to this directory. Roles and hashes match
+# docs/development/tiago-mocap-heldout-protocol.md; changing a file or a role
+# needs a new protocol version (rule 4 there).
+name: tiago-mocap-heldout
+version: 1
+sessions:
+- id: 2021-11-30-1544
+  role: training
+  files:
+    qualisys_2021-11-30_static_postures.csv: b6c0051e20c6a077a6d2cf64ba912996945bbb85d6860cd6cea7d8ff65b1b9af
+- id: 2021-11-26-1105
+  role: validation
+  files:
+    qualisys_2021-11-26_static_postures.csv: 7c986df711757c4d31d8bb6db34b354f72318a78673dac280fd3a14abc5460a0
+- id: 2021-11-30-1403
+  role: confirmation
+  files:
+    qualisys_2021-11-30-1403_static_postures.csv: e44c678fbbc1fbc852107b0fe6793470dbf3a7cef77ddf5faa25c9e4ff4cb503
+- id: 2021-11-30-1504
+  role: confirmation
+  files:
+    qualisys_2021-11-30-1504_static_postures.csv: cc19eaa74fe8b74be28d758424ef4acd18f516dc59e40754b37d87f8592fbb84

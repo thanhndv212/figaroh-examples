@@ -81,7 +81,10 @@ covers the file these replace.
 
 Roles, freeze rules and results are fixed in the held-out protocol
 ([`docs/development/tiago-mocap-heldout-protocol.md`](../../../docs/development/tiago-mocap-heldout-protocol.md),
-#27). Do not tune anything on the confirmation sets.
+#27). Do not tune anything on the confirmation sets. The same roles and
+hashes are machine-readable in `calibration/mocap/protocol.yaml`, a
+data-contract `Protocol`
+([adapters](../../../docs/development/data-contract-adapters.md), #17).
 
 **Columns:**
 - `x1,y1,z1 … x4,y4,z4`: the points BL, BR, TR, TL of the Qualisys hand
