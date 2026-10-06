@@ -15,6 +15,19 @@ The TIAGo mobile manipulator requires accurate modeling for precision tasks such
 
 ### 1. Kinematic Calibration Task (`calibration.py`)
 
+**Reference workflow.** One headless command fits, reports every frozen
+held-out session, exports and reloads the URDF and PAL file, and archives
+the run:
+
+```bash
+python reference_run.py --asset-id <unit>
+```
+
+What it writes, the reference result and its limitations:
+[calibration reference workflow](../../docs/development/tiago-calibration-reference.md).
+`calibration.py` below is the interactive tool (plots, 3D viewer, saved
+results, separate export).
+
 #### Problem Statement
 Manufacturing tolerances, assembly errors, and component wear introduce systematic errors in robot kinematics. These errors can cause position inaccuracies of several millimeters to centimeters, making precision tasks impossible.
 
@@ -66,10 +79,10 @@ Where:
 - `ε`: Measurement noise
 
 #### Expected Results
-- Position accuracy improvement from 5-10mm to <1mm
-- Systematic error reduction of 80-90%
-- Validated performance across full workspace
-- Calibrated parameter files for robot controller
+On the shipped mocap data (`joint_offset`, marker 1, reference workflow):
+2.88 mm on the training session and 3.8–4.2 mm RMSE on the three held-out
+sessions, against 419 mm for the nominal model before the mocap frame is
+estimated. Postures outside the training range reach about 6.5 mm.
 
 ---
 
