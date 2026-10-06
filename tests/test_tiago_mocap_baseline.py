@@ -106,7 +106,9 @@ def test_observation_semantics(calibrated):
     assert cc["measurability"] == [True, True, True, False, False, False]
     assert cc["NbSample"] == 37
     assert cc["validation_data_file"].endswith(HELD_OUT.name)
-    assert cc["coeff_regularize"] == 0.0
+    # no regularisation rows: residuals are the measurements only (#120)
+    x = calibrated.LM_result.x
+    assert len(calibrated.cost_function(x)) == len(calibrated.PEE_measured)
     # the 6D base absorbs the vertical torso and arm_1 (figaroh-plus#102)
     assert cc["absorbed_param_name"] == [
         "offsetPZ_torso_lift_joint",
