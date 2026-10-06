@@ -22,7 +22,7 @@ This subclass only adds what's genuinely TIAGo-Pro-specific on top of that:
 Usage:
     python3 run_calibration.py --urdf tiago_pro_local.urdf
     python3 run_calibration.py --urdf tiago_pro_local.urdf \\
-        --data data/calibration_samples.csv \\
+        --data data/calibration_samples_20260805_1246.csv \\
         --output data/calibration_results.yaml
 """
 
@@ -37,17 +37,18 @@ from figaroh.calibration.base_calibration import BaseCalibration
 from figaroh.calibration.calibration_tools import calc_updated_fkm, initialize_variables
 from figaroh.calibration.parameter import BASE_TPL, EE_TPL
 
-_HERE         = Path(__file__).parent
-_CONFIG       = _HERE / "tiago_pro_calibration_config.yaml"
-_DATA_DEFAULT = _HERE / "data" / "calibration_samples.csv"
-_OUT_DEFAULT  = _HERE / "data" / "calibration_results.yaml"
+_HERE = Path(__file__).parent
+_CONFIG = _HERE / "tiago_pro_calibration_config.yaml"
+# the newest shipped session (README); the shipped files are dated
+_DATA_DEFAULT = _HERE / "data" / "calibration_samples_20260805_1246.csv"
+_OUT_DEFAULT = _HERE / "data" / "calibration_results.yaml"
 
 
 class _Robot:
     def __init__(self, m):
         self.model = m
-        self.data  = m.createData()
-        self.q0    = pin.neutral(m)
+        self.data = m.createData()
+        self.q0 = pin.neutral(m)
 
 
 class TiagoProCalibration(BaseCalibration):
@@ -151,6 +152,7 @@ class TiagoProCalibration(BaseCalibration):
 
 # ── Output ────────────────────────────────────────────────────────────────────
 
+
 def write_calibration_results(calib: TiagoProCalibration, output_path: str) -> None:
     assert calib.STATUS == "CALIBRATED"
 
@@ -169,20 +171,18 @@ def write_calibration_results(calib: TiagoProCalibration, output_path: str) -> N
 
     results = {
         "metadata": {
-            "position_rmse_mm":    round(overall["pos_rmse_mm"], 3),
-            "position_mae_mm":     round(overall["pos_mae_mm"], 3),
+            "position_rmse_mm": round(overall["pos_rmse_mm"], 3),
+            "position_mae_mm": round(overall["pos_mae_mm"], 3),
             "orientation_rmse_deg": round(overall["orient_rmse_deg"], 4),
-            "orientation_mae_deg":  round(overall["orient_mae_deg"], 4),
-            "n_samples":    calib.calib_config["NbSample"],
-            "n_outliers":   len(calib.outlier_indices),
+            "orientation_mae_deg": round(overall["orient_mae_deg"], 4),
+            "n_samples": calib.calib_config["NbSample"],
+            "n_outliers": len(calib.outlier_indices),
             "condition_number": calib.evaluation_metrics.get("condition_number"),
         },
         "calibrated_parameters": {
             name: {
                 "value": float(value),
-                "std_dev": (
-                    float(calc_stddev[i]) if calc_stddev is not None else None
-                ),
+                "std_dev": (float(calc_stddev[i]) if calc_stddev is not None else None),
                 "unit": "rad" if _is_rotation_param(name) else "m",
             }
             for i, (name, value) in enumerate(zip(names, calib.var_))
@@ -197,16 +197,20 @@ def write_calibration_results(calib: TiagoProCalibration, output_path: str) -> N
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run Figaroh geometric calibration for Tiago Pro right arm."
     )
-    parser.add_argument("--urdf",   required=True,          help="Path to the Tiago Pro URDF")
-    parser.add_argument("--data",   default=str(_DATA_DEFAULT))
+    parser.add_argument("--urdf", required=True, help="Path to the Tiago Pro URDF")
+    parser.add_argument("--data", default=str(_DATA_DEFAULT))
     parser.add_argument("--config", default=str(_CONFIG))
     parser.add_argument("--output", default=str(_OUT_DEFAULT))
-    parser.add_argument("--html-report", action="store_true",
-                         help="Also export an HTML diagnostic report next to --output.")
+    parser.add_argument(
+        "--html-report",
+        action="store_true",
+        help="Also export an HTML diagnostic report next to --output.",
+    )
     args = parser.parse_args()
 
     print(f"Loading robot from {args.urdf} ...")
