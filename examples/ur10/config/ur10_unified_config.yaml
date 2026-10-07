@@ -148,6 +148,18 @@ tasks:
       # initial guess. Which starts succeed depends on the numerical stack
       # (#60); one retry made seeds 0-5 pass on both tested stacks.
       segment_attempts: 2
+      # Joint box (rad, active-joint order) the optimiser may use, read by
+      # optimal_trajectory.py. Core now constrains collision (figaroh-plus
+      # #143) and the full joint range drives the arm through the table;
+      # this box keeps the tool above the table and the wrist camera off the
+      # forearm (4000 uniform samples collision free; the truth fixture's
+      # training box, docs/development/ur10-dynamic-truth-fixture.md).
+      joint_box:
+        lower: [-3.141593, -2.370796, 0.770796, -2.770796, -1.770796, -1.5]
+        upper: [3.141593, -1.370796, 1.770796, -0.370796, -0.070796, 1.2]
+      # Exact distances only for pairs within 2 cm (the 62 UR10 mesh pairs
+      # are otherwise ~7x slower); needs figaroh-plus#143, ignored before.
+      collision_screen: 0.02
 
     trajectory:
       waypoints: 7       # number of waypoints
