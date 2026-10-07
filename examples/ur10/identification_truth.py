@@ -1,8 +1,9 @@
 """UR10 dynamic identification fixture with a known truth (#21).
 
-The legacy UR10 CSVs (``data/identification_*_simulation.csv``) carry no
-verified inertias: their generator and parameter vector were never saved
-(``docs/development/ur10-signal-audit-2026-10-02.md``). This fixture is
+The legacy UR10 CSVs (``data/identification_*_simulation.csv``, removed in
+#90) carried no verified inertias: their generator and parameter vector were
+never saved (``docs/development/ur10-signal-audit-2026-10-02.md``). This
+fixture is
 generated from scratch, so an estimator can be judged against the truth.
 
 - **Truth:** the repository URDF's inertias, perturbed with seed

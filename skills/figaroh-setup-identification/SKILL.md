@@ -39,27 +39,27 @@ is an abstract method on `BaseIdentification`, implemented per robot in
 `examples/<robot>/utils/<robot>_tools.py`. It must return positions, velocities,
 accelerations, and torques. Two conventions exist in this codebase:
 
-**a) Example-script convention (what `examples/` actually uses).** Two CSVs in
-`data/`, robot-specific filenames hardcoded in the subclass. UR10:
+**a) Example-script convention (what `examples/` actually uses).** Robot-specific
+CSVs in `data/`, filenames hardcoded in the subclass. UR10 reads one file per split:
 
 ```
-data/identification_q_simulation.csv     header: q0,q1,q2,q3,q4,q5        (rad)
-data/identification_tau_simulation.csv   header: tau1,tau2,…,tau6         (Nm)
+data/truth/train.csv        header: t, q0..q5 (rad), tau1..tau6 (Nm)[, dq*, ddq*]
+data/truth/validation.csv   same layout; the config's validation_data_file
 ```
 
-Rows are time-ordered samples at the config's `sampling_frequency`. Velocities and
-accelerations are **derived by numerical differentiation and filtering**, not read from
-disk (`calculate_first_second_order_differentiation`). Column *names* here are
-positional-only — the loader takes the whole frame — but column *count* must equal the
-active joint count, and row counts must match between the two files.
+Rows are time-ordered samples; `t` must be uniform at the config's
+`sampling_frequency`. Columns are selected by name. Velocities and accelerations are
+**derived by numerical differentiation and filtering**, not read from disk
+(`calculate_first_second_order_differentiation`); the UR10 file's analytic `dq`/`ddq`
+columns are ignored by the example and used only by its truth benchmark.
 
 **b) Integration-API convention** (`figaroh.integration.api.RobotIdentificationSystem`,
 for a one-line API rather than an example script): four files in `data_dir` —
 `q.csv`, `dq.csv`, `ddq.csv`, `tau.csv`.
 
 **When wiring your own robot, follow (a)** and mirror UR10's `load_trajectory_data`.
-`data_source` is an optional directory override — the same filenames read from a
-different directory, which is how `validation_data_file` supplies a held-out set.
+`data_source` is an optional override of where the data is read (UR10: the CSV
+file), which is how `validation_data_file` supplies a held-out set.
 
 ## Step 3 — Fill in `tasks.identification`
 

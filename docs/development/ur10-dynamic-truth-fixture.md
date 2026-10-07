@@ -189,7 +189,8 @@ flexibility, effort offsets or timing error. Collision clearance is checked
 on the URDF's collision meshes, not on the real cell. The training
 trajectory stops at every waypoint (core's rest-to-rest splines), and the
 joint box limits shoulder and elbow travel to 0.8 rad. Results on it are not
-hardware evidence. The legacy CSVs remain unchanged and keep no truth claim.
+hardware evidence. The legacy UR10 CSVs carried no truth claim; #90 removed
+them, and the UR10 identification example now runs on this fixture.
 
 ## 7. Reproduction
 
