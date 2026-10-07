@@ -1,5 +1,5 @@
-# Core FIGAROH package (install first)
-figaroh
+# Core FIGAROH package (install first); paired release, see README "Core compatibility"
+figaroh>=0.6,<0.7
 
 # Essential dependencies found in examples
 numpy        # Scientific computing - used in all examples
