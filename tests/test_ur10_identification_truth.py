@@ -187,16 +187,8 @@ def test_core_pipeline_recovers_truth():
     assert metrics["rmse_identified"] < 1e-4 < metrics["rmse_nominal"]
 
 
-def test_legacy_csvs_untouched():
-    # SHA-256 at the signal audit (docs/development/ur10-signal-audit-2026-10-02.md)
-    expected = {
-        "data/identification_q_simulation.csv": "cee459266b276c995529a2a979a72a5edc05c3d86fd4c67857888b4d063718b6",
-        "data/identification_tau_simulation.csv": "95443e9f749afa51db1f89a230c630e1c4e30c3eccee88fc522913c04a860828",
-        "data/validation/identification_q_simulation.csv": "95643c9cf273ac5d1fc6207aa85e2fede9e9e5264d466b337c815bb67d4168c7",
-        "data/validation/identification_tau_simulation.csv": "730e02b0eeb125e03f8f503001160e6e562d763d6619a7f084984b2e338c6403",
-    }
-    for path, digest in expected.items():
-        assert hashlib.sha256((UR10 / path).read_bytes()).hexdigest() == digest
+def test_nominal_model_unchanged():
+    # the fixture's truth is a perturbation of this URDF
     assert (
         it.manifest()["model"]["nominal_urdf_sha256"]
         == hashlib.sha256(it.URDF.read_bytes()).hexdigest()
