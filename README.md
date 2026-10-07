@@ -14,8 +14,7 @@ discussion drafts; they do not claim new solver or pipeline support.
 ## Install
 
 ```bash
-pip install figaroh
-pip install -r requirements.txt
+pip install -r requirements.txt   # installs figaroh>=0.6,<0.7
 ```
 
 If you use conda, some dependencies may be easier to install via conda:
@@ -35,6 +34,20 @@ export ROS_PACKAGE_PATH="$(python scripts/fetch_models.py --print-ros-package-pa
 ```
 
 See [models/README.md](models/README.md) for sources, revisions and licences.
+
+### Core compatibility
+
+Each core release is paired with the examples revision it was validated
+against (`validate.py`, all checks passing). The examples `main` branch
+follows core `devel` in CI and may need unreleased core changes; to use a
+released core, check out the matching examples tag.
+
+| Examples tag | figaroh (PyPI) | Validated pair |
+|---|---|---|
+| `v0.6.0` | `>=0.6,<0.7` | core `v0.6.0` (`96b586f`) + examples `b23b836` |
+
+To develop against unreleased core, install it from a `devel` checkout instead
+(`pip install -e <path-to-figaroh-plus>`).
 
 ## Run
 
@@ -75,10 +88,9 @@ interpretation and held-out validation before the commands below.
 
 ## Acceptance policy
 
-Requires figaroh-plus `devel` with scoped verification
-([figaroh-plus#78](https://github.com/thanhndv212/figaroh-plus/pull/78)); it is not
-in a released version yet: install core from a `devel` checkout
-(`pip install -e <path-to-figaroh-plus>`) rather than `pip install figaroh`.
+Requires scoped verification
+([figaroh-plus#78](https://github.com/thanhndv212/figaroh-plus/pull/78)), released
+in figaroh 0.5.0.
 
 Identification `--verify` runs with `--verification-scope execution` by default:
 it checks that the fit produced finite, consistent numerical outputs. CLI output
