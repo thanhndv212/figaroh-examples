@@ -398,8 +398,9 @@ ur10/
 │   │   └── calibration_results_*.npz   # Timestamped calibration results
 │   ├── robot.urdf                  # UR10 robot model
 │   ├── ur10_measurements.csv       # Calibration measurement data
-│   ├── identification_q_simulation.csv   # Joint position trajectory
-│   └── identification_tau_simulation.csv # Joint torque measurements
+│   └── truth/                      # Simulated identification data with a known truth (#21):
+│       ├── train.csv / validation.csv  # t, q, dq, ddq, effort at 100 Hz
+│       └── ...                         # truth URDF/parameters, waypoints, manifest, protocol
 ├── urdf/
 │   ├── ur10_robot.urdf              # Nominal URDF (default)
 │   └── ur10_robot_modified_*.urdf   # Timestamped modified URDFs
