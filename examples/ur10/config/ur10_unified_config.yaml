@@ -99,18 +99,19 @@ tasks:
         inertia_regressor: true
 
     signal_processing:
-      # CSVs have no timestamps: this rate is an assumption (see data/README.md).
-      sampling_frequency: 500.0  # Hz
-      cutoff_frequency: 50.0     # Hz
+      # The truth fixture's recorded clock (data/truth, see data/README.md);
+      # the loader refuses data whose clock differs.
+      sampling_frequency: 100.0  # Hz
+      # Motion content is below ~3 Hz; the cutoff stays below Nyquist (50 Hz).
+      cutoff_frequency: 10.0     # Hz
       filter_type: "butterworth"
       filter_order: 4
 
     data:
-      # Held-out validation dataset: a directory containing the SAME
-      # filenames as training ("identification_q_simulation.csv" /
-      # "identification_tau_simulation.csv") but genuinely different
-      # data — never a split of the training file. Empty = disabled.
-      validation_data_file: ""
+      # Held-out validation dataset: a separate trajectory in the same CSV
+      # layout as training (data/truth/train.csv) — never a split of the
+      # training file. Empty = disabled (metrics then reuse training data).
+      validation_data_file: "data/truth/validation.csv"
 
   optimal_configuration:
     enabled: true
