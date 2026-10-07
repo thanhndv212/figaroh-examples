@@ -35,7 +35,7 @@ python identification_truth.py --optimize /tmp/o  # rerun the trajectory optimis
 | Feasibility, both splits | URDF joint limits, velocity limits, truth effort ≤ 0.8 × torque limit, and collision clearance (below). |
 | Clock | 100 Hz, exact (simulation). Analytic q, dq, ddq are saved. |
 | Effort | Pinocchio RNEA on the truth model, joint-side N·m. |
-| Noise | Not stored. Effort σ per joint = 1 % (`low`) or 5 % (`high`) of that joint's noise-free training effort RMS; position σ = 1e-5 or 1e-4 rad. Seeds 101–105 (training) and 201–205 (validation), drawn with NumPy's legacy `RandomState`, whose stream is frozen; the manifest keeps a hash of every draw. |
+| Noise | Not stored. Effort σ per joint = 1 % (`low`) or 5 % (`high`) of that joint's noise-free training effort RMS; position σ = 1e-5 or 1e-4 rad. Seeds 101–105 (training) and 201–205 (validation), drawn with NumPy's legacy `RandomState`, whose stream is frozen; the manifest keeps a checksum of every draw (sums and first values, compared within 1e-10, since libm differs in the last bits between platforms). |
 
 Effort noise is relative because the joints differ by three orders of
 magnitude: the training effort RMS is 38 N·m at the shoulder lift and 0.07

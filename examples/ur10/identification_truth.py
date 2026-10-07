@@ -19,7 +19,9 @@ generated from scratch, so an estimator can be judged against the truth.
   regressor, ABA, and the power balance d(T + V)/dt = tau . dq.
 - **Noise:** never stored. Drawn from NumPy's legacy ``RandomState``, whose
   stream is frozen, with the seeds in ``NOISE_SEEDS``; the manifest keeps a
-  hash of each draw so a changed stream is caught.
+  checksum of each draw (sums and first values, compared within 1e-10:
+  libm differs in the last bits between platforms) so a changed stream is
+  caught.
 
 The frozen benchmark protocol (rank, base parameters, scaling, splits,
 budgets, metrics) is ``data/truth/protocol.yaml``.
@@ -760,9 +762,15 @@ def standard_draws(seed: int, n: int) -> tuple:
     return rng.standard_normal((n, 6)), rng.standard_normal((n, 6))
 
 
-def draws_sha256(seed: int, n: int) -> str:
+def draws_checksum(seed: int, n: int) -> dict:
+    """Sums and first values of a seed's draws: catch a changed stream while
+    tolerating last-bit libm differences between platforms."""
     e, p = standard_draws(seed, n)
-    return hashlib.sha256(np.ascontiguousarray(np.vstack([e, p])).tobytes()).hexdigest()
+    return {
+        "sum": float(e.sum() + p.sum()),
+        "sum_sq": float((e**2).sum() + (p**2).sum()),
+        "first": e[0].tolist(),
+    }
 
 
 # --- loading ---------------------------------------------------------------
@@ -942,7 +950,7 @@ def generate(out_dir: Path, waypoints_file: Path | None = None) -> dict:
             "levels": NOISE_LEVELS,
             "seeds": NOISE_SEEDS,
             "generator": "numpy.random.RandomState(seed): effort draws (n, 6), then position draws (n, 6)",
-            "draws_sha256": {},
+            "draws_checksum": {},
         },
         "files": {},
     }
@@ -963,8 +971,8 @@ def generate(out_dir: Path, waypoints_file: Path | None = None) -> dict:
             "tau_rms_nm": np.sqrt(np.mean(traj["tau"] ** 2, axis=0)).tolist(),
             "checks": checks[split],
         }
-        entry["noise"]["draws_sha256"][split] = {
-            str(s): draws_sha256(s, n) for s in NOISE_SEEDS[split]
+        entry["noise"]["draws_checksum"][split] = {
+            str(s): draws_checksum(s, n) for s in NOISE_SEEDS[split]
         }
     for name in (
         WAYPOINTS_FILE,
@@ -1159,8 +1167,11 @@ def check_fixture() -> list:
             problems.append(f"{name}: hash differs from manifest")
     for split, info in entry["splits"].items():
         n = info["rows"]
-        for s, digest in entry["noise"]["draws_sha256"][split].items():
-            if draws_sha256(int(s), n) != digest:
+        for s, saved in entry["noise"]["draws_checksum"][split].items():
+            now = draws_checksum(int(s), n)
+            if not all(
+                np.allclose(now[k], saved[k], rtol=1e-10, atol=0) for k in saved
+            ):
                 problems.append(f"{split}: noise stream of seed {s} changed")
     return problems
 

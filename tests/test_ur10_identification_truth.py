@@ -57,7 +57,8 @@ def test_truth_urdf_is_the_saved_truth_and_physical():
     saved = it.truth_parameters()
     std = it.get_standard_parameters(model, it.IDENTIF_CONFIG)
     assert list(std) == list(saved.parameter)
-    np.testing.assert_array_equal(list(std.values()), saved.truth)
+    # URDF text parsing may differ in the last bits between platforms
+    np.testing.assert_allclose(list(std.values()), saved.truth, rtol=1e-12, atol=1e-15)
     for j in range(1, model.njoints):
         assert it.pseudo_inertia_min_eig(model.inertias[j]) > 1e-4
     # the truth is not the URDF a fit would start from
