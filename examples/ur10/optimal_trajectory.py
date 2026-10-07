@@ -84,6 +84,16 @@ def main(args: argparse.Namespace) -> None:
             cfg = yaml.safe_load(f)
         active_joints = cfg["robot"]["properties"]["joints"]["active_joints"]
 
+        # Narrow the joint limits to the configured collision-free box; the
+        # optimiser's waypoint pool and bounds come from the model limits.
+        box = cfg["tasks"]["optimal_trajectory"]["problem"].get("joint_box")
+        if box:
+            idx = [
+                ur10.model.joints[ur10.model.getJointId(j)].idx_q for j in active_joints
+            ]
+            ur10.model.lowerPositionLimit[idx] = box["lower"]
+            ur10.model.upperPositionLimit[idx] = box["upper"]
+
         # Create optimal trajectory object
         ur10_traj = OptimalTrajectoryIPOPT(
             robot=ur10,
