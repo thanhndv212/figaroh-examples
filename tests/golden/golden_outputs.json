@@ -60,7 +60,7 @@
   {
    "kind": "identification",
    "n_base": 36,
-   "tau_rmse": 0.066743777
+   "tau_rmse": 0.039069736
   }
  ]
 }
