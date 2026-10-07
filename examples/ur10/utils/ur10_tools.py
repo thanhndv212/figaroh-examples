@@ -125,20 +125,19 @@ class UR10Identification(BaseIdentification):
         print("UR10 Dynamic Identification initialized")
 
     def load_trajectory_data(self, data_source: str = None) -> Dict[str, np.ndarray]:
-        """Load named CSV channels using one configured clock.
+        """Load one split of the UR10 truth fixture (data/truth, #21).
 
-        The files contain no timestamps; ``ts`` is an explicit assumption,
-        not a measured sample period. Returns the historical trailing-two-row
-        trim. Interval velocities are centered half a timestep after the
-        returned position timestamps. The base pipeline performs filtering.
-        Inspect ``trajectory_provenance`` for source counts/indices and limits.
+        Reads the recorded clock ``t``, positions ``q0..q5`` and joint
+        efforts ``tau1..tau6`` by column name; the fixture's analytic
+        ``dq``/``ddq`` columns are ignored, so velocities and accelerations
+        are estimated from positions as they would be for a recording.
+        Returns the first ``n-2`` rows (core's interval differentiation):
+        velocities are centred half a timestep after their position rows.
+        The base pipeline filters. Inspect ``trajectory_provenance``.
 
         Args:
-            data_source: Optional directory override. When given, the
-                same filenames ("identification_q_simulation.csv" /
-                "identification_tau_simulation.csv") are read from this
-                directory instead of the default "data/" — e.g. to load
-                a held-out validation set via
+            data_source: CSV file of the split (default
+                ``data/truth/train.csv``); held-out validation comes from
                 ``identif_config["validation_data_file"]``.
 
         Returns:
@@ -146,90 +145,75 @@ class UR10Identification(BaseIdentification):
             'velocities', 'accelerations', 'torques'
         """
         print("Loading UR10 trajectory data...")
-        data_dir = os.path.abspath(data_source or "data")
-        q_path = os.path.join(data_dir, "identification_q_simulation.csv")
-        tau_path = os.path.join(data_dir, "identification_tau_simulation.csv")
+        path = os.path.abspath(
+            data_source or os.path.join("data", "truth", "train.csv")
+        )
 
         try:
-            # CSV names encode configuration/effort order; never rely on file
-            # column order or silently interpret a clock/current as a joint.
-            q_frame = pd.read_csv(q_path)
-            tau_frame = pd.read_csv(tau_path)
+            # Select channels by name; never rely on column order or
+            # interpret a clock/current column as a joint.
+            frame = pd.read_csv(path, float_precision="round_trip")
             q_columns = [f"q{i}" for i in range(self.model.nq)]
             tau_columns = [f"tau{i}" for i in range(1, self.model.nv + 1)]
-            for frame, columns, path in [
-                (q_frame, q_columns, q_path),
-                (tau_frame, tau_columns, tau_path),
-            ]:
-                if set(frame.columns) != set(columns):
-                    raise ValueError(f"{path}: expected CSV columns {columns}")
-            q_raw = q_frame[q_columns].to_numpy(dtype=float)
-            tau_raw = tau_frame[tau_columns].to_numpy(dtype=float)
-            if not np.all(np.isfinite(q_raw)) or not np.all(np.isfinite(tau_raw)):
-                raise ValueError("Configuration and effort CSVs must be finite")
-            if len(tau_raw) not in (len(q_raw), len(q_raw) - 2):
-                raise ValueError(
-                    "Effort rows must match position rows or the historical "
-                    "trailing-two-sample derivative trim"
-                )
+            missing = [c for c in ["t", *q_columns, *tau_columns] if c not in frame]
+            if missing:
+                raise ValueError(f"{path}: missing CSV columns {missing}")
+            t = frame["t"].to_numpy(dtype=float)
+            q_raw = frame[q_columns].to_numpy(dtype=float)
+            tau_raw = frame[tau_columns].to_numpy(dtype=float)
+            if not all(np.all(np.isfinite(x)) for x in (t, q_raw, tau_raw)):
+                raise ValueError("Clock, configuration and effort must be finite")
 
             dt = float(self.identif_config["ts"])
             if not np.isfinite(dt) or dt <= 0:
                 raise ValueError("Configured ts must be positive and finite")
+            if len(t) < 3 or not np.allclose(np.diff(t), dt, rtol=0, atol=1e-9):
+                raise ValueError(
+                    f"Recorded clock is not uniform at the configured ts = {dt} s"
+                )
             filter_rate = self.filter_config.get("filter_params", {}).get(
                 "f_sample", 1 / dt
             )
             if not np.isclose(filter_rate, 1 / dt):
                 raise ValueError("Filter sample rate must match configured 1/ts")
 
-            source_q_rows, source_tau_rows = len(q_raw), len(tau_raw)
-            max_samples = min(source_q_rows, self.identif_config.get("nb_samples", 100))
-            q_raw = q_raw[:max_samples]
-
-            # This adapter supplies unfiltered interval derivatives. The core
-            # process_kinematics_data stage filters q/dq/ddq once using the
-            # resolved filter configuration; there is no loader prefilter.
-            q_filtered, dq_filtered, ddq_filtered = (
-                calculate_first_second_order_differentiation(
-                    self.model, q_raw, self.identif_config
-                )
+            # Unfiltered interval derivatives; core's process_kinematics_data
+            # filters q/dq/ddq once with the resolved filter configuration.
+            q_kept, dq, ddq = calculate_first_second_order_differentiation(
+                self.model, q_raw, self.identif_config
             )
-            count = len(q_filtered)
-            time_vector = np.arange(count) * dt
+            count = len(q_kept)
 
             # Keep metadata outside the array-only raw-data contract (which
             # the base pipeline truncates). Retain training/validation entries.
             if not hasattr(self, "trajectory_provenance"):
                 self.trajectory_provenance = {}
-            self.trajectory_provenance[data_dir] = {
-                "position_file": q_path,
-                "effort_file": tau_path,
-                "timing_source": "configured_assumption",
+            self.trajectory_provenance[path] = {
+                "file": path,
+                "timing_source": "recorded",
                 "configuration_columns": q_columns,
                 "effort_columns": tau_columns,
-                "assumed_position_units": "rad",
-                "assumed_effort_units": "Nm (joint-side)",
+                "position_units": "rad",
+                "effort_units": "Nm (joint-side)",
                 "sample_period_s": dt,
-                "source_position_rows": source_q_rows,
-                "source_effort_rows": source_tau_rows,
-                "loaded_position_rows": max_samples,
+                "source_rows": len(t),
                 "source_sample_range": [0, count],
                 "velocity_time_offset_s": dt / 2,
-                "torque_generation_verified": False,
+                "torque_generation_verified": True,
             }
             print(f"Processed trajectory data: {count} samples")
 
             return {
-                "timestamps": time_vector.reshape(-1, 1),
-                "positions": q_filtered,
-                "velocities": dq_filtered,
-                "accelerations": ddq_filtered,
+                "timestamps": t[:count].reshape(-1, 1),
+                "positions": q_kept,
+                "velocities": dq,
+                "accelerations": ddq,
                 "torques": tau_raw[:count],
             }
 
         except Exception as e:
             raise IdentificationError(
-                f"Failed to load UR10 trajectory data from {data_dir}: {e}"
+                f"Failed to load UR10 trajectory data from {path}: {e}"
             ) from e
 
 
