@@ -103,6 +103,8 @@ Full hashes are in `provenance.hashes` of each JSON.
 
 ## Not done (follow-ups)
 
+Update: the first four items below were taken up in [`physical-comparison-d4.md`](physical-comparison-d4.md) (#22).
+
 - Nonlinear log-Cholesky candidates: the existing runner lives on `feature/log-cholesky-dataset-validation`
   / a stash and needs a private core spike from another branch; not cheap.
 - TX40 and TIAGo runs.
