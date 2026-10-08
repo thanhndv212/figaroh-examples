@@ -3,7 +3,8 @@
 Issue: [figaroh-examples #12](https://github.com/thanhndv212/figaroh-examples/issues/12).
 Core: [#22](https://github.com/thanhndv212/figaroh-plus/issues/22) /
 [PR #31](https://github.com/thanhndv212/figaroh-plus/pull/31), decision **revise**;
-follow-up [core #30](https://github.com/thanhndv212/figaroh-plus/issues/30).
+follow-up [core #30](https://github.com/thanhndv212/figaroh-plus/issues/30) /
+[PR #154](https://github.com/thanhndv212/figaroh-plus/pull/154), decision **no-go**.
 This is an offline dataset comparison, not a production method, a hardware test
 or a fitted-model export.
 
@@ -14,10 +15,12 @@ or a fitted-model export.
 >   (`data/truth/`, examples #90), so the UR10 path no longer runs.
 > - Core #32 (final-joint acceleration left at zero) is fixed, so the UR10, TX40
 >   and TIAGo accelerations behind these numbers are no longer reproduced.
-> - Core #30 is revising the nonlinear solver budget and convergence criteria.
+> - Core #30 replaced the 200-evaluation budget and convergence criteria, and its
+>   2026-10-08 confirmation recorded **no-go**: a larger budget alone does not
+>   make termination reliable.
 >
-> A port of the runner to current data is deferred to the core #30 confirmation
-> run or examples #11.
+> A port of the runner to current data is deferred until a later D5 revision
+> records a go, or to examples #11.
 
 ## Reproduction
 
