@@ -90,3 +90,13 @@ def test_cross_check_and_retry_with_second_solver():
     ag = pc.agree(cc, "cvxopt", "qics")
     assert ag["direct_effort_fit"]["objective_rel_diff"] < 1e-4
     assert ag["phase1"]["first"] == ag["phase1"]["second"]
+
+
+def test_periodic_columns_are_joint_major():
+    cc = pytest.importorskip("examples.ur10.compare_physical_circular")
+    q = np.random.default_rng(3).standard_normal((5, 6))
+    C = cc.periodic_columns(q)
+    assert C.shape == (30, 12)
+    np.testing.assert_allclose(C[5:10, 1], np.sin(q[:, 1]))
+    np.testing.assert_allclose(C[5:10, 7], np.cos(q[:, 1]))
+    assert not C[:5, 1:6].any() and not C[5:10, 0].any()
