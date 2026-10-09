@@ -136,6 +136,11 @@ not established, not as passed.
 
 Examples use CSV logs for measurements and trajectories. The required files/columns depend on the robot and task; see each example README for the expected inputs.
 
+Every data file under `examples/*/data/` is listed with its kind (real, simulated,
+generated, unspecified), role and sha256 in the [data inventory](docs/data-inventory.md).
+Adding or changing a data file needs `python scripts/data_inventory.py update`
+(and a dataset entry in `docs/data-inventory.json` for a new file); CI fails otherwise.
+
 ## Examples
 
 - UR10 (manipulator): [examples/ur10/README.md](examples/ur10/README.md)
