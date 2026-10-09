@@ -1,0 +1,543 @@
+{
+  "schema": 1,
+  "ignore": [
+    "examples/*/data/README.md"
+  ],
+  "datasets": [
+    {
+      "id": "ur10-identification-truth",
+      "robot": "UR10",
+      "study": "Dynamic identification",
+      "kind": "simulated",
+      "role": "train + held-out validation",
+      "description": "Simulated truth fixture: known inertias, exact clock and RNEA effort, 2400 training and 800 validation samples, with the truth URDF and parameters, frozen waypoints, manifest and benchmark protocol. The UR10 has no hardware identification recordings.",
+      "paths": [
+        "examples/ur10/data/truth/"
+      ],
+      "provenance": "examples/ur10/data/README.md; docs/development/ur10-dynamic-truth-fixture.md"
+    },
+    {
+      "id": "ur10-hand-eye",
+      "robot": "UR10",
+      "study": "Hand-eye calibration",
+      "kind": "real",
+      "role": "calibration; k-fold within one session",
+      "description": "23 postures from one session: 6D chessboard pose seen by a flange camera plus 6 joint angles.",
+      "paths": [
+        "examples/ur10/data/calibration.csv"
+      ],
+      "provenance": "docs/plans/calibration-studies-plan.md (core)",
+      "confirm": "sensor and frame convention are undocumented"
+    },
+    {
+      "id": "ur10-calibration-simulation",
+      "robot": "UR10",
+      "study": "Calibration",
+      "kind": "unspecified",
+      "role": "unknown",
+      "description": "29 postures in the same columns as the hand-eye file.",
+      "paths": [
+        "examples/ur10/data/simulation.csv"
+      ],
+      "confirm": "no README entry or saved generator says how this file was produced"
+    },
+    {
+      "id": "tiago-identification-2021-07",
+      "robot": "TIAGo",
+      "study": "Dynamic identification",
+      "kind": "real",
+      "role": "training; no held-out run shipped",
+      "description": "Position, velocity and effort exported from calibration.bag (2021-07-01), 8022 samples each. The velocity channel is a filtered signal; the held-out runs are tracked in figaroh-examples#69.",
+      "paths": [
+        "examples/tiago/data/identification/dynamic/tiago_position.csv",
+        "examples/tiago/data/identification/dynamic/tiago_velocity.csv",
+        "examples/tiago/data/identification/dynamic/tiago_effort.csv"
+      ],
+      "provenance": "examples/tiago/data/README.md; docs/development/tiago-signal-audit-2026-10-03.md"
+    },
+    {
+      "id": "tiago-base-parameter-list",
+      "robot": "TIAGo",
+      "study": "Dynamic identification",
+      "kind": "unspecified",
+      "role": "not used",
+      "description": "Base-parameter expressions with values (43 rows), dated 19 Oct 2024. Not measurements.",
+      "paths": [
+        "examples/tiago/data/identification/dynamic/tiago_bp_19_Oct_2024_2320.csv"
+      ],
+      "provenance": "examples/tiago/data/README.md",
+      "confirm": "not used by identification.py and not audited"
+    },
+    {
+      "id": "tiago-calibration-nov-30-64",
+      "robot": "TIAGo",
+      "study": "Calibration",
+      "kind": "unspecified",
+      "role": "not used",
+      "description": "35 marker-and-joint samples in the mocap calibration column layout.",
+      "paths": [
+        "examples/tiago/data/identification/dynamic/tiago_nov_30_64.csv"
+      ],
+      "provenance": "examples/tiago/data/README.md",
+      "confirm": "not used by identification.py and not audited"
+    },
+    {
+      "id": "tiago-mocap-qualisys-2021-11",
+      "robot": "TIAGo",
+      "study": "Mocap calibration (reference)",
+      "kind": "real",
+      "role": "train / validate / confirmation",
+      "description": "Four frozen Qualisys sessions (37, 62, 63 and 59 postures) plus the base-hand calibration (34) and the protocol that fixes each session's role.",
+      "paths": [
+        "examples/tiago/data/calibration/mocap/"
+      ],
+      "provenance": "examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md"
+    },
+    {
+      "id": "tiago-optimal-configurations",
+      "robot": "TIAGo",
+      "study": "Experiment design",
+      "kind": "generated",
+      "role": "calibration postures",
+      "description": "Optimal calibration configurations computed for the model, not measurements.",
+      "paths": [
+        "examples/tiago/data/calibration/optimal_configurations/"
+      ],
+      "provenance": "examples/tiago/data/README.md"
+    },
+    {
+      "id": "tiago-backlash-2023-07-24",
+      "robot": "TIAGo",
+      "study": "Backlash surface",
+      "kind": "real",
+      "role": "training; no held-out run",
+      "description": "One sinusoidal run (period 10 s, amplitude 3), 12,092 samples of relative and absolute encoders. A second run exists outside the repository (figaroh-examples#71).",
+      "paths": [
+        "examples/tiago/data/backlash/"
+      ],
+      "provenance": "examples/tiago/data/README.md"
+    },
+    {
+      "id": "tiago-suspension-vicon-1640",
+      "robot": "TIAGo",
+      "study": "Suspension base",
+      "kind": "real",
+      "role": "training; no held-out run",
+      "description": "One Vicon and force-plate log, 5546 samples. Eight further runs exist outside the repository (figaroh-examples#70).",
+      "paths": [
+        "examples/tiago/data/suspension/"
+      ],
+      "provenance": "examples/tiago/data/README.md"
+    },
+    {
+      "id": "tiago-pro-mocap-samples",
+      "robot": "TIAGo Pro",
+      "study": "Mocap calibration",
+      "kind": "real",
+      "role": "no split frozen yet",
+      "description": "Three Qualisys sessions (2026-07-01: 44, 07-02: 94, 08-05: 48 postures). These are all the data that exists.",
+      "paths": [
+        "examples/tiago_pro/data/calibration_samples_*.csv"
+      ],
+      "provenance": "examples/tiago_pro/data/ (dated notes)"
+    },
+    {
+      "id": "tiago-pro-calibration-results",
+      "robot": "TIAGo Pro",
+      "study": "Mocap calibration",
+      "kind": "derived",
+      "role": "results and applied calibrations",
+      "description": "Calibration results and master-calibration files produced from the sessions.",
+      "paths": [
+        "examples/tiago_pro/data/calibration_results_*.yaml",
+        "examples/tiago_pro/data/master_calibration_*.yaml"
+      ],
+      "provenance": "examples/tiago_pro/data/ (dated notes)"
+    },
+    {
+      "id": "tiago-pro-notes",
+      "robot": "TIAGo Pro",
+      "study": "Mocap calibration",
+      "kind": "notes",
+      "role": "documentation",
+      "description": "Dated notes on applying the calibration, its reliability and the mocap frame correction.",
+      "paths": [
+        "examples/tiago_pro/data/*.md"
+      ]
+    },
+    {
+      "id": "tiago-pro-optimal-configs",
+      "robot": "TIAGo Pro",
+      "study": "Experiment design",
+      "kind": "generated",
+      "role": "calibration postures",
+      "description": "Optimal configurations computed for the model.",
+      "paths": [
+        "examples/tiago_pro/data/optimal_configs.yaml"
+      ]
+    },
+    {
+      "id": "talos-left-arm-contact",
+      "robot": "TALOS",
+      "study": "Arm contact calibration",
+      "kind": "real",
+      "role": "calibration",
+      "description": "61 recorded samples of joints and marker pose, left arm (config key: recorded (q, marker pose) samples).",
+      "paths": [
+        "examples/talos/data/talos_left_arm_02_10_contact.csv"
+      ],
+      "provenance": "examples/talos/config/talos_config.yaml"
+    },
+    {
+      "id": "talos-table-contact-real",
+      "robot": "TALOS",
+      "study": "Table contact",
+      "kind": "real",
+      "role": "train / held out by day",
+      "description": "Left (21 train, 9 validation) and right (29 train, 9 validation) contact postures recorded 2022-10/11.",
+      "paths": [
+        "examples/talos_table_contact/data/real/"
+      ],
+      "provenance": "examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md"
+    },
+    {
+      "id": "talos-table-contact-synthetic",
+      "robot": "TALOS",
+      "study": "Table contact",
+      "kind": "simulated",
+      "role": "synthetic train + validation",
+      "description": "Postures generated by generate_synthetic_data.py with a known table pose and contact offset; ground_truth.json holds the truth.",
+      "paths": [
+        "examples/talos_table_contact/data/table_contact_train.csv",
+        "examples/talos_table_contact/data/table_contact_validation.csv",
+        "examples/talos_table_contact/data/ground_truth.json"
+      ],
+      "provenance": "examples/talos_table_contact/generate_synthetic_data.py"
+    },
+    {
+      "id": "staubli-tx40-logs",
+      "robot": "Staubli TX40",
+      "study": "Dynamic identification",
+      "kind": "unspecified",
+      "role": "identification; no separate validation set",
+      "description": "Motor current and joint position, 45,000 samples each.",
+      "paths": [
+        "examples/staubli_tx40/data/"
+      ],
+      "provenance": "examples/staubli_tx40/README.md",
+      "confirm": "the README does not say whether the logs were recorded or simulated, or when"
+    },
+    {
+      "id": "so101-simulated",
+      "robot": "SO-101",
+      "study": "Dynamic identification",
+      "kind": "simulated",
+      "role": "training",
+      "description": "3001 samples of q, dq, commanded q, current and load with ground_truth.yaml and meta.json.",
+      "paths": [
+        "examples/so101/data/simulated/"
+      ]
+    },
+    {
+      "id": "so101-simulated-validation",
+      "robot": "SO-101",
+      "study": "Dynamic identification",
+      "kind": "simulated",
+      "role": "held-out validation",
+      "description": "A second simulated run with its own ground truth, for held-out validation.",
+      "paths": [
+        "examples/so101/data/simulated_validation/"
+      ]
+    }
+  ],
+  "files": {
+    "examples/so101/data/simulated/current_mA.csv": {
+      "sha256": "f5128071e188b435106f55b00db7a1dadd0f14eccc4b72794280be80f3a6bb05",
+      "bytes": 115025,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated/dq.csv": {
+      "sha256": "926c357d320a61768ac8ea50566747a8fed48211993171d8511000d4cc1ff64c",
+      "bytes": 227543,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated/ground_truth.yaml": {
+      "sha256": "7116bd8cba97843a69bd709cf1664a91a8ae023dd872c63516722c2b8fff6fa0",
+      "bytes": 964
+    },
+    "examples/so101/data/simulated/load_percent.csv": {
+      "sha256": "9f45ee08cb8bb2e507484a29d6399be4abb441c389c004fa4e7c1238bf214740",
+      "bytes": 214312,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated/meta.json": {
+      "sha256": "f09fb340ba6b6c13cd0ad0595aab1d2ac5c10fc1f0e1ad5469a7b261d30c48d0",
+      "bytes": 569
+    },
+    "examples/so101/data/simulated/q.csv": {
+      "sha256": "4a6d927c810dce0859b79ffc9a29be48374f21ac4b93c68d33b5d908349b55b1",
+      "bytes": 226102,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated/q_cmd.csv": {
+      "sha256": "8d6ba7c420744ec6373212c69c83e2df5eaa9b75805b8571893185b23850eb85",
+      "bytes": 225902,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated_validation/current_mA.csv": {
+      "sha256": "c004613f6858fa485c333a45eb6f68bc3831c35f59439897023b38f0fe093ca8",
+      "bytes": 115444,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated_validation/dq.csv": {
+      "sha256": "613f2b8dae218367a7fab68b383c220da18dc38bc6c2190497517f62296e82fc",
+      "bytes": 227360,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated_validation/ground_truth.yaml": {
+      "sha256": "7116bd8cba97843a69bd709cf1664a91a8ae023dd872c63516722c2b8fff6fa0",
+      "bytes": 964
+    },
+    "examples/so101/data/simulated_validation/load_percent.csv": {
+      "sha256": "68cc5e2ea6bd699cbf159f183e7b442ec375c6c2ffb900b3a7f2005c18568620",
+      "bytes": 214136,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated_validation/meta.json": {
+      "sha256": "5f68954ef4ee7b7468558a652f56779f9dd470fe452fad34d16c168ba04ab2c7",
+      "bytes": 569
+    },
+    "examples/so101/data/simulated_validation/q.csv": {
+      "sha256": "4090cf7edb06db2aa416f50e7e0955a6973aed1c6b0bffc76fe67561361a5f9e",
+      "bytes": 224169,
+      "rows": 3001
+    },
+    "examples/so101/data/simulated_validation/q_cmd.csv": {
+      "sha256": "7ac4c1a99d7c53021b892b12455e00c146728bc4becc5c5af4352f4460219d88",
+      "bytes": 224054,
+      "rows": 3001
+    },
+    "examples/staubli_tx40/data/curr_data.csv": {
+      "sha256": "f4592f4ba4db42f5d7625688986be25b575ca34d0504b27979ca6b0276bd3af9",
+      "bytes": 2357129,
+      "rows": 45000
+    },
+    "examples/staubli_tx40/data/pos_read_data.csv": {
+      "sha256": "5cc1cecc1024ef0e331d0caba06f689456ab789ec3f1e904599c0a8be5c27bc8",
+      "bytes": 2101824,
+      "rows": 45000
+    },
+    "examples/talos/data/talos_left_arm_02_10_contact.csv": {
+      "sha256": "36b7a3b92f468b6ee7c0aa1e204c9a2126c84869c778ad34dc061c80aeb25919",
+      "bytes": 14533,
+      "rows": 61
+    },
+    "examples/talos_table_contact/data/ground_truth.json": {
+      "sha256": "e909cc57c3849a4f2dfcec599d7e5971a0b365a25ecd7e3b6d6e345b8320060b",
+      "bytes": 5545
+    },
+    "examples/talos_table_contact/data/real/left_train.csv": {
+      "sha256": "d2fadbf1f4a1ab5dcf5c44264f690dad15657f9802eae7794d922d69f806299b",
+      "bytes": 12323,
+      "rows": 21
+    },
+    "examples/talos_table_contact/data/real/left_validation.csv": {
+      "sha256": "d103a0a7a2d5394d5d8c02d8ea65af2ecbcb20b978b00746a1cef6f837df6343",
+      "bytes": 5572,
+      "rows": 9
+    },
+    "examples/talos_table_contact/data/real/right_train.csv": {
+      "sha256": "799fb85edc7ffa6f14250bfc59f28cf450e6f7d42f90c5e10c68f2037cb18555",
+      "bytes": 16773,
+      "rows": 29
+    },
+    "examples/talos_table_contact/data/real/right_validation.csv": {
+      "sha256": "370fcb94a7a13d6dc5d2077d8c0af016982ca2117bcc0ccc58ffa87f7d628c1d",
+      "bytes": 5590,
+      "rows": 9
+    },
+    "examples/talos_table_contact/data/table_contact_train.csv": {
+      "sha256": "749193013bff8689593b55f06f8bc8b04d040b953f529983c27109b61e77b2d2",
+      "bytes": 18139,
+      "rows": 65
+    },
+    "examples/talos_table_contact/data/table_contact_validation.csv": {
+      "sha256": "003baea5459a500d2e2b4fc099bc0659f9cabc26a575225ac8ebd669dff0a06c",
+      "bytes": 4439,
+      "rows": 15
+    },
+    "examples/tiago/data/backlash/sinus_amp3_period10_2023-07-24-13-28-42/introspection_datanames.csv": {
+      "sha256": "3f33234c153574ca67174bfe2542a2f2c1e9fa26cd9950983ad9d57440e70c42",
+      "bytes": 6514,
+      "rows": 1
+    },
+    "examples/tiago/data/backlash/sinus_amp3_period10_2023-07-24-13-28-42/introspection_datavalues.csv": {
+      "sha256": "5a0eed92dd000be7ee58157eb40090683e9b3d991a40de3dd15254bdbb201a51",
+      "bytes": 35698619,
+      "rows": 12092
+    },
+    "examples/tiago/data/calibration/mocap/protocol.yaml": {
+      "sha256": "727afce20bfaf57627f333def8f5646c7015756dd9eb0480d8064254022d1dec",
+      "bytes": 1057
+    },
+    "examples/tiago/data/calibration/mocap/qualisys_2021-11-26_static_postures.csv": {
+      "sha256": "7c986df711757c4d31d8bb6db34b354f72318a78673dac280fd3a14abc5460a0",
+      "bytes": 27989,
+      "rows": 62
+    },
+    "examples/tiago/data/calibration/mocap/qualisys_2021-11-30-1403_static_postures.csv": {
+      "sha256": "e44c678fbbc1fbc852107b0fe6793470dbf3a7cef77ddf5faa25c9e4ff4cb503",
+      "bytes": 28464,
+      "rows": 63
+    },
+    "examples/tiago/data/calibration/mocap/qualisys_2021-11-30-1504_static_postures.csv": {
+      "sha256": "cc19eaa74fe8b74be28d758424ef4acd18f516dc59e40754b37d87f8592fbb84",
+      "bytes": 26677,
+      "rows": 59
+    },
+    "examples/tiago/data/calibration/mocap/qualisys_2021-11-30_static_postures.csv": {
+      "sha256": "b6c0051e20c6a077a6d2cf64ba912996945bbb85d6860cd6cea7d8ff65b1b9af",
+      "bytes": 16904,
+      "rows": 37
+    },
+    "examples/tiago/data/calibration/mocap/qualysis_base_hand_calibration.csv": {
+      "sha256": "d7fcbd96e3e6731933a2f99b5bf65f028d90110b446d5f1a78ff74300dd2a105",
+      "bytes": 13420,
+      "rows": 34
+    },
+    "examples/tiago/data/calibration/optimal_configurations/tiago_calibration_joint_configurations_500_pmb2_hey5.yaml": {
+      "sha256": "07f16ef2490df96ea83a9609f1fc9558421fcba2a74de3b2498e61a49c150fb6",
+      "bytes": 91517
+    },
+    "examples/tiago/data/calibration/optimal_configurations/tiago_optimal_configurations.yaml": {
+      "sha256": "11eed552a8fedb0f6c4d0158ebf68816bd744c1d00a52f333fbf1222acf27352",
+      "bytes": 2524
+    },
+    "examples/tiago/data/identification/dynamic/tiago_bp_19_Oct_2024_2320.csv": {
+      "sha256": "7df7fa1a026d085a4514ec926347f0e93d0a09461a57419c33c5912c62ed3415",
+      "bytes": 3960,
+      "rows": 43
+    },
+    "examples/tiago/data/identification/dynamic/tiago_effort.csv": {
+      "sha256": "12c635987705efade603426a600f5b315add7f580c720a4b84609dadb9d0a2e9",
+      "bytes": 494579,
+      "rows": 8022
+    },
+    "examples/tiago/data/identification/dynamic/tiago_nov_30_64.csv": {
+      "sha256": "1cb0efe58d8d4b53cc09e8aededd56ff12f80b537b115882e819d54f0fa63682",
+      "bytes": 13811,
+      "rows": 35
+    },
+    "examples/tiago/data/identification/dynamic/tiago_position.csv": {
+      "sha256": "4297a60d434ee89f1f424ad0da8ec65bc00072ac57eb06b94966c0819fc2786d",
+      "bytes": 1418146,
+      "rows": 8022
+    },
+    "examples/tiago/data/identification/dynamic/tiago_velocity.csv": {
+      "sha256": "269f681ca7a9511ac1698bf027ddf601e3fdb49d7d397af4810ec839f136cd69",
+      "bytes": 1504041,
+      "rows": 8022
+    },
+    "examples/tiago/data/suspension/tiago_xyz_vicon_1640.csv": {
+      "sha256": "8a0b993304e57b57e8d8a6e905dbaf6ef41cae13b7c035a5f7c6dbefbaef08f4",
+      "bytes": 3877388,
+      "rows": 5546
+    },
+    "examples/tiago_pro/data/calibration_application_20260702.md": {
+      "sha256": "adddc1439f569917d9121126be28d22016611f72a93063481bcff05dcb56b5f9",
+      "bytes": 2237
+    },
+    "examples/tiago_pro/data/calibration_reliability_20260805.md": {
+      "sha256": "3049d738bb9867f69d85ccfa3598b804889140385058b7cef503d209d7f7139b",
+      "bytes": 8179
+    },
+    "examples/tiago_pro/data/calibration_results_20260701_0913.yaml": {
+      "sha256": "ed738ce73658147ca93310179c67549510df597724c32b1308a7021ae2559010",
+      "bytes": 2939
+    },
+    "examples/tiago_pro/data/calibration_results_20260702_0756.yaml": {
+      "sha256": "5fbfc9c61c3b5633fd2549d94925eaf373b28d7589004cb87c96cf92ad70d880",
+      "bytes": 2936
+    },
+    "examples/tiago_pro/data/calibration_results_20260805_1246.yaml": {
+      "sha256": "bd91c5846b653c9daa1ac13bc97590c501ed18d433e2bc3b89f0d0bccb441634",
+      "bytes": 4124
+    },
+    "examples/tiago_pro/data/calibration_samples_20260701_0913.csv": {
+      "sha256": "3ac035a8a483d91210e39018134f2b0a2f8f954516351b66f48c6ee87461982d",
+      "bytes": 9637,
+      "rows": 44
+    },
+    "examples/tiago_pro/data/calibration_samples_20260702_0756.csv": {
+      "sha256": "dd2b7f6d6320ce4fee61125b693cad2eae87ff42770f225220b1f440aea47789",
+      "bytes": 20428,
+      "rows": 94
+    },
+    "examples/tiago_pro/data/calibration_samples_20260805_1246.csv": {
+      "sha256": "bd6bb49399d71e2b8c72a00527325914cac745571f142ac2316b65773dc26114",
+      "bytes": 13354,
+      "rows": 48
+    },
+    "examples/tiago_pro/data/master_calibration_20260702.yaml": {
+      "sha256": "cbe733e87016bcd4ed5ba9b159afa52bc23a1a0c78716782745f939b4b1295a7",
+      "bytes": 1611
+    },
+    "examples/tiago_pro/data/master_calibration_20260805.yaml": {
+      "sha256": "f4762ccccd838ff2fbdc28823c2fd21c9941ad5437ba5e5df529ce2d2b5a4478",
+      "bytes": 3341
+    },
+    "examples/tiago_pro/data/master_calibration_20260805_conservative.yaml": {
+      "sha256": "8e3cc57eb8fdd2f91063f16916a59b35323d72bf66d8dce91e850e59d53327b1",
+      "bytes": 2218
+    },
+    "examples/tiago_pro/data/mocap_frame_correction_20260805.md": {
+      "sha256": "ca32a5a7642be14fd24d7a809fcee2c0de13a49d89563d96d06b4ebd1ca1d52f",
+      "bytes": 3652
+    },
+    "examples/tiago_pro/data/optimal_configs.yaml": {
+      "sha256": "d3c84adc0daccb99e2073cc1c643fe18e3fd0494e5023490e685625ed3e11b60",
+      "bytes": 9830
+    },
+    "examples/ur10/data/calibration.csv": {
+      "sha256": "31d5a3d56cbb5ea3f69775a3f2620bbe31cb750e68c6a2258ed585c3f01cdfd6",
+      "bytes": 5458,
+      "rows": 23
+    },
+    "examples/ur10/data/simulation.csv": {
+      "sha256": "8661e2012f83e07f32819183806e71f0a91dcf7519c6f31c9e1434f87206747b",
+      "bytes": 6901,
+      "rows": 29
+    },
+    "examples/ur10/data/truth/manifest.json": {
+      "sha256": "bfc969348491ad71941c025c9a26607ced4db01d0b65c690afa5a3f737de7b10",
+      "bytes": 26316
+    },
+    "examples/ur10/data/truth/protocol.yaml": {
+      "sha256": "83f1620c2e3cfdf88af6f170a7db4cb6240852c98acb50dd7b12f8ce8b7a9f10",
+      "bytes": 13519
+    },
+    "examples/ur10/data/truth/train.csv": {
+      "sha256": "014cdb143d2744b2ea0ecb6d4a4c8b7f6d02f40f56a91805ee13e0faa7297a5a",
+      "bytes": 1220008,
+      "rows": 2400
+    },
+    "examples/ur10/data/truth/train_waypoints.json": {
+      "sha256": "012066ee2a0f975ec50f418cc20080a1bb25649a865904fc52041580df5c38b0",
+      "bytes": 9098
+    },
+    "examples/ur10/data/truth/truth_parameters.csv": {
+      "sha256": "bc39953ab222dcdaf75c6445b4d03c49d1ccdcd4647d64715ea0116b2d3843af",
+      "bytes": 3187,
+      "rows": 60
+    },
+    "examples/ur10/data/truth/ur10_truth.urdf": {
+      "sha256": "e3ce01ca3579c6a2057674447dc445bbc46ff37e24da9111ad9d7b4246efee13",
+      "bytes": 22865
+    },
+    "examples/ur10/data/truth/validation.csv": {
+      "sha256": "3dec2056016206f2b2c2b8c81e4fa06c4243703382b7fbf9b98855303f3ec894",
+      "bytes": 398559,
+      "rows": 800
+    }
+  }
+}

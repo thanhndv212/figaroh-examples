@@ -1,0 +1,37 @@
+name: Data inventory
+
+# Fails when a file under examples/*/data changes (or is added, or removed)
+# without docs/data-inventory.json and docs/data-inventory.md being updated
+# with the new sha256. Standard library only; no environment build.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/*/data/**'
+      - 'docs/data-inventory.*'
+      - 'scripts/data_inventory.py'
+      - '.github/workflows/data-inventory.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'examples/*/data/**'
+      - 'docs/data-inventory.*'
+      - 'scripts/data_inventory.py'
+      - '.github/workflows/data-inventory.yml'
+
+concurrency:
+  group: data-inventory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Data inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check the inventory against the files
+        run: python scripts/data_inventory.py check

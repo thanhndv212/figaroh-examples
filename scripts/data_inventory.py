@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+"""Keep an inventory of the data shipped under ``examples/*/data`` with hashes.
+
+``docs/data-inventory.json`` holds two things:
+
+* ``datasets``: written by hand. Each dataset names the files it owns (path
+  patterns), whether the data is real, simulated, generated or unspecified,
+  its role (training, held-out, ...) and where its provenance is documented.
+* ``files``: written by this script. The sha256, size and row count of every
+  data file.
+
+``docs/data-inventory.md`` is rendered from the JSON and must not be edited.
+
+    python scripts/data_inventory.py update   # recompute hashes, rewrite md
+    python scripts/data_inventory.py check    # fail on any drift (used by CI)
+
+``check`` fails when a data file is added, removed or changed without the
+inventory being updated, when a file belongs to no dataset (or two), and when
+the rendered Markdown is stale. Standard library only.
+"""
+
+import argparse
+import fnmatch
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+INVENTORY = Path("docs/data-inventory.json")
+RENDERED = Path("docs/data-inventory.md")
+KINDS = ("real", "simulated", "generated", "derived", "notes", "unspecified")
+CHUNK = 1 << 20
+
+
+def _repo_root():
+    return Path(__file__).resolve().parent.parent
+
+
+def discover(root):
+    """Return the sorted data files, as POSIX paths relative to ``root``.
+
+    Uses ``git ls-files`` when ``root`` is a git checkout, so untracked local
+    output never counts, and walks the tree otherwise.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z", "--", "examples"],
+            check=True,
+            capture_output=True,
+        ).stdout.decode()
+        paths = [p for p in out.split("\0") if p]
+    except (OSError, subprocess.CalledProcessError):
+        paths = [
+            p.relative_to(root).as_posix()
+            for p in (root / "examples").rglob("*")
+            if p.is_file()
+        ]
+    return sorted(p for p in paths if "/data/" in p and "__pycache__" not in p)
+
+
+def _matches(path, pattern):
+    if pattern.endswith("/"):
+        return path.startswith(pattern)
+    return fnmatch.fnmatchcase(path, pattern)
+
+
+def describe(path):
+    """Hash, size and (for CSV) data-row count of one file."""
+    sha = hashlib.sha256()
+    size = 0
+    newlines = 0
+    last = b""
+    with open(path, "rb") as f:
+        while True:
+            block = f.read(CHUNK)
+            if not block:
+                break
+            sha.update(block)
+            size += len(block)
+            newlines += block.count(b"\n")
+            last = block[-1:]
+    info = {"sha256": sha.hexdigest(), "bytes": size}
+    if str(path).endswith(".csv"):
+        lines = newlines + (1 if size and last != b"\n" else 0)
+        info["rows"] = max(lines - 1, 0)
+    return info
+
+
+def _load(root):
+    with open(root / INVENTORY) as f:
+        return json.load(f)
+
+
+def _assign(inv, files):
+    """Map each file to its single dataset; return (owner, problems)."""
+    ignore = inv.get("ignore", [])
+    owner, problems = {}, []
+    for path in files:
+        if any(_matches(path, p) for p in ignore):
+            continue
+        hits = [
+            d["id"]
+            for d in inv["datasets"]
+            if any(_matches(path, p) for p in d["paths"])
+        ]
+        if not hits:
+            problems.append(f"{path}: belongs to no dataset")
+        elif len(hits) > 1:
+            problems.append(f"{path}: belongs to several datasets {hits}")
+        else:
+            owner[path] = hits[0]
+    return owner, problems
+
+
+def _validate_datasets(inv):
+    problems, seen = [], set()
+    for d in inv["datasets"]:
+        if d["id"] in seen:
+            problems.append(f"duplicate dataset id {d['id']}")
+        seen.add(d["id"])
+        if d.get("kind") not in KINDS:
+            problems.append(f"{d['id']}: kind must be one of {KINDS}")
+        if not d.get("paths"):
+            problems.append(f"{d['id']}: no paths")
+    return problems
+
+
+def compute(root, inv):
+    """Return (files map, owner map, problems) for the current checkout."""
+    files = discover(root)
+    owner, problems = _assign(inv, files)
+    problems += _validate_datasets(inv)
+    table = {p: describe(root / p) for p in owner}
+    return table, owner, problems
+
+
+def _size(n):
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+
+
+def render(inv):
+    files = inv["files"]
+    by_ds = {d["id"]: [] for d in inv["datasets"]}
+    for path in sorted(files):
+        for d in inv["datasets"]:
+            if any(_matches(path, p) for p in d["paths"]):
+                by_ds[d["id"]].append(path)
+                break
+    out = [
+        "# Data inventory",
+        "",
+        "<!-- Generated by scripts/data_inventory.py from "
+        "docs/data-inventory.json. Do not edit. -->",
+        "",
+        "Every data file under `examples/*/data/` with its sha256, size and "
+        "row count. Edit the datasets in `docs/data-inventory.json`, then run "
+        "`python scripts/data_inventory.py update`. CI runs `check` and "
+        "fails when a data file, a hash or this page is out of date.",
+        "",
+        "Kinds: `real` (recorded on hardware), `simulated` (generated from a "
+        "known model), `generated` (computed configuration or result, not a "
+        "measurement), `derived` (processed from a recording), `notes` "
+        "(documentation shipped with the data), `unspecified` (the repository "
+        "does not say; see the list below).",
+        "",
+        "## Datasets",
+        "",
+        "| Dataset | Robot | Study | Kind | Role | Files | Size | Provenance |",
+        "|---|---|---|---|---|---:|---:|---|",
+    ]
+    for d in inv["datasets"]:
+        paths = by_ds[d["id"]]
+        total = sum(files[p]["bytes"] for p in paths)
+        flag = "" if not d.get("confirm") else " (unconfirmed)"
+        out.append(
+            f"| `{d['id']}` | {d['robot']} | {d['study']} | "
+            f"{d['kind']}{flag} | {d['role']} | {len(paths)} | "
+            f"{_size(total)} | {d.get('provenance', '')} |"
+        )
+    unconfirmed = [d for d in inv["datasets"] if d.get("confirm")]
+    out += ["", "## Provenance to confirm", ""]
+    if unconfirmed:
+        out += [f"- `{d['id']}`: {d['confirm']}" for d in unconfirmed]
+    else:
+        out.append("None.")
+    for d in inv["datasets"]:
+        out += [
+            "",
+            f"### `{d['id']}`",
+            "",
+            d["description"],
+            "",
+            "| File | Rows | Bytes | sha256 (first 16) |",
+            "|---|---:|---:|---|",
+        ]
+        for p in by_ds[d["id"]]:
+            f = files[p]
+            out.append(
+                f"| `{p}` | {f.get('rows', '')} | {f['bytes']} | "
+                f"`{f['sha256'][:16]}` |"
+            )
+    return "\n".join(out) + "\n"
+
+
+def _dump(inv):
+    inv = dict(inv)
+    inv["files"] = {p: inv["files"][p] for p in sorted(inv["files"])}
+    return json.dumps(inv, indent=2) + "\n"
+
+
+def cmd_update(root):
+    inv = _load(root)
+    table, _, problems = compute(root, inv)
+    if problems:
+        print("Cannot update:\n  " + "\n  ".join(problems), file=sys.stderr)
+        return 1
+    inv["files"] = table
+    (root / INVENTORY).write_text(_dump(inv))
+    (root / RENDERED).write_text(render(inv))
+    print(f"Updated {INVENTORY} and {RENDERED}: {len(table)} files.")
+    return 0
+
+
+def cmd_check(root):
+    inv = _load(root)
+    table, _, problems = compute(root, inv)
+    recorded = inv.get("files", {})
+    for path in sorted(set(table) - set(recorded)):
+        problems.append(f"{path}: added but not in the inventory")
+    for path in sorted(set(recorded) - set(table)):
+        problems.append(f"{path}: in the inventory but missing or unowned")
+    for path in sorted(set(table) & set(recorded)):
+        for key, now in table[path].items():
+            if recorded[path].get(key) != now:
+                problems.append(
+                    f"{path}: {key} changed " f"({recorded[path].get(key)} -> {now})"
+                )
+    rendered = root / RENDERED
+    if not rendered.exists() or rendered.read_text() != render(inv):
+        problems.append(f"{RENDERED} is out of date")
+    if problems:
+        print("Data inventory is out of date:", file=sys.stderr)
+        for p in problems:
+            print(f"  - {p}", file=sys.stderr)
+        print(
+            "\nIf the change is intended, run "
+            "`python scripts/data_inventory.py update` and commit "
+            f"{INVENTORY} and {RENDERED}. A new file also needs a dataset "
+            "entry in the JSON.",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"Data inventory OK: {len(table)} files.")
+    return 0
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("command", choices=("update", "check"))
+    parser.add_argument("--root", type=Path, default=_repo_root())
+    args = parser.parse_args(argv)
+    return (cmd_update if args.command == "update" else cmd_check)(args.root)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

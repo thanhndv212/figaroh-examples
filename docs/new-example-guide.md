@@ -29,6 +29,8 @@ examples/<robot>/
   EXPERIMENT.md             # decisions and frozen estimation/validation protocol
   config/                   # robot-specific unified YAML
   data/README.md            # raw sources, columns, units, clocks and split policy
+                            # also add the files to docs/data-inventory.json and run
+                            # `python scripts/data_inventory.py update` (CI checks the hashes)
   urdf/                     # nominal model or documented retrieval instructions
   utils/                    # robot-specific import/adaptation and subclasses
   identification.py         # only the tasks actually supported
