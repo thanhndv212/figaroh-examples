@@ -4,6 +4,37 @@ Extends [`ur10-physical-comparison.md`](ur10-physical-comparison.md) (first pass
 files are unchanged and re-checked, see "Regression"). Adds the four items that note left open:
 log-Cholesky candidates, TX40 and TIAGo, joint-extra runs, and a second SDP solver.
 
+## Summary and D4 verdict
+
+- **Recommended for the D7 reference workflow: the direct LMI effort fit.** It is the convex optimum of the
+  common objective, always physically feasible, and its held-out error equals or beats every other
+  feasible method on UR10 and is within noise of base OLS on the recorded data.
+- **Exact reconstruction** works only when the OLS base is physically reconstructable (UR10 noise-free,
+  mostly low noise). It has a phase-I infeasibility certificate under noise (UR10 high noise) and on both
+  recorded datasets (TX40, TIAGo), under both solvers: a property of the data, not of cvxopt.
+- **Per-link projection** is feasible but has poor held-out error (about 5x worse on UR10 at low noise,
+  1213 N on the TIAGo torso). Not recommended.
+- **Log-Cholesky** matches the direct fit (objective within about 1e-3 relative, same held-out error) and its
+  candidates are feasible, but it does not reliably reach scipy convergence within 2000 evaluations
+  (core D5 no-go; the method change is tracked in figaroh-plus#155). Treat as a cross-check, not a default.
+- **cvxopt vs QICS**: they agree to 1e-4 relative objective where both solve; cvxopt fails the direct fit on
+  TX40 and TIAGo ("math domain error") where QICS solves it, so the reference workflow should use or fall
+  back to QICS.
+- **Data limitations**: TX40/TIAGo have no truth, held-out is a temporal block of one recording; TIAGo wrist
+  efforts are about 87 % zero, effort constants are unverified and there is no torque reference.
+
+Acceptance criteria of #22:
+
+| Criterion | Status |
+|---|---|
+| Comparable explicit objectives | met: `settings.common_objective`, `objective` per method in every JSON |
+| Frozen-extra and joint-extra separated | met: separate keys (`frozen_extra`, `joint_extra`) in all JSONs |
+| Training and held-out separated | met: `train` / `heldout` fields per method |
+| Per-joint units, parameter/base changes | met: `joint_units`, `units`, `base_change_vs_ols_rel`, per-link `change_vs_prior_norm` |
+| Raw/config/model hashes, paired core+examples revisions | met: `provenance` of each JSON |
+| Both Pinocchio profiles (3.7, 4.1) | met: `*-pin37.json` and `*-pin41.json` for every result set |
+| TX40/TIAGo fair comparison or explicit limitation | met: results plus the limitations below |
+
 ## What is compared
 
 Same problem per case, every method scored with the same explicit objective
@@ -70,6 +101,63 @@ Complete tables (all noise levels, both weightings, per-joint arrays, link mass 
 - Per-link projection is the clear loser on held-out error (5 to 6 times worse at low noise).
 - Joint-extra changes held-out error by a fraction of a percent versus frozen-extra on UR10 (the
   fixture's true extras are zero), so it is mainly a check that the separation is consistent.
+
+## UR10 differentiated derivatives (weighting none, 3 paired seeds)
+
+Same fixture, but q is differentiated by core's helper instead of the saved analytic dq/ddq (the first
+pass's `differentiated` cells). Worst-joint mean held-out NRMSE (%), noise `low` and `high`
+(`ur10-physical-extended-differentiated-pin{37,41}.json`; frozen rows re-checked against the first pass:
+41 rows, max diff 2e-11 %). Counts are solved/converged/feasible out of 3.
+
+| Mode | Noise | Method | s/c/f | worst-joint NRMSE | base err (N.m) | J excess |
+|---|---|---|---|---|---|---|
+| frozen | low | base_ols | 3/3/0 | 28.5 | 0.048 | -6e-3 |
+| frozen | low | exact | 0/0/0 | none (infeasible) | | |
+| frozen | low | direct | 3/3/3 | 26.2 | 0.047 | 0 |
+| frozen | low | projection | 3/3/3 | 35.7 | 0.21 | 1.3 |
+| frozen | low | log-Cholesky nominal | 3/0/3 | 26.1 | 0.046 | 2e-5 |
+| frozen | high | base_ols | 3/3/0 | 323 | 0.68 | -0.57 |
+| frozen | high | direct (cvxopt) | 0/0/0 | solver failure | | |
+| frozen | high | direct (QICS) | 3/3/3 | 178 | 0.85 | 0 |
+| frozen | high | projection | 3/3/3 | 159 | 1.5 | 1.1 |
+| frozen | high | log-Cholesky nominal | 3/0/3 | 186 | 0.80 | 0.03 |
+| joint | low | direct | 3/3/3 | 33.2 | 0.047 | 0 |
+| joint | high | direct (QICS) | 3/3/3 | 183 | 0.84 | 0 |
+| joint | high | log-Cholesky nominal | 3/0/3 | 191 | 0.79 | 0.03 |
+
+Differentiation noise dominates: held-out error is 5 to 30 times the analytic cells and exact
+reconstruction has no solution even at low noise (phase-I infeasible, both solvers). The ranking
+direct ~ log-Cholesky < projection on base error is unchanged; log-Cholesky candidates are feasible but
+none converged. At high noise cvxopt fails the direct fit and QICS solves it; at high noise projection has
+the lowest held-out NRMSE in the frozen mode (159 vs 178) while having 1.7 times the base error, so low
+held-out error alone does not favour it.
+
+## UR10 periodic (circular) extras (weighting none, 3 paired seeds)
+
+A truth with a position-periodic torque `a_j sin q_j + b_j cos q_j` per joint (amplitude 2 % of the
+joint's effort scale), added to the fixture effort of both splits
+(`compare_physical_circular.py`, `ur10-physical-circular-pin{37,41}.json`). Three variants on the same
+data: periodic extras fixed at 0 (misspecified), estimated (joint-extra), fixed at truth (oracle).
+`sin/cos` of the shoulder_lift joint are collinear with the inertial base and absorbed (listed).
+
+| Noise | Method | periodic extras at 0 | estimated | at truth (oracle) |
+|---|---|---|---|---|
+| low | base_ols | 25.4 | 6.9 | 4.4 |
+| low | direct | 22.5 | 7.2 | 4.6 |
+| low | projection | 31.4 | 30.8 | 31.3 |
+| low | log-Cholesky nominal (conv 1/3, 3/3, 3/3) | 22.4 | 7.2 | 4.6 |
+| high | base_ols | 34.3 | 34.7 | 22.0 |
+| high | direct | 24.9 | 28.4 | 18.4 |
+| high | projection | 38.1 | 54.9 | 36.4 |
+| high | log-Cholesky nominal (conv 0/3) | 24.9 | 28.4 | 18.2 |
+
+Worst-joint mean held-out NRMSE (%, vs the true effort including the periodic term). Base error
+(N.m) at low noise: 0.19 (at 0), 0.11 (estimated), 0.0074 (oracle); at high noise: 0.18, 0.14, 0.036.
+Ignoring the periodic term costs about 3 times the held-out error at low noise and biases the base;
+estimating it recovers most of it at low noise, but at high noise the 12 extra columns overfit
+(held-out worse than leaving them at zero, base error still lower). All physical methods stay feasible
+(direct, projection, log-Cholesky); exact reconstruction solves only 2 of 3 low-noise cases when the periodic term is estimated or fixed at
+truth, none otherwise (omitted from the table; see the JSON).
 
 ## TX40 and TIAGo (recorded data)
 
@@ -146,7 +234,6 @@ The frozen-extra rows reproduce `ur10-physical-comparison-pin<37|41>.json` (78 r
 - Log-Cholesky never reaches the scipy convergence status on the real data in 2000 evaluations. Its
   candidates are feasible and within 1e-3 of the convex objective, which is what the issue asked to
   report; no convergence claim is made.
-- Differentiated-derivative cells and circular extras are not run in this pass (analytic only).
 
 ## Reproduction
 
@@ -158,10 +245,17 @@ export OPENBLAS_NUM_THREADS=1
 python examples/compare_physical_real.py --robot staubli_tx40
 python examples/compare_physical_real.py --robot tiago
 python examples/ur10/compare_physical_extended.py --noise none low high --seeds 5
+python examples/ur10/compare_physical_extended.py --derivatives differentiated --noise none low high --seeds 3 \
+    --output docs/development/results/ur10-physical-extended-differentiated-<profile>.json
+python examples/ur10/compare_physical_circular.py --noise none low high --seeds 3
 ```
 
 Run once per profile (Pinocchio 3.7.0 and 4.1.0); outputs go to `docs/development/results/`
 (`--overwrite` is required to replace). Hashes of the raw data, configs, URDFs, scripts, comparator
 and log-Cholesky spike, plus the paired core (`e719de1`) and examples revisions, are in `provenance`
 of each JSON. The examples revision recorded in the results is the commit that contained the scripts
-(`49f6608`, clean tree).
+(`49f6608` for TX40/TIAGo/UR10 extended; `3fb2c71` for the differentiated and circular runs; clean tree).
+The result JSONs are git-ignored by default (`results/`) and committed explicitly with `git add -f`.
+The committed UR10 files are trimmed: they keep `provenance`, `settings` and `summary` and drop the
+per-case `cases` and `cross_check` blocks (marked by a `trimmed` key). Rerun the commands above for the
+full output. The TX40 and TIAGo files have no `summary` block and are committed in full.
