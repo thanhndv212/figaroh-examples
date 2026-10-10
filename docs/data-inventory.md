@@ -48,8 +48,8 @@ Simulated truth fixture: known inertias, exact clock and RNEA effort, 2400 train
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/ur10/data/truth/manifest.json` |  | 26316 | `bfc969348491ad71` |
-| `examples/ur10/data/truth/protocol.yaml` |  | 13519 | `83f1620c2e3cfdf8` |
+| `examples/ur10/data/truth/manifest.json` |  | 26316 | `00441b57def86aa5` |
+| `examples/ur10/data/truth/protocol.yaml` |  | 13542 | `9054bb8c023afab3` |
 | `examples/ur10/data/truth/train.csv` | 2400 | 1220008 | `014cdb143d2744b2` |
 | `examples/ur10/data/truth/train_waypoints.json` |  | 9098 | `012066ee2a0f975e` |
 | `examples/ur10/data/truth/truth_parameters.csv` | 60 | 3187 | `bc39953ab222dcda` |

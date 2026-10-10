@@ -595,12 +595,12 @@
       "rows": 29
     },
     "examples/ur10/data/truth/manifest.json": {
-      "sha256": "bfc969348491ad71941c025c9a26607ced4db01d0b65c690afa5a3f737de7b10",
+      "sha256": "00441b57def86aa5b0ca6eceb506191a060dfd10f78c73700a92a7a79fe64746",
       "bytes": 26316
     },
     "examples/ur10/data/truth/protocol.yaml": {
-      "sha256": "83f1620c2e3cfdf88af6f170a7db4cb6240852c98acb50dd7b12f8ce8b7a9f10",
-      "bytes": 13519
+      "sha256": "9054bb8c023afab3d659a6fae90b9c065bec4340de4b5f3e2d39f686bb6d5fd0",
+      "bytes": 13542
     },
     "examples/ur10/data/truth/train.csv": {
       "sha256": "014cdb143d2744b2ea0ecb6d4a4c8b7f6d02f40f56a91805ee13e0faa7297a5a",
