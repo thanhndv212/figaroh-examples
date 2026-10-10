@@ -121,8 +121,8 @@ current with a counterbalance offset, in an unknown unit. The config converts
 it with `ratio x kmotor = 1` and adds `9.81 x subtree mass`: on the training
 window the URDF term is 181.8 N (18.53 kg) of a mean converted force of
 182.9 N, i.e. 99.4 % (raw effort std 0.75). The torso "measurement" is the
-model's own weight. The earlier audit quoted about 98 %; the 99.4 % here uses
-the Hey5 URDF on the training window, rows 921-6791.
+model's own weight. Issue #68 quoted about 98 %; the 99.4 % here uses the
+Hey5 URDF on the training window, rows 921-6791.
 
 Reproduce: section (b).
 
@@ -167,8 +167,7 @@ Reproduce: sections (d) and (e).
 
 The measured 0.79 kg is lighter than both. It is 0.24 kg below the Hey5 URDF
 and 0.07 kg below the Schunk URDF, so the sensor does not by itself favour the
-Hey5 hand; the bag channels do. The F/T-derived mass of this audit (0.792 kg)
-differs from the 0.794 kg of the source audit by 0.002 kg, from a different
+Hey5 hand; the bag channels do. Issue #68 quoted 0.794 kg; the 0.002 kg difference comes from a different
 filter and quasi-static selection.
 
 Reproduce: section (f).

@@ -173,7 +173,7 @@ tasks:
       force_torque_sensors: ["wrist_ft_sensor"]
       wls: false  # Refine OLS estimate with weighted least squares (Gautier, 1997)
       # Effort fitted and scored on arm_1-arm_4 only (#68). The torso force
-      # is ~98 % the URDF's own m*g (ratio x kmotor = 1, undocumented) and the
+      # is ~99 % the URDF's own m*g (ratio x kmotor = 1, undocumented) and the
       # wrist efforts are quantised to 0.001 and 88-90 % exactly zero. Torso
       # and wrist motion still enter the regressor.
       torque_fit_joints: [arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint]
