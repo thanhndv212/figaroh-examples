@@ -162,7 +162,8 @@ What to look at, in order:
   `reorder_inertial_parameters` in `figaroh/identification/parameter.py` — never
   hand-roll the permutation.
 - **Physical consistency (SDP projection) is default-off** and needs `picos` + an SDP
-  solver: `identification.physical_consistency.enabled: true`.
+  solver: `identification.physical_consistency.enabled: true`. It projects the
+  reconstructed fit, so also set `identification.reconstruction.enabled: true`.
 - A bad condition number is almost always insufficiently exciting data, not a solver
   bug. `figaroh.tools.solver.LinearSolver` offers ridge/tikhonov/robust variants, but
   regularising a badly-excited problem hides the problem rather than fixing it.
