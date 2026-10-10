@@ -25,11 +25,11 @@ recorded on the object, so the class no longer overrides
 |---|---|
 | `joint_names` | `active_joints`: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint` |
 | `t`, `clock` | column `t` of the three files, `recorded` (~100 Hz) |
-| `origin` | `q` measured; `dq` measured, shifted 18 samples earlier (velocity lag, D2 audit); `ddq` absent, derived by the pipeline |
+| `origin` | `q` measured; `dq` absent, derived from the filtered positions (the logged velocity is a first-order filter of Δq/Δt, #68); `ddq` absent, derived by the pipeline. With `velocity_source="measured"`, `dq` is the logged channel shifted 18 samples earlier (D2 audit) |
 | `effort_raw`, kind, unit | the recorded effort, `motor_effort`, "raw (unverified, D2 audit)" |
 | `effort`, kind, unit | `joint_force` in N on the prismatic torso, `joint_torque` in N·m on the arm |
 | `effort_conversion` | `× reduction_ratio × kmotor; + 9.81 × subtree mass (torso)` |
-| `sample_index` | file rows `0 … 8003`; the last 18 rows are dropped by the lag shift |
+| `sample_index` | file rows `0 … 8021`; with `velocity_source="measured"`, `0 … 8003` (the last 18 rows are dropped by the lag shift) |
 | `source` | the position, velocity and effort files with sha256; session `training`, or the `data_source` directory |
 
 Compatibility:

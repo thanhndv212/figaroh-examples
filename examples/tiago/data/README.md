@@ -49,9 +49,25 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   rows, 0–80.21 s, median step 9.997 ms (~100 Hz), jitter 7.7–12.3 ms,
   strictly increasing, no gaps. Filters must be designed at this rate.
 - **Velocity:** a logged first-order filtered position derivative:
-  `v[n] = 0.95*v[n-1] + 0.05*Δq/Δt`. The loader's estimated shift
-  (~18 samples on training) only approximates its phase; it does not undo
-  the filter. The raw exports preserve this signal without shifting it.
+  `v[n] = 0.95*v[n-1] + 0.05*Δq/Δt` on the recorded clock (0.195 s time
+  constant; relative residual 1.4–1.6e-4 on training and `calibration_slow`,
+  recorded as `velocity_filter_residual` in the run provenance). It holds
+  nothing the positions do not, so `identification.py` derives the velocity
+  from the filtered positions (#68). `--velocity-source measured` restores
+  the earlier shifted channel: its estimated shift (~18 samples on training)
+  only approximates the filter's phase. Held-out RMSE on `calibration_slow`:
+
+  | Velocity | Fit RMSE | Held-out RMSE | Condition |
+  |---|---|---|---|
+  | from positions (default) | 0.643 | 1.317 | 1564 |
+  | logged, shifted (`measured`) | 0.666 | 1.209 | 1779 |
+  | logged, filter inverted | 0.809 | 1.304 | 1695 |
+
+  The shifted channel predicts the slow run better although it is the
+  less faithful signal; the default follows the measured physics, and the
+  maintainer accepted the held-out cost (#68). Delaying the effort by 3–18
+  samples or lowering the cutoff to 0.8 Hz did not recover it. The raw
+  exports preserve the logged signal unchanged.
 - **Effort:** raw values converted in `process_torque_data` with the
   per-joint `reduction_ratio × kmotor` from the `drives` table in
   `config/tiago_unified_config.yaml` (with a source per joint), plus
@@ -63,10 +79,10 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   no gripper), so `identification.py` loads `urdf/tiago_48_hey5.urdf`. This
   applies to all three 2021-07 recordings below. The wrist F/T sensor weighs
   0.794 kg below the sensor, against 1.032 kg in the Hey5 URDF (#68). The
-  switch from the Schunk URDF leaves the fit and held-out RMSE (1.209)
-  and the 73 base parameters' count unchanged; 30 base-parameter values
-  shift to absorb the hand's inertia, and the nominal model's held-out RMSE
-  moves from 3.375 to 3.407.
+  switch from the Schunk URDF (measured with the shifted velocity) left the
+  fit and held-out RMSE (1.209) and the 73 base parameters' count unchanged; 30 base-parameter values
+  shifted to absorb the hand's inertia, and the nominal model's held-out
+  RMSE moved from 3.375 to 3.407.
 - **Window:** `identification.py` keeps rows 921–6791 (9.21–67.90 s), the
   excitation; RMS velocity 0.159 rad/s inside vs 0.017 / 0.006 rad/s before /
   after.
@@ -85,7 +101,7 @@ one finite, strictly increasing header clock, rebased to zero, at ~100 Hz.
 
 | Directory | Recording (UTC, 2021-07-01) | Rows | Frozen role |
 |---|---|---|---|
-| `dynamic/` | 13:02, `calibration.bag` | 8022 | training; rows [921, 6791) after velocity alignment |
+| `dynamic/` | 13:02, `calibration.bag` | 8022 | training; rows [921, 6791) |
 | `calibration_slow/` | 12:57, `calibration_slow.bag` | 14163 | validation; same path at roughly half speed |
 | `calibration_weight/` | 13:27, `calibration_weight.bag` | 7547 | changed-payload diagnostic; same path, added load |
 

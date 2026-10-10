@@ -69,10 +69,11 @@ def test_dynamic_adapter_states_its_conventions(identification, trajectory):
     assert list(traj.joint_names) == identification.identif_config["active_joints"]
     assert traj.clock == "recorded"
     assert 99 < 1 / np.median(np.diff(traj.t)) < 101  # ~100 Hz, D2 audit
-    # measured vs derived: positions and velocities measured (velocity shifted
-    # by the estimated lag), accelerations not provided, derived downstream
+    # measured vs derived: positions measured; velocities and accelerations
+    # not provided, derived downstream (the logged velocity is filtered, #68)
     assert traj.origin["q"] == "measured"
-    assert traj.origin["dq"].startswith("measured; shifted 18 samples")
+    assert traj.dq is None
+    assert traj.origin["dq"].startswith("absent; derived from the filtered positions")
     assert traj.origin["ddq"] == "absent"
     # units: the prismatic torso in N, the arm in N·m, from a raw signal
     assert traj.effort_kind == (JOINT_FORCE,) + (JOINT_TORQUE,) * 7
@@ -87,9 +88,8 @@ def test_dynamic_source_rows_and_files(identification, trajectory):
     cfg = identification.identif_config
     files = [cfg["pos_data"], cfg["vel_data"], cfg["torque_data"]]
     rows = len(pd.read_csv(files[0]))
-    lag = 18
-    # file rows 0..rows-lag-1: the last `lag` rows are dropped, none skipped
-    np.testing.assert_array_equal(traj.sample_index, np.arange(rows - lag))
+    # every file row is kept: no velocity shift, nothing dropped
+    np.testing.assert_array_equal(traj.sample_index, np.arange(rows))
     for f in files:
         path = str(Path(f).resolve())
         assert traj.source.files[path] == file_sha256(path)

@@ -74,6 +74,31 @@ def estimate_velocity_lag(
     return lag
 
 
+#: Coefficient of the first-order filter in the logged TIAGo velocity:
+#: ``v[n] = a·v[n−1] + (1−a)·Δq/Δt`` on the recorded clock (time constant
+#: 0.195 s at 100 Hz, #68).
+VELOCITY_FILTER_COEFFICIENT = 0.95
+
+
+def velocity_filter_residual(
+    timestamps: npt.NDArray[np.float64],
+    positions: npt.NDArray[np.float64],
+    velocities: npt.NDArray[np.float64],
+    a: float = VELOCITY_FILTER_COEFFICIENT,
+) -> float:
+    """Worst per-joint relative residual of the logged velocity's filter model.
+
+    Compares ``v[n]`` with ``a·v[n−1] + (1−a)·(q[n]−q[n−1])/(t[n]−t[n−1])``.
+    About 1e-4 on the 2021-07 recordings (#68): the channel is a filtered
+    position difference and carries nothing the positions do not.
+    """
+    step = np.diff(positions, axis=0) / np.diff(timestamps)[:, None]
+    predicted = a * velocities[:-1] + (1 - a) * step
+    norms = np.linalg.norm(velocities[1:], axis=0)
+    norms[norms == 0] = 1.0
+    return float(np.max(np.linalg.norm(velocities[1:] - predicted, axis=0) / norms))
+
+
 def duplicate_channel_fractions(
     channels: npt.NDArray[np.float64], names: List[str], threshold: float = 0.5
 ) -> dict[str, float]:
@@ -170,7 +195,13 @@ class TiagoIdentification(BaseIdentification):
         super().__init__(robot, config_file)
         print("TiagoIdentification initialized for TIAGo robot")
 
-    #: How to align the measured velocity channel with the positions:
+    #: Where the joint velocity comes from. ``"positions"`` leaves ``dq``
+    #: absent, so the pipeline differentiates the filtered positions: the
+    #: logged channel is a 0.195 s first-order filter of the position
+    #: difference (#68). ``"measured"`` uses the logged channel shifted by
+    #: :attr:`velocity_lag` (the #20 correction), to reproduce earlier runs.
+    velocity_source: str = "positions"
+    #: With ``velocity_source="measured"``, how to align the logged velocity:
     #: ``"auto"`` estimates the delay per run (see :func:`estimate_velocity_lag`),
     #: an ``int`` applies that many samples, ``0`` disables the shift.
     velocity_lag: int | str = "auto"
@@ -181,8 +212,10 @@ class TiagoIdentification(BaseIdentification):
         """Load the TIAGo position/velocity/effort CSVs (D2-audited, #20).
 
         The three files share one recorded clock (column ``t``, ~100 Hz).
-        The configured filter sample rate must match that clock. The
-        measured velocity channel lags the position derivative, so it is
+        The configured filter sample rate must match that clock. By default
+        (:attr:`velocity_source` ``"positions"``) the velocity is derived
+        from the filtered positions; the logged channel is only checked
+        against its filter model. With ``"measured"`` the logged channel is
         shifted earlier by :attr:`velocity_lag` samples and the last samples
         of the other channels are dropped (no padding).
 
@@ -247,15 +280,24 @@ class TiagoIdentification(BaseIdentification):
             )
 
         q, dq, tau = arrays["position"], arrays["velocity"], arrays["effort"]
-        if self.velocity_lag == "auto":
-            lag = estimate_velocity_lag(ts, q, dq, self.max_velocity_lag)
+        filter_residual = velocity_filter_residual(ts, q, dq)
+        if self.velocity_source == "positions":
+            lag, dq = 0, None
+        elif self.velocity_source == "measured":
+            if self.velocity_lag == "auto":
+                lag = estimate_velocity_lag(ts, q, dq, self.max_velocity_lag)
+            else:
+                lag = int(self.velocity_lag)
+            if not 0 <= lag < len(ts) - 2:
+                raise ValueError(f"Invalid velocity lag {lag}")
+            n = len(ts) - lag
+            dq = dq[lag:]
+            ts, q, tau = ts[:n], q[:n], tau[:n]
         else:
-            lag = int(self.velocity_lag)
-        if not 0 <= lag < len(ts) - 2:
-            raise ValueError(f"Invalid velocity lag {lag}")
-        n = len(ts) - lag
-        dq = dq[lag:]
-        ts, q, tau = ts[:n], q[:n], tau[:n]
+            raise ValueError(
+                f"velocity_source must be 'positions' or 'measured', "
+                f"not {self.velocity_source!r}"
+            )
 
         duplicates = duplicate_channel_fractions(arrays["effort"], joints)
         zeros = zero_fractions(arrays["effort"], joints)
@@ -270,6 +312,8 @@ class TiagoIdentification(BaseIdentification):
             "recorded_rate_hz": recorded_rate,
             "filter_sample_rate_hz": filter_rate,
             "source_rows": len(frames["position"]),
+            "velocity_source": self.velocity_source,
+            "velocity_filter_residual": filter_residual,
             "velocity_lag_samples": lag,
             "velocity_lag_s": lag / recorded_rate,
             "velocity_lag_mode": self.velocity_lag,
@@ -338,7 +382,11 @@ class TiagoIdentification(BaseIdentification):
             clock="recorded",
             origin={
                 "q": "measured",
-                "dq": f"measured; shifted {lag} samples earlier (velocity lag)",
+                "dq": (
+                    "absent; derived from the filtered positions (#68)"
+                    if dq is None
+                    else f"measured; shifted {lag} samples earlier (velocity lag)"
+                ),
             },
             # rows of the files; the last `lag` rows are dropped
             sample_index=np.arange(len(ts)),
@@ -346,8 +394,12 @@ class TiagoIdentification(BaseIdentification):
                 files,
                 adapter="examples.tiago.TiagoIdentification",
                 session=Session(id=os.path.basename(data_source or "training")),
-                notes=f"velocity shifted {lag} samples earlier; "
-                f"last {lag} rows dropped",
+                notes=(
+                    "velocity derived from positions"
+                    if dq is None
+                    else f"velocity shifted {lag} samples earlier; "
+                    f"last {lag} rows dropped"
+                ),
             ),
         )
         return recorded.converted(

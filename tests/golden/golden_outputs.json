@@ -44,7 +44,7 @@
   {
    "kind": "identification",
    "n_base": 73,
-   "tau_rmse": 0.665947359
+   "tau_rmse": 0.642999478
   }
  ],
  "ur10/calibration.py": [
