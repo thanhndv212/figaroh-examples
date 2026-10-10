@@ -140,38 +140,30 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-#: Drive constants: raw effort × reduction ratio × kmotor gives joint torque
-#: (N·m) or, on the torso, force (N). Unverified per the D2 audit (#68).
-REDUCTION_RATIO = {
-    "torso_lift_joint": 1,
-    "arm_1_joint": 100,
-    "arm_2_joint": 100,
-    "arm_3_joint": 100,
-    "arm_4_joint": 100,
-    "arm_5_joint": 336,
-    "arm_6_joint": 336,
-    "arm_7_joint": 336,
-}
-KMOTOR = {
-    "torso_lift_joint": 1,
-    "arm_1_joint": 0.136,
-    "arm_2_joint": 0.136,
-    "arm_3_joint": -0.087,
-    "arm_4_joint": -0.087,
-    "arm_5_joint": -0.0613,
-    "arm_6_joint": -0.0613,
-    "arm_7_joint": -0.0613,
-}
+def load_drives(config_path) -> tuple[dict, dict]:
+    """Per-joint ``reduction_ratio`` and ``kmotor`` from the config's drive table.
+
+    Raw effort × reduction ratio × kmotor gives joint torque (N·m) or, on the
+    torso, force (N). The table, with a source for each joint, lives under
+    ``robot.properties.mechanics.drives``; core does not read it, so it is
+    parsed here (``extends:`` is resolved by the parser).
+    """
+    from figaroh.utils.config_parser import UnifiedConfigParser
+
+    config = UnifiedConfigParser(str(config_path)).parse()
+    drives = config["robot"]["properties"]["mechanics"]["drives"]
+    ratio = {joint: d["reduction_ratio"] for joint, d in drives.items()}
+    kmotor = {joint: d["kmotor"] for joint, d in drives.items()}
+    return ratio, kmotor
 
 
 def configure_identification(tiago_iden: TiagoIdentification) -> None:
-    """TIAGo settings not in the YAML: drive constants, joints, data files.
+    """TIAGo settings core does not parse: drive constants, joints, data files.
 
     Shared by :func:`main` and the data-contract adapter test (examples#17).
     """
     ps = tiago_iden.identif_config
-    ps["reduction_ratio"] = dict(REDUCTION_RATIO)
-    ps["kmotor"] = dict(KMOTOR)
+    ps["reduction_ratio"], ps["kmotor"] = load_drives(tiago_iden._config_file_path)
 
     # active_joints is already resolved (extends-aware) by load_param()
     # into identif_config — read it from there rather than re-parsing
