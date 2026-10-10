@@ -88,6 +88,8 @@ def _identification(name, spec):
         # The recorded D4 comparison used the shifted logged velocity (#68).
         idn.velocity_source = "measured"
         configure_identification(idn)
+        # ... and fitted every joint's effort (#68)
+        idn.identif_config["torque_fit_joints"] = None
     else:
         from examples.staubli_tx40.utils.staubli_tx40_tools import TX40Identification
 
