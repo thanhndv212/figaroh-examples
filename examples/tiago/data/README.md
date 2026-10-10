@@ -114,6 +114,11 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   fit and held-out RMSE (1.209) and the 73 base parameters' count unchanged; 30 base-parameter values
   shifted to absorb the hand's inertia, and the nominal model's held-out
   RMSE moved from 3.375 to 3.407.
+- **Evidence:** the findings above (velocity filter, arm_1 constant, torso
+  levels, differential wrist, end effector) are reproduced from shipped files
+  by `identification_inputs_audit.py` with the channels in
+  [`identification/audit/`](identification/audit/README.md); report:
+  [`tiago-identification-inputs-2026-10-10.md`](../../../docs/development/tiago-identification-inputs-2026-10-10.md).
 - **Window:** `identification.py` keeps rows 921–6791 (9.21–67.90 s), the
   excitation; RMS velocity 0.159 rad/s inside vs 0.017 / 0.006 rad/s before /
   after.
