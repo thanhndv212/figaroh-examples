@@ -1,0 +1,42 @@
+hand joints with logged position channels: 36
+hand_index_abd_joint
+hand_index_flex_1_joint
+hand_index_flex_2_joint
+hand_index_flex_3_joint
+hand_index_joint
+hand_index_virtual_1_joint
+hand_index_virtual_2_joint
+hand_index_virtual_3_joint
+hand_little_abd_joint
+hand_little_flex_1_joint
+hand_little_flex_2_joint
+hand_little_flex_3_joint
+hand_little_virtual_1_joint
+hand_little_virtual_2_joint
+hand_little_virtual_3_joint
+hand_middle_abd_joint
+hand_middle_flex_1_joint
+hand_middle_flex_2_joint
+hand_middle_flex_3_joint
+hand_middle_virtual_1_joint
+hand_middle_virtual_2_joint
+hand_middle_virtual_3_joint
+hand_mrl_joint
+hand_ring_abd_joint
+hand_ring_flex_1_joint
+hand_ring_flex_2_joint
+hand_ring_flex_3_joint
+hand_ring_virtual_1_joint
+hand_ring_virtual_2_joint
+hand_ring_virtual_3_joint
+hand_thumb_abd_joint
+hand_thumb_flex_1_joint
+hand_thumb_flex_2_joint
+hand_thumb_joint
+hand_thumb_virtual_1_joint
+hand_thumb_virtual_2_joint
+hand motors with logged position channels: 3
+hand_index_motor
+hand_mrl_motor
+hand_thumb_motor
+channels containing 'gripper' or 'finger': 0

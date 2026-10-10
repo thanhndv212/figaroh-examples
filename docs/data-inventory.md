@@ -33,6 +33,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-identification-slow-2021-07` | TIAGo | Dynamic identification | real | cross-run validation | 4 | 6.6 MB | examples/tiago/data/README.md; docs/development/tiago-identification-cross-run-protocol.md |
 | `tiago-identification-payload-2021-07` | TIAGo | Dynamic identification | real | changed-payload diagnostic | 4 | 3.6 MB | examples/tiago/data/README.md; docs/development/tiago-identification-cross-run-protocol.md |
 | `tiago-identification-protocol` | TIAGo | Dynamic identification | notes | frozen session roles and source/output hashes | 1 | 2.4 KB | docs/development/tiago-identification-cross-run-protocol.md |
+| `tiago-identification-inputs-audit` | TIAGo | Dynamic identification | derived | evidence for the identification-input findings (#68); not used by identification.py | 9 | 782.4 KB | examples/tiago/data/identification/audit/README.md; docs/development/tiago-identification-inputs-2026-10-10.md |
 
 ## Provenance to confirm
 
@@ -274,3 +275,19 @@ Versioned protocol for training, slow-run evaluation and the changed-payload dia
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
 | `examples/tiago/data/identification/protocol.yaml` |  | 2459 | `c0e509e89555e549` |
+
+### `tiago-identification-inputs-audit`
+
+Channels trimmed from the 2021-07 introspection bags: four torso-lift runs, PAL's gravity_compensation torque constants, the differential-wrist motor and joint channels of the training run (every 4th sample), channel status and the end-effector channel list.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/tiago/data/identification/audit/README.md` |  | 2703 | `7a4f02e54fe17e58` |
+| `examples/tiago/data/identification/audit/channel_status.csv` | 8 | 303 | `46dd0a219cac6d2d` |
+| `examples/tiago/data/identification/audit/controller_constants.csv` | 4 | 340 | `d298bb5510ddef0a` |
+| `examples/tiago/data/identification/audit/differential_wrist_calibration.csv` | 2006 | 231220 | `b1acd6a7188d602c` |
+| `examples/tiago/data/identification/audit/end_effector_channels.txt` |  | 1060 | `7703da49ce219db1` |
+| `examples/tiago/data/identification/audit/torso_20.csv` | 3435 | 226997 | `41458bb1af8818bf` |
+| `examples/tiago/data/identification/audit/torso_40.csv` | 2283 | 150218 | `fa950b6d8f682500` |
+| `examples/tiago/data/identification/audit/torso_60.csv` | 1538 | 101654 | `4efd5d44ecbaae02` |
+| `examples/tiago/data/identification/audit/torso_80.csv` | 1304 | 86664 | `6271b82a5fca1be6` |
