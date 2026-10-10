@@ -77,7 +77,7 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   documented assumptions, not verified against a torque reference. The
   wrist efforts (`arm_5`–`arm_7`) are exactly zero on 88–90% of samples
   (step 0.001), so wrist dynamics are weakly observable. The torso force is
-  ~98% the URDF's own `m g` term (its `ratio × kmotor = 1` is undocumented).
+  ~99% the URDF's own `m g` term (its `ratio × kmotor = 1` is undocumented).
   Only arm_1–arm_4 effort is therefore fitted and scored
   (`problem.torque_fit_joints` in the config, #68); torso and wrist motion
   still enter the regressor. Held-out RMSE on `calibration_slow`:
@@ -109,7 +109,9 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
 - **End effector:** a Hey5 hand (the recordings log its `hand_*` joints and
   no gripper), so `identification.py` loads `urdf/tiago_48_hey5.urdf`. This
   applies to all three 2021-07 recordings below. The wrist F/T sensor weighs
-  0.794 kg below the sensor, against 1.032 kg in the Hey5 URDF (#68). The
+  0.792 kg below the sensor, lighter than both the Hey5 (1.032 kg) and the
+  Schunk (0.865 kg) URDFs, so the hand is identified from the logged
+  channels, not from the mass (#68). The
   switch from the Schunk URDF (measured with the shifted velocity) left the
   fit and held-out RMSE (1.209) and the 73 base parameters' count unchanged; 30 base-parameter values
   shifted to absorb the hand's inertia, and the nominal model's held-out
