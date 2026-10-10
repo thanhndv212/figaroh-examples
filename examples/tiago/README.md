@@ -25,6 +25,10 @@ python reference_run.py --asset-id <unit>
 
 What it writes, the reference result and its limitations:
 [calibration reference workflow](../../docs/development/tiago-calibration-reference.md).
+
+Dynamic identification (`identification_reference.py`: `physical-fit` and
+`reject` cases, exported and reloaded URDF, held-out report):
+[identification reference workflow](../../docs/development/identification-reference-workflow.md).
 `calibration.py` below is the interactive tool (plots, 3D viewer, saved
 results, separate export).
 

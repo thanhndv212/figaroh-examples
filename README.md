@@ -58,6 +58,11 @@ cd examples/ur10
 python calibration.py
 ```
 
+Dynamic identification has a validated reference workflow (fit, verify, export,
+reload, held-out report, archive): `python identification_reference.py` in
+`examples/ur10` and `examples/tiago`, described in
+[docs/development/identification-reference-workflow.md](docs/development/identification-reference-workflow.md).
+
 ## Basic workflow
 
 For a new robot or dataset, start with the [new-example guide](docs/new-example-guide.md)

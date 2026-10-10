@@ -64,6 +64,11 @@ current default validation reuses the training trajectory. The
 observed fit and remaining limits. Expected improvements below are illustrative
 objectives, not acceptance results for these files.
 
+The validated reference case (`identification_reference.py --case truth`:
+known-truth fixture, physical-consistency-constrained fit, exported and reloaded
+URDF) is described in the
+[identification reference workflow](../../docs/development/identification-reference-workflow.md).
+
 #### Problem Statement
 Accurate dynamic models are essential for:
 - High-performance motion control with feedforward compensation
