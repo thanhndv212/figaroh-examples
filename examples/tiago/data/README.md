@@ -53,7 +53,8 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   (~18 samples on training) only approximates its phase; it does not undo
   the filter. The raw exports preserve this signal without shifting it.
 - **Effort:** raw values converted in `process_torque_data` with the
-  per-joint `reduction_ratio × kmotor` set in `identification.py`, plus
+  per-joint `reduction_ratio × kmotor` from the `drives` table in
+  `config/tiago_unified_config.yaml` (with a source per joint), plus
   `9.81 × subtree mass` on the torso. Units, signs and constants are
   documented assumptions, not verified against a torque reference. The
   wrist efforts (`arm_5`–`arm_7`) are exactly zero on 88–90% of samples

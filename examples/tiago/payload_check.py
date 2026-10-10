@@ -8,8 +8,8 @@ payload's mass:
   ``F = R_sensorᵀ·(m·g) + bias`` to the wrist force; ``m`` is the mass below
   the sensor. The payload is ``m(weight) − m(training)``.
 - **Joint efforts (under test).** Convert the arm_2–arm_4 efforts with the
-  example's drive constants (:data:`~examples.tiago.identification.KMOTOR`,
-  :data:`~examples.tiago.identification.REDUCTION_RATIO`), subtract the
+  example's drive constants (the ``drives`` table in
+  config/tiago_unified_config.yaml), subtract the
   nominal RNEA torque and fit an extra mass and first moment on the arm_7
   link, with viscous, Coulomb and offset friction per joint. The payload is
   the difference of the two runs' extra masses, so model errors common to
@@ -39,10 +39,11 @@ project_root = Path(__file__).parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from examples.tiago.identification import KMOTOR, REDUCTION_RATIO  # noqa: E402
+from examples.tiago.identification import load_drives  # noqa: E402
 
 TIAGO = Path(__file__).resolve().parent
 DATA = TIAGO / "data" / "identification"
+REDUCTION_RATIO, KMOTOR = load_drives(TIAGO / "config" / "tiago_unified_config.yaml")
 #: The hand fitted to these recordings is the Hey5 (#68). The model only
 #: enters through terms common to both runs, which cancel in the payload.
 URDF = TIAGO / "urdf" / "tiago_48_hey5.urdf"

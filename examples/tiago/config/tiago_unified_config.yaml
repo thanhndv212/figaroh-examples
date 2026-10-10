@@ -43,7 +43,43 @@ robot:
 
     # TIAGo mechanical properties
     mechanics:
-      reduction_ratios: [32.0, 32.0, 45.0, -48.0, 45.0, 32.0]
+      # Raw effort × reduction_ratio × kmotor gives joint torque (N·m) or,
+      # on the torso, force (N; identification adds 9.81 × subtree mass).
+      # Read by examples/tiago/identification.py. None of these is verified
+      # against a torque reference; see #68 for the evidence on each.
+      drives:
+        torso_lift_joint:
+          reduction_ratio: 1
+          kmotor: 1
+          source: "unverified; raw torso effort behaves like a motor current with an offset (#68)"
+        arm_1_joint:
+          reduction_ratio: 100
+          kmotor: 0.136
+          source: "unverified; PAL's gravity_compensation controller configures kmotor 0 for arm_1 (#68)"
+        arm_2_joint:
+          reduction_ratio: 100
+          kmotor: 0.136
+          source: "kmotor matches PAL's gravity_compensation controller configuration (#68)"
+        arm_3_joint:
+          reduction_ratio: 100
+          kmotor: -0.087
+          source: "kmotor matches PAL's gravity_compensation controller configuration (#68)"
+        arm_4_joint:
+          reduction_ratio: 100
+          kmotor: -0.087
+          source: "kmotor matches PAL's gravity_compensation controller configuration (#68)"
+        arm_5_joint:
+          reduction_ratio: 336
+          kmotor: -0.0613
+          source: "unverified; wrist efforts are quantised and mostly zero (#68)"
+        arm_6_joint:
+          reduction_ratio: 336
+          kmotor: -0.0613
+          source: "unverified; differential wrist with arm_7 (#68)"
+        arm_7_joint:
+          reduction_ratio: 336
+          kmotor: -0.0613
+          source: "unverified; differential wrist with arm_6 (#68)"
       ratio_essential: 30.0
       friction_coefficients:
         viscous: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
