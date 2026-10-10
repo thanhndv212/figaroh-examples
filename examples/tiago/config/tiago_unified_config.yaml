@@ -121,6 +121,11 @@ tasks:
   identification:
     enabled: true
 
+    data:
+      # Independent recording of the same path at roughly half speed.
+      # Frozen roles and hashes: data/identification/protocol.yaml.
+      validation_data_file: "data/identification/calibration_slow"
+
     problem:
       include_external_forces: true  # TIAGo has F/T sensors
       use_joint_torques: true
