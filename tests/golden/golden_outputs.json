@@ -43,8 +43,8 @@
  "tiago/identification.py": [
   {
    "kind": "identification",
-   "n_base": 73,
-   "tau_rmse": 0.642999478
+   "n_base": 57,
+   "tau_rmse": 0.884326323
   }
  ],
  "ur10/calibration.py": [

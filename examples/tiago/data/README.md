@@ -55,7 +55,9 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   nothing the positions do not, so `identification.py` derives the velocity
   from the filtered positions (#68). `--velocity-source measured` restores
   the earlier shifted channel: its estimated shift (~18 samples on training)
-  only approximates the filter's phase. Held-out RMSE on `calibration_slow`:
+  only approximates the filter's phase. Held-out RMSE on `calibration_slow`,
+  with all eight joints' effort fitted (before the fit was restricted to
+  arm_1–arm_4, see Effort):
 
   | Velocity | Fit RMSE | Held-out RMSE | Condition |
   |---|---|---|---|
@@ -74,7 +76,23 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   `9.81 × subtree mass` on the torso. Units, signs and constants are
   documented assumptions, not verified against a torque reference. The
   wrist efforts (`arm_5`–`arm_7`) are exactly zero on 88–90% of samples
-  (step 0.001), so wrist dynamics are weakly observable.
+  (step 0.001), so wrist dynamics are weakly observable. The torso force is
+  ~98% the URDF's own `m g` term (its `ratio × kmotor = 1` is undocumented).
+  Only arm_1–arm_4 effort is therefore fitted and scored
+  (`problem.torque_fit_joints` in the config, #68); torso and wrist motion
+  still enter the regressor. Held-out RMSE on `calibration_slow`, pooled over
+  arm_1–arm_4:
+
+  | Effort fitted | Base parameters | arm_1 | arm_2 | arm_3 | arm_4 | Pooled |
+  |---|---|---|---|---|---|---|
+  | arm_1–arm_4 (default) | 57 | 1.310 | 2.540 | 1.471 | 1.237 | 1.722 |
+  | all eight joints | 73 | 1.316 | 2.504 | 1.450 | 1.237 | 1.706 |
+  | nominal model | – | 3.187 | 7.838 | 3.122 | 2.858 | 4.730 |
+
+  Leaving the torso out changes nothing on the arm; leaving the wrist out
+  costs ~1%. The gain is that no parameter is fitted to a signal known to be
+  unreliable. Fit RMSE is 0.884 on the arm rows (0.643 when all eight joints
+  were fitted and pooled).
 - **End effector:** a Hey5 hand (the recordings log its `hand_*` joints and
   no gripper), so `identification.py` loads `urdf/tiago_48_hey5.urdf`. This
   applies to all three 2021-07 recordings below. The wrist F/T sensor weighs
@@ -117,9 +135,8 @@ test sets. Do not tune on them and then claim independent acceptance.
 The payload run changes the system mass and is not an unchanged-model
 prediction acceptance set. Raw efforts remain unverified controller values:
 the torso force conversion and arm_1 constant are unsupported, and wrist
-effort quantisation prevents reliable identification there. The 2021-07
-recordings indicate a Hey5 hand; the historical example still defaults to
-the Schunk URDF. Shipping these files does not resolve those modelling
+effort quantisation prevents reliable identification there; both are left
+out of the torque fit (see Effort above). Shipping these files does not resolve those modelling
 limits or validate the identified physical parameters.
 The CLI refuses prediction acceptance for the frozen payload or training
 recording, recognising their hashes even if the CSV directory is renamed.

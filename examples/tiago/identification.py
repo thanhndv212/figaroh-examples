@@ -176,6 +176,9 @@ def configure_identification(tiago_iden: TiagoIdentification) -> None:
     """
     ps = tiago_iden.identif_config
     ps["reduction_ratio"], ps["kmotor"] = load_drives(tiago_iden._config_file_path)
+    if not hasattr(tiago_iden, "fit_joints"):
+        # an older core ignores torque_fit_joints and fits every joint (#68)
+        raise RuntimeError("this example needs figaroh with torque_fit_joints")
 
     # active_joints is already resolved (extends-aware) by load_param()
     # into identif_config — read it from there rather than re-parsing
