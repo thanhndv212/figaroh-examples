@@ -80,19 +80,32 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   ~98% the URDF's own `m g` term (its `ratio × kmotor = 1` is undocumented).
   Only arm_1–arm_4 effort is therefore fitted and scored
   (`problem.torque_fit_joints` in the config, #68); torso and wrist motion
-  still enter the regressor. Held-out RMSE on `calibration_slow`, pooled over
-  arm_1–arm_4:
+  still enter the regressor. Held-out RMSE on `calibration_slow`:
 
-  | Effort fitted | Base parameters | arm_1 | arm_2 | arm_3 | arm_4 | Pooled |
-  |---|---|---|---|---|---|---|
-  | arm_1–arm_4 (default) | 57 | 1.310 | 2.540 | 1.471 | 1.237 | 1.722 |
-  | all eight joints | 73 | 1.316 | 2.504 | 1.450 | 1.237 | 1.706 |
-  | nominal model | – | 3.187 | 7.838 | 3.122 | 2.858 | 4.730 |
+  | Effort fitted | Base parameters | arm_1 | arm_2 | arm_3 | arm_4 | Pooled arm_1–arm_4 | Pooled arm_2–arm_4 |
+  |---|---|---|---|---|---|---|---|
+  | arm_1–arm_4 (default) | 57 | 1.310 | 2.540 | 1.471 | 1.237 | 1.722 | 1.839 |
+  | all eight joints | 73 | 1.316 | 2.504 | 1.450 | 1.237 | 1.706 | 1.817 |
+  | arm_2–arm_4 | 53 | – | 2.583 | 1.480 | 1.248 | – | 1.864 |
+  | nominal model | – | 3.187 | 7.838 | 3.122 | 2.858 | 4.730 | 5.143 |
 
   Leaving the torso out changes nothing on the arm; leaving the wrist out
   costs ~1%. The gain is that no parameter is fitted to a signal known to be
   unreliable. Fit RMSE is 0.884 on the arm rows (0.643 when all eight joints
   were fitted and pooled).
+
+  arm_1's torque constant (0.136, the same as arm_2) cannot be sourced or
+  estimated from these recordings. PAL's gravity_compensation controller
+  sets 0 for arm_1 because its axis is vertical and it carries no gravity
+  load. That also means its effort has no gravity term to anchor the scale.
+  Scaling arm_1's constant by 0.25–1.5 leaves arm_2–arm_4 held-out RMSE
+  between 1.838 and 1.841, and arm_1's own error stays at 42–48 % of its
+  signal, because arm_1's base parameters absorb the scale. The payload run
+  adds only 0.10 N·m RMS on arm_1, against about 1.3 N·m of model error, so
+  it cannot calibrate the constant either. arm_1 stays in the fit, because
+  leaving it out makes arm_2–arm_4 worse (1.864). Its identified parameters
+  and its absolute RMSE carry the unknown scale, so compare runs on the
+  arm_2–arm_4 column.
 - **End effector:** a Hey5 hand (the recordings log its `hand_*` joints and
   no gripper), so `identification.py` loads `urdf/tiago_48_hey5.urdf`. This
   applies to all three 2021-07 recordings below. The wrist F/T sensor weighs
@@ -134,9 +147,10 @@ These runs were already inspected in the source audit; they are not unseen
 test sets. Do not tune on them and then claim independent acceptance.
 The payload run changes the system mass and is not an unchanged-model
 prediction acceptance set. Raw efforts remain unverified controller values:
-the torso force conversion and arm_1 constant are unsupported, and wrist
-effort quantisation prevents reliable identification there; both are left
-out of the torque fit (see Effort above). Shipping these files does not resolve those modelling
+the torso force conversion is unsupported and wrist effort quantisation
+prevents reliable identification there; both are left out of the torque fit.
+The arm_1 constant is unverified and not identifiable from these runs (see
+Effort above). Shipping these files does not resolve those modelling
 limits or validate the identified physical parameters.
 The CLI refuses prediction acceptance for the frozen payload or training
 recording, recognising their hashes even if the CSV directory is renamed.

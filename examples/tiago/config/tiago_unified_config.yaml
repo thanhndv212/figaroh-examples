@@ -55,7 +55,12 @@ robot:
         arm_1_joint:
           reduction_ratio: 100
           kmotor: 0.136
-          source: "unverified; PAL's gravity_compensation controller configures kmotor 0 for arm_1 (#68)"
+          # Not identifiable from the 2021-07 data: arm_1's axis is vertical, so
+          # its effort has no gravity term and its own base parameters absorb any
+          # scale (arm_2-arm_4 held-out RMSE moves < 0.2 % for a gain of 0.25-1.5).
+          # The payload run adds 0.10 N*m RMS on arm_1, below its ~1.3 N*m model
+          # error, so it cannot calibrate the constant either.
+          source: "unverified and not identifiable from these recordings; same as arm_2. PAL's gravity_compensation controller configures 0 for arm_1, which has no gravity load (#68)"
         arm_2_joint:
           reduction_ratio: 100
           kmotor: 0.136
