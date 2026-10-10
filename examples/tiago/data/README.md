@@ -48,9 +48,10 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
 - **Clock:** column `t` is recorded and identical in all three files: 8022
   rows, 0–80.21 s, median step 9.997 ms (~100 Hz), jitter 7.7–12.3 ms,
   strictly increasing, no gaps. Filters must be designed at this rate.
-- **Velocity:** a measured channel, consistent with d(position)/dt in units
-  and sign (correlation ≈ 0.99, scale ≈ 1.00), but **delayed by ~18 samples
-  (0.18 s)**. The loader estimates and removes this delay.
+- **Velocity:** a logged first-order filtered position derivative:
+  `v[n] = 0.95*v[n-1] + 0.05*Δq/Δt`. The loader's estimated shift
+  (~18 samples on training) only approximates its phase; it does not undo
+  the filter. The raw exports preserve this signal without shifting it.
 - **Effort:** raw values converted in `process_torque_data` with the
   per-joint `reduction_ratio × kmotor` set in `identification.py`, plus
   `9.81 × subtree mass` on the torso. Units, signs and constants are
@@ -63,6 +64,51 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
 
 `tiago_bp_19_Oct_2024_2320.csv` and `tiago_nov_30_64.csv` are not used by
 `identification.py` and were not audited.
+
+### Independent recordings (identification #69)
+
+`identification/calibration_slow/` and `identification/calibration_weight/`
+each contain `tiago_{position,velocity,effort}.csv` in the same columns and
+joint order as `dynamic/`. All three directories also hold
+`tiago_wrist_ft.csv`: `t` and `wrist_ft_{force,torque}_{X,Y,Z}` (N, N·m,
+sensor frame) on the same clock, used by `payload_check.py`. All samples are preserved. Each triplet shares
+one finite, strictly increasing header clock, rebased to zero, at ~100 Hz.
+
+| Directory | Recording (UTC, 2021-07-01) | Rows | Frozen role |
+|---|---|---|---|
+| `dynamic/` | 13:02, `calibration.bag` | 8022 | training; rows [921, 6791) after velocity alignment |
+| `calibration_slow/` | 12:57, `calibration_slow.bag` | 14163 | validation; same path at roughly half speed |
+| `calibration_weight/` | 13:27, `calibration_weight.bag` | 7547 | changed-payload diagnostic; same path, added load |
+
+The slow run is configured by default. To inspect the payload diagnostic:
+
+```bash
+cd examples/tiago
+python identification.py --validation-data data/identification/calibration_weight
+```
+
+These runs were already inspected in the source audit; they are not unseen
+test sets. Do not tune on them and then claim independent acceptance.
+The payload run changes the system mass and is not an unchanged-model
+prediction acceptance set. Raw efforts remain unverified controller values:
+the torso force conversion and arm_1 constant are unsupported, and wrist
+effort quantisation prevents reliable identification there. The 2021-07
+recordings indicate a Hey5 hand; the historical example still defaults to
+the Schunk URDF. Shipping these files does not resolve those modelling
+limits or validate the identified physical parameters.
+The CLI refuses prediction acceptance for the frozen payload or training
+recording, recognising their hashes even if the CSV directory is renamed.
+
+`python payload_check.py` compares the payload mass derived from the arm_2–arm_4
+efforts with the wrist F/T sensor's (0.489 kg). With the current drive
+constants the efforts read 13.5 % low, outside the ±10 % tolerance justified
+in the protocol document.
+
+Source bag names/hashes and exported file hashes are frozen in
+[`identification/protocol.yaml`](identification/protocol.yaml). The bags
+are original recordings, not distributed; retain the Thanh Nguyen / CNRS /
+Toward attribution. Running the examples needs only the shipped CSVs. Extraction instructions and freeze rules are in
+[`tiago-identification-cross-run-protocol.md`](../../../docs/development/tiago-identification-cross-run-protocol.md).
 
 ## Mocap calibration data (`calibration/mocap/`)
 

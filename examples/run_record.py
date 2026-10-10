@@ -93,6 +93,33 @@ def _check_files(files: Dict[str, Dict[str, Any]], root: Path) -> List[str]:
     return bad
 
 
+def _check_validation_directory(spec, splits, cwd: Path) -> bool:
+    """A directory input is covered by the loader's explicit source files.
+
+    Directories have no file sha256. The data-contract validation split
+    records which files were actually consumed; require all of them to be
+    inside the declared directory and still match their recorded hashes.
+    """
+    if spec.get("path") in UNKNOWN:
+        return False
+    directory = Path(spec["path"])
+    directory = (directory if directory.is_absolute() else cwd / directory).resolve()
+    validation = (splits or {}).get("validation") or {}
+    files = validation.get("files", {}) if isinstance(validation, dict) else {}
+    if not directory.is_dir() or not files:
+        return False
+    for name, recorded in files.items():
+        path = Path(name)
+        path = (path if path.is_absolute() else cwd / path).resolve()
+        if (
+            not path.is_relative_to(directory)
+            or recorded in UNKNOWN
+            or sha256(path) != recorded
+        ):
+            return False
+    return True
+
+
 def audit(run_dir) -> Dict[str, Dict[str, str]]:
     """Check one run directory; ``{item: {"status", "detail"}}``.
 
@@ -155,7 +182,15 @@ def audit(run_dir) -> Dict[str, Dict[str, str]]:
 
     data = prov.get("data", {})
     extra = record.get("inputs", {})
-    bad = [k for k, v in data.items() if v.get("sha256") in UNKNOWN]
+    bad = [
+        k
+        for k, v in data.items()
+        if v.get("sha256") in UNKNOWN
+        and not (
+            k == "validation_data_file"
+            and _check_validation_directory(v, (verdict or {}).get("splits"), cwd)
+        )
+    ]
     bad += _check_files(extra, cwd)
     if not data and not extra:
         out["inputs"] = _item("missing", "no input files recorded")

@@ -29,7 +29,7 @@ from examples.tiago.utils.tiago_tools import TiagoIdentification  # noqa: E402
 from figaroh.tools.robot import load_robot  # noqa: E402
 from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
 from examples.verification import add_verification_args, run_verification  # noqa: E402
-from examples.run_record import write_reproduction_record  # noqa: E402
+from examples.run_record import describe_file, write_reproduction_record  # noqa: E402
 
 # Recording window used for identification (rows of the shipped CSVs)
 TRUNCATE = (921, 6791)
@@ -54,6 +54,16 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="config/tiago_unified_config.yaml",
         help="Path to unified config YAML file",
+    )
+    parser.add_argument(
+        "--validation-data",
+        type=str,
+        default=None,
+        help=(
+            "Directory containing held-out tiago_position/velocity/effort.csv. "
+            "Overrides the config (default: calibration_slow). The payload "
+            "run calibration_weight is a changed-mass diagnostic."
+        ),
     )
     parser.add_argument(
         "--urdf",
@@ -130,32 +140,38 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+#: Drive constants: raw effort × reduction ratio × kmotor gives joint torque
+#: (N·m) or, on the torso, force (N). Unverified per the D2 audit (#68).
+REDUCTION_RATIO = {
+    "torso_lift_joint": 1,
+    "arm_1_joint": 100,
+    "arm_2_joint": 100,
+    "arm_3_joint": 100,
+    "arm_4_joint": 100,
+    "arm_5_joint": 336,
+    "arm_6_joint": 336,
+    "arm_7_joint": 336,
+}
+KMOTOR = {
+    "torso_lift_joint": 1,
+    "arm_1_joint": 0.136,
+    "arm_2_joint": 0.136,
+    "arm_3_joint": -0.087,
+    "arm_4_joint": -0.087,
+    "arm_5_joint": -0.0613,
+    "arm_6_joint": -0.0613,
+    "arm_7_joint": -0.0613,
+}
+
+
 def configure_identification(tiago_iden: TiagoIdentification) -> None:
     """TIAGo settings not in the YAML: drive constants, joints, data files.
 
     Shared by :func:`main` and the data-contract adapter test (examples#17).
     """
     ps = tiago_iden.identif_config
-    ps["reduction_ratio"] = {
-        "torso_lift_joint": 1,
-        "arm_1_joint": 100,
-        "arm_2_joint": 100,
-        "arm_3_joint": 100,
-        "arm_4_joint": 100,
-        "arm_5_joint": 336,
-        "arm_6_joint": 336,
-        "arm_7_joint": 336,
-    }
-    ps["kmotor"] = {
-        "torso_lift_joint": 1,
-        "arm_1_joint": 0.136,
-        "arm_2_joint": 0.136,
-        "arm_3_joint": -0.087,
-        "arm_4_joint": -0.087,
-        "arm_5_joint": -0.0613,
-        "arm_6_joint": -0.0613,
-        "arm_7_joint": -0.0613,
-    }
+    ps["reduction_ratio"] = dict(REDUCTION_RATIO)
+    ps["kmotor"] = dict(KMOTOR)
 
     # active_joints is already resolved (extends-aware) by load_param()
     # into identif_config — read it from there rather than re-parsing
@@ -173,6 +189,41 @@ def configure_identification(tiago_iden: TiagoIdentification) -> None:
     ps["pos_data"] = "data/identification/dynamic/tiago_position.csv"
     ps["vel_data"] = "data/identification/dynamic/tiago_velocity.csv"
     ps["torque_data"] = "data/identification/dynamic/tiago_effort.csv"
+
+
+def identify_evaluation_session(data_source: str):
+    """Recognise frozen recordings by content, even after a directory rename."""
+    from figaroh.data import Protocol, file_sha256
+
+    root = Path(__file__).parent / "data/identification"
+    protocol = Protocol.load(root / "protocol.yaml")
+    source = Path(data_source)
+    hashes = {
+        f"tiago_{kind}.csv": file_sha256(source / f"tiago_{kind}.csv")
+        for kind in ("position", "velocity", "effort")
+    }
+
+    def consumed(session):
+        # The loader reads these three; the wrist F/T file feeds payload_check.py.
+        return {
+            Path(p).name: sha
+            for p, sha in session.files.items()
+            if Path(p).name in hashes
+        }
+
+    for session in protocol.sessions:
+        expected = consumed(session)
+        registered_dirs = {(root / p).parent.resolve() for p in session.files}
+        if source.resolve() in registered_dirs:
+            if hashes != expected:
+                raise ValueError(
+                    f"{source}: frozen session {session.id} hashes changed"
+                )
+            return session
+    for session in protocol.sessions:
+        if hashes == consumed(session):
+            return session
+    return None  # Custom datasets are governed by their own acceptance profile.
 
 
 def main() -> TiagoIdentification | None:
@@ -227,12 +278,47 @@ def main() -> TiagoIdentification | None:
             ps["instance"] = instance
 
         configure_identification(tiago_iden)
+        if args.validation_data is not None:
+            ps["validation_data_file"] = args.validation_data
+        validation_source = ps.get("validation_data_file")
+        evaluation_session = None
+        if validation_source:
+            # Core tolerates missing validation data; an explicitly configured
+            # shipped evaluation must not silently become a training-only run.
+            for kind in ("position", "velocity", "effort"):
+                path = Path(validation_source) / f"tiago_{kind}.csv"
+                if not path.is_file():
+                    raise FileNotFoundError(f"Validation data file not found: {path}")
+            evaluation_session = identify_evaluation_session(validation_source)
+            if evaluation_session is not None:
+                ps["evaluation_session"] = evaluation_session.id
+                ps["evaluation_role"] = evaluation_session.role
+                print(
+                    f"Evaluation: {evaluation_session.id} ({evaluation_session.role})"
+                )
+                if (
+                    args.verify
+                    and args.verification_scope == "prediction"
+                    and evaluation_session.role != "validation"
+                ):
+                    raise ValueError(
+                        f"{validation_source}: {evaluation_session.role} recording "
+                        "cannot be used for prediction acceptance"
+                    )
 
         # Initialize identification process
         # Note: truncate parameter now accepts:
         # - None: no truncation
         # - (start, end): custom truncation indices
         tiago_iden.initialize(truncate=TRUNCATE)
+        if validation_source and not tiago_iden._val_available:
+            raise RuntimeError(
+                f"Validation data could not be loaded: {validation_source}"
+            )
+        if evaluation_session is not None:
+            tiago_iden.trajectory_provenance[validation_source].update(
+                session_id=evaluation_session.id, role=evaluation_session.role
+            )
         prov = tiago_iden.trajectory_provenance["training"]
         print(
             f"Recorded clock {prov['recorded_rate_hz']:.2f} Hz; velocity lag "
@@ -294,12 +380,19 @@ def main() -> TiagoIdentification | None:
             archive_run(tiago_iden, run_dir)
             write_reproduction_record(
                 run_dir,
+                inputs={
+                    "protocol": describe_file(
+                        Path(__file__).parent / "data/identification/protocol.yaml"
+                    ),
+                },
                 processing={
                     "truncate": list(TRUNCATE),
                     "decimate": True,
                     "wls": wls_enabled,
                     "velocity_lag": args.velocity_lag,
                     "verification_scope": args.verification_scope,
+                    "evaluation_session": ps.get("evaluation_session"),
+                    "evaluation_role": ps.get("evaluation_role"),
                     "trajectory": tiago_iden.trajectory_provenance,
                 },
             )

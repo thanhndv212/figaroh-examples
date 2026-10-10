@@ -104,6 +104,41 @@ def test_changed_or_absent_files_are_incomplete(tmp_path, monkeypatch):
     assert "results" in checks["export"]["detail"]
 
 
+@pytest.mark.parametrize("problem", [None, "changed", "missing", "outside", "no_files"])
+def test_validation_directory_requires_matching_consumed_file_hashes(
+    tmp_path, monkeypatch, problem
+):
+    monkeypatch.chdir(tmp_path)
+    run_dir = tmp_path / "run"
+    _archive(run_dir)
+    folder = tmp_path / "validation"
+    folder.mkdir()
+    files = {}
+    for name in ("position.csv", "velocity.csv", "effort.csv"):
+        path = folder / name
+        path.write_text("t,q\n0,1\n")
+        files[str(path)] = describe_file(path)["sha256"]
+    provenance = json.loads((run_dir / "provenance.json").read_text())
+    provenance["data"]["validation_data_file"] = {"path": "validation", "sha256": None}
+    (run_dir / "provenance.json").write_text(json.dumps(provenance))
+    verdict = json.loads((run_dir / "verdict.json").read_text())
+    verdict["splits"]["validation"] = {"files": files}
+    if problem == "changed":
+        (folder / "position.csv").write_text("t,q\n0,2\n")
+    elif problem == "missing":
+        (folder / "position.csv").unlink()
+    elif problem == "outside":
+        outside = tmp_path / "outside.csv"
+        outside.write_text("t,q\n0,1\n")
+        files[str(outside)] = describe_file(outside)["sha256"]
+    elif problem == "no_files":
+        verdict["splits"]["validation"]["files"] = {}
+    (run_dir / "verdict.json").write_text(json.dumps(verdict))
+    record = write_reproduction_record(run_dir, processing={"x": 1}, argv=["x"])
+    expected = "ok" if problem is None else "incomplete"
+    assert record["checklist"]["inputs"]["status"] == expected
+
+
 def test_uncommitted_changes_make_revisions_incomplete(tmp_path):
     _archive(tmp_path / "run", dirty=True)
     checks = audit(tmp_path / "run")
