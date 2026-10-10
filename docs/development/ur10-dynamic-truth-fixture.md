@@ -30,7 +30,7 @@ python identification_truth.py --optimize /tmp/o  # rerun the trajectory optimis
 | Truth | Each body inertia of that URDF perturbed with seed 0: mass × exp(N(0, 0.1)); COM + N(0, 2 cm) per axis; principal second moments of mass × exp(N(0, 0.2)); principal axes rotated by N(0, 0.2 rad). Perturbing the second moment, not the inertia, keeps every link physically consistent by construction (smallest pseudo-inertia eigenvalue 0.0013–0.019). Masses move by −23 % to +19 %. |
 | Extras | None: no friction, actuator inertia or joint offset in the truth. |
 | Truth files | `ur10_truth.urdf`: the URDF with each moving link's inertial replaced by its whole body (COM frame unrotated) and the attached links' inertials removed. `truth_parameters.csv`: the 60 FIGAROH standard parameters, truth and nominal. Reloading the URDF reproduces the generated parameters exactly. |
-| Training | Core's exciting-trajectory optimiser, as in `optimal_trajectory.py` (IPOPT on the base-regressor condition number, unified config): 2 stacked segments of 6 rest-to-rest C2 spline pieces, 2 s each, 24 s, 2400 rows. Joint limits narrowed to a collision-free box (below). Best of seeds 0–15 (condition number 61.7, seed 15; the others 64–130). Frozen as `train_waypoints.json`: IPOPT results depend on the numerical stack (#60), so the fixture is regenerated from these waypoints, not from the optimiser. |
+| Training | Core's exciting-trajectory optimiser, as in `optimal_trajectory.py` (IPOPT on the base-regressor condition number, unified config): 2 stacked segments of 6 rest-to-rest C2 spline pieces, 2 s each, 24 s, 2400 rows. Joint limits narrowed to a collision-free box (below). Best of seeds 0–15 (condition number 61.7, seed 15; the others 64–130), measured with the base columns core chose before figaroh-plus#169; with the #169 choice the frozen trajectory's condition number is 92.7 (validation 162.5). Frozen as `train_waypoints.json`: IPOPT results depend on the numerical stack (#60), so the fixture is regenerated from these waypoints, not from the optimiser. |
 | Validation | A different family, never optimised: one period of a 5-harmonic Fourier series at 0.125 Hz, 8 s, 800 rows, around the UR home posture `[0, −π/2, π/2, −π/2, −π/2, 0]`, \|q − home\| ≤ 1.2 rad, \|dq\| ≤ 0.7 × velocity limit. The first feasible of seeds 100–119 (seed 104; 100–103 collide). Condition number 199. |
 | Feasibility, both splits | URDF joint limits, velocity limits, truth effort ≤ 0.8 × torque limit, and collision clearance (below). |
 | Clock | 100 Hz, exact (simulation). Analytic q, dq, ddq are saved. |
@@ -102,7 +102,15 @@ more than 0.7 rad/s and 1 rad/s², and carries effort; both splits have rank
 ## 3. Frozen protocol (v1)
 
 `protocol.yaml` is generated with the fixture and is never edited; a change
-becomes `protocol_version: 2` next to it.
+becomes `protocol_version: 2` next to it. One exception: the `rank` and
+`scaling` blocks record which columns core picks as base parameters, so
+they follow core's choice. They were re-pinned on 2026-10-10 for
+figaroh-plus#169, which breaks ties between equal-norm columns by name
+instead of LAPACK rounding (figaroh-plus#116; re-pin: #116). Six base parameters changed their
+representative (`shoulder_lift` `Ixx`/`Iyy`, `wrist_2` `Ixx`/`Izz` and the
+four combinations grouping them). The data, the 60 standard parameters, the
+tolerances and the rank (36) did not change, and the other 30 base
+parameters' truth values moved by at most 1.5e-12.
 
 - **Splits.** Fit on `train.csv` only; validate on `validation.csv`. No
   decimation, no edge exclusion.
