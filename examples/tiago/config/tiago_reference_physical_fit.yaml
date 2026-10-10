@@ -1,0 +1,7 @@
+# Identification reference workflow (#23): report the physical-consistency-
+# constrained fit (cvxopt). Everything else is inherited.
+extends: "tiago_unified_config.yaml"
+
+tasks:
+  identification:
+    select_stage: physical_fit

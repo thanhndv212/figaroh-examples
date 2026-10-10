@@ -1,0 +1,8 @@
+# Identification reference workflow (#23): ask for the exact reconstruction.
+# On the shipped data it is not physically consistent, so it is rejected and
+# nothing is exported (the hard-reject contract). Everything else is inherited.
+extends: "tiago_unified_config.yaml"
+
+tasks:
+  identification:
+    select_stage: reconstruction
