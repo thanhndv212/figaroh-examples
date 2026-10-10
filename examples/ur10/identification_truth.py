@@ -1072,6 +1072,7 @@ def identification(
     noise: str = "none",
     seed: int | None = None,
     val_seed: int | None = None,
+    config: str | Path | None = None,
 ):
     """An initialized ``UR10Identification`` that reads the fixture.
 
@@ -1079,7 +1080,8 @@ def identification(
     (``load_split`` with the paired noise seed). The model is the nominal
     URDF, so ``standard_parameter`` is the nominal prior, not the truth.
     The fixture's derivatives are used as given (no filter): call
-    ``solve(decimate=False)``.
+    ``solve(decimate=False)``. ``config`` replaces the unified config (an
+    overlay that ``extends`` it, e.g. ``config/ur10_truth_reference.yaml``).
     """
     from figaroh.tools.robot import load_robot
 
@@ -1087,7 +1089,7 @@ def identification(
 
     class FixtureIdentification(UR10Identification):
         def load_trajectory_data(self, data_source=None):
-            split = data_source or "train"
+            split = Path(data_source).stem if data_source else "train"
             d = load_split(split, derivatives, noise, val_seed if data_source else seed)
             return {
                 "timestamps": d["t"].reshape(-1, 1),
@@ -1107,11 +1109,10 @@ def identification(
         str(URDF), package_dirs=str(HERE.parents[1] / "models"), load_by_urdf=True
     )
     ident = FixtureIdentification(
-        robot, str(HERE / "config" / "ur10_unified_config.yaml")
+        robot, str(config or HERE / "config" / "ur10_unified_config.yaml")
     )
     ps = ident.identif_config
     ps["ts"] = 1.0 / SAMPLE_RATE_HZ
-    ps["validation_data_file"] = "validation"
     ps["act_Jid"] = [ident.model.getJointId(j) for j in JOINTS]
     ps["act_J"] = [ident.model.joints[j] for j in ps["act_Jid"]]
     ps["act_idxq"] = [J.idx_q for J in ps["act_J"]]

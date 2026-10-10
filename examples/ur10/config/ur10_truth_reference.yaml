@@ -1,0 +1,7 @@
+# Identification reference workflow (#23): the estimate the run reports is the
+# physical-consistency-constrained fit (cvxopt). Everything else is inherited.
+extends: "ur10_unified_config.yaml"
+
+tasks:
+  identification:
+    select_stage: physical_fit
