@@ -85,6 +85,8 @@ def _identification(name, spec):
         from examples.tiago.utils.tiago_tools import TiagoIdentification
 
         idn = TiagoIdentification(robot, spec["config"])
+        # The recorded D4 comparison used the shifted logged velocity (#68).
+        idn.velocity_source = "measured"
         configure_identification(idn)
     else:
         from examples.staubli_tx40.utils.staubli_tx40_tools import TX40Identification

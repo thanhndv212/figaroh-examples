@@ -41,12 +41,24 @@ def parse_args() -> argparse.Namespace:
         description="TIAGo dynamic parameter identification"
     )
     parser.add_argument(
+        "--velocity-source",
+        choices=("positions", "measured"),
+        default="positions",
+        help=(
+            "Joint velocity: 'positions' (default) differentiates the "
+            "filtered positions; 'measured' uses the logged channel, a "
+            "0.195 s first-order filter of the position difference, shifted "
+            "by --velocity-lag (the earlier behaviour, #68)."
+        ),
+    )
+    parser.add_argument(
         "--velocity-lag",
         default="auto",
         help=(
-            "Delay of the measured velocity channel, in samples: 'auto' "
-            "estimates it from the data (default), an integer applies that "
-            "shift, 0 disables it. See docs/development/tiago-signal-audit."
+            "With --velocity-source measured: delay of the logged velocity, "
+            "in samples. 'auto' estimates it from the data (default), an "
+            "integer applies that shift, 0 disables it. See "
+            "docs/development/tiago-signal-audit."
         ),
     )
     parser.add_argument(
@@ -248,6 +260,7 @@ def main() -> TiagoIdentification | None:
 
         # Create identification object
         tiago_iden = TiagoIdentification(tiago, str(config_path))
+        tiago_iden.velocity_source = args.velocity_source
         tiago_iden.velocity_lag = (
             args.velocity_lag if args.velocity_lag == "auto" else int(args.velocity_lag)
         )
@@ -312,10 +325,14 @@ def main() -> TiagoIdentification | None:
                 session_id=evaluation_session.id, role=evaluation_session.role
             )
         prov = tiago_iden.trajectory_provenance["training"]
-        print(
-            f"Recorded clock {prov['recorded_rate_hz']:.2f} Hz; velocity lag "
-            f"{prov['velocity_lag_samples']} samples ({prov['velocity_lag_s']:.3f} s)"
-        )
+        if prov["velocity_source"] == "positions":
+            velocity = "velocity from positions"
+        else:
+            velocity = (
+                f"velocity lag {prov['velocity_lag_samples']} samples "
+                f"({prov['velocity_lag_s']:.3f} s)"
+            )
+        print(f"Recorded clock {prov['recorded_rate_hz']:.2f} Hz; {velocity}")
 
         # Solve identification
         tiago_iden.solve(
@@ -381,6 +398,7 @@ def main() -> TiagoIdentification | None:
                     "truncate": list(TRUNCATE),
                     "decimate": True,
                     "wls": wls_enabled,
+                    "velocity_source": args.velocity_source,
                     "velocity_lag": args.velocity_lag,
                     "verification_scope": args.verification_scope,
                     "evaluation_session": ps.get("evaluation_session"),

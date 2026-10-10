@@ -16,6 +16,7 @@ from examples.tiago.utils.tiago_tools import (
     TiagoIdentification,
     duplicate_channel_fractions,
     estimate_velocity_lag,
+    velocity_filter_residual,
     zero_fractions,
 )
 
@@ -52,7 +53,16 @@ def _robot():
     return types.SimpleNamespace(model=model, data=model.createData())
 
 
-def _adapter(dirpath, f_sample=100.0, lag="auto"):
+def _filtered(t, q, a=0.95):
+    """The logged channel's model: first-order filter of Δq/Δt (#68)."""
+    step = np.diff(q, axis=0) / np.diff(t)[:, None]
+    v = np.zeros_like(q)
+    for n in range(1, len(t)):
+        v[n] = a * v[n - 1] + (1 - a) * step[n - 1]
+    return v
+
+
+def _adapter(dirpath, f_sample=100.0, lag="auto", source="measured"):
     iden = TiagoIdentification.__new__(TiagoIdentification)
     iden.robot = _robot()
     iden.identif_config = {
@@ -66,6 +76,7 @@ def _adapter(dirpath, f_sample=100.0, lag="auto"):
         "kmotor": {j: 1 for j in JOINTS},
     }
     iden.filter_config = {"filter_params": {"f_sample": f_sample}}
+    iden.velocity_source = source
     iden.velocity_lag = lag
     return iden
 
@@ -114,6 +125,37 @@ def test_fixed_lag_overrides_estimate(tmp_path):
     _write(tmp_path, t, q, v, np.zeros((len(t), 3)))
     traj = _adapter(tmp_path, lag=0).load_trajectory_data()
     np.testing.assert_allclose(traj.dq, v, rtol=0, atol=1e-12)
+
+
+def test_default_derives_velocity_from_positions(tmp_path):
+    t, q, _ = _signals(delay=7)
+    v = _filtered(t, q)
+    tau = np.arange(len(t) * 3, dtype=float).reshape(-1, 3)
+    _write(tmp_path, t, q, v, tau)
+    iden = _adapter(tmp_path, source="positions")
+    traj = iden.load_trajectory_data()
+
+    assert traj.dq is None  # derived downstream from the filtered positions
+    np.testing.assert_array_equal(traj.sample_index, np.arange(len(t)))
+    np.testing.assert_allclose(traj.effort_raw, tau, rtol=0, atol=1e-12)
+    prov = iden.trajectory_provenance["training"]
+    assert prov["velocity_source"] == "positions"
+    assert prov["velocity_lag_samples"] == 0
+    assert prov["dropped_trailing_rows"] == 0
+    assert prov["velocity_filter_residual"] < 1e-9  # CSV round trip only
+
+
+def test_velocity_filter_residual_separates_filter_from_delay():
+    t, q, v = _signals(delay=7)
+    assert velocity_filter_residual(t, q, _filtered(t, q)) < 1e-12
+    assert velocity_filter_residual(t, q, v) > 0.01
+
+
+def test_unknown_velocity_source_is_refused(tmp_path):
+    t, q, v = _signals()
+    _write(tmp_path, t, q, v, np.zeros((len(t), 3)))
+    with pytest.raises(ValueError, match="velocity_source"):
+        _adapter(tmp_path, source="logged").load_trajectory_data()
 
 
 def test_filter_clock_must_match_recorded_clock(tmp_path):
