@@ -46,12 +46,13 @@
       "robot": "TIAGo",
       "study": "Dynamic identification",
       "kind": "real",
-      "role": "training; no held-out run shipped",
-      "description": "Position, velocity and effort exported from calibration.bag (2021-07-01), 8022 samples each. The velocity channel is a filtered signal; the held-out runs are tracked in figaroh-examples#69.",
+      "role": "training; slow run held out for cross-run validation",
+      "description": "Position, filtered velocity, raw controller effort and wrist F/T force/torque exported from calibration.bag (2021-07-01), 8022 samples each. Slow and payload recordings have separate inventory entries; roles and hashes are frozen in identification/protocol.yaml.",
       "paths": [
         "examples/tiago/data/identification/dynamic/tiago_position.csv",
         "examples/tiago/data/identification/dynamic/tiago_velocity.csv",
-        "examples/tiago/data/identification/dynamic/tiago_effort.csv"
+        "examples/tiago/data/identification/dynamic/tiago_effort.csv",
+        "examples/tiago/data/identification/dynamic/tiago_wrist_ft.csv"
       ],
       "provenance": "examples/tiago/data/README.md; docs/development/tiago-signal-audit-2026-10-03.md"
     },
@@ -248,6 +249,42 @@
       "paths": [
         "examples/so101/data/simulated_validation/"
       ]
+    },
+    {
+      "id": "tiago-identification-slow-2021-07",
+      "robot": "TIAGo",
+      "study": "Dynamic identification",
+      "kind": "real",
+      "role": "cross-run validation",
+      "description": "14163 samples; same path at roughly half speed. Evaluates speed transfer, not new configuration coverage. Faithful channel exports, wrist F/T included; raw effort units are unverified.",
+      "paths": [
+        "examples/tiago/data/identification/calibration_slow/"
+      ],
+      "provenance": "examples/tiago/data/README.md; docs/development/tiago-identification-cross-run-protocol.md"
+    },
+    {
+      "id": "tiago-identification-payload-2021-07",
+      "robot": "TIAGo",
+      "study": "Dynamic identification",
+      "kind": "real",
+      "role": "changed-payload diagnostic",
+      "description": "7547 samples; same path with added payload. Evaluates changed-load sensitivity, not unchanged-model prediction acceptance; payload_check.py compares its effort-derived payload with the F/T sensor's. Faithful channel exports, wrist F/T included; raw effort units are unverified.",
+      "paths": [
+        "examples/tiago/data/identification/calibration_weight/"
+      ],
+      "provenance": "examples/tiago/data/README.md; docs/development/tiago-identification-cross-run-protocol.md"
+    },
+    {
+      "id": "tiago-identification-protocol",
+      "robot": "TIAGo",
+      "study": "Dynamic identification",
+      "kind": "notes",
+      "role": "frozen session roles and source/output hashes",
+      "description": "Versioned protocol for training, slow-run evaluation and the changed-payload diagnostic.",
+      "paths": [
+        "examples/tiago/data/identification/protocol.yaml"
+      ],
+      "provenance": "docs/development/tiago-identification-cross-run-protocol.md"
     }
   ],
   "files": {
@@ -413,6 +450,46 @@
       "sha256": "11eed552a8fedb0f6c4d0158ebf68816bd744c1d00a52f333fbf1222acf27352",
       "bytes": 2524
     },
+    "examples/tiago/data/identification/calibration_slow/tiago_effort.csv": {
+      "sha256": "01edf8f95f69a7c8a19c4451a5091c246587861535898dcfd4314c85f582bbd4",
+      "bytes": 872276,
+      "rows": 14163
+    },
+    "examples/tiago/data/identification/calibration_slow/tiago_position.csv": {
+      "sha256": "6da32810214297de2cf4c7c348bede8c1b276f84043aef47540fb65ad801b1cc",
+      "bytes": 2497261,
+      "rows": 14163
+    },
+    "examples/tiago/data/identification/calibration_slow/tiago_velocity.csv": {
+      "sha256": "1397f84447c2c5bc3cfed53ca7caa0f858729e420c53128a486cf0cb3afc7f25",
+      "bytes": 2657852,
+      "rows": 14163
+    },
+    "examples/tiago/data/identification/calibration_slow/tiago_wrist_ft.csv": {
+      "sha256": "3b14c7a1496028a632c09d37ac1118da023eedda11f2809597e37f81945cc011",
+      "bytes": 904520,
+      "rows": 14163
+    },
+    "examples/tiago/data/identification/calibration_weight/tiago_effort.csv": {
+      "sha256": "5aeec78983071784306ccb5e23915719df75fb5db63f3d42483121ffb0d13241",
+      "bytes": 475287,
+      "rows": 7547
+    },
+    "examples/tiago/data/identification/calibration_weight/tiago_position.csv": {
+      "sha256": "f77da4167d0afe2c0a5b8a90bcd65ddcbdffc1bc1a7af60c6a7403877186b69b",
+      "bytes": 1333709,
+      "rows": 7547
+    },
+    "examples/tiago/data/identification/calibration_weight/tiago_velocity.csv": {
+      "sha256": "db09e0be426499ba486659255a9238d19858dabc915a0f34e5712d3782244213",
+      "bytes": 1408212,
+      "rows": 7547
+    },
+    "examples/tiago/data/identification/calibration_weight/tiago_wrist_ft.csv": {
+      "sha256": "09fc4537f0fe37a4248f7901ee76bee26407454caf5ee1fb1f00652e780ee471",
+      "bytes": 532975,
+      "rows": 7547
+    },
     "examples/tiago/data/identification/dynamic/tiago_bp_19_Oct_2024_2320.csv": {
       "sha256": "7df7fa1a026d085a4514ec926347f0e93d0a09461a57419c33c5912c62ed3415",
       "bytes": 3960,
@@ -437,6 +514,15 @@
       "sha256": "269f681ca7a9511ac1698bf027ddf601e3fdb49d7d397af4810ec839f136cd69",
       "bytes": 1504041,
       "rows": 8022
+    },
+    "examples/tiago/data/identification/dynamic/tiago_wrist_ft.csv": {
+      "sha256": "2b606ff6e89d52af9fbd17cadea118766fb9e079950f30d80275436eddf530a5",
+      "bytes": 518568,
+      "rows": 8022
+    },
+    "examples/tiago/data/identification/protocol.yaml": {
+      "sha256": "c0e509e89555e549802831864a7d2f2fa03729cebdefb40ccdfe841f2aff57eb",
+      "bytes": 2459
     },
     "examples/tiago/data/suspension/tiago_xyz_vicon_1640.csv": {
       "sha256": "8a0b993304e57b57e8d8a6e905dbaf6ef41cae13b7c035a5f7c6dbefbaef08f4",

@@ -13,7 +13,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `ur10-identification-truth` | UR10 | Dynamic identification | simulated | train + held-out validation | 7 | 1.6 MB | examples/ur10/data/README.md; docs/development/ur10-dynamic-truth-fixture.md |
 | `ur10-hand-eye` | UR10 | Hand-eye calibration | real (unconfirmed) | calibration; k-fold within one session | 1 | 5.3 KB | docs/plans/calibration-studies-plan.md (core) |
 | `ur10-calibration-simulation` | UR10 | Calibration | unspecified (unconfirmed) | unknown | 1 | 6.7 KB |  |
-| `tiago-identification-2021-07` | TIAGo | Dynamic identification | real | training; no held-out run shipped | 3 | 3.3 MB | examples/tiago/data/README.md; docs/development/tiago-signal-audit-2026-10-03.md |
+| `tiago-identification-2021-07` | TIAGo | Dynamic identification | real | training; slow run held out for cross-run validation | 4 | 3.8 MB | examples/tiago/data/README.md; docs/development/tiago-signal-audit-2026-10-03.md |
 | `tiago-base-parameter-list` | TIAGo | Dynamic identification | unspecified (unconfirmed) | not used | 1 | 3.9 KB | examples/tiago/data/README.md |
 | `tiago-calibration-nov-30-64` | TIAGo | Calibration | unspecified (unconfirmed) | not used | 1 | 13.5 KB | examples/tiago/data/README.md |
 | `tiago-mocap-qualisys-2021-11` | TIAGo | Mocap calibration (reference) | real | train / validate / confirmation | 6 | 111.8 KB | examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md |
@@ -30,6 +30,9 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `staubli-tx40-logs` | Staubli TX40 | Dynamic identification | unspecified (unconfirmed) | identification; no separate validation set | 2 | 4.3 MB | examples/staubli_tx40/README.md |
 | `so101-simulated` | SO-101 | Dynamic identification | simulated | training | 7 | 986.7 KB |  |
 | `so101-simulated-validation` | SO-101 | Dynamic identification | simulated | held-out validation | 7 | 983.1 KB |  |
+| `tiago-identification-slow-2021-07` | TIAGo | Dynamic identification | real | cross-run validation | 4 | 6.6 MB | examples/tiago/data/README.md; docs/development/tiago-identification-cross-run-protocol.md |
+| `tiago-identification-payload-2021-07` | TIAGo | Dynamic identification | real | changed-payload diagnostic | 4 | 3.6 MB | examples/tiago/data/README.md; docs/development/tiago-identification-cross-run-protocol.md |
+| `tiago-identification-protocol` | TIAGo | Dynamic identification | notes | frozen session roles and source/output hashes | 1 | 2.4 KB | docs/development/tiago-identification-cross-run-protocol.md |
 
 ## Provenance to confirm
 
@@ -71,13 +74,14 @@ Simulated truth fixture: known inertias, exact clock and RNEA effort, 2400 train
 
 ### `tiago-identification-2021-07`
 
-Position, velocity and effort exported from calibration.bag (2021-07-01), 8022 samples each. The velocity channel is a filtered signal; the held-out runs are tracked in figaroh-examples#69.
+Position, filtered velocity, raw controller effort and wrist F/T force/torque exported from calibration.bag (2021-07-01), 8022 samples each. Slow and payload recordings have separate inventory entries; roles and hashes are frozen in identification/protocol.yaml.
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
 | `examples/tiago/data/identification/dynamic/tiago_effort.csv` | 8022 | 494579 | `12c635987705efad` |
 | `examples/tiago/data/identification/dynamic/tiago_position.csv` | 8022 | 1418146 | `4297a60d434ee89f` |
 | `examples/tiago/data/identification/dynamic/tiago_velocity.csv` | 8022 | 1504041 | `269f681ca7a9511a` |
+| `examples/tiago/data/identification/dynamic/tiago_wrist_ft.csv` | 8022 | 518568 | `2b606ff6e89d52af` |
 
 ### `tiago-base-parameter-list`
 
@@ -240,3 +244,33 @@ A second simulated run with its own ground truth, for held-out validation.
 | `examples/so101/data/simulated_validation/meta.json` |  | 569 | `5f68954ef4ee7b74` |
 | `examples/so101/data/simulated_validation/q.csv` | 3001 | 224169 | `4090cf7edb06db2a` |
 | `examples/so101/data/simulated_validation/q_cmd.csv` | 3001 | 224054 | `7ac4c1a99d7c5302` |
+
+### `tiago-identification-slow-2021-07`
+
+14163 samples; same path at roughly half speed. Evaluates speed transfer, not new configuration coverage. Faithful channel exports, wrist F/T included; raw effort units are unverified.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/tiago/data/identification/calibration_slow/tiago_effort.csv` | 14163 | 872276 | `01edf8f95f69a7c8` |
+| `examples/tiago/data/identification/calibration_slow/tiago_position.csv` | 14163 | 2497261 | `6da32810214297de` |
+| `examples/tiago/data/identification/calibration_slow/tiago_velocity.csv` | 14163 | 2657852 | `1397f84447c2c5bc` |
+| `examples/tiago/data/identification/calibration_slow/tiago_wrist_ft.csv` | 14163 | 904520 | `3b14c7a1496028a6` |
+
+### `tiago-identification-payload-2021-07`
+
+7547 samples; same path with added payload. Evaluates changed-load sensitivity, not unchanged-model prediction acceptance; payload_check.py compares its effort-derived payload with the F/T sensor's. Faithful channel exports, wrist F/T included; raw effort units are unverified.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/tiago/data/identification/calibration_weight/tiago_effort.csv` | 7547 | 475287 | `5aeec78983071784` |
+| `examples/tiago/data/identification/calibration_weight/tiago_position.csv` | 7547 | 1333709 | `f77da4167d0afe2c` |
+| `examples/tiago/data/identification/calibration_weight/tiago_velocity.csv` | 7547 | 1408212 | `db09e0be426499ba` |
+| `examples/tiago/data/identification/calibration_weight/tiago_wrist_ft.csv` | 7547 | 532975 | `09fc4537f0fe37a4` |
+
+### `tiago-identification-protocol`
+
+Versioned protocol for training, slow-run evaluation and the changed-payload diagnostic.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/tiago/data/identification/protocol.yaml` |  | 2459 | `c0e509e89555e549` |

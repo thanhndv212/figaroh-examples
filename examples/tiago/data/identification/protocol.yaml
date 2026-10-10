@@ -1,0 +1,55 @@
+# Source bags are original recordings, not distributed; their sha256 identifies
+# the exact bytes each shipped CSV was exported from.
+name: tiago-identification-cross-run
+version: 1
+freeze: Roles and exported bytes are frozen. Changes require a new protocol version;
+  historical audit results mean these are evaluation sets, not unseen tests.
+training_rows:
+- 921
+- 6791
+training_rows_convention: zero-based half-open, after velocity alignment
+evaluation_rows: all source rows; adapter alignment and core filtering/edge exclusion
+  still apply
+joint_order:
+- torso_lift_joint
+- arm_1_joint
+- arm_2_joint
+- arm_3_joint
+- arm_4_joint
+- arm_5_joint
+- arm_6_joint
+- arm_7_joint
+sessions:
+- id: 2021-07-01-1302
+  role: training
+  rows: 8022
+  source:
+    bag: calibration.bag
+    sha256: 5422b496f635c9a5f2fa4b5133572e62b40f6749507ed45e5501255c7e5bfbed
+  files:
+    dynamic/tiago_effort.csv: 12c635987705efade603426a600f5b315add7f580c720a4b84609dadb9d0a2e9
+    dynamic/tiago_position.csv: 4297a60d434ee89f1f424ad0da8ec65bc00072ac57eb06b94966c0819fc2786d
+    dynamic/tiago_velocity.csv: 269f681ca7a9511ac1698bf027ddf601e3fdb49d7d397af4810ec839f136cd69
+    dynamic/tiago_wrist_ft.csv: 2b606ff6e89d52af9fbd17cadea118766fb9e079950f30d80275436eddf530a5
+- id: 2021-07-01-1257
+  role: validation
+  rows: 14163
+  source:
+    bag: calibration_slow.bag
+    sha256: acb422296615af6c676f047c8ae080d4819a5af79e59146d06d547ed95dcbfa7
+  files:
+    calibration_slow/tiago_effort.csv: 01edf8f95f69a7c8a19c4451a5091c246587861535898dcfd4314c85f582bbd4
+    calibration_slow/tiago_position.csv: 6da32810214297de2cf4c7c348bede8c1b276f84043aef47540fb65ad801b1cc
+    calibration_slow/tiago_velocity.csv: 1397f84447c2c5bc3cfed53ca7caa0f858729e420c53128a486cf0cb3afc7f25
+    calibration_slow/tiago_wrist_ft.csv: 3b14c7a1496028a632c09d37ac1118da023eedda11f2809597e37f81945cc011
+- id: 2021-07-01-1327
+  role: diagnostic
+  rows: 7547
+  source:
+    bag: calibration_weight.bag
+    sha256: 3a119cb31f8ee9979e1673bcfebc3114917369749ef89352b6c63fc337ff04f4
+  files:
+    calibration_weight/tiago_effort.csv: 5aeec78983071784306ccb5e23915719df75fb5db63f3d42483121ffb0d13241
+    calibration_weight/tiago_position.csv: f77da4167d0afe2c0a5b8a90bcd65ddcbdffc1bc1a7af60c6a7403877186b69b
+    calibration_weight/tiago_velocity.csv: db09e0be426499ba486659255a9238d19858dabc915a0f34e5712d3782244213
+    calibration_weight/tiago_wrist_ft.csv: 09fc4537f0fe37a4248f7901ee76bee26407454caf5ee1fb1f00652e780ee471
