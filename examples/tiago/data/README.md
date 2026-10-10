@@ -59,6 +59,14 @@ Joints, in model order: `torso_lift_joint`, `arm_1_joint` … `arm_7_joint`.
   documented assumptions, not verified against a torque reference. The
   wrist efforts (`arm_5`–`arm_7`) are exactly zero on 88–90% of samples
   (step 0.001), so wrist dynamics are weakly observable.
+- **End effector:** a Hey5 hand (the recordings log its `hand_*` joints and
+  no gripper), so `identification.py` loads `urdf/tiago_48_hey5.urdf`. This
+  applies to all three 2021-07 recordings below. The wrist F/T sensor weighs
+  0.794 kg below the sensor, against 1.032 kg in the Hey5 URDF (#68). The
+  switch from the Schunk URDF leaves the fit and held-out RMSE (1.209)
+  and the 73 base parameters' count unchanged; 30 base-parameter values
+  shift to absorb the hand's inertia, and the nominal model's held-out RMSE
+  moves from 3.375 to 3.407.
 - **Window:** `identification.py` keeps rows 921–6791 (9.21–67.90 s), the
   excitation; RMS velocity 0.159 rad/s inside vs 0.017 / 0.006 rad/s before /
   after.

@@ -68,7 +68,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--urdf",
         type=str,
-        default="urdf/tiago_48_schunk.urdf",
+        default="urdf/tiago_48_hey5.urdf",
         help="Path to robot URDF file",
     )
     parser.add_argument(
