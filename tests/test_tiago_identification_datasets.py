@@ -69,7 +69,7 @@ def test_default_validation_runs_through_the_identification_consumer(monkeypatch
 
     monkeypatch.chdir(TIAGO)
     robot = load_robot(
-        "urdf/tiago_48_schunk.urdf", load_by_urdf=True, robot_pkg="tiago_description"
+        "urdf/tiago_48_hey5.urdf", load_by_urdf=True, robot_pkg="tiago_description"
     )
     ident = TiagoIdentification(robot, "config/tiago_unified_config.yaml")
     configure_identification(ident)

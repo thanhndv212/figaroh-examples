@@ -51,7 +51,7 @@ def identification(in_tiago):
     from examples.tiago.utils.tiago_tools import TiagoIdentification
 
     robot = load_robot(
-        "urdf/tiago_48_schunk.urdf", load_by_urdf=True, robot_pkg="tiago_description"
+        "urdf/tiago_48_hey5.urdf", load_by_urdf=True, robot_pkg="tiago_description"
     )
     ident = TiagoIdentification(robot, "config/tiago_unified_config.yaml")
     configure_identification(ident)
@@ -133,7 +133,7 @@ def calibration(in_tiago):
     from examples.tiago.utils.tiago_tools import TiagoCalibration
 
     robot = load_robot(
-        "urdf/tiago_48_schunk.urdf", load_by_urdf=True, robot_pkg="tiago_description"
+        "urdf/tiago_48_hey5.urdf", load_by_urdf=True, robot_pkg="tiago_description"
     )
     return TiagoCalibration(robot, "config/tiago_unified_config.yaml", del_list=[])
 

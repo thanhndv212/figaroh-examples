@@ -48,7 +48,7 @@ def _robot():
 
     import pinocchio as pin
 
-    model = pin.buildModelFromUrdf(str(TIAGO / "urdf" / "tiago_48_schunk.urdf"))
+    model = pin.buildModelFromUrdf(str(TIAGO / "urdf" / "tiago_48_hey5.urdf"))
     return types.SimpleNamespace(model=model, data=model.createData())
 
 
