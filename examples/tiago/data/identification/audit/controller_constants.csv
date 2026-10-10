@@ -1,0 +1,5 @@
+joint,channel,value,min,max
+arm_1_joint,local_control_motor_torque_constant_arm_1_joint,0.0,0.0,0.0
+arm_2_joint,local_control_motor_torque_constant_arm_2_joint,0.136,0.136,0.136
+arm_3_joint,local_control_motor_torque_constant_arm_3_joint,-0.087,-0.087,-0.087
+arm_4_joint,local_control_motor_torque_constant_arm_4_joint,-0.087,-0.087,-0.087

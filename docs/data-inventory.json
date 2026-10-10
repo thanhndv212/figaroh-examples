@@ -285,6 +285,18 @@
         "examples/tiago/data/identification/protocol.yaml"
       ],
       "provenance": "docs/development/tiago-identification-cross-run-protocol.md"
+    },
+    {
+      "id": "tiago-identification-inputs-audit",
+      "robot": "TIAGo",
+      "study": "Dynamic identification",
+      "kind": "derived",
+      "role": "evidence for the identification-input findings (#68); not used by identification.py",
+      "description": "Channels trimmed from the 2021-07 introspection bags: four torso-lift runs, PAL's gravity_compensation torque constants, the differential-wrist motor and joint channels of the training run (every 4th sample), channel status and the end-effector channel list.",
+      "paths": [
+        "examples/tiago/data/identification/audit/"
+      ],
+      "provenance": "examples/tiago/data/identification/audit/README.md; docs/development/tiago-identification-inputs-2026-10-10.md"
     }
   ],
   "files": {
@@ -449,6 +461,49 @@
     "examples/tiago/data/calibration/optimal_configurations/tiago_optimal_configurations.yaml": {
       "sha256": "11eed552a8fedb0f6c4d0158ebf68816bd744c1d00a52f333fbf1222acf27352",
       "bytes": 2524
+    },
+    "examples/tiago/data/identification/audit/README.md": {
+      "sha256": "7a4f02e54fe17e586f050d6455105b52d818adb4bcbc732e149c7f1eba80d65e",
+      "bytes": 2703
+    },
+    "examples/tiago/data/identification/audit/channel_status.csv": {
+      "sha256": "46dd0a219cac6d2d008fefb25466a021a43183c8415d31ea92295e8d26e314a5",
+      "bytes": 303,
+      "rows": 8
+    },
+    "examples/tiago/data/identification/audit/controller_constants.csv": {
+      "sha256": "d298bb5510ddef0a8889ed8a86856a147b16b79da7fc5aef04cb0bfc41757b1b",
+      "bytes": 340,
+      "rows": 4
+    },
+    "examples/tiago/data/identification/audit/differential_wrist_calibration.csv": {
+      "sha256": "b1acd6a7188d602c42b6ebbfa9a21a5830421a5c077dc34bd0dd4e43cc914242",
+      "bytes": 231220,
+      "rows": 2006
+    },
+    "examples/tiago/data/identification/audit/end_effector_channels.txt": {
+      "sha256": "7703da49ce219db1a3ff32770bf9ab4a0a1339f5a75501412ee85e5e9c9951b7",
+      "bytes": 1060
+    },
+    "examples/tiago/data/identification/audit/torso_20.csv": {
+      "sha256": "41458bb1af8818bf8097488dbd73dc6759e8ac5250f3dc9c52d213c03d70932a",
+      "bytes": 226997,
+      "rows": 3435
+    },
+    "examples/tiago/data/identification/audit/torso_40.csv": {
+      "sha256": "fa950b6d8f682500653f8d17cbfa35e24c42321ca8d27dbe598c4a415aca2b53",
+      "bytes": 150218,
+      "rows": 2283
+    },
+    "examples/tiago/data/identification/audit/torso_60.csv": {
+      "sha256": "4efd5d44ecbaae020ca84db09533a20bda2ab664462d35b4c57c122139d3e1e1",
+      "bytes": 101654,
+      "rows": 1538
+    },
+    "examples/tiago/data/identification/audit/torso_80.csv": {
+      "sha256": "6271b82a5fca1be6c4533e981144f7ba51eb804e5d82f51a833e5ef132863682",
+      "bytes": 86664,
+      "rows": 1304
     },
     "examples/tiago/data/identification/calibration_slow/tiago_effort.csv": {
       "sha256": "01edf8f95f69a7c8a19c4451a5091c246587861535898dcfd4314c85f582bbd4",
