@@ -15,6 +15,11 @@ what must be collected and how validation will be independent. Mark unanswered
 items explicitly. Reuse an existing robot folder for a new dataset unless the
 robot/interface differences justify a separate example.
 
+[Worked briefs](briefs/README.md) fill the template in for the UR10 truth
+and TIAGo identification references, the TIAGo mocap calibration reference and
+a case with no validation data. Copy the one closest to your task, then
+replace its contents rather than its headings.
+
 Use UR10 simulation for dynamic truth checks, TX40/TIAGo for real dynamic-data
 patterns and TIAGo mocap for the first calibration reference. These are starting
 points, not assurance that another dataset has the same rates, sensor semantics
@@ -107,6 +112,8 @@ runs and keep visual inspection instructions separate.
 - [ ] Report retains baseline and candidate failures; includes per-component
   units/errors, solver status, identifiability and applicable physical checks.
 - [ ] Final validation is unused by fitting/tuning, or its absence is explicit.
+- [ ] Brief lists unsupported assumptions and the claims each missing or fallback
+  input removes.
 - [ ] Selected result stage and export/reload parity are explicit where applicable.
 - [ ] Essential adapter/entry-point behavior has appropriate regression coverage;
   declare how the example is included in automated validation, or why it is not.
