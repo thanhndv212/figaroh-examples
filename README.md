@@ -134,7 +134,8 @@ gives the profile format and what each status means.
 
 1. Fill in the [experiment brief](docs/experiment-brief-template.md) using the
    [new-example guide](docs/new-example-guide.md): what you can measure, which
-   model and method fit it, and how you will validate.
+   model and method fit it, and how you will validate. Worked examples:
+   [docs/briefs](docs/briefs/README.md).
 2. Scaffold a folder from the TIAGo example:
    `cd examples && ./create_example.sh <robot_name>`.
 3. Start the config from [examples/templates](examples/templates/README.md).

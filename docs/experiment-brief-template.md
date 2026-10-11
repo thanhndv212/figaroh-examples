@@ -1,6 +1,8 @@
 # Experiment brief: <robot / dataset / task>
 
-Copy into `examples/<robot>/EXPERIMENT.md`. This is a human-readable planning
+Copy into `examples/<robot>/EXPERIMENT.md`; when a robot has several tasks,
+keep one brief per task (for example `EXPERIMENT-calibration.md`). Filled-in
+examples are in [briefs/](briefs/README.md). This is a human-readable planning
 record, **not a configuration schema consumed by FIGAROH**. Fill unknowns with
 `Unknown — action needed` and inapplicable items with a reason. Link evidence
 instead of copying a changing results table into multiple documents.
@@ -89,6 +91,14 @@ parameter analysis, held-out validation and limitations. Include:
 - Selected export stage, output model and reload FK/effort parity:
 - Task thresholds, computed/skipped checks and pass/fail interpretation:
 - Commands, dependency versions, paired revisions, hashes and artifact paths:
+
+## Unsupported assumptions and limits
+
+List each claim the results do **not** support and the assumption behind it
+(unverified conversion constants, held-out data that informed earlier
+choices, a missing validation recording, a simulated truth that shares the
+model class, a verdict scope below prediction). State which claim each missing
+or fallback input removes. `NOT_EVALUATED` is not a pass.
 
 ## Integration and review
 
