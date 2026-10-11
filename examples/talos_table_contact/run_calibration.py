@@ -51,6 +51,7 @@ from utils.talos_table_tools import TalosTableContactCalibration
 from figaroh.calibration.calibration_tools import cartesian_to_SE3
 from figaroh.tools.geometric_calibration_export import export_geometric_calibration_yaml
 from figaroh.tools.run_archive import archive_run, compute_run_dir
+from figaroh.utils.error_handling import CalibrationError
 
 HERE = Path(__file__).parent
 CONFIG_PATH = HERE / "config" / "talos_table_left_config.yaml"
@@ -223,11 +224,14 @@ def main():
         html_path = str(run_dir / "synthetic_calibration_report.html")
         yaml_path = str(run_dir / "synthetic_master_calibration.yaml")
         calib.export_html_report(output_path=html_path)
-        export_geometric_calibration_yaml(
-            calib,
-            yaml_path,
-            header_comment="TALOS table-contact calibration (synthetic)",
-        )
+        try:
+            export_geometric_calibration_yaml(
+                calib,
+                yaml_path,
+                header_comment="TALOS table-contact calibration (synthetic)",
+            )
+        except CalibrationError as exc:  # a failed fit is not exported (#182)
+            print(f"\nNo PAL export: {exc}")
         if archive:
             archive_run(calib, run_dir)
         print(f"\nRun archived to:\n  {run_dir}")
