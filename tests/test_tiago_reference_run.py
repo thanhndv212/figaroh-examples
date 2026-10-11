@@ -137,3 +137,42 @@ def test_refuses_inputs_outside_the_frozen_protocol():
     )
     with pytest.raises(ValueError, match="validation_data_file"):
         rr.check_protocol(SimpleNamespace(calib_config=swapped))
+
+
+def test_failed_fit_writes_no_export(tmp_path, monkeypatch, capsys):
+    """A fit whose solver fails is refused by the core (figaroh-plus#182):
+    no URDF or PAL file, an ``export`` stage recorded failed, exit 1 (#124)."""
+    import figaroh.calibration.base_calibration as bc
+
+    sys.path.insert(0, str(ROOT))
+    from examples.tiago import reference_run as rr
+
+    real = bc.least_squares
+
+    def not_converged(*args, **kwargs):
+        result = real(*args, **kwargs)
+        result.success = False
+        result.message = "forced non-convergence"
+        return result
+
+    monkeypatch.setattr(bc, "least_squares", not_converged)
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    monkeypatch.chdir(TIAGO)
+    code = rr.main(["--root", str(tmp_path)])
+    out = capsys.readouterr().out
+
+    assert code == 1
+    assert "export refused: the fit failed" in out
+    (path,) = tmp_path.glob("*/calibration/*")
+    for name in (
+        "calibrated.urdf",
+        "master_calibration.yaml",
+        "master_calibration_conservative.yaml",
+        "export_check.json",
+    ):
+        assert not (path / name).exists(), name
+    assert (path / "heldout.json").is_file()
+    assert json.loads((path / "corrections.json").read_text())["redistributed"] == {}
+    verdict = json.loads((path / "verdict.json").read_text())
+    assert verdict["stages"]["export"] == "fail"
+    assert verdict["stages"]["solver"] == "fail"

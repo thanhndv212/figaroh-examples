@@ -31,8 +31,12 @@ Steps and what each writes into the run directory
    checks), ``provenance.json``, ``reproduction.json``; the archive audit
    must find nothing missing.
 
-Exits nonzero when the verdict fails, the export does not reload to the fit,
-or the archive is incomplete. Limitations: marker 1 only (figaroh-plus#119:
+Nothing is exported after a failed fit: the core refuses (figaroh-plus#182),
+no ``calibrated.urdf``/PAL/``export_check.json`` is written, the ``export``
+stage is recorded failed and the run exits nonzero (#124).
+
+Exits nonzero when the verdict fails, the export is refused or does not
+reload to the fit, or the archive is incomplete. Limitations: marker 1 only (figaroh-plus#119:
 several points are supported but not adopted here); the base frame and marker
 point are the mocap setup, not robot geometry, and are not written to the
 URDF. See docs/development/tiago-calibration-reference.md.
@@ -63,6 +67,7 @@ from figaroh.tools.robot import load_robot  # noqa: E402
 from figaroh.tools.run_archive import archive_run, compute_run_dir  # noqa: E402
 from figaroh.tools.stages import record_stage  # noqa: E402
 from figaroh.tools.urdf_exporter import export_urdf  # noqa: E402
+from figaroh.utils.error_handling import CalibrationError  # noqa: E402
 
 from examples.run_record import (  # noqa: E402
     audit,
@@ -152,8 +157,12 @@ def heldout_report(calib) -> dict:
     return out
 
 
-def corrections_report(calib) -> dict:
-    """Gauge, identifiable parameters and redistributed corrections."""
+def corrections_report(calib, exportable: bool = True) -> dict:
+    """Gauge, identifiable parameters and redistributed corrections.
+
+    ``redistributed`` is empty when the fit failed (``exportable`` False):
+    the corrections of a failed fit are not reported as deployable.
+    """
     cfg = calib.calib_config
     names = list(cfg["param_name"])
     frames = calib.metrology_frames()
@@ -172,7 +181,11 @@ def corrections_report(calib) -> dict:
             for n, v, s in zip(names, calib.LM_result.x, calib.std_dev)
             if n not in frames
         },
-        "redistributed": {k: float(v) for k, v in calib.joint_corrections().items()},
+        "redistributed": (
+            {k: float(v) for k, v in calib.joint_corrections().items()}
+            if exportable
+            else {}
+        ),
         "solver": {
             "success": bool(calib.LM_result.success),
             "status": int(calib.LM_result.status),
@@ -258,24 +271,34 @@ def run(args) -> int:
     check_protocol(calib)
     run_dir = compute_run_dir(calib, root=args.root)
 
+    # the core's refusal of a failed fit; it records the export stage failed
+    try:
+        calib.require_exportable()
+        exportable = True
+    except CalibrationError as exc:
+        exportable = False
+        print(f"\nNo export: {exc}")
+
     heldout = heldout_report(calib)
-    corrections = corrections_report(calib)
-    export = export_and_reload(calib, run_dir)
+    corrections = corrections_report(calib, exportable)
+    export = export_and_reload(calib, run_dir) if exportable else None
     for name, data in (
         ("heldout.json", heldout),
         ("corrections.json", corrections),
         ("export_check.json", export),
     ):
-        (run_dir / name).write_text(json.dumps(data, indent=2))
+        if data is not None:
+            (run_dir / name).write_text(json.dumps(data, indent=2))
     _print_heldout(heldout)
     print(
         f"\nGauge: frames {list(corrections['gauge']['estimated_frames'])}; "
         f"absorbed {corrections['gauge']['absorbed_by_frames']}"
     )
-    print(
-        f"Export: reload difference {export['worst_m']:.2e} m "
-        f"(limit {PARITY_TOL:g}); joints changed {len(export['changed_joints'])}"
-    )
+    if export is not None:
+        print(
+            f"Export: reload difference {export['worst_m']:.2e} m "
+            f"(limit {PARITY_TOL:g}); joints changed {len(export['changed_joints'])}"
+        )
 
     calib.export_html_report(output_path=str(run_dir / "report.html"))
     print("\n" + "=" * 60 + "\nVERIFICATION\n" + "=" * 60)
@@ -295,6 +318,7 @@ def run(args) -> int:
             "corrections.json",
             "export_check.json",
         )
+        if (run_dir / name).is_file()  # none of the exports after a failed fit
     }
     write_reproduction_record(
         run_dir,
@@ -316,7 +340,9 @@ def run(args) -> int:
     failures = []
     if not verdict.passed:
         failures.append(f"verdict {verdict.status}")
-    if not export["passed"]:
+    if export is None:
+        failures.append("export refused: the fit failed")
+    elif not export["passed"]:
         failures.append("export does not reload to the fit")
     if missing(checks):
         failures.append(f"archive incomplete: {missing(checks)}")
