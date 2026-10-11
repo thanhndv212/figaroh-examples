@@ -1,32 +1,25 @@
 # FIGAROH Examples
 
-Examples for the [FIGAROH PLUS](https://github.com/thanhndv212/figaroh-plus) library (robot dynamics identification and geometric calibration).
-
-Working with an AI coding agent? [`skills/`](skills/) holds agent skills that set up a calibration, identification, optimal-experiment-design, or new-robot task for you — start with [`skills/figaroh-start`](skills/figaroh-start/SKILL.md), which points at the right package, directory, config keys, and data layout for the job.
-
-## Development planning
-
-Review the [draft contributor guide](CONTRIBUTING.md) and the
-[core delivery proposal](https://github.com/thanhndv212/figaroh-plus/blob/devel/docs/plans/identification-calibration-delivery.md)
-for the planned parallel identification/calibration workstreams. These are
-discussion drafts; they do not claim new solver or pipeline support.
+Runnable examples for [FIGAROH](https://github.com/thanhndv212/figaroh-plus),
+a Python toolbox for robot geometric calibration and dynamic identification.
+Each robot folder has the URDF, unified YAML configs, data and the
+robot-specific subclasses needed to run a task from start to finish.
 
 ## Install
 
 ```bash
-pip install -r requirements.txt   # installs figaroh>=0.6,<0.7
+git clone https://github.com/thanhndv212/figaroh-examples.git
+cd figaroh-examples
+pip install -r requirements.txt
 ```
 
-If you use conda, some dependencies may be easier to install via conda:
+`optimal_trajectory.py` scripts also need `cyipopt`, which is installed via
+conda (`conda install -c conda-forge pinocchio cyipopt`), or use the
+[`environment.yml`](environment.yml) environment.
 
-```bash
-conda install -c conda-forge pinocchio cyipopt
-```
-
-Some robot meshes (UR10 camera mount, TIAGo wrist, base casters and WSG
-gripper) are not vendored. Fetch them at pinned revisions and point
-`ROS_PACKAGE_PATH` at them, or the UR10 and TIAGo examples cannot load
-their geometry:
+Some meshes (the UR10 camera mount, the TIAGo wrist, base casters and WSG
+gripper) are not vendored. The UR10 and TIAGo examples that load geometry need
+them fetched at pinned revisions:
 
 ```bash
 python scripts/fetch_models.py
@@ -37,161 +30,109 @@ See [models/README.md](models/README.md) for sources, revisions and licences.
 
 ### Core compatibility
 
-Each core release is paired with the examples revision it was validated
-against (`validate.py`, all checks passing). The examples `main` branch
-follows core `devel` in CI and may need unreleased core changes; to use a
-released core, check out the matching examples tag.
+Each examples tag is paired with the core release it was validated against
+(`validate.py`, all checks passing). `main` follows core `devel` and may need
+unreleased core changes; to use a released core, check out the matching tag.
 
 | Examples tag | figaroh (PyPI) | Validated pair |
 |---|---|---|
 | `v0.6.0` | `>=0.6,<0.7` | core `v0.6.0` (`96b586f`) + examples `b23b836` |
 
-To develop against unreleased core, install it from a `devel` checkout instead
-(`pip install -e <path-to-figaroh-plus>`).
+To run against an unreleased core, install it from a checkout:
+`pip install -e <path-to-figaroh-plus>`.
 
-## Run
-
-Most scripts assume you run them from inside the corresponding robot folder:
+## Quickstart
 
 ```bash
 cd examples/ur10
-python calibration.py
+python identification_reference.py
 ```
 
-Dynamic identification has a validated reference workflow (fit, verify, export,
-reload, held-out report, archive): `python identification_reference.py` in
-`examples/ur10` and `examples/tiago`, described in
-[docs/development/identification-reference-workflow.md](docs/development/identification-reference-workflow.md).
+In a few seconds this fits the UR10 dynamic parameters on a simulated training
+log, checks the prediction error on a separate held-out log against declared
+per-joint limits, computes a physically consistent estimate, exports an
+identified URDF, and archives everything under `results/runs/`. The
+[reference workflow](docs/development/identification-reference-workflow.md)
+explains each step; `examples/tiago` has the same workflow on real data.
 
-## Basic workflow
+## Robots
 
-For a new robot or dataset, start with the [new-example guide](docs/new-example-guide.md)
-and [experiment brief](docs/experiment-brief-template.md). They cover available
-measurements, model/method selection, experiment design, processing, fit
-interpretation and held-out validation before the commands below.
+| Robot | Tasks | Data |
+|---|---|---|
+| [UR10](examples/ur10/README.md) | Calibration (camera), identification, optimal postures and trajectories | Real (calibration), simulated with held-out split (identification) |
+| [TIAGo](examples/tiago/README.md) | Identification, mocap calibration, optimal postures and trajectories; experimental suspension and backlash models | Real; held-out runs for identification and mocap calibration |
+| [TIAGo Pro](examples/tiago_pro/README.md) | Right-arm mocap calibration, optimal postures (contributed by [Clement Pene](https://github.com/clementPene)) | Real |
+| [TALOS](examples/talos/README.md) | Torso–arm calibration | Real |
+| [TALOS table contact](examples/talos_table_contact/README.md) | Whole-body leg–torso–arm calibration from contact with one plane, no external metrology | Real (held out by day) and simulated |
+| [Staubli TX40](examples/staubli_tx40/README.md) | Identification | Recorded logs, no separate validation set |
+| [SO-101](examples/so101/README.md) | Identification of gravity and friction from servo current, deployed to [soarm_sdk](https://github.com/thanhndv212/soarm_sdk) | Simulated, with held-out split |
 
-1. Choose an example under `examples/<robot>/`.
-2. Review the YAML files under `examples/<robot>/config/`.
-3. Place or update CSV logs under `examples/<robot>/data/` (or update paths in the YAML).
-4. Run one of: `calibration.py`, `identification.py`, `optimal_config.py`, `optimal_trajectory.py` (if present).
-5. Review printed results/plots. If applicable, use `update_model.py` to materialize estimated parameters.
-6. Add `--html-report` (calibration/identification scripts) for a shareable HTML diagnostic
-   report, and `--verify` (identification scripts) for a machine-readable scoped verdict
-   you can gate CI on (see "Acceptance policy" below for what a PASS does and does not mean). See each robot's README for the exact flags it supports, and
-   FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/reporting_and_verification/)
-   for the full walkthrough (HTML reports, `verify()`, and comparing two runs offline).
-7. Add `--wls`/`--no-wls` (identification scripts) to override the config's
-   `identification.problem.wls` value and refine the OLS base-parameter
-   estimate with weighted least squares before quality metrics are computed
-   (Staubli TX40's config defaults this on; UR10/TIAGo default off).
-8. By default (unless run with `--no-archive`), each run is archived to a
-   timestamped `results/runs/<asset>/<task>/<timestamp>/` directory containing
-   a config snapshot, a provenance record (git commit, config hash,
-   timestamps), and the HTML report if generated — instead of overwriting a
-   single `results/` path — and appends a summary line to
-   `results/runs/index.jsonl`.
+The [data inventory](docs/data-inventory.md) lists every data file with its
+kind (real, simulated, generated), role and checksum.
 
-## Acceptance policy
+## Running an example
 
-Requires scoped verification
-([figaroh-plus#78](https://github.com/thanhndv212/figaroh-plus/pull/78)), released
-in figaroh 0.5.0.
-
-Identification `--verify` runs with `--verification-scope execution` by default:
-it checks that the fit produced finite, consistent numerical outputs. CLI output
-and `verdict.json` name the scope and per-stage status. An execution PASS is
-**not** independent prediction acceptance, physical feasibility or export
-approval; those stages print NOT_EVALUATED. Improvement over nominal, correlation
-and raw condition number remain reported diagnostics, without the former
-universal 50% / 0.9 / 1000 gates. Existing CSVs and historical verdicts are
-unchanged; a status that changed under this policy is a policy change, not an
-improvement in the fit.
-
-Prediction acceptance needs separately loaded validation data **and** a JSON
-profile with an explicit limit for every active joint, chosen from measurement
-uncertainty and the application before you look at the result:
-
-```json
-{
-  "validation_rmse:<joint>": {"threshold": 0.05, "comparison": "max", "rationale": "..."}
-}
-```
+Run scripts from inside the robot folder:
 
 ```bash
-cd examples/so101   # ships a separate simulated validation run
+cd examples/tiago
+python identification.py --html-report --verify
+```
+
+Each folder has some of `calibration.py`, `identification.py`,
+`optimal_config.py`, `optimal_trajectory.py` and `update_model.py`, with
+configs under `config/`, data under `data/`, the URDF under `urdf/` and the
+robot subclasses under `utils/`. Common flags (run `--help` for each script's
+list):
+
+| Flag | Effect |
+|---|---|
+| `--config`, `--urdf` | Use a different config or model |
+| `--html-report` / `--no-html-report` | Write a self-contained HTML diagnostic report |
+| `--verify` | Write a verdict and exit nonzero if a required check fails |
+| `--verification-scope`, `--acceptance-profile` | Choose what `--verify` checks (see below) |
+| `--wls` / `--no-wls` | Refine the identification fit with weighted least squares, overriding the config |
+| `--archive` / `--no-archive` | Archive the run to `results/runs/<asset>/<task>/<timestamp>/` with its config, provenance and report (on by default) |
+
+### Verification
+
+By default, `--verify` checks the **execution** scope: the fit produced finite,
+consistent outputs. That is not evidence that the model predicts well. A
+**prediction** PASS needs separate validation data and a JSON profile with a
+limit for every active joint, chosen before you look at the result:
+
+```bash
 python identification.py --verification-scope prediction --acceptance-profile limits.json
 ```
 
-Thresholds are in the joint's effort unit (N·m for revolute joints). Optional
-`required: false` marks a check advisory. The profile is copied into the run
-directory. Missing limits or missing independent data give NOT_EVALUATED and a
-nonzero exit; no example-specific limits are shipped or guessed. A separate file
-alone does not prove an experimentally independent split or adequate coverage.
-`so101/update_model.py` takes the same flags and records the scoped verdict in
-the written YAML; its legacy `verification_passed` field is true only for a
-passed prediction stage.
+No example ships or guesses limits. The [acceptance policy](docs/acceptance-policy.md)
+gives the profile format and what each status means.
 
-`validate.py` runs routine execution checks and keeps each child's complete
-stdout/stderr plus exit code and timeout metadata under the git-ignored
-`validation_logs/`. A required timeout gives `RESULT: INCOMPLETE` and exit 1.
-`--quick` skips the slow optimisation scripts; skipped checks are reported as
-not established, not as passed.
+## Adding a robot
 
-## Data format
+1. Fill in the [experiment brief](docs/experiment-brief-template.md) using the
+   [new-example guide](docs/new-example-guide.md): what you can measure, which
+   model and method fit it, and how you will validate.
+2. Scaffold a folder from the TIAGo example:
+   `cd examples && ./create_example.sh <robot_name>`.
+3. Start the config from [examples/templates](examples/templates/README.md).
+4. Register new data files with `python scripts/data_inventory.py update`; CI
+   fails on unlisted data.
 
-Examples use CSV logs for measurements and trajectories. The required files/columns depend on the robot and task; see each example README for the expected inputs.
+**Working with an AI coding agent?** [`skills/`](skills/) holds agent skills
+for calibration, identification, optimal design and new-robot setup. Start
+with [`figaroh-start`](skills/figaroh-start/SKILL.md).
 
-Every data file under `examples/*/data/` is listed with its kind (real, simulated,
-generated, unspecified), role and sha256 in the [data inventory](docs/data-inventory.md).
-Adding or changing a data file needs `python scripts/data_inventory.py update`
-(and a dataset entry in `docs/data-inventory.json` for a new file); CI fails otherwise.
-
-## Examples
-
-- UR10 (manipulator): [examples/ur10/README.md](examples/ur10/README.md)
-- TIAGo (mobile manipulator): [examples/tiago/README.md](examples/tiago/README.md) —
-  identification, calibration, optimal config/trajectory, plus experimental
-  suspension identification and empirical backlash-surface examples
-- TIAGo Pro (mobile manipulator, right-arm calibration — contributed by
-  [Clement Pene](https://github.com/clementPene)): [examples/tiago_pro/README.md](examples/tiago_pro/README.md)
-- TALOS (humanoid, torso/arm chain): [examples/talos/README.md](examples/talos/README.md)
-- TALOS table-contact (humanoid, whole-body leg-torso-arm calibration
-  from single-plane table contact, no external metrology):
-  [examples/talos_table_contact/README.md](examples/talos_table_contact/README.md)
-- Staubli TX40 (manipulator): [examples/staubli_tx40/README.md](examples/staubli_tx40/README.md)
-- SO-101 (desktop arm, STS3215 servos — gravity + friction from servo current,
-  deployed to [soarm_sdk](https://github.com/thanhndv212/soarm_sdk)):
-  [examples/so101/README.md](examples/so101/README.md)
-- Templates and config starting points: [examples/templates/README.md](examples/templates/README.md)
-
-## Common layout (per robot)
-
-Most robot folders follow this pattern:
-
-```
-{robot}/
-  calibration.py            # kinematic calibration (if present)
-  identification.py         # dynamic identification (if present)
-  optimal_config.py         # optimal measurement configurations (if present)
-  optimal_trajectory.py     # exciting trajectories for identification (if present)
-  config/                   # YAML configuration files
-  data/                     # CSV logs / measurement data
-  urdf/                     # robot URDF(s) used by the scripts
-  utils/                    # robot-specific helper classes
-```
-
-## Creating a new example
-
-First fill in the [experiment brief](docs/experiment-brief-template.md) using the
-[new-example guide](docs/new-example-guide.md). Then, if needed, use the scaffold
-script to create a new robot folder based on the TIAGo template:
+## Validating changes
 
 ```bash
-cd examples
-./create_example.sh <robot_name>
+python validate.py          # pytest plus the example scripts; exit 1 on any failure or timeout
+python validate.py --quick  # skips the slow IPOPT scripts (reported as not run, not passed)
 ```
 
-The generated scripts are placeholders that point you back to the TIAGo example for a complete reference implementation.
+Each child's output, exit code and timeout data are kept under the git-ignored
+`validation_logs/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the review and
+release process.
 
 ## Citation
 
@@ -210,11 +151,9 @@ If you use these examples in your research, please cite the main FIGAROH paper:
 }
 ```
 
-## License
+## License and support
 
-Apache License 2.0. See `LICENSE`.
-
-## Support
-
-- Open an issue in this repository for example-specific questions.
-- Open an issue in the main FIGAROH repository: https://github.com/thanhndv212/figaroh-plus/issues
+Apache License 2.0; see [LICENSE](LICENSE). Open an issue here for
+example-specific questions, or in
+[figaroh-plus](https://github.com/thanhndv212/figaroh-plus/issues) for the
+library.
