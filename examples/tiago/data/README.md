@@ -239,7 +239,7 @@ and only the estimated tip offset depends on that choice.
 base and tool estimated, no regularisation, figaroh-plus `devel` with #101,
 #105 and #102. Core drops the torso and arm_1 offsets, which the estimated
 6D base absorbs (vertical axes), so 14 parameters remain and the problem is
-full rank (condition number 26).
+full rank (condition number 62.2, as `calibration.py` reports it).
 
 | Training RMSE | Held-out RMSE (Nov-26) | Held-out max | arm_5 offset |
 |---|---|---|---|
