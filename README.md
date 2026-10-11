@@ -94,6 +94,27 @@ list):
 | `--wls` / `--no-wls` | Refine the identification fit with weighted least squares, overriding the config |
 | `--archive` / `--no-archive` | Archive the run to `results/runs/<asset>/<task>/<timestamp>/` with its config, provenance and report (on by default) |
 
+### Outputs
+
+An archived run directory holds what you need to reuse or reproduce it. For
+the identification reference workflow:
+
+| File | Contents |
+|---|---|
+| `identified.urdf` | The identified link inertials written onto `nominal_lumped.urdf` (the nominal model with fixed-attached links merged), both archived |
+| `parameters.csv` | Identified parameters |
+| `reference.json`, `export_check.json` | Per-joint training and held-out RMSE, per-link feasibility, input checksums; the export parity check |
+| `verdict.json`, `stages.json` | Verification scope and status of each stage |
+| `report.html` | Self-contained diagnostic report |
+| `provenance.json`, `config.snapshot.yaml` | Revisions, config hash and the config used |
+
+Calibration writes the corrected joint placements to a URDF; the metrology
+frames (camera or mocap base, marker) are reported separately and not written
+to the URDF. Where a robot folder has `update_model.py`, it applies a saved
+result to the model. See the
+[reference workflow](docs/development/identification-reference-workflow.md#run-directory)
+for every archived file.
+
 ### Verification
 
 By default, `--verify` checks the **execution** scope: the fit produced finite,
