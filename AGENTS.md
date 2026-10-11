@@ -66,7 +66,7 @@ shared `models/` (robot description packages) and a Viser-based `web-interface/`
   `validation_logs/`; cite them when classifying a known failure.
 - Identification `--verify` checks the **execution** scope by default (finite,
   consistent fit outputs). That PASS is not prediction, physical-model or export
-  acceptance — see "Acceptance policy" in `README.md`.
+  acceptance — see [docs/acceptance-policy.md](docs/acceptance-policy.md).
 - `pytest` can also be run directly: `pytest tests/ -v` from repo root.
 - `tests/conftest.py` adds `../figaroh/src` **and** the examples root to `sys.path`, so
   tests assume the sibling `figaroh/` repo is checked out next to this one.
