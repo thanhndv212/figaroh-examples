@@ -36,6 +36,7 @@ unreleased core changes; to use a released core, check out the matching tag.
 
 | Examples tag | figaroh (PyPI) | Validated pair |
 |---|---|---|
+| `v0.7.0` | `>=0.7,<0.8` | core `v0.7.0` (`c59f057`) + examples `68c2d1a` |
 | `v0.6.0` | `>=0.6,<0.7` | core `v0.6.0` (`96b586f`) + examples `b23b836` |
 
 To run against an unreleased core, install it from a checkout:
