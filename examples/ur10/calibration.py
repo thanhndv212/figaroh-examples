@@ -435,6 +435,13 @@ def _run_calibration(
     if run_dir:
         print(f"Results written to: {run_dir}")
 
+    # --update-model exports these saved results to a URDF, so a failed
+    # fit must not leave a file behind (raises CalibrationError). The
+    # gate is new in core after 0.7.0; older cores skip it.
+    require_exportable = getattr(ur10_calib, "require_exportable", None)
+    if require_exportable is not None:
+        require_exportable()
+
     # Save with timestamp
     os.makedirs(DATA_DIR, exist_ok=True)
     ts = _timestamp_str()
