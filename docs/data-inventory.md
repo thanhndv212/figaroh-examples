@@ -24,7 +24,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/ (dated notes) |
 | `tiago-pro-notes` | TIAGo Pro | Mocap calibration | notes | documentation | 3 | 13.7 KB |  |
 | `tiago-pro-optimal-configs` | TIAGo Pro | Experiment design | generated | calibration postures | 1 | 9.6 KB |  |
-| `talos-left-arm-contact` | TALOS | Arm contact calibration | real | calibration | 1 | 14.2 KB | examples/talos/config/talos_config.yaml |
+| `talos-left-arm-contact` | TALOS | Arm contact calibration | real | calibration | 1 | 14.2 KB | examples/talos/config/talos_unified_config.yaml |
 | `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 4 | 39.3 KB | examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
 | `talos-table-contact-synthetic` | TALOS | Table contact | simulated | synthetic train + validation | 3 | 27.5 KB | examples/talos_table_contact/generate_synthetic_data.py |
 | `staubli-tx40-logs` | Staubli TX40 | Dynamic identification | unspecified (unconfirmed) | identification; no separate validation set | 2 | 4.3 MB | examples/staubli_tx40/README.md |

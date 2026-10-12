@@ -270,7 +270,7 @@ All scripts follow a consistent pattern for ease of use:
 robot = load_robot("data/robot.urdf", package_dirs="models", load_by_urdf=True)
 
 # 2. Initialize task-specific class
-task = TaskClass(robot=robot, config_file="config/ur10_config.yaml")
+task = TaskClass(robot=robot, config_file="config/ur10_unified_config.yaml")
 
 # 3. Execute main computation
 results = task.solve()
@@ -415,21 +415,19 @@ ur10/
 
 ## Configuration
 
-The `config/ur10_config.yaml` file contains all parameters for calibration and identification:
+The `config/ur10_unified_config.yaml` file contains all parameters for calibration
+and identification, in the unified format (`extends:` + `tasks.*`):
 
 ```yaml
-calibration:
-  calib_level: full_params        # Full parameter calibration
-  base_frame: universe           # Reference frame
-  tool_frame: wrist_3_link      # End-effector frame
-  nb_sample: 29                 # Number of configurations
-
-identification:
-  robot_params:
-    q_lim_def: 1.57             # Default joint limits (rad)
-    dq_lim_def: 5.0             # Velocity limits (rad/s)
-    ddq_lim_def: 20.0           # Acceleration limits (rad/s²)
-    tau_lim_def: 4.0            # Torque limits scaling factor
+extends: "../../templates/manipulator_robot.yaml"
+tasks:
+  calibration:
+    calibration_level: full_params   # Full parameter calibration
+    kinematics:
+      base_frame: universe           # Reference frame
+      tool_frame: wrist_3_link       # End-effector frame
+  identification:
+    ...
 ```
 
 ## Expected Results
