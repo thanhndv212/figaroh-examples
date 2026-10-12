@@ -31,14 +31,15 @@ FILES = {
 @pytest.mark.parametrize("side", ["left", "right"])
 def test_chain_measures_contact_height_roll_pitch_only(side):
     cfg = yaml.safe_load(open(EXAMPLE_DIR / f"config/talos_table_{side}_config.yaml"))
-    c = cfg["calibration"]
+    c = cfg["tasks"]["calibration"]
     # z, roll, pitch of the contact frame relative to the table; x, y, yaw
     # of the contact point carry no information.
-    assert c["markers"][0]["measure"] == [False, False, True, True, True, False]
-    assert c["base_frame"] == f"{side}_sole_link"
-    assert c["tool_frame"] == f"gripper_{side}_base_link"
-    assert c["free_flyer"] is False  # the sole is the fixed root
-    assert c["coeff_regularize"] is None
+    marker = c["measurements"]["markers"][0]
+    assert marker["measurable_dof"] == [False, False, True, True, True, False]
+    assert c["kinematics"]["base_frame"] == f"{side}_sole_link"
+    assert c["kinematics"]["tool_frame"] == f"gripper_{side}_base_link"
+    assert c["kinematics"]["free_flying_base"] is False  # the sole is the fixed root
+    assert c["parameters"]["regularization_coefficient"] is None
 
 
 @pytest.mark.parametrize("name", sorted(FILES))
