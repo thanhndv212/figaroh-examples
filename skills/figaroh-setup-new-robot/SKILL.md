@@ -147,7 +147,7 @@ environment:
 Rules:
 
 - **Unified format only.** `tasks.<task>.*` with `extends:`. The legacy flat format is
-  auto-detected for backward compatibility — never write a new config in it.
+  removed at core 1.0 — never write a new config in it.
 - Robot-wide facts go under `robot.properties.*`; task-specific ones under
   `tasks.<task>.*`. Putting task settings in `robot.properties` silently does nothing.
 - Enable only the tasks you are actually implementing. An `enabled: true` task with no

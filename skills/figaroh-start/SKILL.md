@@ -125,7 +125,7 @@ in the user's model, config, or data — not the install. Use this as the bisect
 - **Never edit `figaroh-examples/models/`.** Those are upstream ROS description
   packages, mesh assets only.
 - **Write new configs in the unified format** (`tasks.<task>.*` with `extends:`), not
-  the legacy flat format. Legacy is auto-detected for backward compatibility only.
+  the legacy flat format, which core removes at 1.0.
 - **`examples/shared/` does not exist** and is gitignored. Never import
   `examples.shared.*`.
 - The library uses the NullHandler logging pattern — never add `print`/root logging to

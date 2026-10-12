@@ -82,7 +82,7 @@ tasks:
     parameters:
       calibration_level: "full_params"   # or "joint_offset" for offsets only
       include_non_geometric: false
-      regularization_coefficient: 0.001
+      regularization_coefficient: 0.0     # deprecated, keep 0; use estimation.method: map
       outlier_threshold: 0.02            # metres; reject residuals above this
 
     kinematics:

@@ -64,8 +64,8 @@ Stack-of-Tasks repo, not part of FIGAROH; see "What's not here" below).
   `export_geometric_calibration_yaml` directly) -- see "Results report"
   below.
 - `config/talos_table_left_config.yaml` / `talos_table_right_config.yaml`
-  -- legacy-format FIGAROH config for the left and right chains (see "Why
-  legacy config, not unified" below).
+  -- unified-format FIGAROH config for the left and right chains (see "What
+  the config does not cover" below).
 - `data/` -- a committed synthetic demo dataset (noiseless,
   `generate_synthetic_data.py`'s defaults) so `run_calibration.py` has
   something to run against out of the box; `--regenerate` resynthesizes
@@ -521,18 +521,17 @@ ships no SRDF collision-pairs/exclusion list, and naively calling
 anatomically-adjacent, permanently-touching link pair as a "collision" --
 false positives, not a real check. Left as future work.
 
-## Why legacy config, not unified
+## What the config does not cover
 
-`BaseCalibration.load_param()` auto-detects the unified (`extends:` +
-`tasks.*`) config format used by the other examples in this repo. That
-format's `measurements.markers[]` schema has no concept of an
+The config uses the unified (`extends:` + `tasks.*`) format like the other
+examples in this repo. That format's `measurements.markers[]` schema has no concept of an
 independently-estimated plane frame (it assumes every marker's target
 is either externally measured or a known/unknown *tool* frame via
 `EE_TPL`) -- there's nowhere to declare `PLANE_TPL` from YAML yet. Rather
 than force-fit this method's parametrization into a schema that doesn't
 support it (or extend core FIGAROH's config parser for a single,
 unproven example), this class builds `PLANE_TPL`/`CONTACT_TPL` in Python
-(`TalosTableContactCalibration.initialize()`) on top of a plain legacy
+(`TalosTableContactCalibration.initialize()`) on top of a plain
 YAML for everything the standard schema *does* already cover (chain
 frames, the DOF mask, sample count). If this pattern proves useful for a
 second robot, promoting the plane-frame concept into `calc_updated_fkm`

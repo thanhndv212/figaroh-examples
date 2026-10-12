@@ -389,8 +389,7 @@ pip install -e .
 
 All scripts default to using the unified configuration:
 - `config/tiago_unified_config.yaml` (**default**): Main unified config with template inheritance
-- `config/tiago_config_hey5.yaml`: Legacy config for TIAGo with Hey5 hand
-- `config/tiago_config.yaml`: Legacy config for TIAGo with Schunk hand
+- `config/tiago_unified_config_hey5.yaml`: Unified config for TIAGo with Hey5 hand (eye-hand calibration, used by `optimal_config.py`)
 
 Legacy and broken configs have been moved to `config/archive/`. See `config/README.md` for details.
 

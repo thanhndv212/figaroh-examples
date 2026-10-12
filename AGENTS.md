@@ -74,18 +74,19 @@ shared `models/` (robot description packages) and a Viser-based `web-interface/`
 - **Do not use `tests/run_tests.py`** — it only runs 3 of the 8 test files and parses
   stdout instead of using the pytest API. It is stale. Use `validate.py` instead.
 
-## Config — two formats coexist; scripts use the unified one
+## Config — unified format only
 
 - **Unified** (`*_unified_config.yaml`): `tasks.<task>.*` layout with template inheritance
   via `extends:` (e.g. `extends: "../../templates/manipulator_robot.yaml"`). This is what
   entry-point scripts load.
-- **Legacy** (`*_config.yaml`): flat format, auto-detected by `figaroh`'s
-  `UnifiedConfigParser`. Keep for backward-compat tests; don't write new configs in it.
+- The legacy flat format (`*_config.yaml`) was migrated away in #125 because core removes
+  it at 1.0. Don't write new configs in it; migrate any old one with
+  `python -m figaroh.utils.config_migration`.
 - Templates live in `examples/templates/` (`base_robot_config.yaml`,
   `manipulator_robot.yaml`, `humanoid_robot.yaml`). Use `extends:` (not `inherit_from`).
   Keep robot specifics under `robot.properties.*`, task specifics under `tasks.<task>.*`.
 - TIAGo config files were consolidated in Phase 4 — broken/unused configs moved to
-  `config/archive/`, 3 active configs remain. See `config/README.md` for details.
+  `config/archive/`. See `config/README.md` for the active ones.
   `extends` is now enabled in `tiago_unified_config.yaml`.
 
 ## Gotchas

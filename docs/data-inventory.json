@@ -187,7 +187,7 @@
       "paths": [
         "examples/talos/data/talos_left_arm_02_10_contact.csv"
       ],
-      "provenance": "examples/talos/config/talos_config.yaml"
+      "provenance": "examples/talos/config/talos_unified_config.yaml"
     },
     {
       "id": "talos-table-contact-real",
