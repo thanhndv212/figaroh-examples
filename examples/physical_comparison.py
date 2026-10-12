@@ -263,7 +263,7 @@ def feasibility_fields(p, theta) -> Dict[str, Any]:
 
 
 def pcmp_feasibility(p, theta):
-    from figaroh.identification import _physical_comparator as pcmp
+    from figaroh.identification import physical_fit as pcmp
 
     return pcmp._feasibility(p, theta)
 
