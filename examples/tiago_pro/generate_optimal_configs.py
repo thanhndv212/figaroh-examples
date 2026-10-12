@@ -22,11 +22,12 @@ import viser.transforms as vtf
 import yaml
 
 from figaroh.calibration.calibration_tools import (
-    get_param_from_yaml,
     add_base_name,
     add_pee_name,
     calculate_base_kinematics_regressor,
+    unified_to_legacy_config,
 )
+from figaroh.utils.config_parser import UnifiedConfigParser, create_task_config
 
 _URDF_DEFAULT = Path(__file__).parent / "tiago_pro_local.urdf"
 _SRDF = Path(__file__).parent / "tiago_pro.srdf"
@@ -52,6 +53,8 @@ def _load_mesh(path: str):
         return mesh
     except Exception:
         return None
+
+
 _CONFIG = Path(__file__).parent / "tiago_pro_calibration_config.yaml"
 _OUT_DEFAULT = Path(__file__).parent / "data" / "optimal_configs.yaml"
 
@@ -71,6 +74,7 @@ _RANGE_FRACTION = 0.85
 
 # ── D-optimality ──────────────────────────────────────────────────────────────
 
+
 def _rearrange_rb(R_b, param):
     Rb_rearr = np.empty_like(R_b)
     ci = param["calibration_index"]
@@ -85,7 +89,7 @@ def _sub_info_matrices(R_rearr, param):
     ci = param["calibration_index"]
     ns = param["NbSample"]
     return [
-        R_rearr[it * ci:(it + 1) * ci, :].T @ R_rearr[it * ci:(it + 1) * ci, :]
+        R_rearr[it * ci : (it + 1) * ci, :].T @ R_rearr[it * ci : (it + 1) * ci, :]
         for it in range(ns)
     ]
 
@@ -111,6 +115,7 @@ def _run_socp(sub_mats):
 
 def _run_detmax(sub_mats, n_choose):
     import random
+
     pool = list(range(len(sub_mats)))
 
     def crit(indices):
@@ -157,6 +162,7 @@ def _run_detmax(sub_mats, n_choose):
 
 # ── Kinematics helpers ────────────────────────────────────────────────────────
 
+
 def _get_joint_limits(model, joint_names, fraction=_RANGE_FRACTION):
     lbs, ubs = [], []
     for jname in joint_names:
@@ -165,7 +171,11 @@ def _get_joint_limits(model, joint_names, fraction=_RANGE_FRACTION):
             raise ValueError(f"Joint '{jname}' not found in model.")
         idx_q = model.joints[jid].idx_q
         center = (model.upperPositionLimit[idx_q] + model.lowerPositionLimit[idx_q]) / 2
-        half = (model.upperPositionLimit[idx_q] - model.lowerPositionLimit[idx_q]) / 2 * fraction
+        half = (
+            (model.upperPositionLimit[idx_q] - model.lowerPositionLimit[idx_q])
+            / 2
+            * fraction
+        )
         lbs.append(center - half)
         ubs.append(center + half)
     return np.array(lbs), np.array(ubs)
@@ -182,14 +192,29 @@ def _q_from_active(model, active_vals, joint_names):
 
 # ── Viser visualization ───────────────────────────────────────────────────────
 
+
 def _check_collisions(model, collision_model, q):
     collision_data = pin.GeometryData(collision_model)
-    pin.computeCollisions(model, model.createData(), collision_model, collision_data, q, False)
+    pin.computeCollisions(
+        model, model.createData(), collision_model, collision_data, q, False
+    )
     return any(r.isCollision() for r in collision_data.collisionResults)
 
 
-def _display_config(server, mesh_handles, model, visual_model, visual_data,
-                    collision_model, data, q, idx, total, joint_names, active_vals):
+def _display_config(
+    server,
+    mesh_handles,
+    model,
+    visual_model,
+    visual_data,
+    collision_model,
+    data,
+    q,
+    idx,
+    total,
+    joint_names,
+    active_vals,
+):
     pin.forwardKinematics(model, data, q)
     pin.updateGeometryPlacements(model, data, visual_model, visual_data)
 
@@ -209,13 +234,18 @@ def _display_config(server, mesh_handles, model, visual_model, visual_data,
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--urdf", default=str(_URDF_DEFAULT))
     parser.add_argument("--config", default=str(_CONFIG))
     parser.add_argument("--pool-size", type=int, default=500)
-    parser.add_argument("--n-configs", type=int, default=50,
-                        help="Number of configurations to select (default: 50)")
+    parser.add_argument(
+        "--n-configs",
+        type=int,
+        default=50,
+        help="Number of configurations to select (default: 50)",
+    )
     parser.add_argument("--output", "-o", default=str(_OUT_DEFAULT))
     parser.add_argument("--no-viser", action="store_true")
     args = parser.parse_args()
@@ -230,23 +260,27 @@ def main():
     except ValueError as e:
         print(f"[warn] geometry loading failed ({e})\n  → collision checking disabled.")
         collision_model = pin.GeometryModel()
-        visual_model    = pin.GeometryModel()
+        visual_model = pin.GeometryModel()
     data = model.createData()
 
     collision_model.addAllCollisionPairs()
-    pin.removeCollisionPairsFromXML(model, collision_model, _SRDF.read_text(), verbose=False)
+    pin.removeCollisionPairsFromXML(
+        model, collision_model, _SRDF.read_text(), verbose=False
+    )
     print(f"Collision pairs active: {len(collision_model.collisionPairs)}")
 
-    # Figaroh's get_param_from_yaml only needs robot.model + q0
+    # Figaroh's config parsing only needs robot.model + q0
     class _Robot:
         def __init__(self, m):
             self.model = m
             self.data = m.createData()
             self.q0 = pin.neutral(m)
 
-    with open(args.config) as f:
-        config = yaml.safe_load(f)
-    param = get_param_from_yaml(_Robot(model), config["calibration"])
+    robot = _Robot(model)
+    unified = UnifiedConfigParser(args.config).parse()
+    param = unified_to_legacy_config(
+        robot, create_task_config(robot, unified, "calibration")
+    )
     param["known_baseframe"] = False
     param["known_tipframe"] = False
 
@@ -261,7 +295,9 @@ def main():
         n_tried += 1
         active_vals = rng.uniform(lbs, ubs)
         q = _q_from_active(model, active_vals, ACTIVE_JOINTS)
-        pin.computeCollisions(model, model.createData(), collision_model, collision_data, q, False)
+        pin.computeCollisions(
+            model, model.createData(), collision_model, collision_data, q, False
+        )
         if any(r.isCollision() for r in collision_data.collisionResults):
             continue
         pool_active.append(active_vals)
@@ -272,9 +308,7 @@ def main():
 
     print("Computing kinematic regressors ...")
     param["NbSample"] = args.pool_size
-    _, R_b, _, _, _ = calculate_base_kinematics_regressor(
-        pool_q, model, data, param
-    )
+    _, R_b, _, _, _ = calculate_base_kinematics_regressor(pool_q, model, data, param)
     add_base_name(param)
     add_pee_name(param)
     R_rearr = _rearrange_rb(R_b, param)
@@ -343,8 +377,20 @@ def main():
     for idx, config_idx in enumerate(chosen):
         active_vals = pool_active[config_idx]
         q = _q_from_active(model, active_vals, ACTIVE_JOINTS)
-        _display_config(server, mesh_handles, model, visual_model, visual_data,
-                        collision_model, data, q, idx, len(chosen), ACTIVE_JOINTS, active_vals)
+        _display_config(
+            server,
+            mesh_handles,
+            model,
+            visual_model,
+            visual_data,
+            collision_model,
+            data,
+            q,
+            idx,
+            len(chosen),
+            ACTIVE_JOINTS,
+            active_vals,
+        )
         print("Press Enter for next config, 'q' to quit.")
         line = input().strip().lower()
         if line == "q":
