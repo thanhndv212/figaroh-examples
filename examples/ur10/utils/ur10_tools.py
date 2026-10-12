@@ -37,9 +37,9 @@ from figaroh.utils.error_handling import (
     handle_calibration_errors,
 )
 from figaroh.identification.identification_tools import (
-    get_param_from_yaml as get_identification_param_from_yaml,
     calculate_first_second_order_differentiation,
 )
+from figaroh.utils.config_parser import get_param_from_yaml
 from figaroh.tools.regressor import (
     build_regressor_basic,
     get_index_eliminate,
@@ -68,7 +68,7 @@ class UR10Calibration(BaseCalibration):
     def __init__(
         self,
         robot: Any,
-        config_file: str = "config/ur10_config.yaml",
+        config_file: str = "config/ur10_unified_config.yaml",
         del_list: List[int] | None = None,
     ) -> None:
         """Initialize UR10 calibration with robot model and configuration.
@@ -112,7 +112,7 @@ class UR10Identification(BaseIdentification):
     """UR10-specific dynamic parameter identification class."""
 
     def __init__(
-        self, robot: Any, config_file: str = "config/ur10_config.yaml"
+        self, robot: Any, config_file: str = "config/ur10_unified_config.yaml"
     ) -> None:
         """Initialize UR10 identification with robot model and configuration.
 
@@ -221,7 +221,7 @@ class UR10OptimalCalibration(BaseOptimalCalibration):
     """UR10-specific optimal configuration generation for calibration."""
 
     def __init__(
-        self, robot: Any, config_file: str = "config/ur10_config.yaml"
+        self, robot: Any, config_file: str = "config/ur10_unified_config.yaml"
     ) -> None:
         """Initialize UR10 optimal calibration with robot model and configuration.
 
@@ -324,7 +324,7 @@ class UR10OptimalTrajectory:
     """UR10-specific optimal trajectory generation for dynamic identification."""
 
     def __init__(
-        self, robot: Any, config_file: str = "config/ur10_config.yaml"
+        self, robot: Any, config_file: str = "config/ur10_unified_config.yaml"
     ) -> None:
         """Initialize UR10 optimal trajectory with robot model and configuration.
 
@@ -336,14 +336,9 @@ class UR10OptimalTrajectory:
         self.model = robot.model
         self.data = robot.data
 
-        # Load configuration
-        with open(config_file, "r") as f:
-            config = yaml.load(f, Loader=SafeLoader)
-
-        self.config = config
-        self.identif_data = self.config["identification"]
-        self.identif_config = get_identification_param_from_yaml(
-            robot, self.identif_data
+        # Load the identification task of the unified configuration
+        self.identif_config = get_param_from_yaml(
+            robot, config_file, task_type="identification"
         )
 
         # Trajectory parameters

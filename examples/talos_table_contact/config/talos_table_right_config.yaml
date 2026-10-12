@@ -1,38 +1,55 @@
 # TALOS table-contact calibration -- right leg -> torso -> right arm chain
 #
-# The mirror of talos_table_left_config.yaml (see there for the field-by-
-# field notes); paired with it via utils.talos_table_tools.MultiChainCalibration
-# to couple the two chains' shared torso-joint corrections.
+# The mirror of talos_table_left_config.yaml (see there for the field notes); paired
+# with it via utils.talos_table_tools.MultiChainCalibration to couple the two chains'
+# shared torso-joint corrections.
+#
+# Unified format (extends: + tasks.*), migrated from the legacy flat schema with
+# python -m figaroh.utils.config_migration (figaroh-examples#125). The plane-pose and
+# contact-frame parameters this example adds (PLANE_TPL / CONTACT_TPL) are appended in
+# Python by TalosTableContactCalibration.initialize(); the config schema has no field
+# for them (see examples/talos_table_contact/README.md).
+#
+# 3 of 6 end-effector pose DOF are informative from a flush table touch: height along
+# the table normal (z) and the two in-plane tilts (roll, pitch); x, y and yaw are
+# unobservable and left out of the marker mask. nb_sample is overwritten by
+# TalosTableContactCalibration.load_data_set() with the row count of data_file;
+# data_file is overridden programmatically by the demo/test scripts. Outlier
+# rejection and the regularization coefficient are off (null).
 
-calibration:
-  # 3 of 6 end-effector pose DOF are informative from a flush table
-  # touch: height along the table normal (z) and the two in-plane tilts
-  # (roll, pitch). Position on the table (x, y) and yaw about the normal
-  # are not observable and are left out.
-  markers:
-    - measure: [false, false, true, true, true, false]
-
-  calib_level: full_params
-  base_frame: right_sole_link
-  tool_frame: gripper_right_base_link
-
-  free_flyer: false
-  non_geom: false
-
-  # Overwritten by TalosTableContactCalibration.load_data_set() with the
-  # actual row count of data_file; must be a positive placeholder here.
-  nb_sample: 1
-
-  # Joint-angle-only CSV (plus a session_id column); see
-  # generate_synthetic_data.py for the exact schema. Overridden
-  # programmatically by the demo/test scripts to point at the right-chain
-  # dataset.
-  data_file: data/table_contact_train.csv
-
-  # get_param_from_yaml() reads the 4 fields below as a single
-  # all-or-nothing dict update -- if any one key is missing, it silently
-  # resets data_file to None too, so the 3 unused ones must still be
-  # declared explicitly (see figaroh.calibration.calibration_tools).
-  coeff_regularize: null
-  sample_configs_file: null
-  outlier_eps: null
+extends: ../../templates/base_robot_config.yaml
+robot:
+  name: "talos"
+  description: "TALOS table-contact, right chain"
+tasks:
+  calibration:
+    enabled: true
+    type: kinematic_calibration
+    parameters:
+      calibration_level: full_params
+      include_non_geometric: false
+      regularization_coefficient: null
+      outlier_threshold: null
+    kinematics:
+      base_frame: right_sole_link
+      tool_frame: gripper_right_base_link
+      free_flying_base: false
+    measurements:
+      markers:
+      - reference_joint: null
+        measurable_dof:
+        - false
+        - false
+        - true
+        - true
+        - true
+        - false
+      poses:
+        base_pose: null
+        tool_pose: null
+    data:
+      source_file: data/table_contact_train.csv
+      sample_configurations_file: null
+      number_of_samples: 1
+  identification:
+    enabled: false

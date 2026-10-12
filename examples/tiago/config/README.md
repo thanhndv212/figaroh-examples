@@ -5,8 +5,8 @@
 | File | Purpose | Format |
 |------|---------|--------|
 | `tiago_unified_config.yaml` | **Main unified config** — used by all scripts by default | Unified (extends: `../../templates/humanoid_robot.yaml`) |
-| `tiago_config_hey5.yaml` | Legacy config for TIAGo with Hey5 hand | Legacy flat format |
-| `tiago_config.yaml` | Legacy config for TIAGo with Schunk hand | Legacy flat format |
+| `tiago_unified_config_hey5.yaml` | TIAGo with Hey5 hand (eye-hand calibration; `optimal_config.py` default) | Unified (extends: `../../templates/base_robot_config.yaml`) |
+| `tiago_suspension_config.yaml`, `tiago_backlash_surface_config.yaml` | Experimental suspension / backlash experiment descriptions | Not a FIGAROH robot config (no `calibration:`/`identification:`) |
 
 ## Archived Configurations (in `archive/`)
 
@@ -24,7 +24,8 @@
 
 - **All scripts** default to `config/tiago_unified_config.yaml` — this is the recommended
   configuration for TIAGo work.
-- Legacy `tiago_config_hey5.yaml` and `tiago_config.yaml` are kept for backward
-  compatibility with scripts that reference them explicitly.
+- The legacy flat `tiago_config.yaml` and `tiago_config_hey5.yaml` were migrated: the
+  Schunk variant is covered by `tiago_unified_config.yaml`, the Hey5 variant became
+  `tiago_unified_config_hey5.yaml` (figaroh-examples#125).
 - Do not add new configs in legacy flat format; always use the unified format with
   `extends:` template inheritance.
