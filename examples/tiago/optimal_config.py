@@ -37,8 +37,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=str,
-        default="config/tiago_config_hey5.yaml",
-        help="Path to config YAML file (legacy or unified format)",
+        default="config/tiago_unified_config_hey5.yaml",
+        help="Path to config YAML file (unified format)",
     )
     parser.add_argument(
         "--urdf",

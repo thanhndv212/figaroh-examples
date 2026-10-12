@@ -40,7 +40,7 @@ class TALOSCalibration(BaseCalibration):
     def __init__(
         self,
         robot,
-        config_file: str = "config/talos_config.yaml",
+        config_file: str = "config/talos_unified_config.yaml",
         del_list: list = [],
     ) -> None:
         """Initialize TALOS calibration with robot model and configuration.

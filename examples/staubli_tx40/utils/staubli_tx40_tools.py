@@ -38,7 +38,7 @@ from figaroh.utils.error_handling import (
 class TX40Identification(BaseIdentification):
     """Staubli TX40-specific dynamic parameter identification class."""
 
-    def __init__(self, robot, config_file: str = "config/TX40_config.yaml") -> None:  # type: ignore[override]
+    def __init__(self, robot, config_file: str = "config/staubli_tx40_unified_config.yaml") -> None:  # type: ignore[override]
         """Initialize TX40 identification with robot model and configuration.
 
         Args:

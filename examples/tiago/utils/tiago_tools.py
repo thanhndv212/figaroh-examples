@@ -141,7 +141,7 @@ class TiagoCalibration(BaseCalibration):
     def __init__(
         self,
         robot: Any,
-        config_file: str = "config/tiago_config.yaml",
+        config_file: str = "config/tiago_unified_config.yaml",
         del_list: Optional[List[Any]] = None,
     ) -> None:
         """Initialize TIAGo calibration with robot model and configuration.
@@ -184,7 +184,7 @@ class TiagoIdentification(BaseIdentification):
     def __init__(
         self,
         robot: Any,
-        config_file: str = "config/tiago_config.yaml",
+        config_file: str = "config/tiago_unified_config.yaml",
     ) -> None:
         """Initialize TIAGo identification with robot model and configuration.
 
@@ -417,7 +417,7 @@ class TiagoOptimalCalibration(BaseOptimalCalibration):
     def __init__(
         self,
         robot: Any,
-        config_file: str = "config/tiago_config.yaml",
+        config_file: str = "config/tiago_unified_config.yaml",
     ) -> None:
         """Initialize TIAGo optimal calibration."""
         super().__init__(robot, config_file)
@@ -436,7 +436,7 @@ class OptimalTrajectoryIPOPT(BaseOptimalTrajectory):
         self,
         robot: Any,
         active_joints: List[str],
-        config_file: str = "config/tiago_config.yaml",
+        config_file: str = "config/tiago_unified_config.yaml",
     ) -> None:
         """Initialize the TIAGo optimal trajectory generator."""
         super().__init__(robot, active_joints, config_file)
