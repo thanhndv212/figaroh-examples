@@ -90,7 +90,7 @@ def circular_spec(case, proto, pcmp):
 
 
 def run(args) -> dict:
-    from figaroh.identification import _physical_comparator as pcmp
+    from figaroh.identification import physical_fit as pcmp
 
     t0 = time.perf_counter()
     tp, proto = it.truth_parameters(), it.protocol()

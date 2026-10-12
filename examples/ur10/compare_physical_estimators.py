@@ -18,7 +18,7 @@ convergence and physical feasibility, are reported separately. For each noise
 level ``diagnose_exact`` classifies why exact reconstruction fails, if it does.
 
 The comparator is the private module
-``figaroh.identification._physical_comparator`` (core feat/59-physical-comparator).
+``figaroh.identification.physical_fit``.
 Nonlinear (log-Cholesky) candidates are not run here (follow-up).
 
     python compare_physical_estimators.py --output <json>
@@ -599,7 +599,7 @@ def summarize(cases: list) -> list:
 
 
 def run(args) -> dict:
-    from figaroh.identification import _physical_comparator as pcmp
+    from figaroh.identification import physical_fit as pcmp
 
     t0 = time.perf_counter()
     tp = it.truth_parameters()

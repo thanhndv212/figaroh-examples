@@ -313,7 +313,7 @@ def provenance(pcmp, spike_info, name):
 
 
 def run(args) -> dict:
-    from figaroh.identification import _physical_comparator as pcmp
+    from figaroh.identification import physical_fit as pcmp
 
     t0 = time.perf_counter()
     name = args.robot

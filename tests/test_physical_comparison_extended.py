@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 pytest.importorskip("picos")
 pytest.importorskip("cvxopt")
-pcmp = pytest.importorskip("figaroh.identification._physical_comparator")
+pcmp = pytest.importorskip("figaroh.identification.physical_fit")
 
 from examples import physical_comparison as pc  # noqa: E402
 

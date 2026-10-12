@@ -20,7 +20,7 @@ sys.path.insert(0, str(UR10.parents[1]))
 
 pytest.importorskip("picos")
 pytest.importorskip("cvxopt")
-pytest.importorskip("figaroh.identification._physical_comparator")
+pytest.importorskip("figaroh.identification.physical_fit")
 
 from examples.ur10 import compare_physical_estimators as cmp  # noqa: E402
 
