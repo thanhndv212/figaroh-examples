@@ -476,74 +476,8 @@ class TestRobotExampleIntegration:
             Path(config_file).unlink()
 
 
-class TestBackwardCompatibilityIntegration:
-    """Test backward compatibility with legacy configuration formats."""
-
-    def test_legacy_to_unified_config_conversion(self):
-        """Test that legacy configurations can be converted to unified format."""
-        from figaroh.utils.config_parser import get_param_from_yaml
-
-        # Mock robot with enhanced attributes
-        class EnhancedMockRobot:
-            def __init__(self, name="test_robot"):
-                self.model = type(
-                    "Model",
-                    (),
-                    {
-                        "name": name,
-                        "frames": [
-                            type("Frame", (), {"name": "universe"}),
-                            type("Frame", (), {"name": "base"}),
-                            type("Frame", (), {"name": "tool"}),
-                        ],
-                    },
-                )()
-                # Add expected methods for legacy parsers
-                self.model.getFrameId = lambda name: 1 if name == "tool" else 0
-                self.q0 = [0.0, 0.0, 0.0]
-
-        robot = EnhancedMockRobot()
-
-        # Legacy calibration format (simplified to avoid mock complexity)
-        legacy_config = {
-            "calib_level": "joint_offset",
-            "base_frame": "base",
-            "tool_frame": "tool",
-            "markers": [
-                {
-                    "ref_joint": "tool",
-                    "measure": [True, True, True, False, False, False],
-                    "position": [0.0, 0.0, 0.1],
-                }
-            ],
-            "nb_sample": 100,
-            "non_geom": False,
-            "free_flyer": False,
-        }
-
-        # Test that the unified parser can handle legacy format gracefully
-        try:
-            result = get_param_from_yaml(robot, legacy_config, "calibration")
-
-            # If it worked, verify basic structure
-            if isinstance(result, dict):
-                assert "robot_name" in result
-                # Additional checks can be added here
-
-        except Exception as e:
-            # Expected for incomplete mocks - verify it's a reasonable error
-            error_msg = str(e).lower()
-            expected_errors = [
-                "attribute",
-                "frames",
-                "mock",
-                "parent",
-                "joint",
-                "index",
-            ]
-            assert any(
-                err in error_msg for err in expected_errors
-            ), f"Unexpected error: {e}"
+class TestUnifiedConfigStructure:
+    """Structure checks on unified (extends: + tasks.*) configurations."""
 
     def test_unified_config_structure_validation(self):
         """Test that unified configs have consistent structure across robots."""

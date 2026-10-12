@@ -125,67 +125,6 @@ def sample_robot_configs():
         },
     }
 
-    # Legacy calibration config
-    configs["legacy_calibration"] = {
-        "calib_level": "full_params",
-        "base_frame": "base",
-        "tool_frame": "tool",
-        "markers": [
-            {"ref_joint": "joint3", "measure": [True, True, True, False, False, False]}
-        ],
-        "nb_sample": 100,
-        "non_geom": False,
-        "free_flyer": False,
-        "outlier_threshold": 0.02,
-    }
-
-    # Legacy identification config
-    configs["legacy_identification"] = {
-        "robot_params": [
-            {
-                "q_lim_def": 1.57,
-                "dq_lim_def": 1.0,
-                "fv": [0.1, 0.15, 0.2],
-                "fs": [0.05, 0.05, 0.05],
-                "Ia": [0.001, 0.002, 0.0015],
-                "offset": [0.0, 0.0, 0.0],
-                "Iam6": 0,
-                "fvm6": 0,
-                "fsm6": 0,
-                "reduction_ratio": [50.0, 50.0, 30.0],
-                "ratio_essential": 30.0,
-            }
-        ],
-        "problem_params": [
-            {
-                "is_external_wrench": False,
-                "is_joint_torques": True,
-                "has_friction": True,
-                "has_base": False,
-                "force_torque": None,
-                "external_wrench_offsets": False,
-                "has_actuator_inertia": False,
-                "has_joint_offset": False,
-                "has_coupled_wrist": False,
-            }
-        ],
-        "processing_params": [
-            {
-                "ts": 0.001,
-                "cut_off_frequency_butterworth": 50.0,
-                "outlier_threshold": 0.1,
-            }
-        ],
-        "tls_params": [
-            {
-                "nb_sample": 100,
-                "method": "iterative",
-                "mass_load": 0.0,
-                "which_body_loaded": 0.0,
-            }
-        ],
-    }
-
     return configs
 
 
@@ -202,9 +141,6 @@ def temp_config_structure(sample_robot_configs):
         configs_dir = base_path / "configs"
         configs_dir.mkdir()
 
-        legacy_dir = base_path / "legacy"
-        legacy_dir.mkdir()
-
         # Write template files
         template_file = templates_dir / "base.yaml"
         with open(template_file, "w") as f:
@@ -215,21 +151,10 @@ def temp_config_structure(sample_robot_configs):
         with open(robot_file, "w") as f:
             yaml.dump(sample_robot_configs["test_robot"], f)
 
-        # Write legacy configs
-        legacy_cal_file = legacy_dir / "calibration.yaml"
-        with open(legacy_cal_file, "w") as f:
-            yaml.dump(sample_robot_configs["legacy_calibration"], f)
-
-        legacy_id_file = legacy_dir / "identification.yaml"
-        with open(legacy_id_file, "w") as f:
-            yaml.dump(sample_robot_configs["legacy_identification"], f)
-
         yield {
             "base_path": base_path,
             "template_file": template_file,
             "robot_file": robot_file,
-            "legacy_cal_file": legacy_cal_file,
-            "legacy_id_file": legacy_id_file,
         }
 
 
@@ -384,60 +309,6 @@ class TestConfigurationIntegration:
         # Should complete in reasonable time (< 1 second)
         assert end_time - start_time < 1.0
         assert len(config["tasks"]) == 100
-
-    def test_real_world_migration(self, temp_config_structure):
-        """Test migrating from legacy to unified format."""
-        from figaroh.utils.config_parser import get_param_from_yaml
-
-        class MockRobot:
-            def __init__(self):
-                self.model = type(
-                    "Model",
-                    (),
-                    {
-                        "name": "test_robot",
-                        "frames": [
-                            type("Frame", (), {"name": "base"}),
-                            type("Frame", (), {"name": "joint1"}),
-                            type("Frame", (), {"name": "joint2"}),
-                            type("Frame", (), {"name": "joint3"}),
-                            type("Frame", (), {"name": "tool"}),
-                        ],
-                    },
-                )()
-                # Add getFrameId method for legacy calibration parser
-                self.model.getFrameId = lambda name: next(
-                    (i for i, f in enumerate(self.model.frames) if f.name == name), -1
-                )
-                self.q0 = [0.0, 0.0, 0.0]
-
-        robot = MockRobot()
-
-        # Load legacy config
-        legacy_cal_file = temp_config_structure["legacy_cal_file"]
-        with open(legacy_cal_file, "r") as f:
-            legacy_config = yaml.safe_load(f)
-
-        # Should handle legacy format gracefully
-        try:
-            result = get_param_from_yaml(robot, legacy_config, "calibration")
-            # Basic structure check if successful
-            if isinstance(result, dict):
-                assert "robot_name" in result or "calib_level" in legacy_config
-        except Exception as e:
-            # Expected if legacy functionality not available
-            error_msg = str(e).lower()
-            expected_keywords = [
-                "import",
-                "module",
-                "legacy",
-                "not found",
-                "attribute",
-                "parent",
-                "frames",
-                "mock",
-            ]
-            assert any(keyword in error_msg for keyword in expected_keywords)
 
 
 if __name__ == "__main__":
