@@ -12,13 +12,13 @@
 
 | File | Reason |
 |------|--------|
-| `tiago_config_mocap.yaml` | Broken — `data_file` and `sample_configs_file` commented out (missing data) |
-| `tiago_config_mocap_vicon.yaml` | Broken — `data_file` and `sample_configs_file` commented out (missing data) |
-| `tiago_config_palgripper.yaml` | Broken — `data_file` and `sample_configs_file` commented out (missing data) |
-| `tiago_config_improved.yaml` | Redundant — experimental flat format with `inherit_from` (not `extends`) |
 | `tiago_unified_config_with_templates.yaml` | Redundant — demo/exploratory copy of unified config |
-| `tiago_unified_config_simple.yaml` | Redundant — simplified test copy of unified config |
+| `tiago_unified_config_simple.yaml` | Redundant — simplified test copy of unified config; its non-zero `regularization_coefficient` is rejected by figaroh 1.0 |
 | `templates/local_template.yaml` | Redundant — local template example, unused |
+
+The four legacy flat-format archive configs (`tiago_config_improved`, `_mocap`,
+`_mocap_vicon`, `_palgripper`) were deleted before 1.0, which no longer loads that
+format; they remain in git history.
 
 ## Which Config to Use
 
