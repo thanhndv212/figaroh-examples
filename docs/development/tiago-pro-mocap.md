@@ -41,7 +41,10 @@ Defects that shape the study:
   rotation. The training frames cannot know it.
 - The 08-05 rows are 48 of the 51 postures of `optimal_configs.yaml` (the
   D-optimal plan), in order; recorded joints differ from the commanded ones
-  by 0.026-0.041 rad on every row (a systematic offset).
+  by 0.026-0.041 rad on every row.
+- The sessions record different encoders of the series elastic arm: the July
+  sessions the motor side, 08-05 the link side (section 8.5). The CSVs carry
+  no column saying so.
 
 ## 2. Split choice
 
@@ -171,7 +174,7 @@ standard errors of unidentifiable directions are far too small.
 ## 8. The train / held-out gap (diagnostics only)
 
 Training RMS 6.7 mm against 17-20 mm re-registered on held-out sessions. The
-following three diagnostics look for the cause. **They are diagnostics only:
+following four diagnostics look for the cause. **They are diagnostics only:
 none is used for model selection and none enters the frozen validation or
 confirmation selection** (`diagnostics.py`, separate from
 `heldout_protocol.py`).
@@ -244,44 +247,86 @@ rows). It does not explain a threefold gap.
 
 Overfitting within the session (1.23x), the frame move between days (about 4
 mm one day apart), and the in-sample bias of re-registration (7-16%) together
-do not account for 17-20 mm against 6.7 mm. The remaining candidate is a
-difference between the robot or the setup during the 08-05 session and the
-July sessions: a July-trained model does 11.8 mm on a July session, and the
-08-05-trained model 17-20 mm on July sessions, while the 08-05 model on its
-own session is at 6.7 mm. Whether 08-05 differs from July in the robot
-(wear, joint backlash, elastic deflection not in the model (section 8.5), the recorded-versus-commanded joint
-offset of 0.026-0.041 rad on every row) or in the setup (marker mounting,
-frames) cannot be separated with these data, since no session repeats another
-across the month. The claim the data support: **a model fitted on one 48-posture session
-predicts that session's unseen postures to about 8 mm, and sessions a month
-apart to about 17-20 mm after re-registration.** Any claim about the robot
-beyond that needs a second session on the pose-measuring layout.
+do not account for 17-20 mm against 6.7 mm. Most of the remainder is a change
+of encoder between the sessions (section 8.5): July recorded the motor-side
+joint angles, 08-05 the link-side ones, and the two differ by a per-joint
+offset plus a spring deflection that changes with the posture. A model fitted
+on link-side angles cannot be evaluated on motor-side angles as recorded.
+Mapping the July joints to the link side brings map_cv to 12.6 mm on 07-01
+and 7.2 mm on 07-02, against 8.2 mm on unseen postures of the training
+session itself (8.1).
 
-### 8.5 Series elastic actuators (untested hypothesis)
+The remaining 07-01 excess (12.6 against 7.2 mm) is unexplained. It matches
+the 07-01 to 07-02 picture of 8.2, where the July-trained model fits its own
+July session at 11.8 mm. The frozen held-out numbers of section 6 stay as
+they are: the correction uses a fit on the training session's joint data, and
+it was found after the protocol was frozen.
+
+### 8.5 Series elastic actuators: which encoder each session recorded
 
 The TIAGo Pro arm joints are series elastic actuators: the transmission has
 an elastic element, so the link angle differs from the motor angle by a
-deflection that grows with the joint torque. Every model in this study is
-rigid; none uses core's joint-elasticity terms
-(`parameters.include_non_geometric: true`, one compliance per joint with a
-deflection proportional to the gravity torque).
+deflection that grows with the joint torque. PAL's hardware interface gives
+each joint a motor-side `position` (motor encoder through the gear
+reduction) and a separate `absolute_position`, and estimates the torque
+from their difference. The recordings do not say which one was logged; the
+joint data do.
 
-This fits the observations. A configuration-dependent deflection is what a
-rigid model can only average away: the constant part goes into the joint
-offsets, and the gravity-dependent part stays in the residual. That residual
-looks small inside one session, which has one tool, cabling and posture
-distribution, and grows across sessions when the load or the posture
-distribution changes. The systematic 0.026-0.041 rad between recorded and
-commanded joints on every row is the size expected from a spring deflection
-or a controller tracking error. This note cannot tell the two apart, and it
-does not know which side of the spring the recorded joint position is
-measured on. If it is the link side, the deflection is already measured and
-elasticity cannot explain the gap.
+**July: motor side.** 4 of the 44 postures of 07-01 and 8 of the 94 of 07-02
+are postures of the commanded plan `optimal_configs.yaml`, and match the
+commanded angles to within 1.6e-4 rad. That is what the motor-side angle,
+which the position controller tracks, gives.
 
-The test is to add the elastic terms to the map_cv model, fit on 08-05, and
-compare its held-out error, and its 07-01 to 07-02 transfer, with the rigid
-model. A correlation between the recorded-commanded difference and each
-joint's gravity torque would also point to elasticity. Neither has been run.
+**08-05: link side.** None of the 48 postures matches its commanded posture
+(median gap 0.027 rad). Per joint, commanded minus recorded is fitted by a
+constant offset `c` plus a compliance `s` times the gravity torque of the
+nominal URDF at the recorded posture (least squares on the joint data only,
+no mocap):
+
+| Joint | Offset c (mrad) | Compliance s (mrad/Nm) | Stiffness 1/s (Nm/rad) | Correlation with gravity torque | Residual RMS (mrad) | Peak torque (Nm) |
+|---|---|---|---|---|---|---|
+| arm_right_1 | +18.60 | 0.632 | 1581 | 0.999 | 0.36 | 28.3 |
+| arm_right_2 | +21.80 | 0.666 | 1501 | 0.999 | 0.43 | 29.3 |
+| arm_right_3 | +8.61 | 0.631 | 1585 | 0.992 | 0.53 | 13.6 |
+| arm_right_4 | +5.96 | 0.662 | 1511 | 0.997 | 0.36 | 12.2 |
+| arm_right_5 | +19.86 | 0.723 | 1384 | 0.876 | 0.49 | 2.2 |
+| arm_right_6 | -22.72 | 1.450 | 690 | 0.994 | 0.20 | 2.3 |
+| arm_right_7 | +26.61 | (offset only) | | | 0.40 | 0.007 |
+
+One stiffness of about 1500 Nm/rad on joints 1-4 explains the difference
+to half a milliradian: the deflection of a spring under gravity, read on the
+link side, plus a constant offset between the two encoders of 6-27 mrad.
+A controller tracking error would not scale with the gravity torque
+this closely.
+
+The values are effective, not the actuator's specification: they depend on
+the URDF masses and leave out the marker plate on the tool. Joint 7 carries
+almost no gravity torque, so only its offset is fitted.
+
+**Mocap check.** The fit above uses no mocap, so the held-out sessions test
+it independently. Each model is trained on 08-05 as recorded and evaluated
+on the July sessions with their joints mapped to the link side,
+q_link = q_motor - c - s * tau. Re-registered position RMSE (mm):
+
+| Model | 07-01 as recorded | offsets only | deflection only | offsets + deflection | 07-02 as recorded | offsets only | deflection only | offsets + deflection |
+|---|---|---|---|---|---|---|---|---|
+| registration only | 28.56 | 23.65 | 27.45 | 21.58 | 28.06 | 22.42 | 26.68 | 20.44 |
+| full_params | 20.49 | 16.71 | 18.18 | 12.60 | 17.50 | 12.01 | 14.88 | 7.15 |
+| full map_cv | 20.40 | 16.78 | 18.02 | 12.61 | 17.28 | 12.10 | 14.60 | 7.24 |
+
+Both parts are needed; together they remove about 40-60% of the held-out
+error. The reverse mapping agrees. Moving 08-05 to the motor side
+(q_motor = q_link + c + s * tau) and training on it raises the map_cv
+training RMS from 6.69 to 11.12 mm (full_params 6.68 to 10.55), and gives
+17.02 and 12.58 mm on the July sessions as recorded. The mocap fits the
+link-side angles better, as it should: it measures where the link is.
+Calibration data should record the link side, and a model trained on it
+should be fed link-side angles.
+
+Not done: fitting core's joint-elasticity terms
+(`parameters.include_non_geometric: true`, one compliance per joint) on
+motor-side data, which would identify the same stiffness from the mocap
+instead of from the commanded postures.
 
 ## 9. Limits
 
@@ -294,8 +339,11 @@ joint's gravity torque would also point to elasticity. Neither has been run.
 - The base and tool frames are mocap setup, not robot geometry; the PAL
   `master_calibration_*.yaml` files are exported from training-session fits
   by `run_calibration.py` (not a primary use) and carry no held-out claim.
-- All models are rigid. The arm uses series elastic actuators, and no
-  elasticity model was fitted (section 8.5).
+- All models are rigid and trained on link-side joint angles (08-05). The
+  July held-out sessions recorded the motor side; the frozen held-out
+  numbers of section 6 use them as recorded. The encoder-side correction
+  (section 8.5) is fitted on the training session's joint data and the
+  nominal URDF masses, and is a diagnostic, not part of the protocol.
 - joint_offset is not available ([figaroh-plus#205](https://github.com/thanhndv212/figaroh-plus/issues/205)).
 - The differences among the four fitted models (0.01-0.4 mm) are below any
   meaningful resolution; the study does not rank them.
@@ -312,6 +360,7 @@ python calibration_truth.py --methods --seeds 0 1 --noise 1.35   # reduced
 python diagnostics.py kfold             # 8.1, about 10 min
 python diagnostics.py crossday          # 8.2
 python diagnostics.py splithalf         # 8.3
+python diagnostics.py encoder           # 8.5, about 1 min
 python data_audit.py                    # noise estimate and outlier scan
 python reference_run.py --no-plot       # fit, held-out report, archive
 ```
@@ -322,8 +371,8 @@ heldout.json, corrections.json, parameters.csv). From a dirty checkout the
 archive check reports `revisions` as its only gap.
 
 Tests: `pytest tests/test_tiago_pro_*.py` (default suite, cheap);
-`-m slow` adds the held-out golden, the reference run and the 10-minute
-k-fold check. Regenerate the golden with
+`-m slow` adds the held-out golden, the reference run, the 10-minute
+k-fold check and the encoder-side correction. Regenerate the golden with
 `python ../../tests/test_tiago_pro_heldout.py > ../../tests/golden/tiago_pro_mocap.json`.
 
 ## Appendix A. Earlier analyses folded into this note
