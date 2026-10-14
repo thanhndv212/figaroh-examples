@@ -1,0 +1,205 @@
+{
+ "_about": "Seed-0 snapshot of examples/tiago_pro: per-model parameter counts, training RMS (08-05), held-out RMSE (mm) re-registered and transfer on validation (07-01) and confirmation (07-02), the model selected on validation, the noise estimate, and the seed-0 simulation grid. Regenerate with: python tests/test_tiago_pro_heldout.py > tests/golden/tiago_pro_mocap.json (from examples/tiago_pro conda env figaroh-dev).",
+ "primary_metric": "rmse_rereg",
+ "selected": "full map_cv",
+ "models": {
+  "registration only": {
+   "n_params": 12,
+   "n_joint_params": 0,
+   "train_pos_rmse_mm": 19.779,
+   "train_ori_rmse_deg": 3.091,
+   "sets": {
+    "calibration_samples_20260701_0913.csv": {
+     "rmse_rereg": 28.561,
+     "rmse_transfer": 38.307,
+     "n": 44,
+     "strata": {
+      "repeated": 0,
+      "new": 38,
+      "out_of_range": 6
+     }
+    },
+    "calibration_samples_20260702_0756.csv": {
+     "rmse_rereg": 28.062,
+     "rmse_transfer": 33.521,
+     "n": 94,
+     "strata": {
+      "repeated": 0,
+      "new": 74,
+      "out_of_range": 20
+     }
+    }
+   }
+  },
+  "full_params": {
+   "n_params": 35,
+   "n_joint_params": 23,
+   "train_pos_rmse_mm": 6.685,
+   "train_ori_rmse_deg": 1.808,
+   "sets": {
+    "calibration_samples_20260701_0913.csv": {
+     "rmse_rereg": 20.49,
+     "rmse_transfer": 26.682,
+     "n": 44,
+     "strata": {
+      "repeated": 0,
+      "new": 38,
+      "out_of_range": 6
+     }
+    },
+    "calibration_samples_20260702_0756.csv": {
+     "rmse_rereg": 17.496,
+     "rmse_transfer": 22.173,
+     "n": 94,
+     "strata": {
+      "repeated": 0,
+      "new": 74,
+      "out_of_range": 20
+     }
+    }
+   }
+  },
+  "full map": {
+   "n_params": 60,
+   "n_joint_params": 48,
+   "train_pos_rmse_mm": 7.44,
+   "train_ori_rmse_deg": 1.934,
+   "sets": {
+    "calibration_samples_20260701_0913.csv": {
+     "rmse_rereg": 20.406,
+     "rmse_transfer": 27.306,
+     "n": 44,
+     "strata": {
+      "repeated": 0,
+      "new": 38,
+      "out_of_range": 6
+     }
+    },
+    "calibration_samples_20260702_0756.csv": {
+     "rmse_rereg": 16.924,
+     "rmse_transfer": 22.045,
+     "n": 94,
+     "strata": {
+      "repeated": 0,
+      "new": 74,
+      "out_of_range": 20
+     }
+    }
+   }
+  },
+  "full map_cv": {
+   "n_params": 60,
+   "n_joint_params": 48,
+   "train_pos_rmse_mm": 6.686,
+   "train_ori_rmse_deg": 1.814,
+   "sets": {
+    "calibration_samples_20260701_0913.csv": {
+     "rmse_rereg": 20.396,
+     "rmse_transfer": 26.726,
+     "n": 44,
+     "strata": {
+      "repeated": 0,
+      "new": 38,
+      "out_of_range": 6
+     }
+    },
+    "calibration_samples_20260702_0756.csv": {
+     "rmse_rereg": 17.284,
+     "rmse_transfer": 22.03,
+     "n": 94,
+     "strata": {
+      "repeated": 0,
+      "new": 74,
+      "out_of_range": 20
+     }
+    }
+   }
+  },
+  "full cv_subset": {
+   "n_params": 18,
+   "n_joint_params": 6,
+   "train_pos_rmse_mm": 7.472,
+   "train_ori_rmse_deg": 1.869,
+   "sets": {
+    "calibration_samples_20260701_0913.csv": {
+     "rmse_rereg": 20.758,
+     "rmse_transfer": 27.133,
+     "n": 44,
+     "strata": {
+      "repeated": 0,
+      "new": 38,
+      "out_of_range": 6
+     }
+    },
+    "calibration_samples_20260702_0756.csv": {
+     "rmse_rereg": 17.714,
+     "rmse_transfer": 22.332,
+     "n": 94,
+     "strata": {
+      "repeated": 0,
+      "new": 74,
+      "out_of_range": 20
+     }
+    }
+   }
+  }
+ },
+ "noise": {
+  "sigma_mm": 1.351,
+  "grid": [
+   0.5,
+   1.35,
+   3.0
+  ]
+ },
+ "simulation_seed0": [
+  {
+   "fit": "registration only",
+   "noise_mm": 0.5,
+   "n_params": 12,
+   "train_rms_mm": 4.722,
+   "heldout_rmse_mm": 12.252,
+   "heldout_max_mm": 22.692
+  },
+  {
+   "fit": "full_params",
+   "noise_mm": 0.5,
+   "n_params": 35,
+   "train_rms_mm": 0.485,
+   "heldout_rmse_mm": 0.475,
+   "heldout_max_mm": 0.979
+  },
+  {
+   "fit": "registration only",
+   "noise_mm": 1.35,
+   "n_params": 12,
+   "train_rms_mm": 4.924,
+   "heldout_rmse_mm": 12.48,
+   "heldout_max_mm": 22.992
+  },
+  {
+   "fit": "full_params",
+   "noise_mm": 1.35,
+   "n_params": 35,
+   "train_rms_mm": 1.301,
+   "heldout_rmse_mm": 1.149,
+   "heldout_max_mm": 2.366
+  },
+  {
+   "fit": "registration only",
+   "noise_mm": 3.0,
+   "n_params": 12,
+   "train_rms_mm": 5.656,
+   "heldout_rmse_mm": 12.959,
+   "heldout_max_mm": 24.051
+  },
+  {
+   "fit": "full_params",
+   "noise_mm": 3.0,
+   "n_params": 35,
+   "train_rms_mm": 2.892,
+   "heldout_rmse_mm": 2.515,
+   "heldout_max_mm": 5.244
+  }
+ ]
+}
