@@ -1,0 +1,289 @@
+# TALOS table-contact real postures, protocol v2 (examples#113): sources (sha256), frozen session roles,
+# shipped-file hashes and per-posture provenance. Rebuild with
+# python -m examples.talos_table_contact.utils.real_data_extraction --help
+name: talos-table-contact-real
+version: 2
+note: 'Protocol v2: postures unchanged from v1; only the CSV headers changed. Sources are original recordings,
+  not distributed. Paths are relative to the recordings root.'
+previous_version:
+  version: 1
+  files:
+    left_train.csv: d2fadbf1f4a1ab5dcf5c44264f690dad15657f9802eae7794d922d69f806299b
+    left_validation.csv: d103a0a7a2d5394d5d8c02d8ea65af2ecbcb20b978b00746a1cef6f837df6343
+    right_train.csv: 799fb85edc7ffa6f14250bfc59f28cf450e6f7d42f90c5e10c68f2037cb18555
+    right_validation.csv: 370fcb94a7a13d6dc5d2077d8c0af016982ca2117bcc0ccc58ffa87f7d628c1d
+header: ',,,,joint_names,arm_left_1_joint,arm_left_2_joint,arm_left_3_joint,arm_left_4_joint,arm_left_5_joint,arm_left_6_joint,arm_left_7_joint,arm_right_1_joint,arm_right_2_joint,arm_right_3_joint,arm_right_4_joint,arm_right_5_joint,arm_right_6_joint,arm_right_7_joint,gripper_left_joint,gripper_right_joint,head_1_joint,head_2_joint,leg_left_1_joint,leg_left_2_joint,leg_left_3_joint,leg_left_4_joint,leg_left_5_joint,leg_left_6_joint,leg_right_1_joint,leg_right_2_joint,leg_right_3_joint,leg_right_4_joint,leg_right_5_joint,leg_right_6_joint,torso_1_joint,torso_2_joint'
+contact_rule:
+  max_joint_diff_rad: 0.0003
+  contact_fz_n: 10.0
+  time_resolution_s: 1.0
+sessions:
+- id: talos-left-2022-10-28
+  role: training
+  date: '2022-10-28'
+  file: left_train.csv
+  sha256: d2fadbf1f4a1ab5dcf5c44264f690dad15657f9802eae7794d922d69f806299b
+  rows: 21
+  postures:
+  - 20221028/measure_1028/measurements_1028_1.csv:3
+  - 20221028/measure_1028/measurements_1028_1.csv:4
+  - 20221028/measure_1028/measurements_1028_2.csv:2
+  - 20221028/measure_1028/measurements_1028_2.csv:3
+  - 20221028/measure_1028/measurements_1028_3.csv:2
+  - 20221028/measure_1028/measurements_1028_3.csv:3
+  - 20221028/measure_1028/measurements_1028_3.csv:7
+  - 20221028/measure_1028/measurements_1028_3.csv:8
+  - 20221028/measure_1028/measurements_1028_3.csv:10
+  - 20221028/measure_1028/measurements_1028_3.csv:11
+  - 20221028/measure_1028/measurements_1028_3.csv:12
+  - 20221028/measure_1028/measurements_1028_3.csv:13
+  - 20221028/measure_1028/measurements_1028_3.csv:14
+  - 20221028/measure_1028/measurements_1028_3.csv:15
+  - 20221028/measure_1028/measurements_1028_3.csv:16
+  - 20221028/measure_1028/measurements_1028_4.csv:4
+  - 20221028/measure_1028/measurements_1028_4.csv:5
+  - 20221028/measure_1028/measurements_1028_4.csv:6
+  - 20221028/measure_1028/measurements_1028_4.csv:7
+  - 20221028/measure_1028/measurements_1028_4.csv:8
+  - 20221028/measure_1028/measurements_1028_5.csv:2
+- id: talos-left-2022-11-07
+  role: validation
+  date: '2022-11-07'
+  file: left_validation.csv
+  sha256: 7d8766e78806fb72a7ea22de0e4f47881bff61b11392bbf0233f10c71202a8cd
+  rows: 9
+  postures:
+  - 20221107/measure_1107/measurements_1710.csv:2
+  - 20221107/measure_1107/measurements_1745.csv:2
+  - 20221107/measure_1107/measurements_1745.csv:3
+  - 20221107/measure_1107/measurements_1745.csv:4
+  - 20221107/measure_1107/measurements_1745.csv:5
+  - 20221107/measure_1107/measurements_1745.csv:6
+  - 20221107/measure_1107/measurements_1745.csv:7
+  - 20221107/measure_1107/measurements_1800.csv:2
+  - 20221107/measure_1107/measurements_1800.csv:3
+- id: talos-right-2022-11-07-train
+  role: training
+  date: '2022-11-07'
+  file: right_train.csv
+  sha256: 694cfaa811045c2ab3c5020804bca92dc2a350957b1c03490da9646080e1f63a
+  rows: 29
+  postures:
+  - 20221107/measure_1107/measurements_1330.csv:2
+  - 20221107/measure_1107/measurements_1330.csv:3
+  - 20221107/measure_1107/measurements_1330.csv:4
+  - 20221107/measure_1107/measurements_1500.csv:2
+  - 20221107/measure_1107/measurements_1500.csv:3
+  - 20221107/measure_1107/measurements_1500.csv:4
+  - 20221107/measure_1107/measurements_1500.csv:10
+  - 20221107/measure_1107/measurements_1507.csv:2
+  - 20221107/measure_1107/measurements_1507.csv:3
+  - 20221107/measure_1107/measurements_1507.csv:4
+  - 20221107/measure_1107/measurements_1507.csv:5
+  - 20221107/measure_1107/measurements_1530.csv:2
+  - 20221107/measure_1107/measurements_1550.csv:2
+  - 20221107/measure_1107/measurements_1550.csv:3
+  - 20221107/measure_1107/measurements_1550.csv:4
+  - 20221107/measure_1107/measurements_1550.csv:5
+  - 20221107/measure_1107/measurements_1550.csv:6
+  - 20221107/measure_1107/measurements_1630.csv:2
+  - 20221107/measure_1107/measurements_1630.csv:3
+  - 20221107/measure_1107/measurements_1630.csv:4
+  - 20221107/measure_1107/measurements_1630.csv:5
+  - 20221107/measure_1107/measurements_1630.csv:6
+  - 20221107/measure_1107/measurements_1630.csv:7
+  - 20221107/measure_1107/measurements_1630.csv:8
+  - 20221107/measure_1107/measurements_1630.csv:9
+  - 20221107/measure_1107/measurements_1630.csv:10
+  - 20221107/measure_1107/measurements_1630.csv:11
+  - 20221107/measure_1107/measurements_1630.csv:12
+  - 20221107/measure_1107/measurements_1630.csv:13
+- id: talos-right-2022-11-07-validation
+  role: validation
+  date: '2022-11-07'
+  file: right_validation.csv
+  sha256: e81f701f69cb7f8fc8cbf11c70eb66fd4744f7f184def9524db96729f5885a15
+  rows: 9
+  postures:
+  - 20221107/measure_1107/measurements_1820.csv:2
+  - 20221107/measure_1107/measurements_1850.csv:2
+  - 20221107/measure_1107/measurements_1850.csv:3
+  - 20221107/measure_1107/measurements_1850.csv:4
+  - 20221107/measure_1107/measurements_1850.csv:5
+  - 20221107/measure_1107/measurements_1850.csv:6
+  - 20221107/measure_1107/measurements_1850.csv:7
+  - 20221107/measure_1107/measurements_1850.csv:8
+  - 20221107/measure_1107/measurements_1910.csv:2
+measurement_files:
+  20221027/measurements_1.csv: e9ef833fc4f4ee918bfbc0c59e9c41ce685b465fd492bfa5d5a9f091b40dfd29
+  20221028/measure_1028/measurements_1028_1.csv: faba401dcc4dacf45671d0d1dde5525d3a2f8ac43c3e8a78da3dfdd0f26c1445
+  20221028/measure_1028/measurements_1028_2.csv: fde0995be73ed4c18f507c85ad7e5d7169eff7ab46cb66b188b7bd45c043e78e
+  20221028/measure_1028/measurements_1028_3.csv: 8afbfb9bfafeca43d5a78b65b8d363862ea5b50840b40971376d369bc1961c56
+  20221028/measure_1028/measurements_1028_4.csv: dd57632ae09f2722f048dd20954da95bfbe30d605e206218f81c47b1db9b045b
+  20221028/measure_1028/measurements_1028_5.csv: 3bdd1ab306c215bb05070ed8277c2c757129d7a3cfae6e145c9c5cdd083e4f3d
+  20221107/measure_1107/measurements_1330.csv: ace82ac8ede874f416aa47379437ef568863ff4fcbd1f703b301e58321b7a9ec
+  20221107/measure_1107/measurements_1500.csv: 1ba03205d5f00e426132c9fe425f3d2008d1c070c5a58404d5ff362a1f735683
+  20221107/measure_1107/measurements_1507.csv: 27b05c59b45e95ab4a8ebfc39f7cd1673e9ac4b54175447a10ce717795e9ecb2
+  20221107/measure_1107/measurements_1530.csv: b2300ac74f5371e8639cbd7bad4e538ed00f768bf0fd2e8fb0204991d456ec57
+  20221107/measure_1107/measurements_1550.csv: a4f0063bb6a1bf4dc23c144ec8cd16bebb72d2042795496d962df8c67855d41e
+  20221107/measure_1107/measurements_1630.csv: 282b6a9b9d04325f800f8dcd65e1299847dee008f4e2560efdc86f42fc4b3a55
+  20221107/measure_1107/measurements_1710.csv: 5469a58b25b3b3254684155602db96b2e7abed1ef7b152ea0c1eeb5dca9f7a6a
+  20221107/measure_1107/measurements_1745.csv: 99bdd8e707b1635b54d9b466d309853476ee1342568e1cf2cee0c1680e1bf333
+  20221107/measure_1107/measurements_1800.csv: ad35a1b4446c63d30dc5dcad0b7593d2ef914c48ba1d1b1d1ef89293e3c1d9cc
+  20221107/measure_1107/measurements_1820.csv: bd70b3d8a9974dbb306cec3d6446edf943a48a77043664285d140a738bb19a56
+  20221107/measure_1107/measurements_1850.csv: d3ecac39513e70f458eb0a7f82f54c5c752762111cd3e5b364e6300abdcc4fe9
+  20221107/measure_1107/measurements_1910.csv: 4c15ee67067ede2253843d8cc9dc8eed3b8644b4503f82f099d09d6287817e26
+bags:
+  20221014/pyrene-calibration-2022_10_14.bag:
+    sha256: e7f82142fe1f5223a02876f391c3e00bdde81a07b4abe4d57fc7e7339616e56b
+    status: searched
+    reason: 128 decodable samples; searched for matches to shipped postures
+  20221014/pyrene-calibration-3.bag:
+    sha256: e1be44eb1fb072a0aa3bb23b60bd7a3067e458534ff3c0056975347995eceabd
+    status: searched
+    reason: 55 decodable samples; searched for matches to shipped postures
+  20221014/pyrene-calibration-4.bag:
+    sha256: e7f82142fe1f5223a02876f391c3e00bdde81a07b4abe4d57fc7e7339616e56b
+    status: searched
+    reason: 128 decodable samples; searched for matches to shipped postures
+  20221025/pyrene-calibration_2022-10-25-12-37-50.bag:
+    sha256: 123051215c765e51a80441b467fcee6756c654b287e8a6a3d23a18454a58e4d7
+    status: searched
+    reason: 705 decodable samples; searched for matches to shipped postures
+  20221027/pyrene-calibration_2022-10-27-13-23-21.bag:
+    sha256: 9ecae8cf47d7dae68bf1a6ff340032b87bfdef3e7c4a72f6ba600fdb68921128
+    status: searched
+    reason: 139 decodable samples; searched for matches to shipped postures
+  20221027/pyrene-calibration_2022-10-27-13-49-37.bag:
+    sha256: e8cae9448661259d9ad6eac703bf7c3cfd14eeeeecb2d5c23e028c2499b7461b
+    status: no_samples
+    reason: no message with a name list in this bag (statistics-only channels, or names recorded in another
+      bag)
+  20221027/pyrene-calibration_2022-10-27-13-58-34.bag:
+    sha256: 87fefa48c1b4d271df4453f79d5512a9b7ea2e9a24e40aee5b371c930f09b0f7
+    status: no_samples
+    reason: no message with a name list in this bag (statistics-only channels, or names recorded in another
+      bag)
+  20221027/pyrene-calibration_2022-10-27-15-27-01.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221027/pyrene-calibration_2022-10-27-15-28-34.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221028/pyrene-calibration_2022-10-28-07-50-09.bag:
+    sha256: 197cbce271361a77240f7bc6bb97ce96e0eb95831a0a4c6056210ac8fc2d4ca5
+    status: searched
+    reason: 1127 decodable samples; searched for matches to shipped postures
+  20221028/pyrene-calibration_2022-10-28-08-32-13.bag:
+    sha256: 18c5474a5c8072a95791c43fb26d2142ff0755c1e8703acd02c3a5fff6008336
+    status: searched
+    reason: 493 decodable samples; searched for matches to shipped postures
+  20221028/pyrene-calibration_2022-10-28-09-00-43.bag:
+    sha256: c3b8cd3ad02724eec1a700478c11c3f9db5b781f6e73fe3bca67cdd19ed7bad6
+    status: recovered
+    reason: 42 messages with 604 values but no 604-channel name list in this bag; the list is taken from
+      the searched bags, where every 604-channel list is identical (checked on each run); the 42 samples
+      span 41 s and match no shipped posture
+  20221028/pyrene-calibration_2022-10-28-09-51-55.bag:
+    sha256: 4481d0d7b46d607fea8d159f41f775204aac9463dc2e8a0204e7c068394ba50e
+    status: no_samples
+    reason: no message with a name list in this bag (statistics-only channels, or names recorded in another
+      bag)
+  20221028/pyrene-calibration_2022-10-28-10-08-43.bag:
+    sha256: 3ddf97d46ba0569e4cd553e041156f086be21ca170992ce70e97ac715c5d5999
+    status: searched
+    reason: 1201 decodable samples; searched for matches to shipped postures
+  20221028/pyrene-calibration_2022-10-28-10-39-53.bag:
+    sha256: 746c2a4826f4eafab31dd8270583da0af608d7c8e562230ce06cb3567e9bf2ea
+    status: searched
+    reason: 691 decodable samples; searched for matches to shipped postures
+  20221107/pyrene-calibration_2022-11-07-12-18-25.bag:
+    sha256: 19ca0aea0f35b27845d724e263803053d1bdf222378914795f11679bfbccc757
+    status: searched
+    reason: 575 decodable samples; searched for matches to shipped postures
+  20221107/pyrene-calibration_2022-11-07-12-45-35.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221107/pyrene-calibration_2022-11-07-12-58-35.bag:
+    sha256: 13c2ed62a3d1958545a5e72f71d0dbb283897d63bfecb0a76a0e81c9d9c58c17
+    status: searched
+    reason: 247 decodable samples; searched for matches to shipped postures
+  20221107/pyrene-calibration_2022-11-07-13-12-55.bag:
+    sha256: 1c9b0573afcf799b0909f5b813ac5e22d07e1380c8f874f3b588ad001a51c1a7
+    status: searched
+    reason: 366 decodable samples; searched for matches to shipped postures
+  20221107/pyrene-calibration_2022-11-07-13-24-22.bag.active:
+    sha256: 5f216e07128392d4226fdd8f1ba98f32f8872e3267dbdbc6f2a8eef002812439
+    status: unreadable
+    reason: bag is not indexed (never closed), cannot be read
+  20221107/pyrene-calibration_2022-11-07-13-40-29.bag:
+    sha256: 53e7df34868295199ba71cd28a28a1e82c6f321a97c57d524c69d84556cbe843
+    status: searched
+    reason: 1675 decodable samples; searched for matches to shipped postures
+  20221107/pyrene-calibration_2022-11-07-14-27-05.bag:
+    sha256: bd65eb9d758fa9bc4c7643ffc67be98a7d947a9e44415ac7934d0f3a7da1adc8
+    status: no_samples
+    reason: no message with a name list in this bag (statistics-only channels, or names recorded in another
+      bag)
+  20221107/pyrene-calibration_2022-11-07-14-40-28.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221107/pyrene-calibration_2022-11-07-16-05-27.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221107/pyrene-calibration_2022-11-07-16-22-00.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221107/pyrene-calibration_2022-11-07-16-53-10.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221107/pyrene-calibration_2022-11-07-17-04-15.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221107/pyrene-calibration_2022-11-07-17-27-06.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+  20221107/pyrene-calibration_2022-11-07-17-59-26.bag:
+    sha256: 1d50f1a90f1c3c662a6306789fa96da2927f22f5f46ed8cf23bc74a6d9837a3a
+    status: empty
+    reason: bag holds no messages
+unshipped:
+  measurement_files:
+    20221027/measurements_1.csv: 'not used: no row appears in a shipped file'
+contact_evidence:
+  file: contact_evidence.csv
+  sha256: 0da75d31a499397b7b8e84068f0ffd7b7fcd5d788e8b0497fa42ab764a111675
+  columns:
+  - posture_file
+  - row
+  - contact_marker
+  - status
+  - bag
+  - stamp_s
+  - max_joint_diff_rad
+  - force_x_N
+  - force_y_N
+  - force_z_N
+  - torque_x_Nm
+  - torque_y_Nm
+  - torque_z_Nm
+  - contact
+unshipped_sessions:
+- id: 2022-10-14
+  role: diagnostic
+  reason: session reported to drift (examples#113); no posture file; its bags were searched and match no shipped posture
+- id: 2022-10-25
+  role: diagnostic
+  reason: session reported to drift (examples#113); a play-motion log and a joint-state dump exist but no measurement file; its bag was searched and matches no shipped posture
+- id: 2022-10-27
+  role: diagnostic
+  reason: test session; one measurement file with 3 left-gripper postures (table contacts 21, 24, 30) that no shipped file uses; the searched bag does not hold them (nearest sample about 2 rad away), so they have no contact evidence; two bags hold only statistics channels and two are empty
