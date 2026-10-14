@@ -1,0 +1,140 @@
+[
+ {
+  "truth": "joint_offset",
+  "fit": "registration only",
+  "seed": 0,
+  "noise_mm": 0.5,
+  "n_params": 9,
+  "solver_status": 1,
+  "nfev": 1,
+  "absorbed": [
+   "offsetPZ_torso_lift_joint",
+   "offsetRZ_arm_1_joint"
+  ],
+  "train_rms_mm": 1.6312618322842898,
+  "heldout_rmse_mm": 3.255335538087686,
+  "heldout_max_mm": 7.042426407788742,
+  "strata_rmse_mm": {
+   "repeated": 2.7124587694963487,
+   "new": 2.905111197181285,
+   "out_of_range": 5.314647786721884
+  }
+ },
+ {
+  "truth": "joint_offset",
+  "fit": "joint_offset",
+  "seed": 0,
+  "noise_mm": 0.5,
+  "n_params": 14,
+  "solver_status": 2,
+  "nfev": 4,
+  "absorbed": [
+   "offsetPZ_torso_lift_joint",
+   "offsetRZ_arm_1_joint"
+  ],
+  "train_rms_mm": 0.498700531026968,
+  "heldout_rmse_mm": 0.2713112712808134,
+  "heldout_max_mm": 1.140463670757095,
+  "strata_rmse_mm": {
+   "repeated": 0.2805754784059544,
+   "new": 0.1475610770884246,
+   "out_of_range": 0.38712459174599834
+  },
+  "z_scores": {
+   "offsetRZ_arm_2_joint": 1.1878892157209107,
+   "offsetRZ_arm_3_joint": -0.9696009040074555,
+   "offsetRZ_arm_4_joint": 1.8006027338602504,
+   "offsetRZ_arm_5_joint": 0.8547890796569902,
+   "offsetRZ_arm_6_joint": -0.3435048581295303
+  }
+ },
+ {
+  "truth": "joint_offset",
+  "fit": "full_params",
+  "seed": 0,
+  "noise_mm": 0.5,
+  "n_params": 31,
+  "solver_status": 2,
+  "nfev": 5,
+  "absorbed": [
+   "d_pz_arm_7_joint"
+  ],
+  "train_rms_mm": 0.4767734377541904,
+  "heldout_rmse_mm": 1.4734475340176763,
+  "heldout_max_mm": 10.164551830780429,
+  "strata_rmse_mm": {
+   "repeated": 0.4918593388317691,
+   "new": 0.6690783144391095,
+   "out_of_range": 3.6751098873072006
+  }
+ },
+ {
+  "truth": "joint_offset",
+  "fit": "registration only",
+  "seed": 1,
+  "noise_mm": 0.5,
+  "n_params": 9,
+  "solver_status": 1,
+  "nfev": 1,
+  "absorbed": [
+   "offsetPZ_torso_lift_joint",
+   "offsetRZ_arm_1_joint"
+  ],
+  "train_rms_mm": 2.3241320687559686,
+  "heldout_rmse_mm": 4.635967154573603,
+  "heldout_max_mm": 19.958226345076522,
+  "strata_rmse_mm": {
+   "repeated": 3.89796266244873,
+   "new": 4.091474448283007,
+   "out_of_range": 7.539988077405301
+  }
+ },
+ {
+  "truth": "joint_offset",
+  "fit": "joint_offset",
+  "seed": 1,
+  "noise_mm": 0.5,
+  "n_params": 14,
+  "solver_status": 2,
+  "nfev": 5,
+  "absorbed": [
+   "offsetPZ_torso_lift_joint",
+   "offsetRZ_arm_1_joint"
+  ],
+  "train_rms_mm": 0.4077323018339747,
+  "heldout_rmse_mm": 0.27055250899588584,
+  "heldout_max_mm": 0.7050979949538027,
+  "strata_rmse_mm": {
+   "repeated": 0.2446432124405426,
+   "new": 0.30140561216843625,
+   "out_of_range": 0.3096802818828771
+  },
+  "z_scores": {
+   "offsetRZ_arm_2_joint": -0.6924373053892111,
+   "offsetRZ_arm_3_joint": 1.1110215352201942,
+   "offsetRZ_arm_4_joint": -0.6531297513723621,
+   "offsetRZ_arm_5_joint": 0.6488217806972092,
+   "offsetRZ_arm_6_joint": 0.34465517605529283
+  }
+ },
+ {
+  "truth": "joint_offset",
+  "fit": "full_params",
+  "seed": 1,
+  "noise_mm": 0.5,
+  "n_params": 31,
+  "solver_status": 2,
+  "nfev": 5,
+  "absorbed": [
+   "d_pz_arm_7_joint"
+  ],
+  "train_rms_mm": 0.3571232103421056,
+  "heldout_rmse_mm": 0.616231110341544,
+  "heldout_max_mm": 2.8538229308970164,
+  "strata_rmse_mm": {
+   "repeated": 0.43625514336540705,
+   "new": 0.5326671965001265,
+   "out_of_range": 1.1639554418758087
+  }
+ }
+]
