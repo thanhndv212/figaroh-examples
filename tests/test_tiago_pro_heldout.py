@@ -200,6 +200,55 @@ def test_kfold_overfitting_check_for_the_selected_model():
     assert summ["full map_cv"]["ratio"] <= diagnostics.OVERFIT_RATIO
 
 
+def test_encoder_side_from_joint_data():
+    """Diagnostic: July rows equal their commanded postures (motor side);
+    08-05 rows differ by an offset plus a gravity deflection (link side)."""
+    os.chdir(PRO)
+    from examples.tiago_pro import diagnostics
+
+    res = diagnostics.encoder_fit()
+    s = res["sessions"]
+    assert s["calibration_samples_20260805_1246.csv"]["on_plan"] == 0
+    assert s["calibration_samples_20260701_0913.csv"]["on_plan"] == 4
+    assert s["calibration_samples_20260702_0756.csv"]["on_plan"] == 8
+    for name in (
+        "calibration_samples_20260701_0913.csv",
+        "calibration_samples_20260702_0756.csv",
+    ):
+        assert s[name]["on_plan_max_gap"] < 2e-4
+    j = res["joints"]
+    for n in (
+        "arm_right_1_joint",
+        "arm_right_2_joint",
+        "arm_right_3_joint",
+        "arm_right_4_joint",
+        "arm_right_6_joint",
+    ):
+        assert j[n]["corr"] > 0.99, n
+    for n in (
+        "arm_right_1_joint",
+        "arm_right_2_joint",
+        "arm_right_3_joint",
+        "arm_right_4_joint",
+    ):
+        assert 1400 < 1 / j[n]["s"] < 1700, n  # stiffness, Nm/rad
+    assert max(v["resid_rms"] for v in j.values()) < 6e-4
+    assert j["arm_right_7_joint"]["s"] == 0.0  # no gravity load: offset only
+
+
+@pytest.mark.slow
+def test_encoder_side_correction_closes_most_of_the_gap():
+    """Diagnostic: mapping July to the link side cuts map_cv's held-out error."""
+    os.chdir(PRO)
+    from examples.tiago_pro import diagnostics
+
+    res = diagnostics.encoder_side(["full map_cv"])["mapped"]["full map_cv"]
+    for e in res.values():
+        assert e["both"] < 0.75 * e["raw"]
+        assert e["both"] < min(e["offset"], e["elastic"])
+    assert res["calibration_samples_20260702_0756.csv"]["both"] < 8.0
+
+
 if __name__ == "__main__":
     os.chdir(PRO)
     print(json.dumps(snapshot(), indent=1))

@@ -24,6 +24,10 @@
 #   (TRANSFER, secondary) mostly measures that drift. The constant is
 #   PRIMARY_METRIC in heldout_protocol.py (the harness schema has no key for it).
 # - Outlier decision for 2026-08-05: data/README.md, "Outlier decision".
+# - Found after freezing: 2026-08-05 recorded link-side joint angles and
+#   the July sessions motor-side ones (series elastic arm; data/README.md,
+#   "Encoder side"). The roles and files are unchanged; the held-out
+#   numbers use the files as recorded.
 name: tiago-pro-mocap-heldout
 version: 1
 sessions:

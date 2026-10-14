@@ -19,11 +19,11 @@ Joint columns: `torso_lift_joint` and `arm_right_1_joint` ..
 
 ## Sessions
 
-| File | Date | Rows | Measures | Role |
-|---|---|---|---|---|
-| calibration_samples_20260805_1246.csv | 2026-08-05 | 48 | pose (6D) | training |
-| calibration_samples_20260701_0913.csv | 2026-07-01 | 44 | position (3D) | validation |
-| calibration_samples_20260702_0756.csv | 2026-07-02 | 94 | position (3D) | confirmation |
+| File | Date | Rows | Measures | Joint angles | Role |
+|---|---|---|---|---|---|
+| calibration_samples_20260805_1246.csv | 2026-08-05 | 48 | pose (6D) | link side | training |
+| calibration_samples_20260701_0913.csv | 2026-07-01 | 44 | position (3D) | motor side | validation |
+| calibration_samples_20260702_0756.csv | 2026-07-02 | 94 | position (3D) | motor side | confirmation |
 
 The split departs from the original plan of issue #97 because only the
 2026-08-05 session records orientation, so it is the only one a 6D fit can
@@ -47,7 +47,17 @@ train on. The two earlier sessions are evaluated on position only.
 - **Plan.** The 08-05 rows are 48 of the 51 postures of
   `optimal_configs.yaml` (indices 1, 19 and 43 are missing), in order.
   Recorded joints differ from the commanded ones by 0.026-0.041 rad on
-  every row, a systematic offset.
+  every row.
+- **Encoder side.** The arm has series elastic actuators, with a motor-side
+  and a link-side angle per joint. The CSVs do not say which was logged;
+  the joint data do. July rows that repeat a plan posture match the
+  commanded angles to 1.6e-4 rad (motor side). The 08-05 rows differ from
+  their commanded angles by a per-joint offset plus the gravity deflection
+  of a spring of about 1500 Nm/rad (link side). Models trained on 08-05
+  therefore see different angles from the July sessions as recorded;
+  `diagnostics.py encoder` maps one to the other
+  (docs/development/tiago-pro-mocap.md, section 8.5). The files are not
+  changed.
 
 ## Outlier decision
 
