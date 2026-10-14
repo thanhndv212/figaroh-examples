@@ -14,10 +14,17 @@ used by the PAL calibration system.
 corrector applies a near-zero correction instead of fighting a large, systematic
 kinematic error.
 
-Reference run: 48 samples, position RMSE 7.11&nbsp;mm / MAE 6.55&nbsp;mm, orientation
-RMSE 1.92° / MAE 1.67° — see `data/calibration_results_20260805_1246.yaml` and
-`data/calibration_reliability_20260805.md` for the reliability study behind
-these numbers (split test, mocap-frame correction).
+Reference run: 48 samples, `estimation.method: map_cv`, position RMSE 6.69&nbsp;mm,
+orientation RMSE 1.81° on the training session. These are training errors: on
+the held-out sessions the tool position is off by about 17-20&nbsp;mm even after
+re-registering the mocap frames (see the held-out study). See
+`docs/development/tiago-pro-mocap.md` for the reliability notes behind these
+numbers and the held-out study (frozen protocol, sessions in `data/README.md`).
+The `joint_offset` calibration level, which the TIAGo study compares, is not
+available for this arm: `arm_right_6_joint` is a `RevoluteUnaligned` joint
+that core's offset parameters cannot express
+([figaroh-plus#205](https://github.com/thanhndv212/figaroh-plus/issues/205)).
+Diagnostics of the train / held-out gap: `diagnostics.py`.
 
 ---
 
@@ -140,5 +147,10 @@ stops at `gripper_right_pal_atc_base_link` rather than `gripper_right_tool_holde
 | `tiago_pro_calibration_config.yaml` | Figaroh calibration config |
 | `tiago_pro.srdf` | Collision pairs |
 | `tiago_pro_description.repos` | VCS repos for the robot meshes under `models/` |
-| `data/calibration_reliability_20260805.md` | Split-test reliability study behind the reference run |
-| `data/mocap_frame_correction_20260805.md` | Notes on the mocap frame / tool_frame correction |
+| `data/README.md`, `data/protocol.yaml` | Frozen sessions, roles, sha256, data defects and the outlier decision |
+| `heldout_protocol.py` | Held-out comparison of the calibration models (validation selects, confirmation reports) |
+| `calibration_truth.py` | Synthetic-truth study of the same models |
+| `diagnostics.py` | Diagnostics of the train / held-out gap (k-fold, cross-day, split-half); never used for selection |
+| `data_audit.py` | Measurement-noise estimate and outlier scan behind the study |
+| `reference_run.py` | Reference fit, held-out report, verification and archived run |
+| `docs/development/tiago-pro-mocap.md` | Dev note: protocol, results and the superseded 2026-07/08 notes |

@@ -135,12 +135,12 @@
       "robot": "TIAGo Pro",
       "study": "Mocap calibration",
       "kind": "real",
-      "role": "no split frozen yet",
+      "role": "training (2026-08-05), validation (07-01), confirmation (07-02); frozen in data/protocol.yaml",
       "description": "Three Qualisys sessions (2026-07-01: 44, 07-02: 94, 08-05: 48 postures). These are all the data that exists.",
       "paths": [
         "examples/tiago_pro/data/calibration_samples_*.csv"
       ],
-      "provenance": "examples/tiago_pro/data/ (dated notes)"
+      "provenance": "examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md"
     },
     {
       "id": "tiago-pro-calibration-results",
@@ -153,7 +153,20 @@
         "examples/tiago_pro/data/calibration_results_*.yaml",
         "examples/tiago_pro/data/master_calibration_*.yaml"
       ],
-      "provenance": "examples/tiago_pro/data/ (dated notes)"
+      "provenance": "examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md"
+    },
+    {
+      "id": "tiago-pro-protocol",
+      "robot": "TIAGo Pro",
+      "study": "Mocap calibration",
+      "kind": "derived",
+      "role": "frozen protocol and k-fold diagnostic plan",
+      "description": "Versioned protocol that fixes each session's role and sha256, and the 5-fold plan within the training session used only as a diagnostic.",
+      "paths": [
+        "examples/tiago_pro/data/protocol.yaml",
+        "examples/tiago_pro/data/protocol_0805_kfold.yaml"
+      ],
+      "provenance": "docs/development/tiago-pro-mocap.md"
     },
     {
       "id": "tiago-pro-notes",
@@ -161,7 +174,7 @@
       "study": "Mocap calibration",
       "kind": "notes",
       "role": "documentation",
-      "description": "Dated notes on applying the calibration, its reliability and the mocap frame correction.",
+      "description": "Data README of the TIAGo Pro mocap sessions: sensor, frame convention, defects and the outlier decision.",
       "paths": [
         "examples/tiago_pro/data/*.md"
       ]
@@ -597,14 +610,6 @@
       "bytes": 3877388,
       "rows": 5546
     },
-    "examples/tiago_pro/data/calibration_application_20260702.md": {
-      "sha256": "adddc1439f569917d9121126be28d22016611f72a93063481bcff05dcb56b5f9",
-      "bytes": 2237
-    },
-    "examples/tiago_pro/data/calibration_reliability_20260805.md": {
-      "sha256": "3049d738bb9867f69d85ccfa3598b804889140385058b7cef503d209d7f7139b",
-      "bytes": 8179
-    },
     "examples/tiago_pro/data/calibration_results_20260701_0913.yaml": {
       "sha256": "ed738ce73658147ca93310179c67549510df597724c32b1308a7021ae2559010",
       "bytes": 2939
@@ -637,20 +642,24 @@
       "bytes": 1611
     },
     "examples/tiago_pro/data/master_calibration_20260805.yaml": {
-      "sha256": "f4762ccccd838ff2fbdc28823c2fd21c9941ad5437ba5e5df529ce2d2b5a4478",
-      "bytes": 3341
+      "sha256": "9a0043ee059c4a8cd2cce89b321ab051b02057f9853fd16b1f75505677644073",
+      "bytes": 3399
     },
     "examples/tiago_pro/data/master_calibration_20260805_conservative.yaml": {
-      "sha256": "8e3cc57eb8fdd2f91063f16916a59b35323d72bf66d8dce91e850e59d53327b1",
-      "bytes": 2218
-    },
-    "examples/tiago_pro/data/mocap_frame_correction_20260805.md": {
-      "sha256": "ca32a5a7642be14fd24d7a809fcee2c0de13a49d89563d96d06b4ebd1ca1d52f",
-      "bytes": 3652
+      "sha256": "1cfdf313701eb9b42720935a687bb9f656b510de5e245c2cc2a34698d9ddd6d9",
+      "bytes": 2237
     },
     "examples/tiago_pro/data/optimal_configs.yaml": {
       "sha256": "d3c84adc0daccb99e2073cc1c643fe18e3fd0494e5023490e685625ed3e11b60",
       "bytes": 9830
+    },
+    "examples/tiago_pro/data/protocol.yaml": {
+      "sha256": "2e1a27a584627c762bd7a3cdb39dc3c8a66e6f14cf343e58e5515821957b6660",
+      "bytes": 2535
+    },
+    "examples/tiago_pro/data/protocol_0805_kfold.yaml": {
+      "sha256": "57f526e97a13a943f0af1d558bd16b11849ca2cf2d082249b8ff95d5758ed8d7",
+      "bytes": 649
     },
     "examples/ur10/data/calibration.csv": {
       "sha256": "31d5a3d56cbb5ea3f69775a3f2620bbe31cb750e68c6a2258ed585c3f01cdfd6",
