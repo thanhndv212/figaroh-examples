@@ -1,0 +1,48 @@
+# TIAGo Pro mocap held-out protocol v1 (examples#97) as a data-contract
+# Protocol (figaroh-plus#55): which recording plays which role, with each
+# file's sha256. Paths are relative to this directory. The heldout: block is
+# read by examples/calibration_harness (core's Protocol.load ignores it).
+# Changing a file or a role needs a new protocol version.
+#
+# Frozen before any model was fitted (decisions of the maintainer):
+#
+# - Training is 2026-08-05 because it is the only session that measures the
+#   full pose (x, y, z, roll, pitch, yaw). The two earlier sessions measure
+#   position only, so held-out error is a position (3D) error. This departs
+#   from the split first written in the issue (train 07-02, validate 07-01,
+#   confirm 08-05), which would have trained on position-only data.
+# - Validation is 2026-07-01 and confirmation is 2026-07-02. The two share
+#   14 near-identical postures (joint difference < 2e-4 rad), so the
+#   confirmation set is not independent of the validation set on those rows;
+#   the reports split the confirmation error by that overlap. Models are
+#   never selected on the confirmation set.
+# - The primary held-out metric is RE-REGISTERED: the trained joint-level
+#   parameters are kept and only the base frame (6D) and the tool point (3D)
+#   are refitted on the evaluated session, then the position RMSE is
+#   reported. The mocap frame drifts between sessions (about 7 mm and 0.3
+#   deg between 07-01 and 07-02), so carrying the training frames over
+#   (TRANSFER, secondary) mostly measures that drift. The constant is
+#   PRIMARY_METRIC in heldout_protocol.py (the harness schema has no key for it).
+# - Outlier decision for 2026-08-05: data/README.md, "Outlier decision".
+name: tiago-pro-mocap-heldout
+version: 1
+sessions:
+- id: 2026-08-05-1246
+  role: training
+  files:
+    calibration_samples_20260805_1246.csv: bd6bb49399d71e2b8c72a00527325914cac745571f142ac2316b65773dc26114
+- id: 2026-07-01-0913
+  role: validation
+  files:
+    calibration_samples_20260701_0913.csv: 3ac035a8a483d91210e39018134f2b0a2f8f954516351b66f48c6ee87461982d
+- id: 2026-07-02-0756
+  role: confirmation
+  files:
+    calibration_samples_20260702_0756.csv: dd2b7f6d6320ce4fee61125b693cad2eae87ff42770f225220b1f440aea47789
+heldout:
+  split: sessions
+  selection_role: validation
+  strata:
+    joints: [torso_lift_joint, arm_right_1_joint, arm_right_2_joint, arm_right_3_joint, arm_right_4_joint, arm_right_5_joint, arm_right_6_joint, arm_right_7_joint]
+    repeated_tol: 0.01
+    out_of_range_margin: 0.05

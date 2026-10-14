@@ -5,7 +5,7 @@ Tiago Pro geometric calibration using Figaroh's BaseCalibration framework.
 Migrated from a from-scratch script (see run_calibration_legacy.py) onto
 figaroh-plus's BaseCalibration (v0.4.7+), which now natively provides what
 that script hand-rolled: SE3 log-map residuals (geometrically correct,
-no RPY-wraparound bug -- see calibration_reliability_20260805.md for the
+no RPY-wraparound bug -- see docs/development/tiago-pro-mocap.md (historical notes) for the
 bug that motivated this migration), per-parameter standard errors
 (calc_stddev), parameter-correlation flagging, held-out validation support,
 and a terminal/HTML quality report.
@@ -44,8 +44,9 @@ _OUT_DEFAULT = _HERE / "data" / "calibration_results.yaml"
 
 
 class _Robot:
-    def __init__(self, m):
+    def __init__(self, m, urdf=None):
         self.model = m
+        self.robot_urdf = urdf  # recorded in the run provenance
         self.data = m.createData()
         self.q0 = pin.neutral(m)
 
@@ -185,7 +186,7 @@ def main():
     args = parser.parse_args()
 
     print(f"Loading robot from {args.urdf} ...")
-    robot = _Robot(pin.buildModelFromUrdf(args.urdf))
+    robot = _Robot(pin.buildModelFromUrdf(args.urdf), args.urdf)
 
     calib = TiagoProCalibration(robot, args.config, data_path=args.data)
     calib.initialize()

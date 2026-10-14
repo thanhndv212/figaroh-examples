@@ -3,7 +3,7 @@
 # Deploy to /etc/calibration/master_calibration.yaml on the robot.
 #
 # CONSERVATIVE variant: drops the 9/38 params below 1 sigma (indistinguishable
-# from noise given 48 samples) -- see calibration_reliability_20260805.md.
+# from noise given 48 samples) -- see docs/development/tiago-pro-mocap.md (historical notes).
 # Threshold loosened from the previous run's >=2sigma gate to >=1sigma: the
 # SE3 log-map fix (vs. the legacy script's RPY-wraparound patch) genuinely
 # tightened most parameter estimates -- 22/38 are now >=3sigma "solid" (was

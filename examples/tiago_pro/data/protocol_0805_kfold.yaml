@@ -1,0 +1,19 @@
+# Diagnostic only (examples#97): k-fold within the 2026-08-05 training
+# session, "k-fold within session; weaker than held-out sessions". It checks
+# whether the models overfit the training frames. The fold rows are drawn
+# with seed 0. It is NOT the frozen protocol (data/protocol.yaml) and is
+# never used to select a model.
+name: tiago-pro-mocap-kfold-0805
+version: 1
+sessions:
+- id: 2026-08-05-1246
+  role: training
+  files:
+    calibration_samples_20260805_1246.csv: bd6bb49399d71e2b8c72a00527325914cac745571f142ac2316b65773dc26114
+heldout:
+  split: kfold
+  selection_role: validation
+  kfold:
+    session: 2026-08-05-1246
+    k: 5
+    seed: 0
