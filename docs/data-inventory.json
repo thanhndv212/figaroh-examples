@@ -195,11 +195,11 @@
       "study": "Table contact",
       "kind": "real",
       "role": "train / held out by day",
-      "description": "Left (21 train, 9 validation) and right (29 train, 9 validation) contact postures recorded 2022-10/11.",
+      "description": "Left (21 train, 9 validation) and right (29 train, 9 validation) contact postures recorded 2022-10/11, with protocol.yaml (sources, roles, hashes) and wrist F/T contact evidence for 21 of the 68 postures.",
       "paths": [
         "examples/talos_table_contact/data/real/"
       ],
-      "provenance": "examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md"
+      "provenance": "examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md"
     },
     {
       "id": "talos-table-contact-synthetic",
@@ -385,23 +385,36 @@
       "sha256": "e909cc57c3849a4f2dfcec599d7e5971a0b365a25ecd7e3b6d6e345b8320060b",
       "bytes": 5545
     },
+    "examples/talos_table_contact/data/real/README.md": {
+      "sha256": "37bf99a52169251e4616b4fb66e6440d3dfe5e1bf64a4a38a85e7f75436a97aa",
+      "bytes": 5692
+    },
+    "examples/talos_table_contact/data/real/contact_evidence.csv": {
+      "sha256": "0da75d31a499397b7b8e84068f0ffd7b7fcd5d788e8b0497fa42ab764a111675",
+      "bytes": 7485,
+      "rows": 68
+    },
     "examples/talos_table_contact/data/real/left_train.csv": {
       "sha256": "d2fadbf1f4a1ab5dcf5c44264f690dad15657f9802eae7794d922d69f806299b",
       "bytes": 12323,
       "rows": 21
     },
     "examples/talos_table_contact/data/real/left_validation.csv": {
-      "sha256": "d103a0a7a2d5394d5d8c02d8ea65af2ecbcb20b978b00746a1cef6f837df6343",
+      "sha256": "7d8766e78806fb72a7ea22de0e4f47881bff61b11392bbf0233f10c71202a8cd",
       "bytes": 5572,
       "rows": 9
     },
+    "examples/talos_table_contact/data/real/protocol.yaml": {
+      "sha256": "af18357c75205800523eed2ce154c7d4e32dd1d38804fbdf99234431e1a55975",
+      "bytes": 15456
+    },
     "examples/talos_table_contact/data/real/right_train.csv": {
-      "sha256": "799fb85edc7ffa6f14250bfc59f28cf450e6f7d42f90c5e10c68f2037cb18555",
+      "sha256": "694cfaa811045c2ab3c5020804bca92dc2a350957b1c03490da9646080e1f63a",
       "bytes": 16773,
       "rows": 29
     },
     "examples/talos_table_contact/data/real/right_validation.csv": {
-      "sha256": "370fcb94a7a13d6dc5d2077d8c0af016982ca2117bcc0ccc58ffa87f7d628c1d",
+      "sha256": "e81f701f69cb7f8fc8cbf11c70eb66fd4744f7f184def9524db96729f5885a15",
       "bytes": 5590,
       "rows": 9
     },
