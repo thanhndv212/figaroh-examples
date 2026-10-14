@@ -8,7 +8,9 @@ position error on every frozen set:
 - full_params: placement errors reduced to identifiable parameters.
 
 The sets, their roles and their sha256 are fixed in
-docs/development/tiago-mocap-heldout-protocol.md and checked by
+data/calibration/mocap/protocol.yaml (read through the shared
+examples/calibration_harness) and described in
+docs/development/tiago-mocap-heldout-protocol.md; they are checked by
 tests/test_tiago_heldout_protocol.py. Nothing here is tuned on the
 held-out sets. Run from examples/tiago.
 """
@@ -23,6 +25,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pinocchio as pin
+import yaml
 
 project_root = Path(__file__).parents[2]
 if str(project_root) not in sys.path:
@@ -34,6 +37,7 @@ from figaroh.calibration.calibration_tools import (  # noqa: E402
 )
 from figaroh.tools.robot import load_robot  # noqa: E402
 
+from examples.calibration_harness import heldout as harness  # noqa: E402
 from examples.tiago.utils.tiago_tools import TiagoCalibration  # noqa: E402
 
 TIAGO = Path(__file__).resolve().parent
@@ -42,13 +46,17 @@ CONFIG = TIAGO / "config/tiago_unified_config.yaml"
 URDF = TIAGO / "urdf/tiago_48_schunk.urdf"
 JOINTS = ["torso_lift_joint"] + [f"arm_{i}_joint" for i in range(1, 8)]
 
-# role, file; training is the config's source_file
-SETS = [
-    ("training", "qualisys_2021-11-30_static_postures.csv"),
-    ("validation", "qualisys_2021-11-26_static_postures.csv"),
-    ("confirmation", "qualisys_2021-11-30-1403_static_postures.csv"),
-    ("confirmation", "qualisys_2021-11-30-1504_static_postures.csv"),
-]
+PROTOCOL = MOCAP / "protocol.yaml"
+PLAN = harness.load_plan(PROTOCOL)  # verifies every file's sha256
+_FOLD = PLAN.folds[0]
+# role, file; training first, then the protocol's order
+SETS = [(s.role, s.name) for s in (*_FOLD.training, *_FOLD.evaluated)]
+STRATA = PLAN.spec.strata
+if tuple(JOINTS) != STRATA.joints:
+    raise ValueError(f"{PROTOCOL.name}: strata joints differ from JOINTS")
+_source = yaml.safe_load(CONFIG.read_text())["tasks"]["calibration"]["data"]
+if Path(_source["source_file"]).name != SETS[0][1]:
+    raise ValueError("config source_file is not the protocol's training file")
 MODELS = {
     "registration only": ("joint_offset", True),
     "joint_offset": ("joint_offset", False),
@@ -92,24 +100,18 @@ def fit(
     return calib
 
 
-def posture_strata(path: Path, training: Path, tol: float = 0.01) -> dict:
+def posture_strata(path: Path, training: Path, tol: float | None = None) -> dict:
     """Split a session's postures by their relation to the training postures.
 
-    - ``repeated``: within ``tol`` rad (or m) of a training posture on every
-      joint, i.e. the same configuration recorded on another occasion;
-    - ``out_of_range``: some joint outside the training range by > 0.05;
-    - ``new``: everything else (new configurations inside the training range).
+    See ``examples.calibration_harness.heldout.posture_strata``; the joints
+    and default thresholds come from the protocol's ``heldout.strata``.
     """
-    q = pd.read_csv(path)[JOINTS].to_numpy()
-    q_train = pd.read_csv(training)[JOINTS].to_numpy()
-    nearest = np.array([np.min(np.max(np.abs(q_train - x), axis=1)) for x in q])
-    repeated = nearest < tol
-    outside = np.any((q < q_train.min(0) - 0.05) | (q > q_train.max(0) + 0.05), axis=1)
-    return {
-        "repeated": repeated,
-        "new": ~repeated & ~outside,
-        "out_of_range": outside & ~repeated,
-    }
+    return harness.posture_strata(
+        pd.read_csv(path)[JOINTS].to_numpy(),
+        pd.read_csv(training)[JOINTS].to_numpy(),
+        STRATA.repeated_tol if tol is None else tol,
+        STRATA.out_of_range_margin,
+    )
 
 
 def component_errors(calib: TiagoCalibration, path: Path) -> dict:

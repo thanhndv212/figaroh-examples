@@ -426,8 +426,8 @@
       "rows": 12092
     },
     "examples/tiago/data/calibration/mocap/protocol.yaml": {
-      "sha256": "727afce20bfaf57627f333def8f5646c7015756dd9eb0480d8064254022d1dec",
-      "bytes": 1057
+      "sha256": "2ec4ff505b2537e0090ef2cde6168a10f4e2bf75ff9e5d6e2d19d8c351acb323",
+      "bytes": 1394
     },
     "examples/tiago/data/calibration/mocap/qualisys_2021-11-26_static_postures.csv": {
       "sha256": "7c986df711757c4d31d8bb6db34b354f72318a78673dac280fd3a14abc5460a0",

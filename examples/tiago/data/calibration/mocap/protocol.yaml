@@ -2,7 +2,8 @@
 # (figaroh-plus#55, examples#17): which recording plays which role, with each
 # file's sha256. Paths are relative to this directory. Roles and hashes match
 # docs/development/tiago-mocap-heldout-protocol.md; changing a file or a role
-# needs a new protocol version (rule 4 there).
+# needs a new protocol version (rule 4 there). The heldout: block is read by
+# examples/calibration_harness (core's Protocol.load ignores it).
 name: tiago-mocap-heldout
 version: 1
 sessions:
@@ -22,3 +23,10 @@ sessions:
   role: confirmation
   files:
     qualisys_2021-11-30-1504_static_postures.csv: cc19eaa74fe8b74be28d758424ef4acd18f516dc59e40754b37d87f8592fbb84
+heldout:
+  split: sessions
+  selection_role: validation
+  strata:
+    joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
+    repeated_tol: 0.01
+    out_of_range_margin: 0.05
