@@ -20,9 +20,10 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
 | `tiago-backlash-2023-07-24` | TIAGo | Backlash surface | real | training; no held-out run | 2 | 34.1 MB | examples/tiago/data/README.md |
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
-| `tiago-pro-mocap-samples` | TIAGo Pro | Mocap calibration | real | no split frozen yet | 3 | 42.4 KB | examples/tiago_pro/data/ (dated notes) |
-| `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/ (dated notes) |
-| `tiago-pro-notes` | TIAGo Pro | Mocap calibration | notes | documentation | 3 | 13.7 KB |  |
+| `tiago-pro-mocap-samples` | TIAGo Pro | Mocap calibration | real | training (2026-08-05), validation (07-01), confirmation (07-02); frozen in data/protocol.yaml | 3 | 42.4 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
+| `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
+| `tiago-pro-protocol` | TIAGo Pro | Mocap calibration | derived | frozen protocol and k-fold diagnostic plan | 2 | 3.1 KB | docs/development/tiago-pro-mocap.md |
+| `tiago-pro-notes` | TIAGo Pro | Mocap calibration | notes | documentation | 0 | 0 B |  |
 | `tiago-pro-optimal-configs` | TIAGo Pro | Experiment design | generated | calibration postures | 1 | 9.6 KB |  |
 | `talos-left-arm-contact` | TALOS | Arm contact calibration | real | calibration | 1 | 14.2 KB | examples/talos/config/talos_unified_config.yaml |
 | `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 7 | 67.3 KB | examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
@@ -159,18 +160,24 @@ Calibration results and master-calibration files produced from the sessions.
 | `examples/tiago_pro/data/calibration_results_20260702_0756.yaml` |  | 2936 | `5fbfc9c61c3b5633` |
 | `examples/tiago_pro/data/calibration_results_20260805_1246.yaml` |  | 4124 | `bd91c5846b653c9d` |
 | `examples/tiago_pro/data/master_calibration_20260702.yaml` |  | 1611 | `cbe733e87016bcd4` |
-| `examples/tiago_pro/data/master_calibration_20260805.yaml` |  | 3341 | `f4762ccccd838ff2` |
-| `examples/tiago_pro/data/master_calibration_20260805_conservative.yaml` |  | 2218 | `8e3cc57eb8fdd2f9` |
+| `examples/tiago_pro/data/master_calibration_20260805.yaml` |  | 3399 | `9a0043ee059c4a8c` |
+| `examples/tiago_pro/data/master_calibration_20260805_conservative.yaml` |  | 2237 | `1cfdf313701eb9b4` |
 
-### `tiago-pro-notes`
+### `tiago-pro-protocol`
 
-Dated notes on applying the calibration, its reliability and the mocap frame correction.
+Versioned protocol that fixes each session's role and sha256, and the 5-fold plan within the training session used only as a diagnostic.
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/tiago_pro/data/calibration_application_20260702.md` |  | 2237 | `adddc1439f569917` |
-| `examples/tiago_pro/data/calibration_reliability_20260805.md` |  | 8179 | `3049d738bb9867f6` |
-| `examples/tiago_pro/data/mocap_frame_correction_20260805.md` |  | 3652 | `ca32a5a7642be14f` |
+| `examples/tiago_pro/data/protocol.yaml` |  | 2535 | `2e1a27a584627c76` |
+| `examples/tiago_pro/data/protocol_0805_kfold.yaml` |  | 649 | `57f526e97a13a943` |
+
+### `tiago-pro-notes`
+
+Data README of the TIAGo Pro mocap sessions: sensor, frame convention, defects and the outlier decision.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
 
 ### `tiago-pro-optimal-configs`
 
