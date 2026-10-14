@@ -52,6 +52,18 @@ tasks:
     type: kinematic_calibration
     parameters:
       calibration_level: full_params
+      # Which parameters to estimate and how (figaroh-plus#113). The reference
+      # fit is the model the validation role selected in the frozen held-out
+      # protocol (heldout_protocol.select_model): map_cv with core's default
+      # prior sizes. The alternatives are compared in
+      # docs/development/tiago-pro-mocap.md.
+      estimation:
+        method: map_cv
+        priors:
+          translation: 0.001
+          rotation: 0.002
+          joint_offset: 0.02
+          prismatic_offset: 0.002
       include_non_geometric: false
       regularization_coefficient: 0.0
       outlier_threshold: 0.05
@@ -85,7 +97,10 @@ tasks:
         - 0.0
         - 0.0
     data:
-      source_file: data/calibration_samples.csv
+      # Training session of the frozen protocol (data/protocol.yaml): the only
+      # session with a full pose. Relative to examples/tiago_pro, the
+      # directory the scripts run from.
+      source_file: data/calibration_samples_20260805_1246.csv
       sample_configurations_file: null
       number_of_samples: 100
   identification:
