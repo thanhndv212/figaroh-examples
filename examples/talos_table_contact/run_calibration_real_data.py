@@ -72,13 +72,9 @@ LEFT_CONFIG = HERE / "config" / "talos_table_left_config.yaml"
 RIGHT_CONFIG = HERE / "config" / "talos_table_right_config.yaml"
 
 # Column order for the 32 joint values in every data row of
-# data/real/*.csv (copied from the deprecated repo's
-# data/talos/contacts/*.csv), taken from the one file among the four
-# whose header happens to still carry it correctly
-# (compiled_measurements_left_1028.csv / left_train.csv here). The other
-# three files' headers are missing their leading placeholder columns,
-# which silently shifts every column by 4 if read with pandas' own
-# header -- see _load_real_touches.
+# data/real/*.csv. Protocol v2 gives all four files the same, aligned header
+# (examples#113; v1 had three misaligned headers). Rows are still parsed by
+# position, which is robust to either header -- see _load_real_touches.
 _CANONICAL_JOINT_ORDER = [
     "arm_left_1_joint",
     "arm_left_2_joint",
