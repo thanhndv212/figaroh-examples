@@ -21,8 +21,10 @@ from examples.talos_table_contact.utils.talos_table_tools import (
     TalosTableContactCalibration,
 )
 
-# Global seed for the identifiability probe inside initialize(), which draws
-# random configurations from NumPy's global generator.
+# Seed for the identifiability probe inside initialize(). Core draws its random
+# configurations from default_rng(calib_config["random_seed"]), not from a
+# global generator, so this seed has no effect on current core and is kept
+# only for older cores.
 IDENTIFIABILITY_SEED = 1234
 
 # Allowed held-out excess over the noise floor. Observed with the fixtures'

@@ -176,7 +176,7 @@ def _print_metrics(label: str, before: dict, after: dict) -> None:
         )
 
 
-def _build_chain(robot, config_path, train_csv, asset_id=None):
+def _build_chain(robot, config_path, train_csv, asset_id=None, random_seed=None):
     df_train = _load_real_touches(train_csv)
     staged_path = Path(str(train_csv) + ".staged.csv")
     df_train.to_csv(staged_path, index=False)
@@ -194,6 +194,9 @@ def _build_chain(robot, config_path, train_csv, asset_id=None):
         calib.calib_config["instance"] = instance
     calib.set_nominal_table_poses([NOMINAL_TABLE_POSE])
     calib.set_nominal_contact_offset(NOMINAL_CONTACT_OFFSET)
+    if random_seed is not None:
+        # seeds the identifiability probe in initialize() (core default: 0)
+        calib.calib_config["random_seed"] = random_seed
     calib.initialize()
     staged_path.unlink(missing_ok=True)
     return calib
@@ -275,17 +278,49 @@ def _run_single_chain(
     return calib, result
 
 
-def _run_two_chain(robot, results_root=None):
-    print(f"\n{'=' * 60}\nTwo-chain, shared torso (real data)\n{'=' * 60}")
+def _build_two_chain(robot, random_seed=None):
     calib_left = _build_chain(
-        robot, LEFT_CONFIG, DATA_DIR / "left_train.csv", asset_id="talos-dual"
+        robot,
+        LEFT_CONFIG,
+        DATA_DIR / "left_train.csv",
+        asset_id="talos-dual",
+        random_seed=random_seed,
     )
     calib_right = _build_chain(
-        robot, RIGHT_CONFIG, DATA_DIR / "right_train.csv", asset_id="talos-dual"
+        robot,
+        RIGHT_CONFIG,
+        DATA_DIR / "right_train.csv",
+        asset_id="talos-dual",
+        random_seed=random_seed,
     )
+    return calib_left, calib_right, MultiChainCalibration(calib_left, calib_right)
+
+
+def two_chain_metrics(robot, random_seed=0) -> dict:
+    """Two-chain fit with ``calib_config["random_seed"] = random_seed``.
+
+    Returns the shared torso axes, the union size and each chain's held-out
+    ``z_rmse_mm``; used to measure how much the identifiable-set draw moves
+    the result (tests/test_talos_two_chain_draw_invariance.py).
+    """
+    calib_left, calib_right, coupler = _build_two_chain(robot, random_seed)
+    result = coupler.solve_lm()
+    _load_split(calib_left, _load_real_touches(DATA_DIR / "left_validation.csv"))
+    _load_split(calib_right, _load_real_touches(DATA_DIR / "right_validation.csv"))
+    held = coupler.gap_metrics(result.x)
+    return {
+        "shared_dx_names": list(coupler.shared_dx_names),
+        "n_dx": int(coupler.n_dx),
+        "left_z_rmse_mm": held["left"]["z_rmse_mm"],
+        "right_z_rmse_mm": held["right"]["z_rmse_mm"],
+    }
+
+
+def _run_two_chain(robot, results_root=None):
+    print(f"\n{'=' * 60}\nTwo-chain, shared torso (real data)\n{'=' * 60}")
+    calib_left, calib_right, coupler = _build_two_chain(robot)
     n_train_left = calib_left._fk_config["NbSample"]
     n_train_right = calib_right._fk_config["NbSample"]
-    coupler = MultiChainCalibration(calib_left, calib_right)
 
     print(f"Left Delta X: {calib_left.n_deltaX}  Right Delta X: {calib_right.n_deltaX}")
     print(f"Union Delta X: {coupler.n_dx}  " f"(shared: {coupler.shared_dx_names})")
