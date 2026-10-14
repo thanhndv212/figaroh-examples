@@ -8,7 +8,8 @@ implementation work.
 
 Usage:
     python validate.py              # run tests + all scripts
-    python validate.py --tests-only # run pytest only
+    python validate.py --tests-only # run pytest only (tests marked slow skipped)
+    python validate.py --full-tests # also run tests marked slow
     python validate.py --scripts-only  # run example scripts only
     python validate.py --robot ur10 # run tests + scripts for one robot
     python validate.py --quick      # skip slow scripts (optimal_config, optimal_trajectory)
@@ -175,8 +176,8 @@ def run_command(cmd, cwd, timeout, env_extra=None, label=None):
         return -1, out, err, True
 
 
-def run_pytest():
-    """Run the full pytest suite from repo root."""
+def run_pytest(full=False):
+    """Run the pytest suite from repo root; skip tests marked slow unless ``full``."""
     print("\n" + "=" * 70)
     print("  PYTEST SUITE")
     print("=" * 70)
@@ -191,8 +192,14 @@ def run_pytest():
     # viser step -- so raising this only became meaningful once that was
     # fixed. Keep the headroom: a machine slower than this one still needs to
     # finish, and a genuine hang is caught by the per-script timeouts below.
+    # Tests marked slow (script smoke runs, which the script checks below
+    # repeat, and multi-draw robot fits) push the suite past this timeout;
+    # they run only with --full-tests.
+    cmd = [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"]
+    if not full:
+        cmd += ["-m", "not slow"]
     rc, stdout, stderr, timed_out = run_command(
-        [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
+        cmd,
         cwd=REPO_ROOT,
         # golden outputs, held-out protocol and export checks rerun the
         # examples: ~10 min on a laptop (examples#28)
@@ -393,6 +400,11 @@ def main():
         action="store_true",
         help="Skip slow scripts (optimal_config, optimal_trajectory).",
     )
+    parser.add_argument(
+        "--full-tests",
+        action="store_true",
+        help="Also run tests marked slow (skipped by default).",
+    )
     args = parser.parse_args()
 
     print("=" * 70)
@@ -405,7 +417,7 @@ def main():
     script_results = []
 
     if not args.scripts_only:
-        test_results.append(run_pytest())
+        test_results.append(run_pytest(full=args.full_tests))
 
     if not args.tests_only:
         robots = [args.robot] if args.robot else None
