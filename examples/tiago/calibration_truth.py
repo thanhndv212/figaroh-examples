@@ -35,9 +35,9 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import functools
 import io
 import sys
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -54,6 +54,7 @@ from figaroh.calibration.parameter import (  # noqa: E402
     get_joint_offset,
 )
 
+from examples.calibration_harness import simulation as sim  # noqa: E402
 from examples.tiago import heldout_protocol as hp  # noqa: E402
 
 # base frame and tool point of the real joint_offset fit (protocol v1)
@@ -105,9 +106,8 @@ def postures(name: str) -> pd.DataFrame:
     return pd.read_csv(hp.MOCAP / name)[hp.JOINTS]
 
 
-def make_truth(kind: str, seed: int, model: pin.Model) -> dict:
-    """Frames plus seeded joint errors of one model class."""
-    rng = np.random.default_rng(seed)
+def draw_truth(kind: str, rng: np.random.Generator, model: pin.Model) -> dict:
+    """Frames plus joint errors of one model class, drawn from ``rng``."""
     act = [model.getJointId(j) for j in hp.JOINTS]
     truth = dict(FRAMES)
     if kind == "joint_offset":
@@ -131,6 +131,11 @@ def make_truth(kind: str, seed: int, model: pin.Model) -> dict:
     return truth
 
 
+def make_truth(kind: str, seed: int, model: pin.Model) -> dict:
+    """Frames plus seeded joint errors of one model class."""
+    return draw_truth(kind, np.random.default_rng(seed), model)
+
+
 def tool_points(calib, kind: str, values: dict, q: pd.DataFrame) -> np.ndarray:
     """(n, 3) tool point for parameter values ``values`` of class ``kind``."""
     model = calib.model
@@ -150,75 +155,69 @@ def tool_points(calib, kind: str, values: dict, q: pd.DataFrame) -> np.ndarray:
 def simulate(calib, kind, truth, q, noise_mm, seed) -> pd.DataFrame:
     """Measurements in the mocap CSV layout (marker 1 only)."""
     rng = np.random.default_rng(10_000 + seed)
-    p = tool_points(calib, kind, truth, q)
-    p = p + rng.normal(0.0, noise_mm * 1e-3, p.shape)
+    p = sim.gaussian_mm(tool_points(calib, kind, truth, q), noise_mm, rng)
+    return _dataset(p, q)
+
+
+def _dataset(p: np.ndarray, q: pd.DataFrame) -> pd.DataFrame:
     df = pd.DataFrame(p, columns=["x1", "y1", "z1"])
     return pd.concat([df, q.reset_index(drop=True)], axis=1)
+
+
+@functools.lru_cache(maxsize=1)
+def study() -> sim.SimulationStudy:
+    """The TIAGo synthetic-truth study on the shared harness."""
+    probe = hp.fit("joint_offset", frames_only=True)  # model and config only
+
+    def predict(params, kind, q, handle=None):
+        return tool_points(handle or probe, kind, params, q)
+
+    def fit(train, fit_level, estimation, workdir):
+        path = Path(workdir) / "train.csv"
+        train.to_csv(path, index=False)
+        frames_only = fit_level == "registration only"
+        level = "joint_offset" if frames_only else fit_level
+        with contextlib.redirect_stdout(io.StringIO()):
+            calib = hp.fit(
+                level,
+                frames_only=frames_only,
+                data_file=str(path),
+                estimation=estimation,
+            )
+        names = list(calib.calib_config["param_name"])
+        return sim.FitResult(
+            params=dict(zip(names, calib.LM_result.x)),
+            std=dict(zip(names, calib.std_dev)) if calib.std_dev is not None else {},
+            level=level,
+            status=int(calib.LM_result.status),
+            nfev=int(calib.LM_result.nfev),
+            absorbed=list(calib.calib_config.get("absorbed_param_name", [])),
+            handle=calib,
+        )
+
+    return sim.SimulationStudy(
+        sample_truth=lambda kind, rng: draw_truth(kind, rng, probe.model),
+        predict=predict,
+        fit=fit,
+        to_dataset=_dataset,
+        train_postures=postures(TRAINING),
+        heldout_postures={f: postures(f) for f in HELD_OUT},
+        strata=lambda f: hp.posture_strata(hp.MOCAP / f, hp.MOCAP / TRAINING),
+        z_params={"joint_offset": lambda n: n.startswith("offset")},
+    )
 
 
 def run_case(
     truth_kind, fit_level, seed, noise_mm, workdir, estimation=None, label=None
 ) -> dict:
-    """Draw, simulate, fit, and judge one case.
+    """Draw, simulate, fit, and judge one case (``sim.run_case`` on TIAGo).
 
     ``estimation`` is core's ``calib_config["estimation"]`` (figaroh-plus#113);
     ``label`` names the fit in the result (default ``fit_level``).
     """
-    probe = hp.fit("joint_offset", frames_only=True)  # model and config only
-    truth = make_truth(truth_kind, seed, probe.model)
-    train = simulate(probe, truth_kind, truth, postures(TRAINING), noise_mm, seed)
-    path = Path(workdir) / f"truth_{truth_kind}_{seed}_{noise_mm}.csv"
-    train.to_csv(path, index=False)
-
-    frames_only = fit_level == "registration only"
-    level = "joint_offset" if frames_only else fit_level
-    with contextlib.redirect_stdout(io.StringIO()):
-        calib = hp.fit(
-            level, frames_only=frames_only, data_file=str(path), estimation=estimation
-        )
-    names = list(calib.calib_config["param_name"])
-    x = calib.LM_result.x
-    fitted = dict(zip(names, x))
-
-    result = {
-        "truth": truth_kind,
-        "fit": label or fit_level,
-        "seed": seed,
-        "noise_mm": noise_mm,
-        "n_params": len(x),
-        "solver_status": int(calib.LM_result.status),
-        "nfev": int(calib.LM_result.nfev),
-        "absorbed": list(calib.calib_config.get("absorbed_param_name", [])),
-    }
-    pred = tool_points(calib, level, fitted, postures(TRAINING))
-    meas = train[["x1", "y1", "z1"]].to_numpy()
-    result["train_rms_mm"] = 1000 * float(np.sqrt(np.mean((pred - meas) ** 2)))
-
-    errors = []
-    strata = {k: [] for k in ("repeated", "new", "out_of_range")}
-    for f in HELD_OUT:
-        q = postures(f)
-        e = tool_points(calib, level, fitted, q) - tool_points(
-            probe, truth_kind, truth, q
-        )
-        norm = 1000 * np.linalg.norm(e, axis=1)
-        errors.append(norm)
-        for k, m in hp.posture_strata(hp.MOCAP / f, hp.MOCAP / TRAINING).items():
-            strata[k].append(norm[m])
-    errors = np.concatenate(errors)
-    result["heldout_rmse_mm"] = float(np.sqrt(np.mean(errors**2)))
-    result["heldout_max_mm"] = float(errors.max())
-    result["strata_rmse_mm"] = {
-        k: float(np.sqrt(np.mean(np.concatenate(v) ** 2))) for k, v in strata.items()
-    }
-
-    if fit_level == truth_kind == "joint_offset":
-        joints = [n for n in names if n.startswith("offset")]
-        std = dict(zip(names, calib.std_dev))
-        result["z_scores"] = {
-            n: float((fitted[n] - truth[n]) / std[n]) for n in joints if std[n] > 0
-        }
-    return result
+    return sim.run_case(
+        study(), truth_kind, fit_level, seed, noise_mm, workdir, estimation, label
+    )
 
 
 def main(argv=None) -> None:
@@ -237,36 +236,19 @@ def main(argv=None) -> None:
         fits = {
             f: (f, None) for f in ("registration only", "joint_offset", "full_params")
         }
-    with tempfile.TemporaryDirectory() as tmp:
-        rows = [
-            run_case(t, level, s, n, tmp, estimation=est, label=label)
-            for t in ("joint_offset", "full_params")
-            for n in args.noise
-            for label, (level, est) in fits.items()
-            for s in args.seeds
-        ]
-    df = pd.DataFrame(rows)
-    df["new_mm"] = [r["new"] for r in df.strata_rmse_mm]
-    df["out_mm"] = [r["out_of_range"] for r in df.strata_rmse_mm]
-    summary = df.groupby(["truth", "noise_mm", "fit"], sort=False).agg(
-        n_params=("n_params", "median"),
-        train_rms_mm=("train_rms_mm", "mean"),
-        heldout_rmse_mm=("heldout_rmse_mm", "mean"),
-        new_mm=("new_mm", "mean"),
-        out_mm=("out_mm", "mean"),
-        heldout_max_mm=("heldout_max_mm", "max"),
+    df = sim.run_grid(
+        study(),
+        ("joint_offset", "full_params"),
+        fits,
+        seeds=args.seeds,
+        noise=args.noise,
     )
+    summary, z = sim.summarize(df, {"new_mm": "new", "out_mm": "out_of_range"})
     print(summary.round(3).to_string())
-    z = [
-        v
-        for zs in df.get("z_scores", pd.Series(dtype=object)).dropna()
-        for v in zs.values()
-    ]
     if z:
-        z = np.array(z)
         print(
-            f"\njoint_offset recovery: {len(z)} z-scores, mean {z.mean():+.2f}, "
-            f"rms {np.sqrt(np.mean(z**2)):.2f}, max |z| {np.abs(z).max():.2f}"
+            f"\njoint_offset recovery: {z['n']} z-scores, mean {z['mean']:+.2f}, "
+            f"rms {z['rms']:.2f}, max |z| {z['max_abs']:.2f}"
         )
 
 
