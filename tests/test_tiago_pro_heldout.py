@@ -172,7 +172,16 @@ def test_matches_golden(results, model):
 @pytest.mark.slow
 def test_selection_and_ordering(hp, results):
     best, scores = hp.select_model(results)
-    assert best == GOLDEN["selected"] == "full map_cv"
+    # a platform-dependent model that keeps another parameter set than the
+    # golden's can win by a fraction of a millimetre (pinocchio 3.7 CI keeps
+    # another cv_subset set); the golden's choice holds wherever it does not
+    deviating = {
+        m
+        for m in PLATFORM_DEPENDENT
+        if results[m]["n_params"] != GOLDEN["models"][m]["n_params"]
+    }
+    assert GOLDEN["selected"] == "full map_cv"
+    assert best == GOLDEN["selected"] or best in deviating
     # registration alone is far worse than any fitted model; the fitted
     # models differ by less than a millimetre (not a meaningful margin)
     fitted = [v for m, v in scores.items() if m != "registration only"]
