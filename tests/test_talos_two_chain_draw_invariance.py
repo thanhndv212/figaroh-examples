@@ -6,10 +6,12 @@ The identifiable parameter set is chosen from random configurations
 
 (a) global RNG state (``pin.seed``, ``np.random.seed``) must not change the
     result at all;
-(b) the draw itself (``random_seed`` 0-2) still moves the shared torso axes
-    and the held-out height error; the spread is recorded here and the
-    ``strict`` xfail turns into a failure once a selection that is stable
-    across draws lands. Audit:
+(b) neither does the draw itself (``random_seed``): the configs select the
+    first independent columns in joint order
+    (``estimation.structural_selection: ordered``, figaroh-plus#204), so the
+    shared torso axes and the held-out height error are the same for every
+    seed. With LAPACK pivoting the draw swapped the shared axes and moved
+    the held-out z by ~1.5 mm. Audit:
     docs/development/talos-contact-calibration-audit-2026-10-04.md.
 """
 
@@ -56,13 +58,8 @@ def test_global_rng_state_does_not_change_the_fit(robot):
             assert r[k] == pytest.approx(first[k], abs=1e-9)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="identifiable-set draw (random_seed 0-2) moves the left held-out "
-    "z by ~1.5 mm and changes the shared torso axes (figaroh-plus#204)",
-)
 def test_random_seed_spread_is_small(robot):
-    runs = {s: two_chain_metrics(robot, s) for s in range(3)}
+    runs = {s: two_chain_metrics(robot, s) for s in range(5)}
     for s, r in runs.items():
         print(
             s,

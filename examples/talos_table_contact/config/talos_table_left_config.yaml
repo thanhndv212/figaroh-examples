@@ -26,6 +26,11 @@ tasks:
       include_non_geometric: false
       regularization_coefficient: null
       outlier_threshold: null
+      # First independent columns in joint order: the two chains share torso
+      # axes by name, so the selected names must not follow the random draw
+      # (figaroh-plus#204).
+      estimation:
+        structural_selection: ordered
     kinematics:
       base_frame: left_sole_link
       tool_frame: gripper_left_base_link
