@@ -315,26 +315,31 @@ gap, which `PLANE_TPL`/`CONTACT_TPL` absorb by design):
 
 | single chain | Training z | Training roll | Training pitch | Held-out z | Held-out roll | Held-out pitch |
 |---|---:|---:|---:|---:|---:|---:|
-| Left | 292.0 &rarr; 0.48 mm (603x) | 1.44&deg; &rarr; 0.13&deg; (11.4x) | 1.43&deg; &rarr; 0.19&deg; (7.6x) | 288.2 &rarr; 5.76 mm (50x) | 1.21&deg; &rarr; 0.42&deg; (2.8x) | 1.46&deg; &rarr; 0.49&deg; (3.0x) |
-| Right | 281.8 &rarr; 1.33 mm (211x) | 2.51&deg; &rarr; 0.32&deg; (7.8x) | 0.87&deg; &rarr; 0.38&deg; (2.3x) | 292.0 &rarr; 8.01 mm (36x) | 1.88&deg; &rarr; 0.98&deg; (1.9x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
+| Left | 292.0 &rarr; 0.78 mm (377x) | 1.44&deg; &rarr; 0.17&deg; (8.5x) | 1.43&deg; &rarr; 0.16&deg; (9.0x) | 288.2 &rarr; 7.55 mm (38x) | 1.21&deg; &rarr; 0.74&deg; (1.6x) | 1.46&deg; &rarr; 0.51&deg; (2.8x) |
+| Right | 281.7 &rarr; 1.35 mm (209x) | 2.51&deg; &rarr; 0.32&deg; (7.8x) | 0.87&deg; &rarr; 0.38&deg; (2.3x) | 291.9 &rarr; 7.69 mm (38x) | 1.88&deg; &rarr; 0.99&deg; (1.9x) | 1.07&deg; &rarr; 0.58&deg; (1.8x) |
 
-Fitting both chains jointly via `MultiChainCalibration` shares 5 torso
-axes this time (`d_phix_torso_2_joint`, `d_phiz_torso_1_joint`,
-`d_px_torso_2_joint`, `d_py_torso_1_joint`, `d_py_torso_2_joint` -- union
-109 identifiable params vs. the naive sum of 114):
+Fitting both chains jointly via `MultiChainCalibration` shares 4 torso
+axes (`d_phix_torso_2_joint`, `d_phiy_torso_2_joint`,
+`d_px_torso_2_joint`, `d_py_torso_2_joint` -- union 103 identifiable
+params vs. the naive sum of 107):
 
 | two-chain, shared torso | Held-out z | Held-out roll | Held-out pitch |
 |---|---:|---:|---:|
-| Left | 288.2 &rarr; 12.32 mm (23x) | 1.21&deg; &rarr; 0.68&deg; (1.8x) | 1.46&deg; &rarr; 0.51&deg; (2.8x) |
-| Right | 292.0 &rarr; 7.46 mm (39x) | 1.88&deg; &rarr; 0.95&deg; (2.0x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
+| Left | 288.2 &rarr; 5.10 mm (57x) | 1.21&deg; &rarr; 0.46&deg; (2.6x) | 1.46&deg; &rarr; 0.49&deg; (3.0x) |
+| Right | 291.9 &rarr; 8.39 mm (35x) | 1.88&deg; &rarr; 0.99&deg; (1.9x) | 1.07&deg; &rarr; 0.59&deg; (1.8x) |
 
-**Reproducibility caveat (C1 audit, #25).** The tables above are one run
-each. The identifiable parameter set is chosen from random configurations
-drawn with Pinocchio's RNG, so results depend on its state
-([figaroh-plus#99](https://github.com/thanhndv212/figaroh-plus/issues/99)).
-Across three draws, single-chain held-out z stays within 5.63–5.76 mm (left)
-and 8.01–8.02 mm (right), but the two-chain fit shares 4 or 5 torso axes and
-its left held-out z ranges 4.69–12.32 mm. Also, core's printed "CALIBRATION
+**Reproducibility.** The identifiable parameter set is chosen from random
+configurations. Among exactly dependent torso columns, LAPACK's pivoted QR
+picks a different subset for each draw, and the two-chain fit shares the
+intersection of the two chains' subsets, so with the default selection the
+shared axes (2 to 5) and the left held-out z (4.9–6.4 mm over
+`random_seed` 0–4) changed with the draw
+([figaroh-plus#204](https://github.com/thanhndv212/figaroh-plus/issues/204)).
+Both table configs therefore set `estimation.structural_selection: ordered`,
+which keeps the first independent columns in model order (proximal joint
+first). The tables above are identical for every `random_seed`. The order is
+a convention, not something the data decides: other orders give other,
+equally reproducible, numbers. Also, core's printed "CALIBRATION
 QUALITY REPORT" labels the three residual rows X/Y/Z in mm; here they are
 contact height (mm), roll and pitch, so use the `Training-set gap` /
 `Held-out validation gap` blocks instead
@@ -342,17 +347,12 @@ contact height (mm), roll and pitch, so use the `Training-set gap` /
 Full observation semantics and baseline:
 [`docs/development/talos-contact-calibration-audit-2026-10-04.md`](../../docs/development/talos-contact-calibration-audit-2026-10-04.md).
 
-Worth being honest about: unlike the synthetic two-chain test (where
-sharing consistently *helped* the data-poorer side), here the left
-chain's held-out z gets *worse* under sharing (5.76mm alone vs. 12.32mm
-shared) even though training improves. With 5 shared axes instead of the
-synthetic case's smaller overlap, the joint solve is trading off a
-better fit to the *combined* training set against generalization on the
-left chain's specific held-out postures -- a real, visible bias/variance
-trade-off from sharing parameters across two datasets recorded 11 days
-apart on what may not be perfectly identical mechanical conditions,
-not a bug. The right chain (more of its own training data) is
-essentially unaffected either way.
+As in the synthetic two-chain test, sharing helps the data-poorer left
+chain on held-out postures (7.55 mm alone vs. 5.10 mm shared). The right
+chain, with more of its own training data, gets slightly worse (7.69 mm
+alone vs. 8.39 mm shared): the two datasets were recorded 11 days apart,
+possibly under not quite identical mechanical conditions, and the shared
+torso axes trade the right chain's fit for the left's.
 
 ### Detailed comparison against the manuscript's own numbers
 
@@ -383,10 +383,10 @@ Reading this against the tables above:
   designed to absorb exactly this kind of large, unknown nominal error,
   and the after-calibration numbers show it does.
 - **Post-calibration (held-out) numbers *are* comparable, and they
-  land in the same regime.** 5.76-8.01mm here vs. 4.54mm in the
-  manuscript; 0.42-0.98&deg; here vs. 0.34-0.56&deg; in the manuscript.
-  Same order of magnitude, right chain closer to the manuscript's own
-  number than left. Given the manuscript's rig had an accurately-known
+  land in the same regime.** 7.55-7.69mm here vs. 4.54mm in the
+  manuscript; 0.74-0.99&deg; here vs. 0.34-0.56&deg; in the manuscript.
+  Same order of magnitude, both chains about equally far from the
+  manuscript's number. Given the manuscript's rig had an accurately-known
   nominal table pose and this one doesn't, landing within roughly 2x of
   their held-out residual on real data neither of us tuned for is a
   meaningful result, not a coincidence.
