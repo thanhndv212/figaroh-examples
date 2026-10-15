@@ -26,9 +26,15 @@ than the training RMS (about 6.7 mm).
   nominal URDF only, no mocap). ``encoder_side`` then maps the July
   (motor-side) joints to the link side with that fit, and the 08-05 joints to
   the motor side, and scores the held-out sessions with the mocap.
+- ``elastic``: core's joint-elasticity terms (``parameters.
+  include_non_geometric``, one compliance ``k_*`` per arm joint) fitted
+  from the mocap, full_params with structural estimation. Trained on 08-05
+  at its commanded postures (motor side) or as recorded (link side), and on
+  07-01 (motor side, position only); the fitted compliance is compared with
+  the joint-data fit of ``encoder``.
 
 Run from examples/tiago_pro:
-python diagnostics.py [kfold|crossday|splithalf|encoder|all]
+python diagnostics.py [kfold|crossday|splithalf|encoder|elastic|all]
 """
 
 from __future__ import annotations
@@ -52,6 +58,9 @@ if str(project_root) not in sys.path:
 
 from examples.calibration_harness import heldout as harness  # noqa: E402
 from examples.tiago_pro import heldout_protocol as hp  # noqa: E402
+from figaroh.calibration.calibration_tools import (  # noqa: E402
+    drop_calibration_parameters,
+)
 
 KFOLD_PROTOCOL = hp.DATA / "protocol_0805_kfold.yaml"
 OVERFIT_RATIO = 1.5  # k-fold / training RMS above which overfitting is material
@@ -61,6 +70,8 @@ SHARED_TOL = 2e-3  # rad: the 14 postures 07-01 and 07-02 share agree to 2e-4
 PLAN_TOL = 1e-3  # rad: a recorded row "is" a plan posture below this
 MIN_TORQUE = 0.5  # Nm: below this peak gravity torque only an offset is fitted
 ENCODER_MODELS = ["registration only", "full_params", "full map_cv"]
+# not elastic: torso is prismatic, arm_right_7 carries no gravity torque
+RIGID_JOINTS = ("torso_lift_joint", "arm_right_7_joint")
 
 
 def _rows_csv(path: Path, rows, tmp: Path, tag: str) -> Path:
@@ -347,13 +358,115 @@ def encoder_side(models=None, tmp: Path | None = None) -> dict:
     return out
 
 
+def commanded(path: Path, out: Path) -> Path:
+    """Copy of a session with each row's joints replaced by the nearest
+    commanded plan posture: the motor-side angles the controller tracked."""
+    joints, plan = _plan()
+    df = pd.read_csv(path)
+    q = df[joints].to_numpy()
+    df[joints] = plan[np.abs(q[:, None, :] - plan[None]).max(axis=2).argmin(axis=1)]
+    dest = out / f"{path.stem}_commanded.csv"
+    df.to_csv(dest, index=False)
+    return dest
+
+
+def fit_elastic(data_file: Path, elastic: bool, position_only=False):
+    """full_params (structural) on ``data_file``; ``elastic`` adds core's
+    per-joint compliance ``k_*`` for the arm joints 1-6."""
+    if not elastic:
+        return hp.fit(
+            "full_params",
+            data_file=str(data_file),
+            estimation={"method": "structural"},
+            position_only=position_only,
+        )
+    cfg = yaml.safe_load(hp.CONFIG.read_text())
+    cfg["tasks"]["calibration"]["parameters"]["include_non_geometric"] = True
+    # same directory as the config: its relative paths still resolve
+    fd, name = tempfile.mkstemp(suffix=".yaml", prefix="_elastic_", dir=hp.TIAGO_PRO)
+    config = Path(name)
+    try:
+        with open(fd, "w") as f:
+            yaml.safe_dump(cfg, f, sort_keys=False)
+        robot = hp._Robot(pin.buildModelFromUrdf(str(hp.URDF)), str(hp.URDF))
+        calib = hp.TiagoProCalibration(robot, str(config))
+        calib.calib_config["data_file"] = str(data_file)
+        calib._data_path = str(Path(data_file).resolve())
+        calib.calib_config["estimation"] = {"method": "structural"}
+        calib.calib_config["calib_model"] = "full_params"
+        calib.calib_config["validation_data_file"] = None
+        if position_only:
+            calib.calib_config["measurability"] = list(hp.POSITION)
+            calib.calib_config["calibration_index"] = 3
+        with contextlib.redirect_stdout(io.StringIO()):
+            calib.initialize()
+            drop = [
+                n
+                for n in calib.calib_config["param_name"]
+                if n.startswith("k_") and n.endswith(RIGID_JOINTS)
+            ]
+            drop_calibration_parameters(calib.calib_config, drop)
+            calib.solve(plotting=False, enable_logging=False, html_report=False)
+    finally:
+        config.unlink(missing_ok=True)
+    return calib
+
+
+def elastic(tmp: Path | None = None) -> dict:
+    """Rigid against elastic full_params, per training set.
+
+    ``runs[tag]``: training file, side, ``elastic``, parameter count,
+    training position RMS (mm), fitted ``k`` per joint (rad/Nm, core's sign:
+    link = motor + k * tau, tau the Pinocchio gravity torque) and the
+    re-registered RMSE (mm) on the July sessions as recorded (motor side)
+    that were not trained on.
+    """
+    tmp = tmp or Path(tempfile.mkdtemp(prefix="tp_elastic_"))
+    july = [hp.DATA / name for _, name in hp.SETS[1:]]
+    link = hp.DATA / hp.TRAINING
+    motor = commanded(link, tmp)
+    runs = {
+        "rigid, 08-05 link": (link, "link", False, False),
+        "rigid, 08-05 motor": (motor, "motor", False, False),
+        "elastic, 08-05 motor": (motor, "motor", True, False),
+        "elastic, 08-05 link": (link, "link", True, False),
+        "rigid, 07-01 motor": (july[0], "motor", False, True),
+        "elastic, 07-01 motor": (july[0], "motor", True, True),
+    }
+    out = {}
+    for tag, (data, side, elas, pos_only) in runs.items():
+        calib = fit_elastic(data, elas, pos_only)
+        names = calib.calib_config["param_name"]
+        x = calib.LM_result.x
+        out[tag] = {
+            "train": hp.TRAINING if data == motor else data.name,
+            "side": side,
+            "elastic": elas,
+            "n_params": len(names),
+            "train_pos_rmse_mm": float(
+                calib.evaluation_metrics["per_dof_stats"]["overall"]["pos_rmse_mm"]
+            ),
+            "k": {
+                n.split("_", 2)[2]: float(v)
+                for n, v in zip(names, x)
+                if n.startswith("k_")
+            },
+            "heldout": {
+                f.name: hp.component_errors(calib, f)["rmse_rereg"]
+                for f in july
+                if f != data
+            },
+        }
+    return {"runs": out}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument(
         "what",
         nargs="?",
         default="all",
-        choices=["kfold", "crossday", "splithalf", "encoder", "all"],
+        choices=["kfold", "crossday", "splithalf", "encoder", "elastic", "all"],
     )
     ap.add_argument("--models", nargs="*", default=None)
     ap.add_argument("--json", type=Path, default=None, help="write results here")
@@ -386,6 +499,9 @@ def main() -> None:
     if a.what in ("encoder", "all"):
         out["encoder"] = {"fit": encoder_fit(), "side": encoder_side(a.models)}
         print("\nencoder side:", json.dumps(out["encoder"], indent=1))
+    if a.what in ("elastic", "all"):
+        out["elastic"] = elastic()
+        print("\njoint elasticity:", json.dumps(out["elastic"], indent=1))
     if a.json:
         a.json.write_text(json.dumps(out, indent=1, default=float))
 

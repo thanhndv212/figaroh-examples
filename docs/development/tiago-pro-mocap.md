@@ -174,7 +174,7 @@ standard errors of unidentifiable directions are far too small.
 ## 8. The train / held-out gap (diagnostics only)
 
 Training RMS 6.7 mm against 17-20 mm re-registered on held-out sessions. The
-following four diagnostics look for the cause. **They are diagnostics only:
+following diagnostics look for the cause. **They are diagnostics only:
 none is used for model selection and none enters the frozen validation or
 confirmation selection** (`diagnostics.py`, separate from
 `heldout_protocol.py`).
@@ -260,7 +260,8 @@ The remaining 07-01 excess (12.6 against 7.2 mm) is unexplained. It matches
 the 07-01 to 07-02 picture of 8.2, where the July-trained model fits its own
 July session at 11.8 mm. The frozen held-out numbers of section 6 stay as
 they are: the correction uses a fit on the training session's joint data, and
-it was found after the protocol was frozen.
+it was found after the protocol was frozen. Fitting the springs from the
+mocap instead (section 8.6) gives 11.5 and 5.2 mm.
 
 ### 8.5 Series elastic actuators: which encoder each session recorded
 
@@ -323,10 +324,63 @@ link-side angles better, as it should: it measures where the link is.
 Calibration data should record the link side, and a model trained on it
 should be fed link-side angles.
 
-Not done: fitting core's joint-elasticity terms
-(`parameters.include_non_geometric: true`, one compliance per joint) on
-motor-side data, which would identify the same stiffness from the mocap
-instead of from the commanded postures.
+### 8.6 Joint elasticity fitted from the mocap
+
+Section 8.5 fits the compliance from the joint data. Core can also fit it
+from the mocap: `parameters.include_non_geometric: true` adds one compliance
+`k` per joint, and the forward model uses q + k * tau, tau the gravity
+torque of the nominal URDF ([figaroh-plus#206](https://github.com/thanhndv212/figaroh-plus/issues/206),
+fixed for this robot in figaroh-plus#207). `diagnostics.py elastic` fits
+full_params with structural estimation (map_cv refuses these terms) with
+and without `k` on arm joints 1-6; the torso is prismatic and joint 7
+carries no gravity torque. "08-05 motor" is 08-05 with each row replaced by
+its commanded posture, the motor-side angle the controller tracked.
+
+| Training set | Model | Parameters | Training RMS (mm) | 07-01 re-reg. | 07-02 re-reg. |
+|---|---|---|---|---|---|
+| 08-05 link (as recorded) | rigid | 35 | 6.68 | 20.49 | 17.50 |
+| 08-05 motor (commanded) | rigid | 35 | 10.52 | 16.53 | 12.01 |
+| 08-05 motor (commanded) | **elastic** | 41 | 5.36 | **11.49** | **5.20** |
+| 08-05 link (as recorded) | elastic | 41 | 5.36 | 18.97 | 16.32 |
+| 07-01 motor, position only | rigid | 30 | 11.59 | (training) | 11.58 |
+| 07-01 motor, position only | **elastic** | 36 | 3.76 | (training) | **5.36** |
+
+(mm; held-out sessions as recorded, motor side.) Fitted on motor-side
+angles, the elastic model takes 08-05 from 6.7 to 5.4 mm and the July
+sessions from 20.5 / 17.5 to 11.5 / 5.2 mm, as well as or better than the
+joint-data mapping of 8.5 (12.6 / 7.2 mm), with no joint data and no
+commanded postures at evaluation. Trained on 07-01, the elastic model fits
+3.8 mm and predicts 07-02 at 5.4 mm, against 11.6 mm for the rigid model:
+the July data are not harder to fit (8.2) once the springs are in the model.
+
+Compliance fitted, as `-k` in mrad/Nm (core's `k` is negative: Pinocchio's
+torque is the holding torque, link = motor + k * tau):
+
+| Joint | 08-05 motor | 08-05 link | Difference | Joint data `s` (8.5) | 07-01 motor |
+|---|---|---|---|---|---|
+| arm_right_1 | 1.197 | 0.572 | 0.625 | 0.632 | 1.245 |
+| arm_right_2 | 0.647 | -0.016 | 0.663 | 0.666 | 0.748 |
+| arm_right_3 | 1.823 | 1.189 | 0.634 | 0.631 | 2.171 |
+| arm_right_4 | 0.699 | 0.039 | 0.660 | 0.662 | 0.929 |
+| arm_right_5 | 0.589 | -0.108 | 0.697 | 0.723 | 0.762 |
+| arm_right_6 | 4.146 | 2.508 | 1.638 | 1.450 | 0.321 |
+
+The two elastic fits of 08-05, on motor-side and on link-side angles, reach
+the same 5.36 mm: the encoder map is one more offset and compliance per
+joint, which the joint offsets and `k` absorb, so the two fits differ by
+the transmission. Their difference
+recovers the joint-data compliance `s` to within 4% on joints 1-5 (13% on
+joint 6) from the mocap alone, an independent check of 8.5. On joints 2, 4
+and 5 the link-side `k` is near zero: the link encoder sees all the
+compliance. On joints 1, 3 and 6 it is not (0.6, 1.2 and 2.5 mrad/Nm):
+some compliance, or a gravity-torque error of the nominal masses, sits
+beyond the link encoder. 07-01 gives similar values on joints 1-5 (within
+about 30%); with position only it does not determine joint 6.
+
+The 07-01 excess remains (11.5 mm against 5.2 mm on 07-02 from the same
+08-05 fit). These fits are diagnostics, like 8.5: the elastic model is not
+a protocol model, and its held-out numbers do not enter the selection of
+section 6.
 
 ## 9. Limits
 
@@ -343,7 +397,9 @@ instead of from the commanded postures.
   July held-out sessions recorded the motor side; the frozen held-out
   numbers of section 6 use them as recorded. The encoder-side correction
   (section 8.5) is fitted on the training session's joint data and the
-  nominal URDF masses, and is a diagnostic, not part of the protocol.
+  nominal URDF masses, and is a diagnostic, not part of the protocol; so
+  is the elastic model fitted from the mocap (section 8.6). Its stiffness
+  values rest on the nominal URDF masses and no tool payload.
 - joint_offset is not available ([figaroh-plus#205](https://github.com/thanhndv212/figaroh-plus/issues/205)).
 - The differences among the four fitted models (0.01-0.4 mm) are below any
   meaningful resolution; the study does not rank them.
@@ -361,6 +417,7 @@ python diagnostics.py kfold             # 8.1, about 10 min
 python diagnostics.py crossday          # 8.2
 python diagnostics.py splithalf         # 8.3
 python diagnostics.py encoder           # 8.5, about 1 min
+python diagnostics.py elastic           # 8.6, about 30 s
 python data_audit.py                    # noise estimate and outlier scan
 python reference_run.py --no-plot       # fit, held-out report, archive
 ```
@@ -372,7 +429,8 @@ archive check reports `revisions` as its only gap.
 
 Tests: `pytest tests/test_tiago_pro_*.py` (default suite, cheap);
 `-m slow` adds the held-out golden, the reference run, the 10-minute
-k-fold check and the encoder-side correction. Regenerate the golden with
+k-fold check, the encoder-side correction and the elastic fit. Regenerate
+the golden with
 `python ../../tests/test_tiago_pro_heldout.py > ../../tests/golden/tiago_pro_mocap.json`.
 
 ## Appendix A. Earlier analyses folded into this note

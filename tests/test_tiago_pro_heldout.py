@@ -249,6 +249,31 @@ def test_encoder_side_correction_closes_most_of_the_gap():
     assert res["calibration_samples_20260702_0756.csv"]["both"] < 8.0
 
 
+@pytest.mark.slow
+def test_core_elasticity_identifies_the_encoder_compliance():
+    """Diagnostic: core's k_* fitted from the mocap on motor-side data closes
+    most of the gap; motor-side minus link-side k is the joint-data fit."""
+    os.chdir(PRO)
+    from examples.tiago_pro import diagnostics
+
+    runs = diagnostics.elastic()["runs"]
+    motor, link = runs["elastic, 08-05 motor"], runs["elastic, 08-05 link"]
+    rigid = runs["rigid, 08-05 link"]
+    assert motor["train_pos_rmse_mm"] < rigid["train_pos_rmse_mm"] - 1.0
+    for f, e in motor["heldout"].items():
+        assert e < 0.7 * rigid["heldout"][f], f
+    assert motor["heldout"]["calibration_samples_20260702_0756.csv"] < 6.0
+    s = diagnostics.encoder_fit()["joints"]
+    for i in range(1, 6):
+        n = f"arm_right_{i}_joint"
+        diff = motor["k"][n] - link["k"][n]  # core's sign: link = motor + k*tau
+        assert abs(diff + s[n]["s"]) < 0.1 * s[n]["s"], n
+    july = runs["elastic, 07-01 motor"]
+    assert july["heldout"]["calibration_samples_20260702_0756.csv"] < 0.6 * (
+        runs["rigid, 07-01 motor"]["heldout"]["calibration_samples_20260702_0756.csv"]
+    )
+
+
 if __name__ == "__main__":
     os.chdir(PRO)
     print(json.dumps(snapshot(), indent=1))
