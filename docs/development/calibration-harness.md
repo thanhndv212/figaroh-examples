@@ -150,7 +150,10 @@ and returns the shared torso axes, `n_dx` and each chain's held-out
   identical z (difference below 1e-9). Core seeds the identifiability draw
   from `random_seed` (default 0), so the 2026-10-04 audit's dependence on
   Pinocchio's RNG state is gone.
-- (b) **The draw itself still matters.** `random_seed` 0-4 (the test checks 0-2, which already spans 1.46 mm on the left):
+- (b) **The draw itself moved the result; the TALOS configs now select the
+  first independent columns in joint order** (`estimation:
+  structural_selection: ordered`, figaroh-plus#204). With LAPACK pivoting
+  (core's default), `random_seed` 0-4 gave:
 
 | random_seed | shared torso axes | n_dx | left held-out z (mm) | right held-out z (mm) |
 |---|---|---|---|---|
@@ -160,7 +163,17 @@ and returns the shared torso axes, `n_dx` and each chain's held-out
 | 3 | 2 | 105 | 4.940 | 8.087 |
 | 4 | 5 | 102 | 5.759 | 7.324 |
 
-Left spread 1.46 mm, right spread 1.51 mm, against a 0.1 mm bar, so (b) is
-`xfail(strict=True)`: it fails loudly once the selection becomes stable. The
-shared-axis set changes with the draw, which is the mechanism the audit
-named; fixing the seed made it reproducible, not stable. Tracked in figaroh-plus#204.
+  Left spread 1.46 mm, right 1.51 mm. Cause: the structural regressor has a
+  rank gap of about 14 orders of magnitude (singular values 0.5-0.9 against
+  1e-15 at rank 50/57), so rank, threshold and sample count are not at
+  fault. Among exactly dependent torso columns, LAPACK takes the largest
+  residual, which follows the random rows: the span is the same, the basis
+  is not. Sharing torso axes by name, the regularisation and the data-level
+  elimination of absorbed parameters all depend on the basis. With
+  `ordered`, every seed gives the same 4 shared axes (phix_2, phiy_2, px_2,
+  py_2), `n_dx` 103, left 5.098 mm and right 8.394 mm (spread 0). The test
+  checks seeds 0-4.
+
+  The order is a convention. Taking columns distal-first gives 8 shared axes
+  (5.631 / 7.877 mm); in name order, 4 shared axes (4.845 / 10.047 mm). All are
+  draw-independent; none is preferred by the data.
