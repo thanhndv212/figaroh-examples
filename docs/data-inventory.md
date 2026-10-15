@@ -22,7 +22,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
 | `tiago-pro-mocap-samples` | TIAGo Pro | Mocap calibration | real | training (2026-08-05), validation (07-01), confirmation (07-02); frozen in data/protocol.yaml | 3 | 42.4 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
 | `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
-| `tiago-pro-protocol` | TIAGo Pro | Mocap calibration | derived | frozen protocol and k-fold diagnostic plan | 2 | 3.1 KB | docs/development/tiago-pro-mocap.md |
+| `tiago-pro-protocol` | TIAGo Pro | Mocap calibration | derived | frozen protocol and k-fold diagnostic plan | 2 | 3.4 KB | docs/development/tiago-pro-mocap.md |
 | `tiago-pro-notes` | TIAGo Pro | Mocap calibration | notes | documentation | 0 | 0 B |  |
 | `tiago-pro-optimal-configs` | TIAGo Pro | Experiment design | generated | calibration postures | 1 | 9.6 KB |  |
 | `talos-left-arm-contact` | TALOS | Arm contact calibration | real | calibration | 1 | 14.2 KB | examples/talos/config/talos_unified_config.yaml |
@@ -169,7 +169,7 @@ Versioned protocol that fixes each session's role and sha256, and the 5-fold pla
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/tiago_pro/data/protocol.yaml` |  | 2535 | `2e1a27a584627c76` |
+| `examples/tiago_pro/data/protocol.yaml` |  | 2791 | `18f98f94d4ad6f78` |
 | `examples/tiago_pro/data/protocol_0805_kfold.yaml` |  | 649 | `57f526e97a13a943` |
 
 ### `tiago-pro-notes`

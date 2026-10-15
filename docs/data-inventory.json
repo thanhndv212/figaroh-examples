@@ -654,8 +654,8 @@
       "bytes": 9830
     },
     "examples/tiago_pro/data/protocol.yaml": {
-      "sha256": "2e1a27a584627c762bd7a3cdb39dc3c8a66e6f14cf343e58e5515821957b6660",
-      "bytes": 2535
+      "sha256": "18f98f94d4ad6f78a9d30bf517d504ff6d50d1d4b8b407bcefd644d93f792640",
+      "bytes": 2791
     },
     "examples/tiago_pro/data/protocol_0805_kfold.yaml": {
       "sha256": "57f526e97a13a943f0af1d558bd16b11849ca2cf2d082249b8ff95d5758ed8d7",
