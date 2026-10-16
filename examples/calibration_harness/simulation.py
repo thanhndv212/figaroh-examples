@@ -143,7 +143,7 @@ def run_case(
         "nfev": int(fit.nfev),
         "absorbed": list(fit.absorbed),
     }
-    pred = study.predict(fit.params, fit.level, study.train_postures, fit.handle)
+    pred = study.predict(fit.params, fit.level, post, fit.handle)
     result["train_rms_mm"] = 1000 * float(np.sqrt(np.mean((pred - meas) ** 2)))
 
     errors = []
