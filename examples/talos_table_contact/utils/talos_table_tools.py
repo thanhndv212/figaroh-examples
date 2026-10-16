@@ -330,16 +330,18 @@ class TalosTableContactCalibration(BaseCalibration):
         :meth:`cost_function` and the base class's own
         ``_compute_logmap_residuals``/``_evaluate_solution`` expect.
         """
-        n_dx = self.n_deltaX
-        n_plane = 3 * self.n_sessions
-        var_dx = var[:n_dx]
-        var_plane = var[n_dx : n_dx + n_plane]
-        var_contact = var[n_dx + n_plane :]
+        var_dx, var_plane, var_contact = self._unpack(var)
 
+        # Sample count follows the data in hand, so a caller that slices
+        # q_measured (core estimation._samples) stays consistent.
+        N = len(self.q_measured)
         PEEe = calc_updated_fkm(
-            self.model, self.data, var_dx, self.q_measured, self._fk_config
+            self.model,
+            self.data,
+            var_dx,
+            self.q_measured,
+            dict(self._fk_config, NbSample=N),
         )
-        N = self._fk_config["NbSample"]
         contact_offset = self._nominal_contact_offset * cartesian_to_SE3(
             [0.0, 0.0, var_contact[0], var_contact[1], var_contact[2], 0.0]
         )
@@ -391,30 +393,38 @@ class TalosTableContactCalibration(BaseCalibration):
     # ------------------------------------------------------------------
     # Convenience accessors
     # ------------------------------------------------------------------
+    def _unpack(self, var: np.ndarray):
+        """Read ``var`` by name from ``calib_config["param_name"]``.
+
+        Returns ``(var_dx, var_plane, var_contact)``: Delta X in
+        ``_fk_config["param_name"]`` order (the order ``calc_updated_fkm``
+        expects), plane and contact by their template names. A name that is
+        absent from ``param_name`` reads as 0.
+        """
+        values = dict(zip(self.calib_config["param_name"], np.asarray(var)))
+        var_dx = np.array([values.get(n, 0.0) for n in self._fk_config["param_name"]])
+        var_plane = np.array(
+            [values.get(n, 0.0) for n in _plane_param_names(self.n_sessions)]
+        )
+        var_contact = np.array([values.get(n, 0.0) for n in CONTACT_TPL])
+        return var_dx, var_plane, var_contact
+
     def split_params(self, var: np.ndarray) -> dict:
-        """Split a flat parameter vector into its named blocks."""
-        n_dx = self.n_deltaX
-        n_plane = 3 * self.n_sessions
+        """Split a flat parameter vector into its named blocks (by name)."""
+        names = self.calib_config["param_name"]
+        values = dict(zip(names, var))
+        plane_names = set(_plane_param_names(self.n_sessions))
+        contact_names = set(CONTACT_TPL)
         return {
-            "delta_x": dict(zip(self.calib_config["param_name"][:n_dx], var[:n_dx])),
-            "plane": dict(
-                zip(
-                    self.calib_config["param_name"][n_dx : n_dx + n_plane],
-                    var[n_dx : n_dx + n_plane],
-                )
-            ),
-            "contact": dict(
-                zip(
-                    self.calib_config["param_name"][n_dx + n_plane :],
-                    var[n_dx + n_plane :],
-                )
-            ),
+            "delta_x": {n: v for n, v in values.items() if n.startswith("d_")},
+            "plane": {n: v for n, v in values.items() if n in plane_names},
+            "contact": {n: v for n, v in values.items() if n in contact_names},
         }
 
     def gap_rms(self, var: np.ndarray) -> float:
         """RMS of the physical (z, roll/pitch-weighted) gap only, excluding
         the regularization tail of :meth:`cost_function`."""
-        n_gap = 3 * self._fk_config["NbSample"]
+        n_gap = 3 * len(self.q_measured)
         residual = self.cost_function(var)[:n_gap]
         return float(np.sqrt(np.mean(residual**2)))
 
@@ -425,7 +435,7 @@ class TalosTableContactCalibration(BaseCalibration):
         quality (mm along the table normal, degrees of roll/pitch)
         rather than one mixed-unit combined residual.
         """
-        N = self._fk_config["NbSample"]
+        N = len(self.q_measured)
         residual = self.cost_function(var)[: 3 * N].reshape(3, N)
         z, roll, pitch = residual[0], residual[1], residual[2]
         return {
@@ -531,8 +541,8 @@ class MultiChainCalibration:
     def cost_function(self, var: np.ndarray) -> np.ndarray:
         var_left, var_right = self._split_to_chain_vars(var)
 
-        n_gap_left = 3 * self.left._fk_config["NbSample"]
-        n_gap_right = 3 * self.right._fk_config["NbSample"]
+        n_gap_left = 3 * len(self.left.q_measured)
+        n_gap_right = 3 * len(self.right.q_measured)
         # Slice off each chain's own internal regularization tail (sized
         # to that chain's local var, not this class's union var) -- one
         # combined regularization tail over the full union is added once
