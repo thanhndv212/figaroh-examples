@@ -136,3 +136,17 @@ def test_grid_and_summary(tmp_path):
     table, z = summarize(df)
     assert list(table.index.names) == ["truth", "noise_mm", "fit"]
     assert z["n"] == 6
+
+
+def test_train_rms_uses_simulated_postures(tmp_path):
+    """Study.simulate may return perturbed postures; train RMS must use them."""
+    study = _study()
+
+    def simulate(st, truth, kind, postures, level, seed):
+        shifted = postures.copy()
+        shifted["x"] = shifted["x"] * 0.5 + 0.1
+        return st.predict(truth, kind, shifted), shifted
+
+    study.simulate = simulate
+    r = run_case(study, "lin", "lin", 0, 0.0, tmp_path)
+    assert r["train_rms_mm"] < 1e-9
