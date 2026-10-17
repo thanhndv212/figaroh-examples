@@ -75,9 +75,11 @@ import pinocchio as pin
 from scipy.optimize import least_squares
 
 from figaroh.calibration.base_calibration import BaseCalibration
+from figaroh.calibration import estimation
 from figaroh.calibration.calibration_tools import (
     calc_updated_fkm,
     cartesian_to_SE3,
+    chain_jacobian,
     get_rel_jac,
     get_rel_transform,
 )
@@ -86,8 +88,40 @@ PLANE_TPL = ["plane_z", "plane_phix", "plane_thetay"]
 CONTACT_TPL = ["contact_z", "contact_phix", "contact_thetay"]
 
 
+#: Gauge of the table-contact model: the table height and the contact
+#: height are collinear on flush contacts (only their sum is observable),
+#: so ``contact_z`` is fixed at nominal when the methods fit the tail
+#: freely (figaroh-examples#98).
+GAUGE_FIXED = ("contact_z",)
+
+FIT_LEVELS = ("full_params", "table_contact")
+
+
 def _plane_param_names(n_sessions: int) -> List[str]:
     return [f"{name}_s{s}" for s in range(n_sessions) for name in PLANE_TPL]
+
+
+def _template_twists(p) -> np.ndarray:
+    """(6, 3) local twists (``T exp(xi)``) of the template pose
+    ``SE3(rpy(phix, thetay, 0), (0, 0, z))`` per ``(z, phix, thetay)``."""
+    rpy = np.array([p[1], p[2], 0.0])
+    R = pin.rpy.rpyToMatrix(rpy)
+    Jr = pin.rpy.computeRpyJacobian(rpy, pin.LOCAL)
+    xi = np.zeros((6, 3))
+    xi[:3, 0] = R.T @ np.array([0.0, 0.0, 1.0])
+    xi[3:, 1] = Jr[:, 0]
+    xi[3:, 2] = Jr[:, 1]
+    return xi
+
+
+def _gap_derivative(rel: pin.SE3) -> np.ndarray:
+    """(3, 6) derivative of ``gap_of_pose``'s (z, roll, pitch) w.r.t. a
+    local twist of ``rel`` (``rel exp(xi)``, linear then angular)."""
+    G = np.zeros((3, 6))
+    G[0, :3] = rel.rotation[2, :]
+    rpy = pin.rpy.matrixToRpy(rel.rotation)
+    G[1:, 3:] = pin.rpy.computeRpyJacobianInverse(rpy, pin.LOCAL)[:2, :]
+    return G
 
 
 def gap_of_pose(plane_pose: pin.SE3, contact_pose: pin.SE3) -> np.ndarray:
@@ -175,6 +209,19 @@ class TalosTableContactCalibration(BaseCalibration):
     anchor the joint-offset correction (Delta X).
     """
 
+    #: ``session_ids`` is sliced with ``q_measured`` by the cross-validation
+    #: folds of the estimation methods (figaroh-plus#210).
+    per_sample_attributes = ("session_ids",)
+
+    #: ``"full_params"``: Delta X plus the plane/contact tail.
+    #: ``"table_contact"``: no Delta X, only the tail (the table-only
+    #: baseline). Set before :meth:`initialize`.
+    fit_level = "full_params"
+
+    #: Use the central-difference Jacobian instead of the exact one (kept
+    #: for the test that compares them).
+    _fd_jacobian = False
+
     def __init__(self, robot, config_file: str, del_list: Optional[list] = None):
         super().__init__(robot, config_file, del_list or [])
         # No externally-known base/tip frame in this method: the plane
@@ -252,23 +299,41 @@ class TalosTableContactCalibration(BaseCalibration):
     # configurations the rank-revealing QR step gets to test against.
     MIN_IDENTIFIABILITY_SAMPLES = 65
 
-    def initialize(self):
-        self.load_data_set()
+    def _tail_names(self) -> List[str]:
+        """Every plane and contact parameter name of this calibrator."""
+        return _plane_param_names(self.n_sessions) + list(CONTACT_TPL)
 
-        # The structural identifiability check inside create_param_list()
-        # (via calculate_base_kinematics_regressor) samples NbSample
-        # random configurations internally -- it does not use the real
-        # training data at all. Run it with enough random probes to
-        # reveal the chain's true rank regardless of how many real
-        # postures happen to be loaded, then restore the real count
-        # before anything that touches the actual data (cost_function,
-        # _fk_config's NbSample, etc.).
-        real_nb_sample = self.calib_config["NbSample"]
-        self.calib_config["NbSample"] = max(
-            real_nb_sample, self.MIN_IDENTIFIABILITY_SAMPLES
-        )
-        self.create_param_list()
-        self.calib_config["NbSample"] = real_nb_sample
+    def nuisance_param_names(self) -> List[str]:
+        """Plane (per session) and contact parameters, gauge fixed.
+
+        ``contact_z`` is left out (:data:`GAUGE_FIXED`). They are the
+        free parameters of the estimation methods (no prior, never
+        removed) and the only ones of the ``table_contact`` level.
+        """
+        return [n for n in self._tail_names() if n not in GAUGE_FIXED]
+
+    def _make_fk_config(self) -> dict:
+        """A copy of calib_config for calc_updated_fkm(): full 6-DOF chain
+        pose (needed so this class can compose the plane/contact frames on
+        top of it). ``param_name`` is rebuilt on every gap evaluation."""
+        cfg = dict(self.calib_config)
+        cfg["measurability"] = [True] * 6
+        cfg["calibration_index"] = 6
+        cfg["param_name"] = self._dx_names()
+        return cfg
+
+    def _dx_names(self) -> List[str]:
+        """Delta-X names of ``calib_config["param_name"]``: everything but
+        the plane/contact parameters."""
+        tail = set(self._tail_names())
+        return [n for n in self.calib_config["param_name"] if n not in tail]
+
+    def initialize(self):
+        if self.fit_level not in FIT_LEVELS:
+            raise ValueError(
+                f"fit_level must be one of {FIT_LEVELS}, got {self.fit_level!r}"
+            )
+        self.load_data_set()
 
         if not self._nominal_table_pose:
             raise RuntimeError("Call set_nominal_table_poses(...) before initialize().")
@@ -283,19 +348,51 @@ class TalosTableContactCalibration(BaseCalibration):
                 f"{len(self._nominal_table_pose)}."
             )
 
-        self.n_deltaX = len(self.calib_config["param_name"])
-        plane_names = _plane_param_names(self.n_sessions)
-        self.calib_config["param_name"] = (
-            self.calib_config["param_name"] + plane_names + list(CONTACT_TPL)
-        )
+        method = estimation.settings(self.calib_config)["method"]
+        structural = method == "structural" and self.fit_level == "full_params"
+        if method != "structural" and self.n_sessions > 1:
+            raise ValueError(
+                f"estimation.method '{method}' needs a single session "
+                f"(got {self.n_sessions}); the two-session chains are a "
+                "structural-only diagnostic"
+            )
+        # Ridge on the whole vector only for the structural path (backward
+        # compatible); the other methods get their priors from core.
+        self.regularization_coefficient = 1e-3 if structural else 0.0
 
-        # A copy of calib_config for calc_updated_fkm(): full 6-DOF chain
-        # pose (needed so this class can compose the plane/contact
-        # frames on top of it), Delta-X-only parameter list.
-        self._fk_config = dict(self.calib_config)
-        self._fk_config["measurability"] = [True] * 6
-        self._fk_config["calibration_index"] = 6
-        self._fk_config["param_name"] = self.calib_config["param_name"][: self.n_deltaX]
+        if self.fit_level == "table_contact":
+            self.n_deltaX = 0
+            self.calib_config["param_name"] = self.nuisance_param_names()
+            self.calib_config["prior_weights"] = None
+            self._fk_config = self._make_fk_config()
+            self._fk_config["NbSample"] = self.calib_config["NbSample"]
+            return
+
+        if structural:
+            # The structural identifiability check inside
+            # create_param_list() (via calculate_base_kinematics_regressor)
+            # samples NbSample random configurations internally -- it does
+            # not use the real training data at all. Run it with enough
+            # random probes to reveal the chain's true rank regardless of
+            # how many real postures happen to be loaded, then restore the
+            # real count before anything that touches the actual data.
+            real_nb_sample = self.calib_config["NbSample"]
+            self.calib_config["NbSample"] = max(
+                real_nb_sample, self.MIN_IDENTIFIABILITY_SAMPLES
+            )
+            self.create_param_list()
+            self.calib_config["NbSample"] = real_nb_sample
+            self.n_deltaX = len(self.calib_config["param_name"])
+            self.calib_config["param_name"] = (
+                self.calib_config["param_name"] + self._tail_names()
+            )
+        else:
+            # core estimation.configure picks the joint parameters on the
+            # data; the gap model reads _fk_config, so give it one first.
+            self._fk_config = self._make_fk_config()
+            self.create_param_list()
+            self.n_deltaX = len(self._dx_names())
+        self._fk_config = self._make_fk_config()
 
     def _compute_validation_metrics(self):
         """Override of ``BaseCalibration._compute_validation_metrics``:
@@ -330,6 +427,16 @@ class TalosTableContactCalibration(BaseCalibration):
         :meth:`cost_function` and the base class's own
         ``_compute_logmap_residuals``/``_evaluate_solution`` expect.
         """
+        contact_offset, planes, contacts = self._gap_poses(var)
+        N = len(contacts)
+        gap = np.empty((3, N))
+        for i in range(N):
+            gap[:, i] = gap_of_pose(planes[i], contacts[i])
+        return gap.flatten("C")
+
+    def _gap_poses(self, var: np.ndarray):
+        """Contact offset, then the plane and contact poses of every
+        sample, in the chain's base frame."""
         var_dx, var_plane, var_contact = self._unpack(var)
 
         # Sample count follows the data in hand, so a caller that slices
@@ -346,7 +453,7 @@ class TalosTableContactCalibration(BaseCalibration):
             [0.0, 0.0, var_contact[0], var_contact[1], var_contact[2], 0.0]
         )
 
-        gap = np.empty((3, N))
+        planes, contacts = [], []
         for i in range(N):
             loc = np.array(
                 [
@@ -360,24 +467,87 @@ class TalosTableContactCalibration(BaseCalibration):
             )
             # base_frame -> wrist, with Delta X applied
             sM_wrist = cartesian_to_SE3(loc)
-            sM_contact = sM_wrist * contact_offset
+            contacts.append(sM_wrist * contact_offset)
 
             s = int(self.session_ids[i])
             p = var_plane[3 * s : 3 * s + 3]
-            sM_plane = self._nominal_table_pose[s] * cartesian_to_SE3(
-                [0.0, 0.0, p[0], p[1], p[2], 0.0]
+            planes.append(
+                self._nominal_table_pose[s]
+                * cartesian_to_SE3([0.0, 0.0, p[0], p[1], p[2], 0.0])
             )
-            gap[:, i] = gap_of_pose(sM_plane, sM_contact)
+        return contact_offset, planes, contacts
 
-        return gap.flatten("C")
+    def measurement_jacobian(self, names, x, step: float = 1e-6):
+        """Exact Jacobian of the gap (rows DOF-major, columns ``names``).
+
+        The contact frame is ``oMee * C`` with ``C`` the contact offset and
+        the gap is (z, roll, pitch) of ``rel = plane^-1 * contact``. Every
+        parameter moves ``rel`` by a local twist ``xi`` (``rel exp(xi)``):
+        a joint parameter through :func:`chain_jacobian` as
+        ``Ad(C^-1) J``; a contact parameter through the local twist of its
+        own template pose; a plane parameter through minus
+        ``Ad(rel^-1)`` of the local twist of its template pose. The gap
+        derivative w.r.t. ``xi`` is analytic (:func:`_gap_derivative`).
+        """
+        if self._fd_jacobian:
+            return super().measurement_jacobian(names, x, step)
+        names = list(names)
+        x = np.asarray(x, dtype=float)
+        cfg = self.calib_config
+        saved = cfg["param_name"]
+        cfg["param_name"] = names
+        try:
+            _, _, var_contact = self._unpack(x)
+            contact_offset, planes, contacts = self._gap_poses(x)
+            dx_names = list(self._fk_config["param_name"])
+            q = self.q_measured
+            N = len(q)
+            values = dict(zip(names, x))
+            fk = dict(self._fk_config, NbSample=N)
+            J_chain = chain_jacobian(
+                self.model,
+                self.data,
+                np.array([values[n] for n in dx_names]),
+                q,
+                fk,
+            )
+        finally:
+            cfg["param_name"] = saved
+
+        col = {n: j for j, n in enumerate(names)}
+        dx_cols = [col[n] for n in dx_names]
+        Ad_cinv = contact_offset.inverse().action
+        Jx = np.zeros((3 * N, len(names)))
+        contact_twist = _template_twists(var_contact)
+        plane_twist = {}
+        for s in range(self.n_sessions):
+            p = np.array(
+                [values.get(n, 0.0) for n in _plane_param_names(self.n_sessions)]
+            )[3 * s : 3 * s + 3]
+            plane_twist[s] = _template_twists(p)
+        for i in range(N):
+            rel = planes[i].actInv(contacts[i])
+            G = _gap_derivative(rel)
+            if dx_cols:
+                Jx[i::N][:, dx_cols] = G @ Ad_cinv @ J_chain[i]
+            Ad_rel_inv = rel.inverse().action
+            s = int(self.session_ids[i])
+            for k, name in enumerate(CONTACT_TPL):
+                if name in col:
+                    Jx[i::N][:, col[name]] = G @ contact_twist[:, k]
+            for k, name in enumerate(PLANE_TPL):
+                full = f"{name}_s{s}"
+                if full in col:
+                    Jx[i::N][:, col[full]] = -G @ (Ad_rel_inv @ plane_twist[s][:, k])
+        return Jx
 
     def cost_function(self, var: np.ndarray) -> np.ndarray:
         """Residual = core FIGAROH's own SE3 log-map error
         (``_compute_logmap_residuals``, unmodified) between the target
         (``self.PEE_measured``, fixed at zero -- a flush touch's gap
         *is* the measurement, and it must read zero) and the predicted
-        gap (:meth:`get_pose_from_measure`), plus an L2 regularization
-        tail -- the same structure
+        gap (:meth:`get_pose_from_measure`), plus (structural method
+        only) an L2 regularization tail -- the same structure
         ``examples/tiago/utils/tiago_tools.py``'s own ``cost_function``
         uses (position residual + regularization, via ``np.append``),
         so this class drives the standard ``solve()`` /
@@ -387,6 +557,9 @@ class TalosTableContactCalibration(BaseCalibration):
         residuals = self._compute_logmap_residuals(
             self.PEE_measured, self.get_pose_from_measure(var)
         )
+        if not self.regularization_coefficient:
+            # non-structural methods: core adds the prior rows
+            return residuals
         reg = np.sqrt(self.regularization_coefficient) * var
         return np.append(residuals, reg)
 
@@ -402,6 +575,8 @@ class TalosTableContactCalibration(BaseCalibration):
         absent from ``param_name`` reads as 0.
         """
         values = dict(zip(self.calib_config["param_name"], np.asarray(var)))
+        # Delta X is every non-tail name, whatever the selection put there
+        self._fk_config["param_name"] = self._dx_names()
         var_dx = np.array([values.get(n, 0.0) for n in self._fk_config["param_name"]])
         var_plane = np.array(
             [values.get(n, 0.0) for n in _plane_param_names(self.n_sessions)]
