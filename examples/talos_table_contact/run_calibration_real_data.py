@@ -172,7 +172,15 @@ def _print_metrics(label: str, before: dict, after: dict) -> None:
         )
 
 
-def _build_chain(robot, config_path, train_csv, asset_id=None, random_seed=None):
+def _build_chain(
+    robot,
+    config_path,
+    train_csv,
+    asset_id=None,
+    random_seed=None,
+    estimation=None,
+    fit_level=None,
+):
     df_train = _load_real_touches(train_csv)
     staged_path = Path(str(train_csv) + ".staged.csv")
     df_train.to_csv(staged_path, index=False)
@@ -190,6 +198,13 @@ def _build_chain(robot, config_path, train_csv, asset_id=None, random_seed=None)
         calib.calib_config["instance"] = instance
     calib.set_nominal_table_poses([NOMINAL_TABLE_POSE])
     calib.set_nominal_contact_offset(NOMINAL_CONTACT_OFFSET)
+    if estimation:
+        # overrides of parameters.estimation (method, noise_std, ...)
+        calib.calib_config["estimation"] = dict(
+            calib.calib_config.get("estimation") or {}, **estimation
+        )
+    if fit_level:
+        calib.fit_level = fit_level
     if random_seed is not None:
         # seeds the identifiability probe in initialize() (core default: 0)
         calib.calib_config["random_seed"] = random_seed

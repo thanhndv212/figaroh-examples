@@ -30,6 +30,7 @@ tasks:
       # axes by name, so the selected names must not follow the random draw
       # (figaroh-plus#204).
       estimation:
+        method: structural
         structural_selection: ordered
     kinematics:
       base_frame: left_sole_link
