@@ -1,0 +1,310 @@
+{
+  "chains": {
+    "left": {
+      "lowest_validation": "map_cv",
+      "models": {
+        "cv_subset": {
+          "n_dx": 17,
+          "n_params": 22,
+          "sets": {
+            "left_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.222,
+              "rereg_roll_deg": 0.365,
+              "rereg_z_mm": 4.963,
+              "strata": {
+                "new": 5,
+                "out_of_range": 4,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.18,
+              "transfer_roll_deg": 0.473,
+              "transfer_z_mm": 5.503
+            }
+          },
+          "train_z_mm": 5.407
+        },
+        "excitation": {
+          "n_dx": 21,
+          "n_params": 26,
+          "sets": {
+            "left_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.207,
+              "rereg_roll_deg": 0.304,
+              "rereg_z_mm": 4.842,
+              "strata": {
+                "new": 5,
+                "out_of_range": 4,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.179,
+              "transfer_roll_deg": 0.422,
+              "transfer_z_mm": 5.304
+            }
+          },
+          "train_z_mm": 5.457
+        },
+        "map": {
+          "n_dx": 90,
+          "n_params": 95,
+          "sets": {
+            "left_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.181,
+              "rereg_roll_deg": 0.246,
+              "rereg_z_mm": 2.834,
+              "strata": {
+                "new": 5,
+                "out_of_range": 4,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.226,
+              "transfer_roll_deg": 0.459,
+              "transfer_z_mm": 4.809
+            }
+          },
+          "train_z_mm": 1.533
+        },
+        "map_cv": {
+          "n_dx": 90,
+          "n_params": 95,
+          "sets": {
+            "left_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.217,
+              "rereg_roll_deg": 0.319,
+              "rereg_z_mm": 2.793,
+              "strata": {
+                "new": 5,
+                "out_of_range": 4,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.309,
+              "transfer_roll_deg": 0.49,
+              "transfer_z_mm": 4.599
+            }
+          },
+          "train_z_mm": 2.683
+        },
+        "structural": {
+          "n_dx": 50,
+          "n_params": 56,
+          "sets": {
+            "left_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.307,
+              "rereg_roll_deg": 0.323,
+              "rereg_z_mm": 6.108,
+              "strata": {
+                "new": 5,
+                "out_of_range": 4,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.515,
+              "transfer_roll_deg": 0.731,
+              "transfer_z_mm": 7.731
+            }
+          },
+          "train_z_mm": 0.601
+        },
+        "table+contact only": {
+          "n_dx": 0,
+          "n_params": 5,
+          "sets": {
+            "left_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.474,
+              "rereg_roll_deg": 0.59,
+              "rereg_z_mm": 8.129,
+              "strata": {
+                "new": 5,
+                "out_of_range": 4,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.677,
+              "transfer_roll_deg": 0.621,
+              "transfer_z_mm": 8.381
+            }
+          },
+          "train_z_mm": 13.434
+        },
+        "two-chain structural (diagnostic)": {
+          "n_dx": 103,
+          "n_params": 115,
+          "sets": {
+            "left_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.407,
+              "rereg_roll_deg": 0.237,
+              "rereg_z_mm": 3.39,
+              "strata": {
+                "new": 5,
+                "out_of_range": 4,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.491,
+              "transfer_roll_deg": 0.458,
+              "transfer_z_mm": 5.154
+            }
+          },
+          "train_z_mm": 1.409
+        }
+      }
+    },
+    "right": {
+      "lowest_validation": "structural",
+      "models": {
+        "cv_subset": {
+          "n_dx": 3,
+          "n_params": 8,
+          "sets": {
+            "right_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.651,
+              "rereg_roll_deg": 1.11,
+              "rereg_z_mm": 12.745,
+              "strata": {
+                "new": 4,
+                "out_of_range": 5,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.633,
+              "transfer_roll_deg": 1.287,
+              "transfer_z_mm": 15.909
+            }
+          },
+          "train_z_mm": 8.824
+        },
+        "excitation": {
+          "n_dx": 27,
+          "n_params": 32,
+          "sets": {
+            "right_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.606,
+              "rereg_roll_deg": 0.839,
+              "rereg_z_mm": 7.84,
+              "strata": {
+                "new": 4,
+                "out_of_range": 5,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.598,
+              "transfer_roll_deg": 1.017,
+              "transfer_z_mm": 10.32
+            }
+          },
+          "train_z_mm": 5.076
+        },
+        "map": {
+          "n_dx": 90,
+          "n_params": 95,
+          "sets": {
+            "right_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.551,
+              "rereg_roll_deg": 0.68,
+              "rereg_z_mm": 5.71,
+              "strata": {
+                "new": 4,
+                "out_of_range": 5,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.584,
+              "transfer_roll_deg": 0.916,
+              "transfer_z_mm": 7.707
+            }
+          },
+          "train_z_mm": 2.987
+        },
+        "map_cv": {
+          "n_dx": 90,
+          "n_params": 95,
+          "sets": {
+            "right_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.567,
+              "rereg_roll_deg": 0.994,
+              "rereg_z_mm": 7.35,
+              "strata": {
+                "new": 4,
+                "out_of_range": 5,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.605,
+              "transfer_roll_deg": 1.215,
+              "transfer_z_mm": 11.565
+            }
+          },
+          "train_z_mm": 6.184
+        },
+        "structural": {
+          "n_dx": 57,
+          "n_params": 63,
+          "sets": {
+            "right_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.508,
+              "rereg_roll_deg": 0.739,
+              "rereg_z_mm": 7.836,
+              "strata": {
+                "new": 4,
+                "out_of_range": 5,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.577,
+              "transfer_roll_deg": 0.998,
+              "transfer_z_mm": 7.58
+            }
+          },
+          "train_z_mm": 1.234
+        },
+        "table+contact only": {
+          "n_dx": 0,
+          "n_params": 5,
+          "sets": {
+            "right_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 1.208,
+              "rereg_roll_deg": 1.406,
+              "rereg_z_mm": 15.34,
+              "strata": {
+                "new": 4,
+                "out_of_range": 5,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 1.035,
+              "transfer_roll_deg": 1.911,
+              "transfer_z_mm": 18.233
+            }
+          },
+          "train_z_mm": 11.775
+        },
+        "two-chain structural (diagnostic)": {
+          "n_dx": 103,
+          "n_params": 115,
+          "sets": {
+            "right_validation.csv": {
+              "n": 9,
+              "rereg_pitch_deg": 0.512,
+              "rereg_roll_deg": 0.739,
+              "rereg_z_mm": 9.079,
+              "strata": {
+                "new": 4,
+                "out_of_range": 5,
+                "repeated": 0
+              },
+              "transfer_pitch_deg": 0.584,
+              "transfer_roll_deg": 0.998,
+              "transfer_z_mm": 8.774
+            }
+          },
+          "train_z_mm": 1.312
+        }
+      }
+    }
+  },
+  "noise_std": 0.001,
+  "primary_metric": "transfer_z_mm"
+}
