@@ -306,5 +306,159 @@
     }
   },
   "noise_std": 0.001,
-  "primary_metric": "transfer_z_mm"
+  "primary_metric": "transfer_z_mm",
+  "synthetic": {
+    "chains": {
+      "left": {
+        "curved@0.05": {
+          "cv_subset": {
+            "heldout_rmse_mm": 2.675,
+            "n_params": 35,
+            "train_rms_mm": 1.968
+          },
+          "excitation": {
+            "heldout_rmse_mm": 2.658,
+            "n_params": 25,
+            "train_rms_mm": 2.822
+          },
+          "map": {
+            "heldout_rmse_mm": 1.354,
+            "n_params": 95,
+            "train_rms_mm": 1.614
+          },
+          "map_cv": {
+            "heldout_rmse_mm": 1.365,
+            "n_params": 95,
+            "train_rms_mm": 1.923
+          },
+          "structural": {
+            "heldout_rmse_mm": 3.004,
+            "n_params": 56,
+            "train_rms_mm": 1.352
+          },
+          "table+contact only": {
+            "heldout_rmse_mm": 3.634,
+            "n_params": 5,
+            "train_rms_mm": 9.071
+          }
+        },
+        "planar@0.0": {
+          "structural": {
+            "heldout_rmse_mm": 2.314,
+            "n_params": 56,
+            "train_rms_mm": 0.438
+          }
+        },
+        "planar@0.05": {
+          "cv_subset": {
+            "heldout_rmse_mm": 2.528,
+            "n_params": 25,
+            "train_rms_mm": 2.389
+          },
+          "excitation": {
+            "heldout_rmse_mm": 2.528,
+            "n_params": 25,
+            "train_rms_mm": 2.389
+          },
+          "map": {
+            "heldout_rmse_mm": 1.482,
+            "n_params": 95,
+            "train_rms_mm": 1.253
+          },
+          "map_cv": {
+            "heldout_rmse_mm": 1.398,
+            "n_params": 95,
+            "train_rms_mm": 1.478
+          },
+          "structural": {
+            "heldout_rmse_mm": 3.097,
+            "n_params": 56,
+            "train_rms_mm": 1.141
+          },
+          "table+contact only": {
+            "heldout_rmse_mm": 3.479,
+            "n_params": 5,
+            "train_rms_mm": 8.179
+          }
+        }
+      },
+      "right": {
+        "curved@0.05": {
+          "cv_subset": {
+            "heldout_rmse_mm": 3.545,
+            "n_params": 35,
+            "train_rms_mm": 2.421
+          },
+          "excitation": {
+            "heldout_rmse_mm": 3.547,
+            "n_params": 32,
+            "train_rms_mm": 2.428
+          },
+          "map": {
+            "heldout_rmse_mm": 1.97,
+            "n_params": 95,
+            "train_rms_mm": 1.953
+          },
+          "map_cv": {
+            "heldout_rmse_mm": 1.873,
+            "n_params": 95,
+            "train_rms_mm": 2.033
+          },
+          "structural": {
+            "heldout_rmse_mm": 3.836,
+            "n_params": 63,
+            "train_rms_mm": 1.764
+          },
+          "table+contact only": {
+            "heldout_rmse_mm": 7.542,
+            "n_params": 5,
+            "train_rms_mm": 9.123
+          }
+        },
+        "planar@0.0": {
+          "structural": {
+            "heldout_rmse_mm": 0.139,
+            "n_params": 63,
+            "train_rms_mm": 0.025
+          }
+        },
+        "planar@0.05": {
+          "cv_subset": {
+            "heldout_rmse_mm": 1.605,
+            "n_params": 45,
+            "train_rms_mm": 1.438
+          },
+          "excitation": {
+            "heldout_rmse_mm": 2.968,
+            "n_params": 33,
+            "train_rms_mm": 1.967
+          },
+          "map": {
+            "heldout_rmse_mm": 1.428,
+            "n_params": 95,
+            "train_rms_mm": 1.471
+          },
+          "map_cv": {
+            "heldout_rmse_mm": 1.456,
+            "n_params": 95,
+            "train_rms_mm": 1.56
+          },
+          "structural": {
+            "heldout_rmse_mm": 3.241,
+            "n_params": 63,
+            "train_rms_mm": 1.323
+          },
+          "table+contact only": {
+            "heldout_rmse_mm": 7.777,
+            "n_params": 5,
+            "train_rms_mm": 8.908
+          }
+        }
+      }
+    },
+    "noise_deg": [
+      0.0,
+      0.05
+    ]
+  }
 }
