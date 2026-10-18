@@ -3,7 +3,12 @@
 Static postures of TALOS (robot "pyrene") whose gripper was commanded to touch
 a table flush, recorded 2022-10-28 (left arm) and 2022-11-07 (both arms).
 Provenance, roles and hashes are in [`protocol.yaml`](protocol.yaml)
-(protocol v2). The sources are original recordings, not distributed; they are named there by file name and sha256. Everything the
+(protocol v2). The held-out study reads the per-chain views
+[`protocol_left.yaml`](protocol_left.yaml) and
+[`protocol_right.yaml`](protocol_right.yaml) (the master entries plus a
+`heldout:` block); see
+[`docs/development/talos-table-contact.md`](../../../../docs/development/talos-table-contact.md).
+The sources are original recordings, not distributed; they are named there by file name and sha256. Everything the
 example needs is in this directory.
 
 | File | Postures | Session | Role |

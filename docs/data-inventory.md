@@ -26,7 +26,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-pro-notes` | TIAGo Pro | Mocap calibration | notes | documentation | 0 | 0 B |  |
 | `tiago-pro-optimal-configs` | TIAGo Pro | Experiment design | generated | calibration postures | 1 | 9.6 KB |  |
 | `talos-left-arm-contact` | TALOS | Arm contact calibration | real | calibration | 1 | 14.2 KB | examples/talos/config/talos_unified_config.yaml |
-| `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 9 | 69.8 KB | examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
+| `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 9 | 70.1 KB | examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
 | `talos-table-contact-synthetic` | TALOS | Table contact | simulated | synthetic train + validation | 3 | 27.5 KB | examples/talos_table_contact/generate_synthetic_data.py |
 | `staubli-tx40-logs` | Staubli TX40 | Dynamic identification | unspecified (unconfirmed) | identification; no separate validation set | 2 | 4.3 MB | examples/staubli_tx40/README.md |
 | `so101-simulated` | SO-101 | Dynamic identification | simulated | training | 7 | 986.7 KB |  |
@@ -201,7 +201,7 @@ Left (21 train, 9 validation) and right (29 train, 9 validation) contact posture
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/talos_table_contact/data/real/README.md` |  | 5692 | `37bf99a52169251e` |
+| `examples/talos_table_contact/data/real/README.md` |  | 5977 | `5795088afdfd3261` |
 | `examples/talos_table_contact/data/real/contact_evidence.csv` | 68 | 7485 | `0da75d31a499397b` |
 | `examples/talos_table_contact/data/real/left_train.csv` | 21 | 12323 | `d2fadbf1f4a1ab5d` |
 | `examples/talos_table_contact/data/real/left_validation.csv` | 9 | 5572 | `7d8766e78806fb72` |
