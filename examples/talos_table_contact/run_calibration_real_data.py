@@ -49,6 +49,7 @@ been physically nudged between the two days for the left chain specifically.
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -214,7 +215,8 @@ def _build_chain(
     else:
         table_pose = NOMINAL_TABLE_POSE
     df_train = _load_real_touches(train_csv)
-    staged_path = Path(str(train_csv) + ".staged.csv")
+    # one staging file per process: parallel studies build chains on the same CSV
+    staged_path = Path(f"{train_csv}.staged.{os.getpid()}.csv")
     df_train.to_csv(staged_path, index=False)
 
     calib = TalosTableContactCalibration(robot, str(config_path))
