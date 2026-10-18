@@ -139,7 +139,17 @@ if __name__ == "__main__":
 # Draw invariance by construction (the measured spread is in the slow test of
 # test_talos_two_chain_draw_invariance.py)
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("label", ["map", "map_cv", "excitation", "cv_subset"])
+# All four share the estimation.configure path; map checks it in under a
+# second, the others run their cross-validation fits (minutes each).
+@pytest.mark.parametrize(
+    "label",
+    [
+        "map",
+        pytest.param("map_cv", marks=pytest.mark.slow),
+        pytest.param("excitation", marks=pytest.mark.slow),
+        pytest.param("cv_subset", marks=pytest.mark.slow),
+    ],
+)
 def test_non_structural_methods_never_draw_random_configurations(
     hp, monkeypatch, label
 ):
