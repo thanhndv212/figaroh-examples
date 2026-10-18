@@ -51,6 +51,18 @@ def robot():
     return _load_robot()
 
 
+def _nominal_gaps(robot, config, side):
+    """Training and held-out gaps at the raw nominal rig (no re-anchor,
+    Delta X = 0): the "before" of the calibration. The fitted chains start
+    from the table-only anchor (figaroh-examples#98), which is already a
+    fit, so their own var0 is not the nominal."""
+    calib = _build_chain(robot, config, DATA_DIR / f"{side}_train.csv", anchor=False)
+    var0 = np.zeros(len(calib.calib_config["param_name"]))
+    train = calib.gap_metrics(var0)
+    _load_split(calib, _load_real_touches(DATA_DIR / f"{side}_validation.csv"))
+    return train, calib.gap_metrics(var0)
+
+
 def _solve(calib):
     var0 = np.zeros(len(calib.calib_config["param_name"]))
     before = calib.gap_metrics(var0)
@@ -71,8 +83,8 @@ def left_result(robot):
     var0, result, train_before, train_after = _solve(calib)
     df_val = _load_real_touches(DATA_DIR / "left_validation.csv")
     _load_split(calib, df_val)
-    val_before = calib.gap_metrics(var0)
     val_after = calib.gap_metrics(result.x)
+    train_before, val_before = _nominal_gaps(robot, LEFT_CONFIG, "left")
     return {
         "calib": calib,
         "result": result,
@@ -89,8 +101,8 @@ def right_result(robot):
     var0, result, train_before, train_after = _solve(calib)
     df_val = _load_real_touches(DATA_DIR / "right_validation.csv")
     _load_split(calib, df_val)
-    val_before = calib.gap_metrics(var0)
     val_after = calib.gap_metrics(result.x)
+    train_before, val_before = _nominal_gaps(robot, RIGHT_CONFIG, "right")
     return {
         "calib": calib,
         "result": result,

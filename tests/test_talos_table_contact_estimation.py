@@ -81,29 +81,44 @@ def test_sample_count_follows_q_measured(robot):
 
 
 @pytest.mark.slow
-def test_structural_unchanged(robot):
-    """Real data, structural + ordered selection: held-out z and
-    parameter counts as before the name-driven split."""
-    held_z = {}
-    n_dx = {}
-    calibs = {}
+def test_structural_unanchored_is_the_frozen_136_result(robot):
+    """Without the re-anchor, structural + ordered gives the numbers frozen
+    by figaroh-plus#204 / figaroh-examples#136 (L 7.55 / R 7.69)."""
+    held_z, n_dx = {}, {}
     for side, cfg in (("left", LEFT_CONFIG), ("right", RIGHT_CONFIG)):
-        calib = _build_chain(robot, cfg, DATA_DIR / f"{side}_train.csv")
+        calib = _build_chain(robot, cfg, DATA_DIR / f"{side}_train.csv", anchor=False)
         result = calib.solve(
             method="lm", max_iterations=3, enable_logging=False, html_report=False
         )
         n_dx[side] = calib.n_deltaX
         _load_split(calib, _load_real_touches(DATA_DIR / f"{side}_validation.csv"))
         held_z[side] = calib.gap_metrics(result.x)["z_rmse_mm"]
-        calibs[side] = calib
-
     assert n_dx == {"left": 50, "right": 57}
     assert held_z["left"] == pytest.approx(7.55, abs=0.005)
     assert held_z["right"] == pytest.approx(7.69, abs=0.005)
 
+
+@pytest.mark.slow
+def test_structural_re_anchored(robot):
+    """Real data, structural + ordered, nominal table re-anchored on the
+    table-only fit of the training file (figaroh-examples#98): the pinned
+    numbers moved from the #136 values (L 7.55 / R 7.69, two-chain
+    5.098 / 8.394)."""
+    held_z = {}
+    for side, cfg in (("left", LEFT_CONFIG), ("right", RIGHT_CONFIG)):
+        calib = _build_chain(robot, cfg, DATA_DIR / f"{side}_train.csv")
+        result = calib.solve(
+            method="lm", max_iterations=3, enable_logging=False, html_report=False
+        )
+        assert calib.n_deltaX == {"left": 50, "right": 57}[side]
+        _load_split(calib, _load_real_touches(DATA_DIR / f"{side}_validation.csv"))
+        held_z[side] = calib.gap_metrics(result.x)["z_rmse_mm"]
+    assert held_z["left"] == pytest.approx(7.73, abs=0.005)
+    assert held_z["right"] == pytest.approx(7.58, abs=0.005)
+
     two = two_chain_metrics(robot)
-    assert two["left_z_rmse_mm"] == pytest.approx(5.098, abs=0.005)
-    assert two["right_z_rmse_mm"] == pytest.approx(8.394, abs=0.005)
+    assert two["left_z_rmse_mm"] == pytest.approx(5.154, abs=0.005)
+    assert two["right_z_rmse_mm"] == pytest.approx(8.774, abs=0.005)
 
 
 # ---------------------------------------------------------------------------
