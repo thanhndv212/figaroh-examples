@@ -60,6 +60,7 @@ from generate_synthetic_data import (
     NOMINAL_TABLE_POSE,
     _load_robot,
 )
+from figaroh.calibration.calibration_tools import cartesian_to_SE3
 from utils.talos_table_tools import MultiChainCalibration, TalosTableContactCalibration
 from export_report import build_two_chain_report, write_html_report, write_yaml_report
 
@@ -172,6 +173,29 @@ def _print_metrics(label: str, before: dict, after: dict) -> None:
         )
 
 
+def anchored_table_pose(robot, config_path, train_csv):
+    """Nominal table pose moved to the table-only fit on ``train_csv``.
+
+    The rough nominal table is ~0.29 m off the real one; the structural
+    fit's ridge (and every prior) pulls the plane parameters toward their
+    anchor, so a poor anchor biases the fit (figaroh-examples#98). The
+    anchor is the plane z/phix/thetay of the table-contact baseline (Delta
+    X empty, no ridge, ``contact_z`` fixed), fitted on the training file
+    only. The contact offset stays nominal.
+    """
+    base = _build_chain(
+        robot, config_path, train_csv, fit_level="table_contact", anchor=False
+    )
+    result = base.solve(
+        method="lm", max_iterations=1, enable_logging=False, html_report=False
+    )
+    plane = base.split_params(result.x)["plane"]
+    z, phix, thetay = (
+        plane[f"{n}_s0"] for n in ("plane_z", "plane_phix", "plane_thetay")
+    )
+    return NOMINAL_TABLE_POSE * cartesian_to_SE3([0.0, 0.0, z, phix, thetay, 0.0])
+
+
 def _build_chain(
     robot,
     config_path,
@@ -180,7 +204,15 @@ def _build_chain(
     random_seed=None,
     estimation=None,
     fit_level=None,
+    anchor=True,
 ):
+    """One chain on its training file. With ``anchor`` (default) the
+    nominal table is first re-anchored on the table-only fit
+    (:func:`anchored_table_pose`); the baseline itself is never anchored."""
+    if anchor and fit_level != "table_contact":
+        table_pose = anchored_table_pose(robot, config_path, train_csv)
+    else:
+        table_pose = NOMINAL_TABLE_POSE
     df_train = _load_real_touches(train_csv)
     staged_path = Path(str(train_csv) + ".staged.csv")
     df_train.to_csv(staged_path, index=False)
@@ -196,7 +228,7 @@ def _build_chain(
         instance = dict(calib.calib_config.get("instance") or {})
         instance["asset_id"] = asset_id
         calib.calib_config["instance"] = instance
-    calib.set_nominal_table_poses([NOMINAL_TABLE_POSE])
+    calib.set_nominal_table_poses([table_pose])
     calib.set_nominal_contact_offset(NOMINAL_CONTACT_OFFSET)
     if estimation:
         # overrides of parameters.estimation (method, noise_std, ...)
