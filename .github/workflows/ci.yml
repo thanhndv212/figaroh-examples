@@ -70,4 +70,6 @@ jobs:
         shell: bash -el {0}
         run: |
           cd figaroh-examples
-          python -m pytest tests/ -v --durations=15
+          # slow tests (golden and multi-method studies, tens of minutes)
+          # run locally: python -m pytest tests/ -m slow
+          python -m pytest tests/ -v --durations=15 -m "not slow"
