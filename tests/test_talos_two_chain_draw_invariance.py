@@ -1,4 +1,4 @@
-"""TALOS two-chain fit: how much does the identifiability draw move it?
+"""TALOS fits: how much does the identifiability draw move them?
 
 The identifiable parameter set is chosen from random configurations
 (figaroh-plus#99). Core now seeds that draw from ``calib_config["random_seed"]``
@@ -13,6 +13,13 @@ The identifiable parameter set is chosen from random configurations
     seed. With LAPACK pivoting the draw swapped the shared axes and moved
     the held-out z by ~1.5 mm. Audit:
     docs/development/talos-contact-calibration-audit-2026-10-04.md.
+(c) the same holds for the single chains (figaroh-examples#98): the
+    held-out transfer height error of the structural fit is identical over
+    ``random_seed`` (checked here for seeds 0 and 1). Only the structural
+    path draws random configurations; every other protocol model skips the
+    draw (fast test in test_talos_table_contact_heldout.py), so its spread is
+    zero by construction. Offline, seeds 0 to 4 on both chains for the
+    table-only baseline, structural and map gave a spread of exactly 0.
 """
 
 from __future__ import annotations
@@ -72,3 +79,27 @@ def test_random_seed_spread_is_small(robot):
         vals = [r[k] for r in runs.values()]
         assert max(vals) - min(vals) <= MAX_SPREAD_MM, k
     assert len({tuple(r["shared_dx_names"]) for r in runs.values()}) == 1
+
+
+# --------------------------------------------------------------------------
+# Single chains: the structural fit is the only model that draws
+# --------------------------------------------------------------------------
+#: draws move nothing: only floating-point noise is tolerated
+SINGLE_CHAIN_SPREAD_MM = 1e-6
+
+
+@pytest.mark.parametrize("side", ["left", "right"])
+def test_single_chain_structural_heldout_has_no_draw_spread(robot, side):
+    from _talos_import import talos_module
+
+    hp = talos_module("heldout_protocol")
+    plan = hp.harness.load_plan(hp.CHAINS[side][1])
+    train = plan.folds[0].training[0].path
+    val = hp._load_real_touches(plan.folds[0].evaluated[0].path)
+    z, n_params = [], set()
+    for seed in (0, 1):
+        f = hp.fit_model(robot, side, "structural", train, random_seed=seed)
+        z.append(hp.gap_errors(f.calib, f.x, val)["transfer_z_mm"])
+        n_params.add(f.n_params)
+    assert len(n_params) == 1, n_params
+    assert max(z) - min(z) <= SINGLE_CHAIN_SPREAD_MM, z
