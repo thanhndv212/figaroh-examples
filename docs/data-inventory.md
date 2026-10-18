@@ -26,7 +26,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-pro-notes` | TIAGo Pro | Mocap calibration | notes | documentation | 0 | 0 B |  |
 | `tiago-pro-optimal-configs` | TIAGo Pro | Experiment design | generated | calibration postures | 1 | 9.6 KB |  |
 | `talos-left-arm-contact` | TALOS | Arm contact calibration | real | calibration | 1 | 14.2 KB | examples/talos/config/talos_unified_config.yaml |
-| `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 7 | 67.3 KB | examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
+| `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 9 | 69.8 KB | examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
 | `talos-table-contact-synthetic` | TALOS | Table contact | simulated | synthetic train + validation | 3 | 27.5 KB | examples/talos_table_contact/generate_synthetic_data.py |
 | `staubli-tx40-logs` | Staubli TX40 | Dynamic identification | unspecified (unconfirmed) | identification; no separate validation set | 2 | 4.3 MB | examples/staubli_tx40/README.md |
 | `so101-simulated` | SO-101 | Dynamic identification | simulated | training | 7 | 986.7 KB |  |
@@ -206,6 +206,8 @@ Left (21 train, 9 validation) and right (29 train, 9 validation) contact posture
 | `examples/talos_table_contact/data/real/left_train.csv` | 21 | 12323 | `d2fadbf1f4a1ab5d` |
 | `examples/talos_table_contact/data/real/left_validation.csv` | 9 | 5572 | `7d8766e78806fb72` |
 | `examples/talos_table_contact/data/real/protocol.yaml` |  | 15456 | `af18357c75205800` |
+| `examples/talos_table_contact/data/real/protocol_left.yaml` |  | 1273 | `94389a66d2d5896a` |
+| `examples/talos_table_contact/data/real/protocol_right.yaml` |  | 1309 | `0de622c05938612a` |
 | `examples/talos_table_contact/data/real/right_train.csv` | 29 | 16773 | `694cfaa811045c2a` |
 | `examples/talos_table_contact/data/real/right_validation.csv` | 9 | 5590 | `e81f701f69cb7f8f` |
 

@@ -421,6 +421,14 @@
       "sha256": "af18357c75205800523eed2ce154c7d4e32dd1d38804fbdf99234431e1a55975",
       "bytes": 15456
     },
+    "examples/talos_table_contact/data/real/protocol_left.yaml": {
+      "sha256": "94389a66d2d5896a17204294a6ecd3610b8f985ec1be1aebeff7a8f7da704951",
+      "bytes": 1273
+    },
+    "examples/talos_table_contact/data/real/protocol_right.yaml": {
+      "sha256": "0de622c05938612a7ad87f810c18697e318a6cfec1c4d2dd5b50c82e329a735f",
+      "bytes": 1309
+    },
     "examples/talos_table_contact/data/real/right_train.csv": {
       "sha256": "694cfaa811045c2ab3c5020804bca92dc2a350957b1c03490da9646080e1f63a",
       "bytes": 16773,

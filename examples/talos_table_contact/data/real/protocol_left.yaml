@@ -1,0 +1,39 @@
+# Left-chain view of protocol.yaml for the shared held-out harness (examples#98).
+# The two sessions below are copied from the master protocol (file, sha256,
+# role); a test keeps them equal. The harness' sessions split needs exactly one
+# training session, so each chain has its own plan. There is no confirmation
+# session: the validation role is the only held-out evidence, so nothing may be
+# selected on it (the config default stays structural + ordered).
+name: talos-table-contact-real-left
+version: 2
+sessions:
+- id: talos-left-2022-10-28
+  role: training
+  files:
+    left_train.csv: d2fadbf1f4a1ab5dcf5c44264f690dad15657f9802eae7794d922d69f806299b
+- id: talos-left-2022-11-07
+  role: validation
+  files:
+    left_validation.csv: 7d8766e78806fb72a7ea22de0e4f47881bff61b11392bbf0233f10c71202a8cd
+heldout:
+  split: sessions
+  selection_role: validation
+  strata:
+    joints:
+    - leg_left_1_joint
+    - leg_left_2_joint
+    - leg_left_3_joint
+    - leg_left_4_joint
+    - leg_left_5_joint
+    - leg_left_6_joint
+    - torso_1_joint
+    - torso_2_joint
+    - arm_left_1_joint
+    - arm_left_2_joint
+    - arm_left_3_joint
+    - arm_left_4_joint
+    - arm_left_5_joint
+    - arm_left_6_joint
+    - arm_left_7_joint
+    repeated_tol: 0.01
+    out_of_range_margin: 0.05
