@@ -82,6 +82,9 @@ EXAMPLE_SCRIPTS = {
         ),
         ("update_model.py", 120, False),
     ],
+    "talos_table_contact": [
+        ("reference_run.py", 300, False, ["--no-plot"]),
+    ],
     "staubli_tx40": [
         ("identification.py", 120, False, ["--verify", "--html-report"]),
     ],

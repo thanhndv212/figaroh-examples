@@ -218,32 +218,34 @@ def _build_chain(
     # one staging file per process: parallel studies build chains on the same CSV
     staged_path = Path(f"{train_csv}.staged.{os.getpid()}.csv")
     df_train.to_csv(staged_path, index=False)
+    try:
 
-    calib = TalosTableContactCalibration(robot, str(config_path))
-    calib.calib_config["data_file"] = str(staged_path)
-    calib._data_path = str(staged_path)
-    if asset_id:
-        # Distinguishes the left/right chains in the run archive -- both
-        # configs otherwise share the same (unspecified) asset_id, which
-        # would collide compute_run_dir's path if both chains solve
-        # within the same wall-clock second.
-        instance = dict(calib.calib_config.get("instance") or {})
-        instance["asset_id"] = asset_id
-        calib.calib_config["instance"] = instance
-    calib.set_nominal_table_poses([table_pose])
-    calib.set_nominal_contact_offset(NOMINAL_CONTACT_OFFSET)
-    if estimation:
-        # overrides of parameters.estimation (method, noise_std, ...)
-        calib.calib_config["estimation"] = dict(
-            calib.calib_config.get("estimation") or {}, **estimation
-        )
-    if fit_level:
-        calib.fit_level = fit_level
-    if random_seed is not None:
-        # seeds the identifiability probe in initialize() (core default: 0)
-        calib.calib_config["random_seed"] = random_seed
-    calib.initialize()
-    staged_path.unlink(missing_ok=True)
+        calib = TalosTableContactCalibration(robot, str(config_path))
+        calib.calib_config["data_file"] = str(staged_path)
+        calib._data_path = str(staged_path)
+        if asset_id:
+            # Distinguishes the left/right chains in the run archive -- both
+            # configs otherwise share the same (unspecified) asset_id, which
+            # would collide compute_run_dir's path if both chains solve
+            # within the same wall-clock second.
+            instance = dict(calib.calib_config.get("instance") or {})
+            instance["asset_id"] = asset_id
+            calib.calib_config["instance"] = instance
+        calib.set_nominal_table_poses([table_pose])
+        calib.set_nominal_contact_offset(NOMINAL_CONTACT_OFFSET)
+        if estimation:
+            # overrides of parameters.estimation (method, noise_std, ...)
+            calib.calib_config["estimation"] = dict(
+                calib.calib_config.get("estimation") or {}, **estimation
+            )
+        if fit_level:
+            calib.fit_level = fit_level
+        if random_seed is not None:
+            # seeds the identifiability probe in initialize() (core default: 0)
+            calib.calib_config["random_seed"] = random_seed
+        calib.initialize()
+    finally:
+        staged_path.unlink(missing_ok=True)
     return calib
 
 
