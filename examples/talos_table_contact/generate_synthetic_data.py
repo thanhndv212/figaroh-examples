@@ -18,9 +18,10 @@
 """
 Synthesize flush-touch data for the TALOS table-contact example.
 
-There is no real hardware CSV bundled with this example -- the physical
-rig (a table, an admittance controller, a force-torque sensor) lives
-outside FIGAROH entirely (see README.md). This script instead builds a
+Real hardware recordings are bundled separately under ``data/real/`` (see
+``run_calibration_real_data.py``); the physical rig (a table, an
+admittance controller, a force-torque sensor) itself lives outside
+FIGAROH (see README.md). This script instead builds a
 *true* TALOS model with injected joint-placement errors and a *true*
 table/contact-frame pose, then solves inverse kinematics for a batch of
 random touch points so that, by construction, the true model's predicted
@@ -29,6 +30,15 @@ recorded posture -- exactly as a real successful contact would be. This
 is what makes the calibration verifiable: the injected ground truth is
 known, so the recovered parameters and the held-out cross-validation gap
 can be checked against it directly.
+
+A second family of helpers (:func:`synthesize_touches_at_postures` and
+friends) replays the *real* recorded postures instead of random ones:
+each real posture is projected onto the true table surface and re-solved
+by IK from the real joint values, so the synthetic study has the same
+posture distribution (and counts) as the hardware data. The table can be
+planar or a shallow bowl (a surface-shape mismatch the fitted plane
+cannot represent). A constant table tilt is NOT a mismatch: the fitted
+``plane_phix``/``plane_thetay`` absorb it exactly.
 """
 
 from __future__ import annotations
@@ -36,6 +46,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -57,7 +68,7 @@ from figaroh.calibration.calibration_tools import (  # noqa: E402
     update_joint_placement,
 )
 
-from utils.talos_table_tools import solve_touch_ik  # noqa: E402
+from utils.talos_table_tools import gap_of_pose, solve_touch_ik  # noqa: E402
 
 BASE_FRAME = "left_sole_link"
 WRIST_FRAME = "gripper_left_base_link"
@@ -137,6 +148,10 @@ def build_ground_truth(
     contact_z_std: float = 3e-3,
     contact_tilt_std: float = np.deg2rad(0.4),
     session_offsets=None,
+    base_frame: str = BASE_FRAME,
+    wrist_frame: str = WRIST_FRAME,
+    nominal_table_pose=None,
+    nominal_contact_offset=None,
 ):
     """Sample a random ground truth (Delta X, Delta P) and build the
     corresponding "true" model.
@@ -146,9 +161,19 @@ def build_ground_truth(
     the random per-session (z, phix, thetay) -- i.e. the table was
     physically moved a bit between recording sessions, the way a rolling
     table would be in the real rig.
+
+    ``base_frame``/``wrist_frame`` select the chain (default: left);
+    ``nominal_table_pose``/``nominal_contact_offset`` replace the module
+    nominals the draws are applied around (e.g. the table anchored at the
+    real-data fit, :func:`build_anchored_truth`). Defaults reproduce the
+    original draws bit-identically.
     """
+    if nominal_table_pose is None:
+        nominal_table_pose = NOMINAL_TABLE_POSE
+    if nominal_contact_offset is None:
+        nominal_contact_offset = NOMINAL_CONTACT_OFFSET
     true_model = model.copy()
-    active_joint_ids = get_sup_joints(model, BASE_FRAME, WRIST_FRAME)
+    active_joint_ids = get_sup_joints(model, base_frame, wrist_frame)
 
     delta_x_true = {}
     for j_id in active_joint_ids:
@@ -170,7 +195,7 @@ def build_ground_truth(
     true_table_pose = []
     for s in range(n_sessions):
         dx, dy = session_offsets[s]
-        session_nominal = NOMINAL_TABLE_POSE * cartesian_to_SE3(
+        session_nominal = nominal_table_pose * cartesian_to_SE3(
             [dx, dy, 0.0, 0.0, 0.0, 0.0]
         )
         z_p = float(rng.normal(0.0, plane_z_std))
@@ -186,7 +211,7 @@ def build_ground_truth(
         "phix": float(rng.normal(0.0, contact_tilt_std)),
         "thetay": float(rng.normal(0.0, contact_tilt_std)),
     }
-    true_contact_offset = NOMINAL_CONTACT_OFFSET * cartesian_to_SE3(
+    true_contact_offset = nominal_contact_offset * cartesian_to_SE3(
         [0.0, 0.0, contact_true["z"], contact_true["phix"], contact_true["thetay"], 0.0]
     )
 
@@ -581,6 +606,274 @@ def build_dataset(
         # tests use them to compute the noise floor of the held-out residual.
         gt["truth_objects"] = ground_truth
     return df_train, df_val, gt, robot
+
+
+# ---------------------------------------------------------------------------
+# Synthetic touches at the real postures (figaroh-examples#98)
+# ---------------------------------------------------------------------------
+
+#: Real-data files and chain definition per side.
+CHAINS = {
+    "left": {
+        "base": BASE_FRAME,
+        "wrist": WRIST_FRAME,
+        "joints": ACTIVE_JOINT_NAMES,
+        "config": HERE / "config" / "talos_table_left_config.yaml",
+        "train": HERE / "data" / "real" / "left_train.csv",
+        "val": HERE / "data" / "real" / "left_validation.csv",
+    },
+    "right": {
+        "base": RIGHT_BASE_FRAME,
+        "wrist": RIGHT_WRIST_FRAME,
+        "joints": RIGHT_ACTIVE_JOINT_NAMES,
+        "config": HERE / "config" / "talos_table_right_config.yaml",
+        "train": HERE / "data" / "real" / "right_train.csv",
+        "val": HERE / "data" / "real" / "right_validation.csv",
+    },
+}
+
+#: Bowl sag (m) reached at the 90th-percentile contact radius.
+CURVED_SAG = 1e-3
+
+
+@dataclass(frozen=True)
+class TableSurface:
+    """True table surface in the table frame: ``z = h(x, y)``.
+
+    ``planar``: h = 0. ``curved``: a bowl
+    ``h = sag * ((x-cx)^2 + (y-cy)^2) / radius^2`` centred on the centroid
+    of the real contacts, so ``sag`` is the height at ``radius`` (the
+    90th-percentile contact radius of the real training postures).
+    """
+
+    kind: str = "planar"
+    sag: float = 0.0
+    center: tuple = (0.0, 0.0)
+    radius: float = 1.0
+
+    def height(self, x, y):
+        if self.kind == "planar":
+            return 0.0 * np.asarray(x, dtype=float)
+        r2 = (np.asarray(x) - self.center[0]) ** 2 + (
+            np.asarray(y) - self.center[1]
+        ) ** 2
+        return self.sag * r2 / self.radius**2
+
+    def normal(self, x, y) -> np.ndarray:
+        if self.kind == "planar":
+            return np.array([0.0, 0.0, 1.0])
+        gx = 2.0 * self.sag * (x - self.center[0]) / self.radius**2
+        gy = 2.0 * self.sag * (y - self.center[1]) / self.radius**2
+        n = np.array([-gx, -gy, 1.0])
+        return n / np.linalg.norm(n)
+
+
+def _normal_rotation(normal: np.ndarray) -> np.ndarray:
+    """Minimal rotation taking the table z axis onto ``normal``."""
+    z = np.array([0.0, 0.0, 1.0])
+    axis = np.cross(z, normal)
+    s = np.linalg.norm(axis)
+    if s < 1e-15:
+        return np.eye(3)
+    return pin.exp3(axis / s * np.arctan2(s, normal[2]))
+
+
+def _contacts_in_table(model, truth, q, base, wrist):
+    """Contact poses of postures ``q`` (n, nq) in the true table frame."""
+    true_model = truth["true_model"]
+    data = true_model.createData()
+    table = truth["true_table_pose"][0]
+    offset = truth["true_contact_offset"]
+    out = []
+    for qi in np.atleast_2d(q):
+        pin.framesForwardKinematics(true_model, data, qi)
+        pin.updateFramePlacements(true_model, data)
+        contact = get_rel_transform(true_model, data, base, wrist) * offset
+        out.append(table.actInv(contact))
+    return out
+
+
+def make_surface(model, truth, q_train, base, wrist, kind="planar", sag=CURVED_SAG):
+    """Surface of ``kind`` sized on the real training postures ``q_train``."""
+    if kind == "planar":
+        return TableSurface("planar")
+    if kind != "curved":
+        raise ValueError(f"unknown surface kind {kind!r}")
+    xy = np.array(
+        [
+            c.translation[:2]
+            for c in _contacts_in_table(model, truth, q_train, base, wrist)
+        ]
+    )
+    center = xy.mean(axis=0)
+    radius = float(np.percentile(np.linalg.norm(xy - center, axis=1), 90))
+    return TableSurface(
+        "curved", float(sag), (float(center[0]), float(center[1])), radius
+    )
+
+
+def _local_frame(surface: TableSurface, x: float, y: float) -> pin.SE3:
+    return pin.SE3(
+        _normal_rotation(surface.normal(x, y)),
+        np.array([x, y, float(surface.height(x, y))]),
+    )
+
+
+def project_to_table(model, truth, q, base, wrist, surface):
+    """Target contact poses (in ``base``) that put the real postures on the
+    true surface.
+
+    Under the true model each posture of ``q`` (n, nq) gives a contact pose
+    in the table frame. Its (x, y, yaw) is kept; the height and tilt are
+    replaced by the surface's: z = h(x, y), z axis along the surface normal
+    (yaw about it preserved), so the true gap there is exactly zero.
+    """
+    table = truth["true_table_pose"][0]
+    targets = []
+    for rel in _contacts_in_table(model, truth, q, base, wrist):
+        x, y = float(rel.translation[0]), float(rel.translation[1])
+        yaw = float(pin.rpy.matrixToRpy(rel.rotation)[2])
+        local = _local_frame(surface, x, y)
+        local = pin.SE3(
+            local.rotation @ pin.rpy.rpyToMatrix(0.0, 0.0, yaw), local.translation
+        )
+        targets.append(table * local)
+    return targets
+
+
+def true_gap(truth, q, surface, base=BASE_FRAME, wrist=WRIST_FRAME):
+    """True gap (z, roll, pitch) at postures ``q`` (n, nq), shape (n, 3).
+
+    Relative to the true local surface at the contact's own (x, y): z is
+    the distance along the surface normal, roll/pitch are about it.
+    Defined at any posture (zero only at projected ones). For a planar
+    surface this is :func:`utils.talos_table_tools.gap_of_pose` of the true
+    table and contact. A constant table tilt cannot show up here as a
+    mismatch: ``plane_phix``/``plane_thetay`` absorb it.
+    """
+    out = []
+    for rel in _contacts_in_table(truth["true_model"], truth, q, base, wrist):
+        local = _local_frame(
+            surface, float(rel.translation[0]), float(rel.translation[1])
+        )
+        out.append(gap_of_pose(local, rel))
+    return np.array(out)
+
+
+def synthesize_touches_at_postures(
+    model,
+    truth,
+    q_real,
+    seed,
+    surface,
+    base=BASE_FRAME,
+    wrist=WRIST_FRAME,
+    max_attempts=8,
+):
+    """IK-resolve the real postures onto the true surface.
+
+    Each target of :func:`project_to_table` is solved by
+    ``solve_touch_ik`` seeded at the real posture (non-chain joints stay as
+    recorded). A failed solve is retried from the real posture plus
+    ``default_rng([seed, i])`` noise (growing with the attempt). Raises
+    ``RuntimeError`` listing every target that never converged, so posture
+    counts always match the real data. Returns ``(q_synth, info)``.
+    """
+    q_real = np.atleast_2d(np.asarray(q_real, dtype=float))
+    true_model = truth["true_model"]
+    true_data = true_model.createData()
+    config_idx = [model.joints[j].idx_q for j in truth["active_joint_ids"]]
+    targets = project_to_table(model, truth, q_real, base, wrist, surface)
+    q_out = np.empty_like(q_real)
+    failed, retries = [], 0
+    for i, (q0_real, target) in enumerate(zip(q_real, targets)):
+        rng = np.random.default_rng([seed, i])
+        ok = False
+        for attempt in range(max_attempts):
+            q0 = q0_real.copy()
+            if attempt > 0:
+                q0[config_idx] += rng.normal(0.0, 0.05 * attempt, len(config_idx))
+            q, ok = solve_touch_ik(
+                true_model,
+                true_data,
+                base,
+                wrist,
+                truth["true_contact_offset"],
+                target,
+                q0,
+                config_idx,
+                tol=1e-8,
+                exact_jacobian=True,
+            )
+            if ok:
+                break
+        retries += attempt
+        if not ok:
+            failed.append(i)
+        q_out[i] = q
+    if failed:
+        raise RuntimeError(
+            f"IK failed for {len(failed)} of {len(q_real)} targets: {failed}"
+        )
+    dev = np.abs(q_out[:, config_idx] - q_real[:, config_idx])
+    return q_out, {"max_dev_rad": float(dev.max()), "retries": int(retries)}
+
+
+def real_postures(model, csv_path) -> np.ndarray:
+    """Full joint vectors (n, nq) of a real touch file; unrecorded joints
+    stay at the neutral configuration."""
+    from run_calibration_real_data import _load_real_touches
+
+    df = _load_real_touches(csv_path)
+    q = np.tile(pin.neutral(model), (len(df), 1))
+    for j_id, name in enumerate(model.names[1:], start=1):
+        if str(name) in df.columns:
+            q[:, model.joints[j_id].idx_q] = df[str(name)].to_numpy()
+    return q
+
+
+def build_anchored_truth(robot, side, seed, surface="planar"):
+    """Ground truth for one real chain, drawn around the anchored table.
+
+    One session; 15 chain joints get 6D errors (1.5 mm / 0.3 deg), plus
+    table and contact draws. The nominal table is first moved to the
+    table-only fit on the real training file
+    (``run_calibration_real_data.anchored_table_pose``, imported lazily:
+    that module imports this one). Returns a dict with ``truth``,
+    ``surface``, ``q_real_train``/``q_real_val`` and the synthesized
+    ``q_train``/``q_val`` (21/9 left, 29/9 right postures) and ``info``.
+    """
+    from run_calibration_real_data import anchored_table_pose
+
+    c = CHAINS[side]
+    model = robot.model
+    anchor = anchored_table_pose(robot, c["config"], c["train"])
+    truth = build_ground_truth(
+        model,
+        np.random.default_rng(seed),
+        n_sessions=1,
+        base_frame=c["base"],
+        wrist_frame=c["wrist"],
+        nominal_table_pose=anchor,
+    )
+    q_real_train = real_postures(model, c["train"])
+    q_real_val = real_postures(model, c["val"])
+    surf = make_surface(model, truth, q_real_train, c["base"], c["wrist"], surface)
+    q_train, info_t = synthesize_touches_at_postures(
+        model, truth, q_real_train, seed, surf, c["base"], c["wrist"]
+    )
+    q_val, info_v = synthesize_touches_at_postures(
+        model, truth, q_real_val, seed + 100_000, surf, c["base"], c["wrist"]
+    )
+    return {
+        "truth": truth,
+        "surface": surf,
+        "q_real_train": q_real_train,
+        "q_real_val": q_real_val,
+        "q_train": q_train,
+        "q_val": q_val,
+        "info": {"train": info_t, "val": info_v},
+    }
 
 
 def main(out_dir: Optional[Path] = None):

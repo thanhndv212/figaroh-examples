@@ -137,6 +137,17 @@ def gap_of_pose(plane_pose: pin.SE3, contact_pose: pin.SE3) -> np.ndarray:
     return np.array([rel.translation[2], rpy[0], rpy[1]])
 
 
+def _exact_rel_jac(model, data, base_frame, wrist_frame, q) -> np.ndarray:
+    """Twist of ``wrist_frame`` relative to ``base_frame`` per joint
+    velocity, expressed in the wrist frame. Expects FK already updated."""
+    base_id = model.getFrameId(base_frame)
+    wrist_id = model.getFrameId(wrist_frame)
+    J_base = pin.computeFrameJacobian(model, data, q, base_id, pin.LOCAL)
+    J_wrist = pin.computeFrameJacobian(model, data, q, wrist_id, pin.LOCAL)
+    wrist_M_base = data.oMf[wrist_id].actInv(data.oMf[base_id])
+    return J_wrist - wrist_M_base.action @ J_base
+
+
 def solve_touch_ik(
     model,
     data,
@@ -149,6 +160,7 @@ def solve_touch_ik(
     max_iter: int = 500,
     damp: float = 1e-6,
     tol: float = 1e-6,
+    exact_jacobian: bool = False,
 ) -> "tuple[np.ndarray, bool]":
     """Damped-least-squares IK for one flush-touch posture.
 
@@ -161,6 +173,14 @@ def solve_touch_ik(
     IK helpers (e.g. the deprecated repo's ``CIK_problem``), built here
     from the existing, generic ``get_rel_transform``/``get_rel_jac``
     utilities so it works for any base/wrist frame pair.
+
+    ``get_rel_jac`` subtracts two LOCAL-frame Jacobians, which is only a
+    valid relative Jacobian when the two frames are nearly aligned -- true
+    for the random targets of the synthetic dataset, not for arbitrary
+    (e.g. real recorded) postures, where the iteration then diverges.
+    ``exact_jacobian=True`` uses the exact twist of the wrist relative to
+    the base, in the wrist frame (matching the log-map error). The default
+    keeps the original behaviour so existing datasets are unchanged.
     """
     q = np.array(q0, dtype=float).copy()
     target_wrist_pose = target_contact_pose * contact_offset.inverse()
@@ -175,7 +195,10 @@ def solve_touch_ik(
         err = pin.log(sM_wrist.actInv(target_wrist_pose)).vector
         if np.linalg.norm(err) < tol:
             return q, True
-        Jrel = get_rel_jac(model, data, base_frame, wrist_frame, q)
+        if exact_jacobian:
+            Jrel = _exact_rel_jac(model, data, base_frame, wrist_frame, q)
+        else:
+            Jrel = get_rel_jac(model, data, base_frame, wrist_frame, q)
         Jact = Jrel[:, config_idx]
         dq_active = Jact.T @ np.linalg.solve(Jact @ Jact.T + damp * np.eye(6), err)
         dq = np.zeros(model.nv)
