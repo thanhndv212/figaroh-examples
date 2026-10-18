@@ -70,7 +70,8 @@ NOISE_DEG = (0.01, 0.05, 0.1)
 SEEDS = tuple(range(5))
 #: the curved mismatch runs at this noise only
 MISMATCH_NOISE_DEG = 0.05
-#: noise-free planar check of the machinery (structural held-out < 0.05 mm)
+#: informational bound printed by the CLI mechanism check; the test pins the
+#: ridge-off training gap and the map_cv held-out height instead
 MECHANISM_TOL_MM = 0.05
 
 # truth scales of ``build_ground_truth`` (1.5 mm / 0.3 deg joint placement
