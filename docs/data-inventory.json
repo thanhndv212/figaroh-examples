@@ -399,8 +399,8 @@
       "bytes": 5545
     },
     "examples/talos_table_contact/data/real/README.md": {
-      "sha256": "37bf99a52169251e4616b4fb66e6440d3dfe5e1bf64a4a38a85e7f75436a97aa",
-      "bytes": 5692
+      "sha256": "5795088afdfd32613340aa46e9cb95564125f787135db210cfab0e2f3019e1dd",
+      "bytes": 5977
     },
     "examples/talos_table_contact/data/real/contact_evidence.csv": {
       "sha256": "0da75d31a499397b7b8e84068f0ffd7b7fcd5d788e8b0497fa42ab764a111675",
