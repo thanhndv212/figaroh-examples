@@ -33,9 +33,9 @@ pytest.importorskip("pinocchio")
 
 @pytest.fixture(scope="module")
 def hp():
-    import heldout_protocol
+    from _talos_import import talos_module
 
-    return heldout_protocol
+    return talos_module("heldout_protocol")
 
 
 @pytest.mark.parametrize("side", ["left", "right"])

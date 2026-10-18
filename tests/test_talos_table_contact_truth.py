@@ -48,13 +48,15 @@ pytest.importorskip("pinocchio")
 
 @pytest.fixture(scope="module")
 def ct():
-    import calibration_truth
+    from _talos_import import talos_module
 
-    return calibration_truth
+    return talos_module("calibration_truth")
 
 
 def test_fits_are_the_protocol_models(ct):
-    import heldout_protocol as hp
+    from _talos_import import talos_module
+
+    hp = talos_module("heldout_protocol")
 
     assert list(ct.FITS) == list(hp.MODELS)
     for label, (_, est) in ct.FITS.items():
@@ -155,7 +157,9 @@ def test_structural_beats_table_only_held_out(seed0_left):
 
 @pytest.mark.slow
 def test_seed0_matches_golden(ct, seed0_left):
-    import heldout_protocol as hp
+    from _talos_import import talos_module
+
+    hp = talos_module("heldout_protocol")
 
     gold = SYN["left"]["planar@0.05"]
     for label, row in seed0_left.items():
