@@ -49,8 +49,13 @@ Defects that shape the study:
 - The Delta-X count of the structural model is 50 on the left chain and 57 on
   the right (golden `n_dx`, pinned by `test_structural_unchanged`). The
   manuscript's 57 for this chain is the rank found with enough random probes
-  (the example README, "Structural check"); why the shipped left selection
-  keeps 50 with 21 postures was not investigated here.
+  (the example README, "Structural check"). On the 21 shipped left postures,
+  core's absorbed-parameter elimination (`eliminate_absorbed_parameters`,
+  core d31a071) then drops 7 more columns that the kept ones and the table
+  parameters already explain: `d_px`/`d_py` of `arm_left_4_joint`,
+  `d_px`/`d_pz` of `arm_left_5_joint`, `d_px`/`d_py` of `arm_left_6_joint`
+  and `d_pz` of `arm_left_7_joint` (`calib_config["absorbed_param_name"]`).
+  On the 29 right postures it drops none.
 
 ## 2. Split choice
 
