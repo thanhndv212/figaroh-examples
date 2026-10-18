@@ -202,7 +202,9 @@ gripper_left_base_link` chain (6 leg + 2 torso + 7 arm joints) reduces,
 via the same QR-based rank analysis core FIGAROH already ships
 (`eliminate_non_dynaffect` / `get_baseParams`), to **57 identifiable
 base parameters** -- the count the manuscript reports for this chain. (The
-structural fit on the shipped left data keeps 50 Delta X and the right 57;
+structural fit on the shipped left data keeps 50 Delta X, because core's
+absorbed-parameter elimination drops 7 wrist translations on those 21
+postures, and the right keeps 57;
 both are pinned by `tests/test_talos_table_contact_estimation.py`, see
 [the held-out note](../../docs/development/talos-table-contact.md).) `tests/test_talos_table_contact.py::TestChainIdentifiability`
 asserts this directly: if this number ever changes, something about the
