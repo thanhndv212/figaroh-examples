@@ -133,3 +133,40 @@ if __name__ == "__main__":
         "regenerate with: python heldout_protocol.py --json --no-plot "
         "> ../../tests/golden/talos_table_contact.json"
     )
+
+
+# --------------------------------------------------------------------------
+# Draw invariance by construction (the measured spread is in the slow test of
+# test_talos_two_chain_draw_invariance.py)
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize("label", ["map", "map_cv", "excitation", "cv_subset"])
+def test_non_structural_methods_never_draw_random_configurations(
+    hp, monkeypatch, label
+):
+    """Only the structural path draws the random configurations that
+    ``random_seed`` seeds (``calculate_base_kinematics_regressor``).
+    ``estimation.configure`` replaces it for every other method; the
+    cross-validation folds take ``estimation.cv_seed``, not ``random_seed``.
+    So initialising these models with the draw function disabled succeeds and
+    ``random_seed`` cannot change the parameter set."""
+    from _talos_import import talos_module
+    from figaroh.calibration import base_calibration, estimation
+
+    rr = talos_module("run_calibration_real_data")
+    config, plan_path = hp.CHAINS["left"]
+    train = hp.harness.load_plan(plan_path).folds[0].training[0].path
+
+    def forbidden(*a, **k):
+        raise AssertionError("the random-configuration draw was used")
+
+    monkeypatch.setattr(
+        base_calibration, "calculate_base_kinematics_regressor", forbidden
+    )
+    robot = hp._load_robot()
+    est = hp.MODELS[label][1]
+    names = []
+    for seed in (0, 7):
+        calib = rr._build_chain(robot, config, train, estimation=est, random_seed=seed)
+        names.append(list(calib.calib_config["param_name"]))
+    assert names[0] == names[1]
+    assert "cv_seed" in estimation.settings(calib.calib_config)

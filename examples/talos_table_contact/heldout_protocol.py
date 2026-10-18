@@ -118,7 +118,9 @@ def _quiet():
     return contextlib.redirect_stdout(io.StringIO())
 
 
-def fit_model(robot, side, label, train_csv) -> Fitted:
+def fit_model(robot, side, label, train_csv, random_seed=None) -> Fitted:
+    """``label`` fitted on ``train_csv``; ``random_seed`` seeds core's
+    identifiability draw (core default 0 when ``None``)."""
     level, estimation = MODELS[label]
     config = CHAINS[side][0]
     t0 = time.time()
@@ -130,6 +132,7 @@ def fit_model(robot, side, label, train_csv) -> Fitted:
             asset_id=f"talos-{side}",
             estimation=estimation,
             fit_level=level,
+            random_seed=random_seed,
         )
         result = calib.solve(
             method="lm",
