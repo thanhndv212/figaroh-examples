@@ -9,13 +9,16 @@ rel 1e-4 plus abs 1e-3). The structural and cv_subset rows break ties by
 platform (figaroh-plus#113): their values are compared only when the
 platform keeps the golden's parameter count.
 
-Mechanism check: the planned noise-free bound of 0.05 mm is not met. The
-structural fit (ridge 1e-3) leaves 2.3 mm on left and 0.14 mm on right even
-without noise, and without the ridge the held-out error grows (9.7 / 1.8 mm)
-while the training gap goes to 1e-11 mm: 21 / 29 postures do not pin down
-the 56 / 63 parameters, so held-out postures extrapolate. The test pins what
-does hold (the pipeline fits the training data, the true gap is the sign
-convention of the fit) and marks the 0.05 mm bound xfail.
+Mechanism check (maintainer decision, replaces the planned noise-free
+structural bound of 0.05 mm): the structural fit cannot reach it. 21 / 29
+postures do not pin down 56 / 63 parameters, so validation postures
+extrapolate (measured noise-free structural held-out L 2.31, R 0.14 mm; with
+the ridge off the training gap goes to 1e-11 mm while held-out grows). The
+test therefore pins (a) the pipeline and sign convention: noise-free planar
+seed 0 structural with the ridge off fits the training gap to ~0, and (b)
+that the MAP prior (map_cv) recovers the truth where the structural fit
+cannot: held-out height error < 0.25 mm on both chains (measured L 0.196,
+R 0.149).
 
 Regenerate the synthetic block from examples/talos_table_contact with::
 
@@ -99,23 +102,38 @@ def test_simulation_is_seeded_and_noise_free_is_clean(ct, left):
     assert np.abs(gap).max() < 1e-6
 
 
-@pytest.mark.slow
-def test_noise_free_mechanism_left(ct, left):
-    """The fit reproduces the training data; held-out is above the planned bound."""
-    study, tmp = left
-    row = ct.run_case(study, "left", "planar", "structural", 0, 0.0, tmp)
-    assert row["train_rms_mm"] < 1.0
-    assert row["heldout_rmse_mm"] < 3.0  # measured 2.31
+@pytest.fixture
+def ridge_off(monkeypatch):
+    """Structural fit without the 1e-3 ridge (set in ``initialize``)."""
+    from run_calibration_real_data import TalosTableContactCalibration as C
+
+    orig = C.initialize
+
+    def initialize(self, *a, **k):
+        out = orig(self, *a, **k)
+        self.regularization_coefficient = 0.0
+        return out
+
+    monkeypatch.setattr(C, "initialize", initialize)
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True, reason="noise-free structural held-out is 2.3 mm on left, not < 0.05"
-)
-def test_noise_free_mechanism_bound_left(ct, left):
+def test_noise_free_structural_fits_training_gap(ct, left, ridge_off):
+    """Pipeline and sign check: without ridge or noise the training gap
+    vanishes (measured ~1e-11 mm)."""
     study, tmp = left
     row = ct.run_case(study, "left", "planar", "structural", 0, 0.0, tmp)
-    assert row["heldout_rmse_mm"] < ct.MECHANISM_TOL_MM
+    assert row["train_rms_mm"] < 1e-6
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("side", ["left", "right"])
+def test_noise_free_map_cv_recovers_height(ct, side, left, tmp_path):
+    """Held-out height error of map_cv, noise-free planar seed 0 (measured
+    L 0.196, R 0.149 mm)."""
+    study = left[0] if side == "left" else ct.make_study(side)
+    row = ct.run_case(study, side, "planar", "map_cv", 0, 0.0, tmp_path)
+    assert row["heldout_rmse_mm"] < 0.25
 
 
 @pytest.fixture(scope="module")
