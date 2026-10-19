@@ -63,6 +63,7 @@ shared `models/` (robot description packages) and a Viser-based `web-interface/`
 - `validate.py` sets `MPLBACKEND=Agg` so matplotlib doesn't block on plot windows.
 - Slow scripts (optimal_config, optimal_trajectory) use IPOPT and can take 5+ minutes.
   Use `--quick` for fast feedback loops; run full validation before declaring done.
+  `--changed` skips slow scripts by default; add `--slow-scripts` to include them.
 - **Exit code 0 only when every required check passes; 1 on any failure or timeout.**
   A required timeout reports `RESULT: INCOMPLETE` — it is not a pass, even when an
   IPOPT script is merely slow. Full child stdout/stderr, exit code (negative =

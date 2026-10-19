@@ -89,6 +89,7 @@ From repository root in `figaroh-dev`:
 ```bash
 python validate.py --changed          # PR evidence: what the diff against main can affect
 python validate.py --changed --dry-run  # print the selection only
+python validate.py --changed --slow-scripts  # also run the slow IPOPT scripts
 python -m pytest tests/ -m ur10       # one robot's tests (also tiago, tiago_pro, ...)
 pre-commit run --files <changed-files>
 git diff --check
@@ -108,6 +109,12 @@ pins, `tests/conftest.py`, `validate.py`, `models/`, `ci/` or the golden
 reference, and for release and acceptance gates. `--changed` already selects
 the full suite for those paths and for any path the map does not cover, so
 the safe default holds. CI runs the full fast suite on every PR regardless.
+
+`--changed` skips slow scripts (`is_slow` entries such as `optimal_config` and
+`optimal_trajectory`, minutes each) by default; add `--slow-scripts` when the
+diff touches them. Slow tests (`-m slow`) run weekly in `.github/workflows/slow.yml`
+and locally with `python -m pytest tests/ -m slow`; a full `validate.py` still
+runs every script.
 
 `--quick`, `--tests-only`, `--scripts-only` and `--full-tests` combine with
 `--changed`; `--robot` does not (use one or the other). Run affected robot
