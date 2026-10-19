@@ -22,11 +22,23 @@ tested here, and :func:`read_qualisys_bag` reads a bag when the optional
 Columns written: ``x1..z4`` (points BL, BR, TR, TL), the eight joints,
 ``t_start_robot``, ``t_end_robot`` (s, robot clock) and ``marker_std_mm`` (the
 largest standard deviation of any point coordinate over the window).
+
+The 2021-10-26 sessions (#104) have the base body in view in few or no
+plateaus. Without a ``base`` stream the points stay in the Qualisys world
+frame, a flag column ``points_in_base_frame`` (0) is appended, and the base
+pose is left to the calibration's registration. Run
+
+    python -m examples.tiago.utils.mocap_extraction --help
+
+from the repository root; the byte-for-byte check against the shipped files is
+``tests/test_tiago_mocap_extraction.py`` (needs ``TIAGO_RECORDINGS_ROOT``).
 """
 
 from __future__ import annotations
 
-from typing import Dict, List, Sequence, Tuple
+import hashlib
+from pathlib import Path
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -34,6 +46,10 @@ from scipy.spatial.transform import Rotation
 
 JOINTS = ["torso_lift_joint"] + [f"arm_{i}_joint" for i in range(1, 8)]
 POINTS = ["BL", "BR", "TR", "TL"]
+#: Child frame names of the tracked bodies in the bags: ``eeframe_<point>``
+#: (November 2021) or ``eeframe<1..4>`` (October 2021), and the base body.
+_FRAME_KEYS = {f"eeframe{k}": p for k, p in enumerate(POINTS, start=1)}
+_FRAME_KEYS.update({"baseframe": "base_frame", "base_frame": "base_frame"})
 
 
 def static_plateaus(
@@ -104,7 +120,7 @@ def estimate_clock_lag(
 def extract_static_postures(
     t: np.ndarray,
     q: np.ndarray,
-    base: np.ndarray,
+    base: Optional[np.ndarray],
     points: Dict[str, np.ndarray],
     lag: float,
     min_samples: int = 20,
@@ -114,7 +130,9 @@ def extract_static_postures(
     Args:
         t: (n,) robot timestamps.
         q: (n, 8) joint positions, in :data:`JOINTS` order.
-        base: (m, 8) ``base_frame`` body stream: ``t, x, y, z, qx, qy, qz, qw``.
+        base: (m, 8) ``base_frame`` body stream: ``t, x, y, z, qx, qy, qz, qw``,
+            or ``None`` to keep the points in the Qualisys world frame (the
+            output then has a ``points_in_base_frame`` column, all 0).
         points: ``{"BL": (k, 4) [t, x, y, z], ...}`` for :data:`POINTS`.
         lag: Clock lag from :func:`estimate_clock_lag` (``t_mocap = t - lag``).
         min_samples: Minimum samples of every stream inside a window.
@@ -123,11 +141,14 @@ def extract_static_postures(
     for a, b in static_plateaus(t, q):
         t0, t1 = t[a] + 0.5, t[b - 1] - 0.3
         w0, w1 = t0 - lag, t1 - lag
-        in_base = (base[:, 0] >= w0) & (base[:, 0] <= w1)
-        if in_base.sum() < min_samples:
-            continue
-        R_b = Rotation.from_quat(base[in_base, 4:8]).mean().as_matrix()
-        p_b = base[in_base, 1:4].mean(axis=0)
+        if base is not None:
+            in_base = (base[:, 0] >= w0) & (base[:, 0] <= w1)
+            if in_base.sum() < min_samples:
+                continue
+            R_b = Rotation.from_quat(base[in_base, 4:8]).mean().as_matrix()
+            p_b = base[in_base, 1:4].mean(axis=0)
+        else:
+            R_b, p_b = np.eye(3), np.zeros(3)
         coords, std = [], 0.0
         for name in POINTS:
             s = points[name]
@@ -137,11 +158,13 @@ def extract_static_postures(
             coords.append(R_b.T @ (s[sel, 1:4].mean(axis=0) - p_b))
             std = max(std, s[sel, 1:4].std(axis=0).max() * 1000)
         else:
-            rows.append(np.r_[np.ravel(coords), q[a:b].mean(axis=0), t0, t1, std])
+            row = np.r_[np.ravel(coords), q[a:b].mean(axis=0), t0, t1, std]
+            rows.append(row if base is not None else np.r_[row, 0.0])
     columns = (
         [f"{c}{k}" for k in range(1, 5) for c in "xyz"]
         + JOINTS
         + ["t_start_robot", "t_end_robot", "marker_std_mm"]
+        + ([] if base is not None else ["points_in_base_frame"])
     )
     return pd.DataFrame(rows, columns=columns)
 
@@ -169,7 +192,8 @@ def read_qualisys_bag(path: str) -> Dict[str, np.ndarray]:
     ``{"t": (n,), "q": (n, 8), "base_frame": (m, 8), "BL": (k, 4), ...}``
     using header stamps: joints from PAL introspection
     (``<joint>_position``), mocap from ``/tf`` transforms whose parent frame
-    is ``Qualisys``.
+    is ``Qualisys``. A bag without the base body (October 2021, no offsets)
+    has no ``"base_frame"`` key.
     """
     from rosbags.rosbag1 import Reader
     from rosbags.typesys import Stores, get_types_from_msg, get_typestore
@@ -208,9 +232,14 @@ def read_qualisys_bag(path: str) -> Dict[str, np.ndarray]:
     out = {"t": joints[:, 0], "q": joints[:, 1:]}
     for child, samples in tf.items():
         arr = np.array(samples)
-        key = child.removeprefix("eeframe_")
-        out[key] = arr if child == "base_frame" else arr[:, :4]
+        key = _FRAME_KEYS.get(child, child.removeprefix("eeframe_"))
+        out[key] = arr if key == "base_frame" else arr[:, :4]
     return out
+
+
+def file_sha256(path: str | Path) -> str:
+    with Path(path).open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
 def extract_session(
@@ -218,8 +247,22 @@ def extract_session(
     lag: float | None = None,
     model=None,
     tool_frame: str = "wrist_ft_tool_link",
+    frame: str = "base",
+    expected_sha256: str | None = None,
 ) -> Tuple[pd.DataFrame, float]:
-    """Bag to posture table. Estimates the lag from ``model`` if not given."""
+    """Bag to posture table. Estimates the lag from ``model`` if not given.
+
+    ``frame`` is ``"base"`` (points in the ``base_frame`` body, the November
+    2021 sessions) or ``"world"`` (Qualisys world frame plus the
+    ``points_in_base_frame`` flag, the October 2021 sessions).
+    ``expected_sha256`` refuses a bag that is not the recorded one.
+    """
+    if frame not in ("base", "world"):
+        raise ValueError(f"frame must be 'base' or 'world', got {frame!r}")
+    if expected_sha256 is not None:
+        actual = file_sha256(bag)
+        if actual != expected_sha256:
+            raise ValueError(f"{bag}: source sha256 mismatch ({actual})")
     s = read_qualisys_bag(bag)
     if lag is None:
         if model is None:
@@ -230,7 +273,8 @@ def extract_session(
             s["BL"][:, 0],
             s["BL"][:, 1:4],
         )
-    return extract_static_postures(s["t"], s["q"], s["base_frame"], s, lag), lag
+    base = s["base_frame"] if frame == "base" else None
+    return extract_static_postures(s["t"], s["q"], base, s, lag), lag
 
 
 if __name__ == "__main__":
@@ -242,7 +286,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lag", type=float, required=True, help="t_robot - t_mocap (s)"
     )
+    parser.add_argument(
+        "--frame",
+        choices=("base", "world"),
+        default="base",
+        help="express the points in the base_frame body (default) or keep the "
+        "Qualisys world frame (base body not in view)",
+    )
+    parser.add_argument("--expected-sha256", help="Source bag hash from protocol.yaml")
     args = parser.parse_args()
-    table, lag = extract_session(args.bag, lag=args.lag)
+    table, lag = extract_session(
+        args.bag,
+        lag=args.lag,
+        frame=args.frame,
+        expected_sha256=args.expected_sha256,
+    )
     table.to_csv(args.out, index=False)
-    print(f"{len(table)} postures, lag {lag:+.1f} s -> {args.out}")
+    print(f"{len(table)} postures, lag {lag:+.2f} s -> {args.out}")
