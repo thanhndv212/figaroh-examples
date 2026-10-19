@@ -58,6 +58,8 @@ robots:
       - tests/test_tiago_reference_run.py
       - tests/test_tiago_signal_processing.py
       - tests/test_tiago_suspension_backlash.py
+      - tests/test_tiago_vicon_2023_09_20.py
+      - tests/test_tiago_vicon_extraction.py
     golden_ids: ["tiago/"]
     script_key: tiago
   tiago_pro:
