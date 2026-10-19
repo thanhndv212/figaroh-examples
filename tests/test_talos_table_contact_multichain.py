@@ -100,6 +100,10 @@ def _build_chain(robot, config_path, df_train, base_frame, session_offsets):
     return calib
 
 
+SMALL_N_TRAIN = 12
+SMALL_N_VAL = 4
+
+
 def _load_split(calib: TalosTableContactCalibration, df) -> None:
     N = len(df)
     q0 = np.asarray(calib.calib_config["q0"], dtype=float)
@@ -120,14 +124,11 @@ def _load_split(calib: TalosTableContactCalibration, df) -> None:
     calib.PEE_measured = np.zeros(3 * N)
 
 
-@pytest.fixture(scope="module")
-def multichain_result():
-    # 120 training touches per session (was 30); see the single-chain test
-    # and #48 for why held-out checks need this sample size.
+def _run_multichain(n_train_per_session, n_val_per_session):
     data = build_two_chain_dataset(
         n_sessions=2,
-        n_train_per_session=120,
-        n_val_per_session=20,
+        n_train_per_session=n_train_per_session,
+        n_val_per_session=n_val_per_session,
         seed=7,
         encoder_noise_std=ENCODER_NOISE_STD,
     )
@@ -188,6 +189,42 @@ def multichain_result():
     }
 
 
+@pytest.fixture(scope="module")
+def multichain_result():
+    # 120 training touches per session (was 30); see the single-chain test
+    # and #48 for why held-out checks need this sample size. About two
+    # minutes of setup, so the tests that use it are slow (#141).
+    return _run_multichain(120, 20)
+
+
+@pytest.fixture(scope="module")
+def small_multichain_result():
+    # Same pipeline at a size the fast tier can afford (#141): checks the
+    # structure and that the joint solve runs and fits; the noise-floor
+    # claims need the full sample above.
+    return _run_multichain(SMALL_N_TRAIN, SMALL_N_VAL)
+
+
+class TestSmallMultichain:
+    def test_shared_names_are_torso_only_and_nonempty(self, small_multichain_result):
+        coupler = small_multichain_result["coupler"]
+        assert len(coupler.shared_dx_names) > 0
+        assert all(
+            ("torso_1_joint" in n or "torso_2_joint" in n)
+            for n in coupler.shared_dx_names
+        )
+        naive_sum = coupler.left.n_deltaX + coupler.right.n_deltaX
+        assert naive_sum - coupler.n_dx == len(coupler.shared_dx_names)
+
+    def test_joint_solve_runs_and_reduces_training_gap(self, small_multichain_result):
+        assert small_multichain_result["result"].success
+        before = small_multichain_result["train_before"]
+        after = small_multichain_result["train_after"]
+        for side in ("left", "right"):
+            assert after[side]["z_rmse_mm"] < before[side]["z_rmse_mm"]
+
+
+@pytest.mark.slow
 class TestSharedTorsoCoupling:
     def test_shared_names_are_torso_only_and_nonempty(self, multichain_result):
         """Torso is the only joint set structurally shared by both
@@ -212,11 +249,13 @@ class TestSharedTorsoCoupling:
         assert naive_sum - coupler.n_dx == len(coupler.shared_dx_names)
 
 
+@pytest.mark.slow
 class TestSolveConverges:
     def test_lm_reports_success(self, multichain_result):
         assert multichain_result["result"].success
 
 
+@pytest.mark.slow
 class TestTrainingResidual:
     def test_both_chains_reduce_by_a_large_factor(self, multichain_result):
         before, after = (
@@ -231,6 +270,7 @@ class TestTrainingResidual:
                 )
 
 
+@pytest.mark.slow
 class TestHeldOutCrossValidation:
     """Held-out residual judged against each chain's noise floor (the true
     model's residual on the same touches); see the single-chain test."""
