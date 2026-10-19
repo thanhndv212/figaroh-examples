@@ -108,6 +108,18 @@
       "provenance": "examples/tiago/data/README.md"
     },
     {
+      "id": "tiago-mocap-vicon-2023-09-20",
+      "robot": "TIAGo",
+      "study": "Mocap calibration (cross-system, #100)",
+      "kind": "real",
+      "role": "confirmation (not evaluated until #100)",
+      "description": "Two Vicon static-posture runs of 2023-09-20 (17 and 21 postures), gripper and base marker-triad poses in the Vicon world frame, and the protocol that freezes their roles, triad definitions and hashes.",
+      "paths": [
+        "examples/tiago/data/calibration/vicon/"
+      ],
+      "provenance": "examples/tiago/data/README.md"
+    },
+    {
       "id": "tiago-optimal-configurations",
       "robot": "TIAGo",
       "study": "Experiment design",
@@ -537,6 +549,20 @@
     "examples/tiago/data/calibration/optitrack/protocol.yaml": {
       "sha256": "3fa18bdaaac593a98fb0cf969323eebed19ab855fb1638a9d52125697d17e1d5",
       "bytes": 2662
+    },
+    "examples/tiago/data/calibration/vicon/protocol.yaml": {
+      "sha256": "58060c9081c2dc46a938f4b8b271915232469f9f483a98fc761785b07ef87ea2",
+      "bytes": 4707
+    },
+    "examples/tiago/data/calibration/vicon/vicon_2023-09-20-1508_static_postures.csv": {
+      "sha256": "745b6852eb27907a07bfd26e3cd30fc83cd69d4de33d5719a688bb8b01ebf74c",
+      "bytes": 7903,
+      "rows": 17
+    },
+    "examples/tiago/data/calibration/vicon/vicon_2023-09-20-1607_static_postures.csv": {
+      "sha256": "18f213f8fdc51a267aa4b1dc6a8002d3bbc9186eb62e6a9a39e4f8a444595c62",
+      "bytes": 10413,
+      "rows": 21
     },
     "examples/tiago/data/identification/audit/README.md": {
       "sha256": "7a4f02e54fe17e586f050d6455105b52d818adb4bcbc732e149c7f1eba80d65e",

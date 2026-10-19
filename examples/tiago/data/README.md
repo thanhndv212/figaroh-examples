@@ -443,3 +443,117 @@ adds the held-out block in v2.
   `tests/test_tiago_optitrack_extraction.py` re-creates the three files byte
   for byte when `TIAGO_RECORDINGS_ROOT` points at a folder holding the
   original recordings; it is skipped otherwise.
+
+## Vicon calibration data (`calibration/vicon/`)
+
+Two static-posture runs recorded on 2023-09-20
+([#106](https://github.com/thanhndv212/figaroh-examples/issues/106)) with a
+Vicon system, extracted from the original recordings. They are `confirmation`
+sessions of their own protocol (`calibration/vicon/protocol.yaml`,
+`tiago-vicon-2023-09-20` v1, independent of the Qualisys and OptiTrack
+protocols). None is evaluated before the motion-capture study
+([#100](https://github.com/thanhndv212/figaroh-examples/issues/100)), which
+adds the held-out block in v2. The issue asked for the unclosed bag of the
+session; that recording is not read here (see Not shipped).
+
+| File | Role | Run (local time) | Postures | Plateaus | Gripper lost | Marker triad | Lag (s) | sha256 (prefix) |
+|---|---|---|---|---|---|---|---|---|
+| `vicon_2023-09-20-1508_static_postures.csv` | confirmation | 1508, `.c3d` | 17 | 17 | 0 | 1 | +1.9350 (origin) | `745b6852eb27907a` |
+| `vicon_2023-09-20-1607_static_postures.csv` | confirmation | 1607, `.csv` | 21 | 21 | 0 | 2 | −0.6100 | `18f213f8fdc51a26` |
+
+- **Provenance:** original recordings (not distributed), named and hashed in
+  `protocol.yaml`: a Vicon export per run (c3d for 1508, CSV for 1607) and
+  the PAL introspection bag of the same run for the joints (100 Hz, 307.8 s
+  and 414.0 s). The Vicon recordings hold 10 labelled markers (`base1..3`,
+  `shoulder1..4`, `gripper1..3`) at 100 Hz: 32545 frames (325.4 s) in the
+  c3d (plus two unlabelled points, not read) and 41313 rows (417.7 s, two
+  gaps over 50 ms, the longest 0.20 s) in the CSV. The CSV also holds a force
+  plate wrench and centre of pressure (plate 4); they are not read here.
+  Lab, hardware and licence line: to be added by the maintainer. The Vicon
+  software version, the camera count and the marker model are unknown.
+- **Markers, not bodies:** unlike the Qualisys and OptiTrack files there is
+  no rigid-body pose. The two bodies of the layout are marker triads:
+  `gripper1..3` for `x1..phiz1` and `base1..3` for `xb..phizb`. Frame:
+  origin at the centroid, `x` from marker 1 to marker 2, `z` along `x` cross
+  (marker 3 − marker 1), `y = z cross x`. The triad frames are not the
+  TIAGo link frames, and their offsets are unknown: the base pose and the
+  tool pose of any fit are free registration parameters. The shoulder
+  markers are not shipped.
+- **Units and frames:** metres and radians (the c3d is converted from mm).
+  Orientation is pinocchio roll-pitch-yaw (`R = Rz Ry Rx`). Poses are in the
+  **Vicon world frame** (`points_in_base_frame` = 0). `xb..phizb` is the
+  base triad pose in the same frame; it is the same in every row of a run
+  (position std ≤ 0.26 mm, orientation std ≤ 0.04°) and differs between runs
+  (the base stood at (1.060, 0.384) m in 1508 and (0.904, 0.460) m in
+  1607). `n_base_live` counts the frames where all three base markers are
+  live; every row has at least 231 live frames of both triads, so no row has
+  NaN base columns (the columns are kept for the shared layout).
+- **Columns:** the OptiTrack layout (`x1..phiz1`, the eight joints,
+  `xb..phizb`, `t_start_robot`, `t_end_robot`, `n_window`, `n_live`,
+  `n_base_live`, `pose_std_mm`, `pose_std_deg`, `rigid_body_def`,
+  `points_in_base_frame`). `n_window` counts mocap frames in the window,
+  `n_live` frames where the three gripper markers are live,
+  `pose_std_mm` the largest per-axis marker std, `pose_std_deg` the RMS
+  rotation deviation of the per-frame triad from the mean. `rigid_body_def`
+  is the marker-triad definition (below). Loads in core with
+  `NbMarkers: 1`; extra columns are ignored.
+- **Clock:** the robot clock is the introspection header stamp. The CSV
+  stamps are the Vicon PC wall time written as local time without a zone;
+  they are read as UTC+2 (CEST), and the measured residual is −0.61 s
+  (`t_mocap = t_robot − lag`): the first CSV row is 1.46 s after the first
+  joint sample. The c3d has no absolute clock, so its time axis starts at the
+  first joint sample and its lag (+1.935 s) is that origin plus the clock
+  offset, not comparable with the CSV one. Both lags are measured per run in
+  the extractor by correlating the speed of the gripper triad centroid with
+  the speed of the nominal-FK `wrist_ft_tool_link` over ±60 s (0.05 s steps,
+  refined to 0.005 s): correlation 0.98 in both runs.
+- **Extraction rules:** the plateau and window rules of the Qualisys files
+  (imported from `mocap_extraction.py`): 1 mrad over 0.5 s, at least 2 s,
+  window `[start + 0.5 s, end − 0.3 s]` shifted by the lag, at least 20
+  frames. Lost markers (`0, 0, 0` in the CSV, negative residual in the c3d)
+  are NaN; a triad frame is live when its three markers are. Marker
+  positions are averaged over the live frames of the window, then the pose is
+  built. No plateau had fewer than 20 live gripper frames (lowest 231), so
+  nothing is dropped. Averaging windows last 2.3 to 30.3 s; pose std ≤ 0.84 mm and
+  ≤ 0.34°.
+- **Label exchange (1607):** Vicon exchanges the labels `gripper1` and
+  `gripper2` on 16494 of 41310 live frames (about 276 jumps of 100 to
+  150 mm between consecutive frames). The extractor relabels by side
+  lengths before averaging (`repair_triad_labels`, majority labelling kept)
+  and reports the count. The c3d has no exchange (no marker moves more than
+  19 mm between frames; its gripper triad is nearly isosceles, so the side
+  rule is not applied to it). Without the repair, half of the 1607 gripper
+  orientations are mirrored and the registration fit below gives 87° instead
+  of 6°.
+- **Marker triads:** the base triad is the same in both runs (sides 411–412,
+  326, 334–335 mm). The gripper markers were placed differently: sides
+  162.7, 109.5, 104.1 mm in 1508 (definition 1) and 142.9, 49.8, 113.5 mm in
+  1607 (definition 2; its 50 mm side limits the orientation accuracy). Never
+  pool the two runs without a tool registration per definition.
+- **Postures:** both runs replay the same script: 15 of the 17 postures of
+  1508 are in 1607 (joints within 5 mrad, 14 within 1 mrad), and the 1607 run
+  adds 6.
+- **Registration-only sanity fit** (nominal joints, base 6D and tool 6D
+  fitted on each run, `wrist_ft_tool_link`, rotation weighted 0.1 m/rad):
+  19.1 mm and 5.8° (17 postures), 20.2 mm and 5.9° (21). A sanity check of
+  the files, not an accuracy claim: no joint offsets are fitted.
+- **Known limits:** markers, not bodies (the triad frames are arbitrary and
+  the 1607 triad is narrow); the c3d clock is relative; the force plate is
+  not shipped; the joint offsets loaded that day are unknown; the base never
+  moves within a run, so base and tool registration are weakly separated.
+- **Not shipped:** `calib_mocap_vicon_2023-09-20-13-53-01.bag.active`
+  (sha256 `1ebae14e0900320781fff44c481ff6d25480f30a4377a59d7aa92027fc6e17e1`)
+  is an unclosed bag. It was neither read nor reindexed here (re-scoped from
+  the issue: recovering it needs `rosbag reindex` on a copy under ROS Noetic),
+  and no Vicon export of that run was found. The two posture bags
+  `vicon_postures_2023-09-20-15-22-11.bag` and `…-15-34-35.bag` hold robot
+  introspection only (no joints in the first, three moving joints in the
+  second) and no Vicon recording, so they give no postures. Hashes are in
+  `protocol.yaml`.
+- **Extraction:** `python -m examples.tiago.utils.vicon_extraction MOCAP BAG
+  OUT --rigid-body-def N --mocap-sha256 SHA --bag-sha256 SHA` from the
+  repository root (`rosbags` required, and `c3d` for a c3d; the lag is
+  measured). `tests/test_tiago_vicon_extraction.py` re-creates the two files
+  byte for byte when `TIAGO_RECORDINGS_ROOT` points at a folder holding the
+  original recordings (the c3d run is skipped without the `c3d` package);
+  `tests/test_tiago_vicon_2023_09_20.py` checks the shipped files alone.

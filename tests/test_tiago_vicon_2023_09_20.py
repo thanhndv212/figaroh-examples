@@ -180,10 +180,10 @@ def test_home_posture_is_in_every_run(frames):
 
 
 def test_runs_repeat_the_same_postures(frames):
-    """The 1607 run replays most postures of the 1508 run (joints within 5 mrad)."""
+    """The 1607 run replays 15 of the 17 postures of the 1508 run (joints within 5 mrad)."""
     a, b = (frames[s][JOINTS].to_numpy() for s in SESSIONS)
     matched = sum(np.abs(b - row).max(axis=1).min() < 5e-3 for row in a)
-    assert matched >= 12
+    assert matched == 15
 
 
 def _fit(df, model, data, idx, fid, pin):
