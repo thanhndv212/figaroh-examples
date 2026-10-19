@@ -349,3 +349,97 @@ session, but joints and markers were paired by raw timestamp with the 3.9 s
 clock offset uncorrected. In 16 of 34 rows the marker sample was taken after
 the arm had started moving, with errors up to 7.8 mm (row 29 is the worst).
 Its "marker 4" repeated marker 3, so TL was missing.
+
+## OptiTrack calibration data (`calibration/optitrack/`)
+
+Three static-posture runs recorded on 2023-09-12
+([#105](https://github.com/thanhndv212/figaroh-examples/issues/105)) with an
+OptiTrack system, extracted from the original recordings. They are
+`confirmation` sessions of their own protocol
+(`calibration/optitrack/protocol.yaml`, `tiago-optitrack-2023-09-12` v1,
+independent of the Qualisys protocol). None is evaluated before the
+motion-capture study
+([#100](https://github.com/thanhndv212/figaroh-examples/issues/100)), which
+adds the held-out block in v2.
+
+| File | Role | Session (bag stem) | Postures | Plateaus | Gripper lost | Rigid body | Lag (s) | sha256 (prefix) |
+|---|---|---|---|---|---|---|---|---|
+| `optitrack_2023-09-12-1529_static_postures.csv` | confirmation | `optitrack_tiago_calibration_2023-09-12-15-29-23` | 4 | 8 | 4 | 1 | −0.8036 | `7e27603dc975ad8f` |
+| `optitrack_2023-09-12-1552_static_postures.csv` | confirmation | `optitrack_tiago_calibration_2023-09-12-15-52-58` | 9 | 17 | 8 | 1 | −1.0840 | `9bfb7004b13d8d4d` |
+| `optitrack_2023-09-12-1658_static_postures.csv` | confirmation | `optitrack_caibration_2023-09-12-16-58-30` | 13 | 22 | 9 | 2 | −1.3820 | `c46bd5d0f1af89ac` |
+
+- **Provenance:** original recordings (ROS bags, not distributed) of
+  2023-09-12, named and hashed in `protocol.yaml`. Recorded on the TIAGo
+  (Schunk gripper) with OptiTrack at 120 Hz through `natnet_ros`, joints from
+  PAL introspection at 100 Hz. Everything is extracted from the bags; the CSV
+  exports that accompany the recordings are not used (shifted columns and
+  truncated precision). Lab and licence line: to be added by the maintainer.
+- **Units and frames:** metres and radians. Orientation is pinocchio
+  roll-pitch-yaw (`R = Rz Ry Rx`). `x1..phiz1` is the pose of the
+  `tiago_schunk` body in the **OptiTrack world frame**
+  (`points_in_base_frame` = 0, as for the 2021-10-26 Qualisys sessions).
+  `xb..phizb` is the world pose of the `tiago_base` body, NaN where that body
+  had fewer than 20 live samples (one row in each of the 15:52 and 16:58
+  runs); `n_base_live` is the sample count. A tracked row can be expressed
+  in the base body (`R_bᵀ (p_g − p_b)`, `R_bᵀ R_g`), but the base body frame
+  is fixed to the base, is not `base_link`, and is likely y-up like the
+  OptiTrack world, so any fit estimates base 6D and tool 6D. The base did
+  not move across the three runs (0.5 mm, 0.4° between the start and end of
+  each run and between runs); the base pose stays a free registration
+  parameter. `rigid_body_def` is the gripper body definition (below).
+- **Columns:** `x1, y1, z1, phix1, phiy1, phiz1`, the eight joints (plateau
+  mean of the `*_position` channels), `xb..phizb`, `t_start_robot`,
+  `t_end_robot` (s, robot clock), `n_window` (gripper samples in the window,
+  frozen ones included), `n_live` (live gripper samples), `n_base_live`,
+  `pose_std_mm` (largest per-axis position std), `pose_std_deg` (RMS rotation
+  deviation from the mean), `rigid_body_def`, `points_in_base_frame`. Loads
+  in core with `NbMarkers: 1`; extra columns are ignored.
+- **Clock:** the NatNet header stamps run 0.78, 1.06 and 1.36 s ahead of the
+  recorder, so the lag differs per run: −0.80, −1.08 and −1.38 s
+  (`t_mocap = t_robot − lag`), measured as the median receive-minus-header
+  offset of the mocap stream minus that of the robot stream. The often-quoted
+  1.36 s is the 16:58 value only. The offset is stable within a run (IQR
+  2 to 9 ms, medians of the thirds within 12 ms); robot stamps lag the
+  recorder by a constant 20 ms. A speed cross-correlation with the nominal
+  forward kinematics agrees to within 0.04 s (0.2 s on 15:29, where 63 % of
+  the gripper samples are frozen).
+- **Extraction rules:** the plateau and window rules of the Qualisys files
+  (imported from `mocap_extraction.py`): 1 mrad over 0.5 s, at least 2 s,
+  window `[start + 0.5 s, end − 0.3 s]` shifted by the lag, at least 20
+  samples. Frozen NatNet samples (the pose repeated bit for bit when
+  tracking is lost) are removed first. A plateau is dropped only when the
+  gripper has fewer than 20 live samples in the window: always a complete
+  loss (zero live samples). Plan postures 0, 3, 5 and 6 are occluded in every
+  run; the rest of the drops are tracking losses in the later plan postures.
+  The start posture is in every file. Plan postures 17, 21 and 22 were never
+  executed. No orientation flips: the largest in-window deviation from the
+  mean rotation is 3° and the position std is at most 0.92 mm.
+- **Rigid-body definitions:** definition 1 (15:29, 15:52) and definition 2
+  (16:58). At the same posture (joints within 1 mrad), the gripper in the
+  base body differs by 3.7 to 9.0 mm and 0.4 to 2.3° between 15:29 and 15:52
+  (robot repeatability, no common rotation) but by 5.2 to 7.1° between 15:52
+  and 16:58, with a nearly constant tool-frame rotation about
+  (5.7, −3.1, 0)°: a redefined body. The recordings hold no model
+  description, so the id is an annotation backed by
+  `tests/test_tiago_optitrack_2023_09_12.py`. Never pool runs across
+  definitions without a tool registration per definition.
+- **Registration-only sanity fit** (nominal joints, base 6D and tool 6D
+  fitted on each run, `wrist_ft_tool_link`, rotation weighted 0.1 m/rad):
+  9.6 mm and 3.7° (4 postures), 14.9 mm and 3.9° (9), 12.3 mm and 3.5° (13).
+  A sanity check of the files, not an accuracy claim: no joint offsets are
+  fitted, and 4 postures give 24 equations for 12 parameters.
+- **Known limits:** few postures, and the calibrated region is biased by
+  systematic occlusion. Partial tracking in four kept rows (shown by
+  `n_live / n_window`: 0.21 and 0.50 in 15:52, 0.11 and 0.49 in 16:58).
+  Robot repeatability of 4 to 9 mm is about ten times the mocap noise. The
+  joint offsets loaded that day are unknown. The 15:29 run is too small to
+  fit joint offsets. Robot state, hand and bodies differ from the Qualisys
+  files, so these are not comparable with them without re-registration. The
+  `tiago_shoulder` body is tracked in the bags and is not shipped.
+- **Extraction:** `python -m examples.tiago.utils.optitrack_extraction BAG OUT
+  --rigid-body-def N --expected-sha256 SHA` from the repository root
+  (`rosbags` required; the lag is measured; `--frame world` is the default).
+  The bag name, sha256, lag and drops of each run are in `protocol.yaml`.
+  `tests/test_tiago_optitrack_extraction.py` re-creates the three files byte
+  for byte when `TIAGO_RECORDINGS_ROOT` points at a folder holding the
+  original recordings; it is skipped otherwise.
