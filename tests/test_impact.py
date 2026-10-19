@@ -148,3 +148,10 @@ def test_no_test_file_belongs_to_two_slow_jobs():
         jobs = list(robot_files.get(rel, [])) + ["shared"] * (rel in shared)
         jobs += ["cross_robot"] * (rel in cross)
         assert len(jobs) == 1, f"{rel} is in several jobs: {jobs}"
+
+
+def test_impact_map_edit_selects_always_set_only():
+    """Adding a test file to the map must not escalate a PR to the full suite."""
+    sel = pick("tests/impact.yaml")
+    assert not sel.full
+    assert not sel.robots
