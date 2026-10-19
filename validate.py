@@ -57,6 +57,7 @@ EXAMPLE_SCRIPTS = {
         ("update_model.py", 120, False),
         ("identification.py", 120, False, ["--verify", "--html-report"]),
         ("identification_reference.py", 120, False, ["--case", "all"]),
+        ("hand_eye_reference_run.py", 300, False, ["--no-plot"]),
         ("optimal_config.py", 600, True),
         ("optimal_trajectory.py", 600, True),
     ],
