@@ -11,7 +11,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | Dataset | Robot | Study | Kind | Role | Files | Size | Provenance |
 |---|---|---|---|---|---:|---:|---|
 | `ur10-identification-truth` | UR10 | Dynamic identification | simulated | train + held-out validation | 7 | 1.6 MB | examples/ur10/data/README.md; docs/development/ur10-dynamic-truth-fixture.md |
-| `ur10-hand-eye` | UR10 | Hand-eye calibration | real (unconfirmed) | calibration; k-fold within one session | 1 | 5.3 KB | docs/plans/calibration-studies-plan.md (core) |
+| `ur10-hand-eye` | UR10 | Hand-eye calibration | real (unconfirmed) | calibration; k-fold within one session | 2 | 6.5 KB | examples/ur10/data/README.md; docs/development/ur10-hand-eye.md |
 | `ur10-calibration-simulation` | UR10 | Calibration | unspecified (unconfirmed) | unknown | 1 | 6.7 KB |  |
 | `tiago-identification-2021-07` | TIAGo | Dynamic identification | real | training; slow run held out for cross-run validation | 4 | 3.8 MB | examples/tiago/data/README.md; docs/development/tiago-signal-audit-2026-10-03.md |
 | `tiago-base-parameter-list` | TIAGo | Dynamic identification | unspecified (unconfirmed) | not used | 1 | 3.9 KB | examples/tiago/data/README.md |
@@ -38,7 +38,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 
 ## Provenance to confirm
 
-- `ur10-hand-eye`: sensor and frame convention are undocumented
+- `ur10-hand-eye`: camera, board and recording date are unknown (README, hand-eye section)
 - `ur10-calibration-simulation`: no README entry or saved generator says how this file was produced
 - `tiago-base-parameter-list`: not used by identification.py and not audited
 - `tiago-calibration-nov-30-64`: not used by identification.py and not audited
@@ -65,6 +65,7 @@ Simulated truth fixture: known inertias, exact clock and RNEA effort, 2400 train
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
 | `examples/ur10/data/calibration.csv` | 23 | 5458 | `31d5a3d56cbb5ea3` |
+| `examples/ur10/data/hand_eye_protocol.yaml` |  | 1162 | `2e40e86d2cf8a806` |
 
 ### `ur10-calibration-simulation`
 
