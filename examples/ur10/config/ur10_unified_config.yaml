@@ -56,6 +56,12 @@ tasks:
 
     parameters:
       calibration_level: "full_params"
+      # Which parameters to estimate and how (figaroh-plus#113). Explicit:
+      # structural is core's default and the unchanged reference fit. The
+      # alternatives are compared in hand_eye_heldout.py and
+      # docs/development/ur10-hand-eye.md.
+      estimation:
+        method: structural
       include_non_geometric: false
       outlier_threshold: 0.02  # 2cm outlier threshold
 
