@@ -155,7 +155,6 @@ shared:
 # Changing any of these runs everything.
 full_suite:
   - tests/conftest.py
-  - tests/impact.yaml
   - tests/impact.py
   - tests/golden/golden_outputs.py
   - tests/golden/golden_outputs.json
@@ -177,9 +176,13 @@ always:
   - tests/test_data_inventory.py
   - tests/test_impact.py
 
-# Changing these runs the always set only.
+# Changing these runs the always set only. The impact map itself is here:
+# it only steers selection, and tests/test_impact.py (always run) checks
+# that every test file is mapped. Listing it as full-suite would escalate
+# every PR that adds a test file.
 always_paths:
   - docs/data-inventory.*
+  - tests/impact.yaml
 
 # Cross-robot test files: when one itself changes, run everything.
 cross_robot:
