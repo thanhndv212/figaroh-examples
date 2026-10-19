@@ -80,6 +80,18 @@ def pytest_collection_modifyitems(config, items):
             known = True
         if not known:
             unmapped.add(rel)
+    # Every slow item must land in exactly one job of
+    # .github/workflows/slow.yml (one per robot, plus cross_robot/shared).
+    job_markers = set(IMPACT_MAP["robots"]) | {"shared", "cross_robot"}
+    for item in items:
+        if item.get_closest_marker("slow") is None:
+            continue
+        jobs = {m.name for m in item.iter_markers() if m.name in job_markers}
+        if len(jobs) != 1 and str(item.fspath).startswith(str(project_root / "tests")):
+            raise pytest.UsageError(
+                f"slow test {item.nodeid} lands in {len(jobs)} slow-CI jobs "
+                f"({sorted(jobs)}); it must be in exactly one (tests/impact.yaml)"
+            )
     if unmapped:
         raise pytest.UsageError(
             "test file(s) missing from tests/impact.yaml: "

@@ -121,3 +121,30 @@ def test_golden_ids_cover_every_case():
 
     for case in golden_outputs.CASES:
         assert impact.golden_case_for(case, IMPACT_MAP), case
+
+
+def test_slow_workflow_matrix_matches_impact_map():
+    """.github/workflows/slow.yml runs one job per impact.yaml robot plus a
+    cross_robot/shared job; the hard-coded matrix must not drift."""
+    import re
+
+    text = (ROOT / ".github" / "workflows" / "slow.yml").read_text()
+    match = re.search(r"^\s*robot:\s*\[([^\]]*)\]", text, re.MULTILINE)
+    assert match, "no `robot: [...]` matrix in slow.yml"
+    matrix = [name.strip() for name in match.group(1).split(",") if name.strip()]
+    assert sorted(matrix) == sorted([*IMPACT_MAP["robots"], "cross_robot_shared"])
+    assert "slow and (cross_robot or shared)" in text
+    assert 'MARKER="slow and ${{ matrix.robot }}"' in text
+
+
+def test_no_test_file_belongs_to_two_slow_jobs():
+    """A slow test must run in exactly one slow-CI job."""
+    robot_files = impact.robot_test_files(IMPACT_MAP)
+    shared = impact.shared_test_files(IMPACT_MAP)
+    cross = set(IMPACT_MAP.get("always", [])) | set(IMPACT_MAP.get("cross_robot", []))
+    for rel in impact.mapped_test_files(IMPACT_MAP):
+        if rel == "tests/test_golden_outputs.py":
+            continue  # one robot or cross_robot per case (conftest)
+        jobs = list(robot_files.get(rel, [])) + ["shared"] * (rel in shared)
+        jobs += ["cross_robot"] * (rel in cross)
+        assert len(jobs) == 1, f"{rel} is in several jobs: {jobs}"
