@@ -60,7 +60,7 @@ python -m pip check                                   # dependency consistency
 python -c "import figaroh, pinocchio, cyipopt, picos; print(figaroh.__file__, pinocchio.__version__)"
 bash skills/figaroh-setup-env/scripts/doctor.sh --env figaroh-verify --ws "$WS"
 python -m pytest tests/test_robot_geometry.py         # meshes resolve for every robot
-python validate.py                                    # full suite + every example script
+python validate.py                                    # full suite + every example script (environment changes need the full run)
 ```
 
 `figaroh.__file__` must point into `$WS/figaroh/src`. `validate.py` pins BLAS

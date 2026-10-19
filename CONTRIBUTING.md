@@ -87,18 +87,45 @@ and CI changes in the delivery plan remain proposals, not deployed automation.
 From repository root in `figaroh-dev`:
 
 ```bash
-python -m pytest tests/ -v
-python validate.py
+python validate.py --changed          # PR evidence: what the diff against main can affect
+python validate.py --changed --dry-run  # print the selection only
+python -m pytest tests/ -m ur10       # one robot's tests (also tiago, tiago_pro, ...)
 pre-commit run --files <changed-files>
 git diff --check
 ```
 
-Full `validate.py` is required for implementation phases; `--quick`,
-`--tests-only`, `--scripts-only` and `--robot` help diagnosis but do not replace
-full final evidence. Run affected robot commands from their robot folder with
-`MPLBACKEND=Agg`. Document timeouts and missing assets separately from wrong
-numerical results. Documentation-only discussion changes use hooks/diff/link
-checks; do not rerun long optimization merely to validate prose.
+PR evidence is the `python validate.py --changed [BASE]` output (BASE defaults
+to `main`). It diffs `BASE...HEAD`, the working tree and untracked files,
+maps the paths through `tests/impact.yaml`, and runs the affected robots'
+tests, golden cases and scripts plus the cheap cross-robot checks (smoke,
+configs, data inventory). It prints the selection with a reason per path and
+writes it to `validation_logs/`. Quote that output in the PR.
+
+Run full `python validate.py` (and `python -m pytest tests/ -v`) only when the
+change touches shared code (`examples/calibration_harness/`, `run_record.py`,
+`verification.py`, `templates/`, ...), the core revision, the environment or
+pins, `tests/conftest.py`, `validate.py`, `models/`, `ci/` or the golden
+reference, and for release and acceptance gates. `--changed` already selects
+the full suite for those paths and for any path the map does not cover, so
+the safe default holds. CI runs the full fast suite on every PR regardless.
+
+`--quick`, `--tests-only`, `--scripts-only` and `--full-tests` combine with
+`--changed`; `--robot` does not (use one or the other). Run affected robot
+commands from their robot folder with `MPLBACKEND=Agg`. Document timeouts and
+missing assets separately from wrong numerical results. Documentation-only
+discussion changes use hooks/diff/link checks; do not rerun long optimization
+merely to validate prose.
+
+`pytest -m <robot>` (for example `-m ur10`, `-m talos_table_contact`) selects
+a robot's tests; `-m shared` and `-m cross_robot` select the shared-code and
+cross-robot ones. The markers come from `tests/impact.yaml`, not from the test
+files. **A new `tests/test_*.py` must be listed in `tests/impact.yaml`** under
+the robot it exercises (`robots.<name>.tests`), under the shared code it tests
+(`shared.<name>.tests`), or, if it spans robots, under `always` (cheap, runs
+every time) or `cross_robot` (rerun everything when it changes). Collection
+fails with the file name until you do, and `tests/test_impact.py` checks the
+map against the files on disk. A new robot gets its own `robots` entry with
+paths, tests, `golden_ids` and the `validate.py` script key.
 
 `tests/test_golden_outputs.py` runs the calibration and identification
 example scripts and compares what they produce (parameter counts, fit RMS,
