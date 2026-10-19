@@ -151,9 +151,15 @@ def test_protocol_matches_the_frozen_heldout_table(sessions):
 
     from examples.tiago.utils.mocap_observations import PROTOCOL
 
-    protocol = Protocol.load(PROTOCOL)
+    from examples.calibration_harness.protocol import read_heldout
+
+    protocol, spec = read_heldout(PROTOCOL)
+    # the 2021-10-26 world-frame sessions (v2, #104) are listed, not adapted
     table = {
-        name: (s.role, sha) for s in protocol.sessions for name, sha in s.files.items()
+        name: (s.role, sha)
+        for s in protocol.sessions
+        if s.id not in spec.not_evaluated
+        for name, sha in s.files.items()
     }
     assert table == {name: (role, sha) for name, (role, _, sha) in FROZEN.items()}
     roles = sorted(role for role, _ in sessions.values())

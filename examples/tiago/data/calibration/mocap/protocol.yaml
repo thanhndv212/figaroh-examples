@@ -1,11 +1,20 @@
-# TIAGo mocap held-out protocol v1 (examples#27) as a data-contract Protocol
+# TIAGo mocap held-out protocol v2 (examples#27, #104) as a data-contract
+# Protocol
 # (figaroh-plus#55, examples#17): which recording plays which role, with each
 # file's sha256. Paths are relative to this directory. Roles and hashes match
 # docs/development/tiago-mocap-heldout-protocol.md; changing a file or a role
 # needs a new protocol version (rule 4 there). The heldout: block is read by
 # examples/calibration_harness (core's Protocol.load ignores it).
+# v2 adds the two 2021-10-26 static-posture sessions as confirmation sessions
+# (examples#104); v1's four sessions, roles and hashes are unchanged. The new
+# sessions are in the Qualisys world frame (no base body in view), so they are
+# listed in heldout.not_evaluated: the manifest freezes and verifies them, but
+# the base-frame held-out protocol does not evaluate them (study: examples#100).
+# source: the original recording (not distributed), its sha256 and the lag that
+# re-create the file byte for byte with examples/tiago/utils/mocap_extraction.py
+# (--frame world).
 name: tiago-mocap-heldout
-version: 1
+version: 2
 sessions:
 - id: 2021-11-30-1544
   role: training
@@ -23,9 +32,28 @@ sessions:
   role: confirmation
   files:
     qualisys_2021-11-30-1504_static_postures.csv: cc19eaa74fe8b74be28d758424ef4acd18f516dc59e40754b37d87f8592fbb84
+- id: 2021-10-26-1051
+  role: confirmation
+  frame: qualisys:world
+  source:
+    bag: calib_mocap_2021-10-26-10-51-07.bag
+    sha256: 852f78cc8c6411a14a88c86cfab5d14ebc3c1534d68d11217cfd2fb2e2851a7f
+    lag_s: -0.21
+  files:
+    qualisys_2021-10-26-1051_static_postures.csv: db245498e1bdc023d84d15ccfe5e7ff80b447d47c44d23bef5e0f8b3e5fc2026
+- id: 2021-10-26-1102
+  role: confirmation
+  frame: qualisys:world
+  source:
+    bag: calib_mocap_nooffsets_2021-10-26-11-02-56.bag
+    sha256: f51a3a8ebe383f52b38d0a6ea8d0fe8a06b4ecac9d04c48e9fe2146da9fa1f2a
+    lag_s: -0.19
+  files:
+    qualisys_2021-10-26-1102_static_postures.csv: 94685056aac421aa511e1d56ab4fbdd9726904a3bbaab3d70db7897fae7b39cc
 heldout:
   split: sessions
   selection_role: validation
+  not_evaluated: [2021-10-26-1051, 2021-10-26-1102]
   strata:
     joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
     repeated_tol: 0.01

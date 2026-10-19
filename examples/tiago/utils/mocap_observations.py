@@ -24,7 +24,9 @@ from typing import Dict, Tuple
 import numpy as np
 import pandas as pd
 
-from figaroh.data import DataSource, PoseObservations, Protocol, Session
+from figaroh.data import DataSource, PoseObservations, Session
+
+from examples.calibration_harness.protocol import read_heldout
 
 MOCAP = Path(__file__).resolve().parents[1] / "data" / "calibration" / "mocap"
 PROTOCOL = MOCAP / "protocol.yaml"
@@ -84,14 +86,20 @@ def mocap_observations(
 def protocol_observations(
     model, calib_config: dict, protocol_path: Path = PROTOCOL
 ) -> Dict[str, Tuple[str, PoseObservations]]:
-    """``{session_id: (role, observations)}`` for every protocol session.
+    """``{session_id: (role, observations)}`` for every base-frame session.
+
+    Sessions in the protocol's ``heldout.not_evaluated`` (the 2021-10-26
+    world-frame sessions) are skipped: this adapter's frame is the
+    ``base_frame`` body.
 
     The manifest's sha256 are checked first: a changed file is refused.
     """
-    protocol = Protocol.load(protocol_path)
+    protocol, spec = read_heldout(protocol_path)
     protocol.verify(root=Path(protocol_path).parent)
     out = {}
     for s in protocol.sessions:
+        if s.id in spec.not_evaluated:  # world frame, not the base_frame body
+            continue
         (name,) = s.files
         out[s.id] = (
             s.role,

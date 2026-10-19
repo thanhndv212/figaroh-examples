@@ -16,7 +16,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-identification-2021-07` | TIAGo | Dynamic identification | real | training; slow run held out for cross-run validation | 4 | 3.8 MB | examples/tiago/data/README.md; docs/development/tiago-signal-audit-2026-10-03.md |
 | `tiago-base-parameter-list` | TIAGo | Dynamic identification | unspecified (unconfirmed) | not used | 1 | 3.9 KB | examples/tiago/data/README.md |
 | `tiago-calibration-nov-30-64` | TIAGo | Calibration | unspecified (unconfirmed) | not used | 1 | 13.5 KB | examples/tiago/data/README.md |
-| `tiago-mocap-qualisys-2021-11` | TIAGo | Mocap calibration (reference) | real | train / validate / confirmation | 6 | 112.2 KB | examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md |
+| `tiago-mocap-qualisys-2021-11` | TIAGo | Mocap calibration (reference) | real | train / validate / confirmation | 8 | 136.4 KB | examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
 | `tiago-backlash-2023-07-24` | TIAGo | Backlash surface | real | training; no held-out run | 2 | 34.1 MB | examples/tiago/data/README.md |
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
@@ -103,11 +103,13 @@ Base-parameter expressions with values (43 rows), dated 19 Oct 2024. Not measure
 
 ### `tiago-mocap-qualisys-2021-11`
 
-Four frozen Qualisys sessions (37, 62, 63 and 59 postures) plus the base-hand calibration (34) and the protocol that fixes each session's role.
+Four frozen Qualisys sessions of 2021-11 (37, 62, 63 and 59 postures), two 2021-10-26 world-frame confirmation sessions (26 and 25 postures, protocol v2), the base-hand calibration (34) and the protocol that fixes each session's role.
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/tiago/data/calibration/mocap/protocol.yaml` |  | 1394 | `2ec4ff505b2537e0` |
+| `examples/tiago/data/calibration/mocap/protocol.yaml` |  | 2719 | `e1886b43ab1770b6` |
+| `examples/tiago/data/calibration/mocap/qualisys_2021-10-26-1051_static_postures.csv` | 26 | 11974 | `db245498e1bdc023` |
+| `examples/tiago/data/calibration/mocap/qualisys_2021-10-26-1102_static_postures.csv` | 25 | 11495 | `94685056aac421aa` |
 | `examples/tiago/data/calibration/mocap/qualisys_2021-11-26_static_postures.csv` | 62 | 27989 | `7c986df711757c4d` |
 | `examples/tiago/data/calibration/mocap/qualisys_2021-11-30-1403_static_postures.csv` | 63 | 28464 | `e44c678fbbc1fbc8` |
 | `examples/tiago/data/calibration/mocap/qualisys_2021-11-30-1504_static_postures.csv` | 59 | 26677 | `cc19eaa74fe8b74b` |
