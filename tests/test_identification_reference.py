@@ -170,20 +170,28 @@ def test_a_mismatch_with_the_expectations_exits_nonzero(tmp_path, monkeypatch):
     assert ref.run_case(case, args) == 1
 
 
+def _tiago_case(tmp_path_factory, case):
+    root = tmp_path_factory.mktemp(case)
+    proc, dirs = _run(TIAGO, ["--case", case], root)
+    assert len(dirs) == 1, proc.stdout[-2000:] + proc.stderr[-2000:]
+    return dirs[0], proc
+
+
+# One fixture per case, run one after the other (parallel TIAGo runs can
+# hang); the physical fit is the slow one (#141).
 @pytest.fixture(scope="module")
-def tiago_runs(tmp_path_factory):
-    """Both cases, one after the other (parallel TIAGo runs can hang)."""
-    out = {}
-    for case in ("physical-fit", "reject"):
-        root = tmp_path_factory.mktemp(case)
-        proc, dirs = _run(TIAGO, ["--case", case], root)
-        assert len(dirs) == 1, proc.stdout[-2000:] + proc.stderr[-2000:]
-        out[case] = (dirs[0], proc)
-    return out
+def tiago_physical_fit(tmp_path_factory):
+    return _tiago_case(tmp_path_factory, "physical-fit")
 
 
-def test_tiago_physical_fit_case_passes(tiago_runs):
-    path, proc = tiago_runs["physical-fit"]
+@pytest.fixture(scope="module")
+def tiago_reject(tmp_path_factory):
+    return _tiago_case(tmp_path_factory, "reject")
+
+
+@pytest.mark.slow
+def test_tiago_physical_fit_case_passes(tiago_physical_fit):
+    path, proc = tiago_physical_fit
     assert proc.returncode == 0, proc.stdout[-2000:]
     for name in (*ARTIFACTS, "identified.urdf", "parameters.csv"):
         assert (path / name).is_file(), name
@@ -202,8 +210,8 @@ def test_tiago_physical_fit_case_passes(tiago_runs):
     assert _load(path, "verdict.json")["selected_stage"] == "physical_fit"
 
 
-def test_tiago_reject_case_exports_nothing(tiago_runs):
-    path, proc = tiago_runs["reject"]
+def test_tiago_reject_case_exports_nothing(tiago_reject):
+    path, proc = tiago_reject
     assert proc.returncode == 0, proc.stdout[-2000:]
     assert not (path / "parameters.csv").exists()
     assert not (path / "identified.urdf").exists()
