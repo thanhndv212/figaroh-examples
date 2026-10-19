@@ -94,10 +94,12 @@ the [hand-eye note](../../../docs/development/ur10-hand-eye.md).
 
 The file is fitted as core's `T = B * FK(q) * T_tip`, so the six pose columns
 are the moving frame (the camera, rigid on the flange) in a fixed frame (the
-chessboard). The fitted base-frame parameters are therefore the robot base in
-the board frame, the inverse of the more common "board in base". Only the
-product is observable, which is why the frame parameters carry a gauge (see
-the note).
+board, or the frame the poses were pre-expressed in). The fitted base
+parameters are the robot base in that frame; they come out small (at most
+6.4 cm and 1.4 deg from identity), so the poses are already expressed close
+to the robot base frame, and how that was done is unknown. Only the product
+of the base and tool frames with the joint errors is observable, which is why
+the frame parameters carry a gauge (see the note).
 
 ## Known facts and defects
 
