@@ -271,6 +271,77 @@ recordings and why they are not used. In particular, the 2023-11-07 OptiTrack
 eye-hand runs are unusable for kinematics: the chessboard rigid body flips
 (~170° in 13 of 16 postures).
 
+### 2021-10-26 static-posture sessions (confirmation, world frame)
+
+Two earlier Qualisys sessions
+([#104](https://github.com/thanhndv212/figaroh-examples/issues/104)), a month
+before the files above. Same sensor (Qualisys, 100 Hz, `/tf` under the
+`Qualisys` frame), same robot, same static-posture plan run twice; another
+hand rigid body than November (one plate, inter-point distances 171.4, 132.5,
+195.8, 165.4, 106.0 and 108.7 mm; identical in both sessions, but not the
+November body, so its tool point is a different one).
+
+| File | Role | Session | Postures | Joint offsets | sha256 (prefix) |
+|---|---|---|---|---|---|
+| `qualisys_2021-10-26-1051_static_postures.csv` | confirmation (not in any config) | `calib_mocap_2021-10-26-10-51-07` | 26 | applied | `db245498e1bdc023` |
+| `qualisys_2021-10-26-1102_static_postures.csv` | confirmation (not in any config) | `calib_mocap_nooffsets_2021-10-26-11-02-56` | 25 | not applied | `94685056aac421aa` |
+
+- **Frame:** the points are in the **Qualisys world frame**, not the
+  `base_frame` body. The base body was in view in only 7 of 26 plateaus (first
+  session) and 0 of 25 (second), so there is no base pose to express them in.
+  The base pose is a free registration parameter of any fit. Nothing is
+  borrowed from the other session. The extra column `points_in_base_frame` is
+  0 in every row (it is 1 for a file in the `base_frame` body); the November
+  files have no such column and are all in the base body.
+- **Columns:** as above, without `shipped_row`, plus `points_in_base_frame`.
+- **Extraction:** the same rules as November (plateaus, averaging window,
+  clock lag), run with `--frame world`. Joints come from the PAL introspection
+  topic, like every other session. Mocap and robot clocks agree to 0.2 s
+  (lag −0.21 s and −0.19 s, speed correlation 0.93 and 0.90), much closer
+  than in November (2.6–3.9 s). Marker noise per plateau: 0.8 mm at most.
+- **Protocol:** `calibration/mocap/protocol.yaml` v2 lists both as
+  `confirmation` sessions with the sha256 of the original bag. They are in
+  `heldout.not_evaluated`: the base-frame protocol and its v1 results do not
+  include them. Fitting them is the motion-capture study
+  ([#100](https://github.com/thanhndv212/figaroh-examples/issues/100)).
+- **Registration-only sanity fit** (nominal joints, base 6D and one tool point
+  3D fitted on the session itself, point BL; the model of the v1 "registration
+  only" row, which gives 3.37 mm on the November training session): 4.93 mm
+  RMS (26 postures, max 13.8 mm) and 5.14 mm (25 postures, max 16.1 mm). The
+  residual is larger than November's because no joint offsets are fitted.
+  `tests/test_tiago_mocap_2021_10_26.py` reproduces both numbers.
+- **Joint offsets loaded that day:** the recordings hold the introspection
+  and `/tf` topics only, not the controller parameters, so the offset *values*
+  are not recorded. What the data shows: at the same joint readings (24
+  postures agree to < 2 mrad on every joint), the absolute encoders of the
+  two sessions differ by −19.3 mrad on arm_6 and +20.5 mrad on arm_7 (first
+  minus second session) and by < 0.2 mrad on arm_1 to arm_4, and the torso has
+  no absolute encoder. arm_5 agrees to −0.2 mrad with a 2 mrad spread. The
+  offset sets of the two sessions therefore differ by about ±0.02 rad on
+  arm_6 and arm_7, which is consistent with the ±0.02 rad entries of a PAL
+  calibration file. The `/tf` joint transforms are identical to the nominal
+  URDF origins in both sessions, so the offsets are not in the kinematic tree.
+  The absolute set of either session, and the sign convention, are not
+  confirmable from the bags. The first-session file is the "offsets applied"
+  one by the session names only.
+- **Known defects:** the second recording has 26 plateaus; the last one
+  falls after the mocap stream ended (15 s), so it has no row (25 rows). The
+  two sessions share 24 postures (within 2 mrad on every joint); the first
+  session's first and last postures and the second session's first have no
+  counterpart. The continuous-motion run and the mocap-only recordings of the
+  same day are not shipped. The `tf.csv` exports that accompany the original
+  recordings have shifted columns and truncated precision and were not used;
+  everything is extracted from the bags. Offline fits on both sessions (joint
+  offsets fitted, not shipped) gave arm_5 at −76 to −84 mrad, in line with
+  November, and 3.4 mm training RMSE; reproducing them is for #100.
+- **Extraction:** `python -m examples.tiago.utils.mocap_extraction BAG OUT
+  --lag LAG --frame world --expected-sha256 SHA` from the repository root
+  (`rosbags` required). The bag name, sha256 and lag of each session are in
+  `protocol.yaml`.
+  `tests/test_tiago_mocap_extraction.py` re-creates both files byte for byte
+  when `TIAGO_RECORDINGS_ROOT` points at a folder holding the original
+  recordings; it is skipped otherwise.
+
 **Superseded file, kept unmodified and unused by any config:**
 `qualysis_base_hand_calibration.csv` (34 postures, sha256 prefix
 `d7fcbd96e3e67319`). It came from the same

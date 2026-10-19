@@ -18,7 +18,7 @@ run from uncommitted code `incomplete` and the command exits nonzero.
 
 | Step | Content | Written to the run directory |
 |---|---|---|
-| 0. Inputs | Every session file matches the frozen protocol manifest (`data/calibration/mocap/protocol.yaml`, version 1): sha256 and role. The config's training and validation files must be the protocol's. | (stops before writing) |
+| 0. Inputs | Every session file matches the frozen protocol manifest (`data/calibration/mocap/protocol.yaml`, version 2): sha256 and role. The two 2021-10-26 world-frame sessions (#104) are verified but not evaluated. The config's training and validation files must be the protocol's. | (stops before writing) |
 | 1. Fit | `joint_offset`, marker 1, base frame (6D) and marker point (3D) estimated, on the training session; the validation session is loaded as `validation_data_file`. | `report.html`, `parameters.csv` |
 | 2. Held-out report | Marker-1 position error per component (x, y, z, mm), RMSE and max, by posture stratum (repeated / new / out of range), on all four protocol sessions. | `heldout.json` |
 | 3. Gauge and corrections | Estimated frames; joint parameters the frames absorb; fitted (identifiable) parameters with standard errors; the joint corrections written to the URDF/PAL file (redistributed); solver status. | `corrections.json` |

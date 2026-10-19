@@ -2,7 +2,8 @@
 
 Issue: [#27](https://github.com/thanhndv212/figaroh-examples/issues/27).
 Delivery package: [C2 / core #44](https://github.com/thanhndv212/figaroh-plus/issues/44).
-Frozen 2026-10-05.
+Frozen 2026-10-05. Protocol v2 (2026-10-19, #104) adds two confirmation
+sessions in another frame, see section 6; v1 results are unchanged.
 
 This fixes which recordings evaluate the TIAGo mocap calibration reference,
 which rules keep them independent of the fit, and how results are reported.
@@ -25,7 +26,7 @@ posture files below were extracted from them with the rules in
 | 2021-11-30 15:04 | 59 | `base_frame` body | **confirmation** |
 | 2021-11-12 16:38 (`calib_mocap64`) | 63 | mocap world (no base body) | not used: needs re-registration, so it cannot test the frames |
 | 2021-11-12 15:07 | 26 | world | not used: same reason |
-| 2021-10-26 ×2 | 26 + 25 | world | not used: same reason |
+| 2021-10-26 ×2 | 26 + 25 | world | **confirmation (v2)**, listed and frozen but not evaluated here: no base body, see section 6 |
 | 2021-09 sessions | — | — | unusable: end-effector body under two alternating names |
 | 2023-09-12 OptiTrack ×3 | 4–12 | world, 6D | not used: too few postures, different robot state |
 | 2023-11-07 OptiTrack | 16 | world, 6D | unusable: chessboard body flips |
@@ -194,3 +195,25 @@ The `joint_offset` fit's only clearly non-zero joint parameter is arm_5,
   ([section 4](tiago-calibration-synthetic-truth.md#4-estimation-methods)),
   not on these sets. Changing the default level or method is a separate
   decision; per rule 2, it must not be made on the confirmation sets alone.
+
+## 6. Protocol v2: the 2021-10-26 sessions (#104)
+
+`protocol.yaml` v2 adds two static-posture sessions, recorded a month before
+the others, as `confirmation` sessions. The training and validation roles, the
+four v1 files and their hashes do not change, and neither do the v1 results
+above.
+
+| Role | File | Rows | sha256 |
+|---|---|---|---|
+| confirmation | `qualisys_2021-10-26-1051_static_postures.csv` | 26 | `db245498e1bdc023d84d15ccfe5e7ff80b447d47c44d23bef5e0f8b3e5fc2026` |
+| confirmation | `qualisys_2021-10-26-1102_static_postures.csv` | 25 | `94685056aac421aa511e1d56ab4fbdd9726904a3bbaab3d70db7897fae7b39cc` |
+
+Their points are in the Qualisys **world** frame (the base body was in view in
+7 of 26 and 0 of 25 plateaus), so a v1 model cannot be scored on them without
+registering a base pose. They are therefore in `heldout.not_evaluated`: the
+manifest verifies their hashes and freezes their roles, while
+`heldout_protocol.py`, the reference run and the contract adapter see the same
+four sessions as in v1. Scoring them, with the base pose a free registration
+parameter, is the motion-capture study (#100). The offset sets loaded on that
+day, the clock lag and the sanity fits are in
+[`examples/tiago/data/README.md`](../../examples/tiago/data/README.md).
