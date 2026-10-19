@@ -23,6 +23,10 @@
 # |m1m2|, |m1m3|, |m2m3| (mm). The gripper markers were placed differently in
 # the two runs, so the two definitions are never pooled without a tool
 # registration per definition. The base triad is the same in both runs.
+# relabelled_frames: Vicon exchanged the labels gripper1 and gripper2 on 40 % of
+# the 1607 csv frames (276 jumps of 100-150 mm between consecutive frames); the
+# extractor restores the majority labelling by side lengths before averaging
+# (repair_triad_labels). The 1508 c3d has no exchange (no jump above 19 mm).
 # not_shipped: recordings of the session that hold no usable mocap postures.
 name: tiago-vicon-2023-09-20
 version: 1
@@ -35,9 +39,9 @@ rigid_bodies:
   2:
     name: gripper1-3 marker triad
     used_by: [2023-09-20-1607]
-    gripper_sides_mm: [142.9, 50.3, 113.3]
+    gripper_sides_mm: [142.9, 49.8, 113.5]
     base_sides_mm: [412.4, 326.4, 334.8]
-    note: gripper markers placed differently from definition 1; shortest side 50 mm
+    note: gripper markers placed differently from definition 1; shortest side 50 mm; sides are those after the gripper1/gripper2 label repair
 sessions:
 - id: 2023-09-20-1508
   role: confirmation
@@ -51,6 +55,7 @@ sessions:
     clock: c3d time axis starts at the first joint sample (no absolute clock)
     lag_s: 1.9350
   drops: {plateaus: 17, gripper_lost: 0}
+  relabelled_frames: {gripper: 0, base: 0}
   files:
     vicon_2023-09-20-1508_static_postures.csv: 745b6852eb27907a07bfd26e3cd30fc83cd69d4de33d5719a688bb8b01ebf74c
 - id: 2023-09-20-1607
@@ -65,8 +70,9 @@ sessions:
     clock: csv wall time, read as UTC+2
     lag_s: -0.6100
   drops: {plateaus: 21, gripper_lost: 0}
+  relabelled_frames: {gripper: 16494, base: 0}
   files:
-    vicon_2023-09-20-1607_static_postures.csv: 61aeff12d86e719abbc1eb55c9b5d0e58f3b8be28a561493b0baea12b0ba0986
+    vicon_2023-09-20-1607_static_postures.csv: 18f213f8fdc51a267aa4b1dc6a8002d3bbc9186eb62e6a9a39e4f8a444595c62
 not_shipped:
 - recording: calib_mocap_vicon_2023-09-20-13-53-01.bag.active
   sha256: 1ebae14e0900320781fff44c481ff6d25480f30a4377a59d7aa92027fc6e17e1

@@ -23,6 +23,14 @@ here. The bodies of the shipped layout are the two marker triads:
 The relation of these frames to the TIAGo link frames is unknown: it is a free
 registration parameter of the calibration. The shoulder markers are not used.
 
+0. **Label repair** (:func:`repair_triad_labels`): in the 1607 csv, Vicon
+   exchanges the labels ``gripper1`` and ``gripper2`` for stretches of the
+   run (side lengths 143/50/113 mm become 143/113/50 mm). Frames whose side
+   lengths match the labels-exchanged triad better than the labelled one are
+   relabelled, and the majority state of the run is the reference. The swap
+   is applied to both triads, only where the two sides that the exchange
+   permutes differ by 20 mm or more (the c3d gripper triad is nearly
+   isosceles and its markers never jump); the repaired frames are counted.
 1. **Static plateaus** (:func:`static_plateaus`): every joint stays within
    1 mrad over 0.5 s, for at least 2 s.
 2. **Clock lag** (:func:`measure_clock_lag`): the speed of the gripper triad
@@ -187,6 +195,47 @@ def triad_sides_mm(markers: np.ndarray, triad: Sequence[int]) -> np.ndarray:
     )
 
 
+def repair_triad_labels(
+    markers: np.ndarray, triad: Sequence[int], min_gap: float = 0.02
+) -> Tuple[np.ndarray, int]:
+    """Undo exchanges of the first two labels of a triad.
+
+    Exchanging markers 1 and 2 maps the side lengths ``(|m1m2|, |m1m3|,
+    |m2m3|)`` to ``(|m1m2|, |m2m3|, |m1m3|)``. The labelling of the first
+    live frame is the provisional reference; frames closer to the exchanged
+    sides are relabelled, and if that is the majority state the whole run is
+    exchanged so that the majority labelling is kept. The exchange is only
+    detectable when ``|m1m3|`` and ``|m2m3|`` differ by at least ``min_gap``
+    (m); a triad closer to isosceles is returned unchanged (the c3d run has no
+    exchange: its markers never move more than 19 mm between frames).
+    Returns ``(markers, n_repaired)``; the input is not modified.
+    """
+    out = markers.copy()
+    live = np.flatnonzero(_live(markers, triad))
+    if len(live) == 0:
+        return out, 0
+    m = markers[live][:, list(triad)]
+    sides = np.stack(
+        [
+            np.linalg.norm(m[:, a] - m[:, b], axis=1)
+            for a, b in ((0, 1), (0, 2), (1, 2))
+        ],
+        axis=1,
+    )
+    ref = sides[0]
+    if abs(ref[1] - ref[2]) < min_gap:
+        return out, 0
+    keep = np.linalg.norm(sides - ref, axis=1)
+    exch = np.linalg.norm(sides[:, [0, 2, 1]] - ref, axis=1)
+    flipped = exch < keep
+    if flipped.sum() > len(flipped) / 2:
+        flipped = ~flipped
+    frames = live[flipped]
+    a, b = triad[0], triad[1]
+    out[frames, a], out[frames, b] = markers[frames, b], markers[frames, a]
+    return out, int(flipped.sum())
+
+
 def _live(markers: np.ndarray, triad: Sequence[int]) -> np.ndarray:
     return ~np.isnan(markers[:, list(triad)]).any(axis=(1, 2))
 
@@ -251,8 +300,9 @@ def extract_static_postures_6d(
         rigid_body_def: marker-triad definition id written to the file.
 
     Returns:
-        ``(table, drops)``; ``drops`` has ``plateaus`` and ``gripper_lost``.
-        Rows without a base pose are the NaN rows of the base columns.
+        ``(table, drops)``; ``drops`` has ``plateaus`` and ``gripper_lost``
+        (:func:`extract_session` adds the relabelled-frame counts
+        ``swapped_gripper`` and ``swapped_base``). Rows without a base pose are the NaN rows of the base columns.
     """
     plateaus = static_plateaus(t, q)
     drops = {"plateaus": len(plateaus), "gripper_lost": 0}
@@ -321,11 +371,14 @@ def extract_session(
     else:
         t_mocap, markers = read_vicon_c3d(mocap)
         t_mocap = t_mocap + joints["t"][0]
+    markers, n_gripper = repair_triad_labels(markers, GRIPPER_TRIAD)
+    markers, n_base = repair_triad_labels(markers, BASE_TRIAD)
     if lag is None:
         lag, _ = measure_clock_lag(joints["t"], joints["q"], t_mocap, markers, urdf)
     table, drops = extract_static_postures_6d(
         joints["t"], joints["q"], t_mocap, markers, lag, rigid_body_def
     )
+    drops.update(swapped_gripper=n_gripper, swapped_base=n_base)
     return table, lag, drops
 
 
@@ -367,5 +420,7 @@ if __name__ == "__main__":
     table.to_csv(args.out, index=False)
     print(
         f"{len(table)} postures of {drops['plateaus']} plateaus "
-        f"(gripper lost {drops['gripper_lost']}), lag {lag:+.4f} s -> {args.out}"
+        f"(gripper lost {drops['gripper_lost']}), relabelled frames: gripper "
+        f"{drops['swapped_gripper']}, base {drops['swapped_base']}, "
+        f"lag {lag:+.4f} s -> {args.out}"
     )
