@@ -1,0 +1,196 @@
+# Impact map for change-scoped testing (#141).
+#
+# Read by tests/impact.py (selector behind `python validate.py --changed`)
+# and by tests/conftest.py (robot markers and the collection guard).
+#
+# Glob syntax: `*` stays inside one path component, `**` crosses
+# directories, a pattern without `/` matches the file name anywhere.
+#
+# A changed path is classified in this order:
+#   full_suite -> always_paths -> ignore -> robots.paths -> shared.paths
+#   -> test files (robots, shared, always) -> cross_robot -> unmapped.
+# Anything that ends up in full_suite, cross_robot or unmapped selects the
+# whole suite, which is the safe default.
+#
+# Every tests/test_*.py file must be listed under exactly one of: a robot's
+# `tests`, a shared entry's `tests`, `always`, or `cross_robot`. Collection
+# fails otherwise (tests/conftest.py).
+#
+# To add a test file: list it under the robot (or shared code) it exercises;
+# if it spans robots, list it under `cross_robot`. A new robot gets its own
+# entry under `robots` with paths, tests, golden_ids and script_key.
+
+# robots: `paths` is source and data that only this robot uses (a change
+# selects tests, golden cases and scripts); `tests` are its test files (a
+# change to one only reruns that file); `golden_ids` are substrings of
+# test_golden_outputs parametrize ids; `script_key` is the validate.py
+# EXAMPLE_SCRIPTS key (null: no script stage).
+robots:
+  ur10:
+    paths:
+      - examples/ur10/**
+    tests:
+      - tests/test_ur10_identification_truth.py
+      - tests/test_ur10_physical_comparison.py
+      - tests/test_ur10_signal_processing.py
+    golden_ids: ["ur10/"]
+    script_key: ur10
+  tiago:
+    paths:
+      - examples/tiago/**
+    tests:
+      - tests/test_calibration_harness_tiago.py
+      - tests/test_tiago_calibration_truth.py
+      - tests/test_tiago_export_check.py
+      - tests/test_tiago_heldout_protocol.py
+      - tests/test_tiago_identification_datasets.py
+      - tests/test_tiago_identification_inputs_audit.py
+      - tests/test_tiago_mocap_2021_10_26.py
+      - tests/test_tiago_mocap_baseline.py
+      - tests/test_tiago_mocap_extraction.py
+      - tests/test_tiago_reference_run.py
+      - tests/test_tiago_signal_processing.py
+      - tests/test_tiago_suspension_backlash.py
+    golden_ids: ["tiago/"]
+    script_key: tiago
+  tiago_pro:
+    paths:
+      - examples/tiago_pro/**
+      - tests/golden/tiago_pro_mocap.json
+    tests:
+      - tests/test_tiago_pro_calibration_truth.py
+      - tests/test_tiago_pro_defaults.py
+      - tests/test_tiago_pro_heldout.py
+      - tests/test_tiago_pro_protocol.py
+      - tests/test_tiago_pro_reference_run.py
+    golden_ids: []
+    script_key: null
+  talos:
+    paths:
+      - examples/talos/**
+    tests: []
+    golden_ids: ["talos/"]
+    script_key: talos
+  talos_table_contact:
+    paths:
+      - examples/talos_table_contact/**
+      - tests/golden/talos_table_contact.json
+      - tests/_talos_import.py
+      - tests/talos_noise_floor.py
+    tests:
+      - tests/test_generate_table_configs.py
+      - tests/test_talos_contact_semantics.py
+      - tests/test_talos_real_data_provenance.py
+      - tests/test_talos_synthetic_determinism.py
+      - tests/test_talos_table_contact.py
+      - tests/test_talos_table_contact_estimation.py
+      - tests/test_talos_table_contact_generator.py
+      - tests/test_talos_table_contact_heldout.py
+      - tests/test_talos_table_contact_multichain.py
+      - tests/test_talos_table_contact_real_data.py
+      - tests/test_talos_table_contact_reference_run.py
+      - tests/test_talos_table_contact_truth.py
+      - tests/test_talos_two_chain_draw_invariance.py
+    golden_ids: []
+    script_key: talos_table_contact
+  staubli_tx40:
+    paths:
+      - examples/staubli_tx40/**
+    tests:
+      - tests/test_tx40_torque_alignment.py
+    golden_ids: ["staubli_tx40/"]
+    script_key: staubli_tx40
+  so101:
+    paths:
+      - examples/so101/**
+    tests:
+      - tests/test_so101_identification.py
+    golden_ids: ["so101/"]
+    script_key: so101
+
+# shared: code several robots import. A change to `paths` selects every
+# listed robot plus the entry's own `tests`; a change to one of its `tests`
+# reruns that file only. Users were found by grepping the imports.
+shared:
+  calibration_harness:
+    paths:
+      - examples/calibration_harness/**
+      - tests/golden/calibration_harness_tiago.json
+    robots: [tiago, tiago_pro, talos_table_contact, ur10]
+    tests:
+      - tests/test_calibration_harness_heldout.py
+      - tests/test_calibration_harness_simulation.py
+  run_record:
+    paths: [examples/run_record.py]
+    robots: [tiago, tiago_pro, talos_table_contact, ur10]
+    tests: [tests/test_run_record.py]
+  identification_reference:
+    paths: [examples/identification_reference.py]
+    robots: [tiago, ur10]
+    tests: [tests/test_identification_reference.py]
+  physical_comparison:
+    paths:
+      - examples/physical_comparison.py
+      - examples/compare_physical_real.py
+    robots: [tiago, ur10]
+    tests: [tests/test_physical_comparison_extended.py]
+  verification:
+    paths: [examples/verification.py]
+    robots: [ur10, tiago, tiago_pro, talos_table_contact, staubli_tx40, so101]
+    tests: [tests/test_validation_policy.py]
+  templates:
+    paths:
+      - examples/templates/**
+      - examples/create_example.sh
+    robots: [ur10, tiago, tiago_pro, talos, talos_table_contact, staubli_tx40, so101]
+    tests:
+      - tests/test_config_integration.py
+      - tests/test_unified_config_parser.py
+
+# Changing any of these runs everything.
+full_suite:
+  - tests/conftest.py
+  - tests/impact.yaml
+  - tests/impact.py
+  - tests/golden/golden_outputs.py
+  - tests/golden/golden_outputs.json
+  - tests/golden/hook/**
+  - validate.py
+  - examples/__init__.py
+  - models/**
+  - ci/**
+  - scripts/**
+  - environment.yml
+  - requirements.txt
+  - pyproject.toml
+  - .github/**
+
+# Cheap cross-robot checks: run on every selection.
+always:
+  - tests/test_smoke.py
+  - tests/test_robot_configs.py
+  - tests/test_data_inventory.py
+  - tests/test_impact.py
+
+# Changing these runs the always set only.
+always_paths:
+  - docs/data-inventory.*
+
+# Cross-robot test files: when one itself changes, run everything.
+cross_robot:
+  - tests/test_contract_adapters.py
+  - tests/test_error_handling.py
+  - tests/test_export_report.py
+  - tests/test_golden_outputs.py
+  - tests/test_robot_geometry.py
+  - tests/test_robot_integration.py
+  - tests/test_unified_example_configs.py
+  - tests/test_unified_format_parsing.py
+
+# No tests beyond the always set.
+ignore:
+  - docs/**
+  - "*.md"
+  - LICENSE
+  - validation_logs/**
+  - .gitignore
