@@ -1,0 +1,29 @@
+# UR10 hand-eye calibration protocol v1 (examples#99) as a data-contract
+# Protocol (figaroh-plus#55). Paths are relative to this directory. The
+# heldout: block is read by examples/calibration_harness (core's
+# Protocol.load ignores it).
+#
+# There is one session of 23 postures and no second recording, so the only
+# held-out evidence available is a k-fold split of its rows
+# ("k-fold within session; weaker than held-out sessions"): the folds share
+# the session's board placement, camera and recording day. The 23 postures
+# contain no repeat of a posture, so no within-session noise estimate exists.
+# Changing the file or the fold settings needs a new protocol version.
+name: ur10-hand-eye-heldout
+version: 1
+sessions:
+- id: ur10-hand-eye-session-1
+  role: training
+  files:
+    calibration.csv: 31d5a3d56cbb5ea3f69775a3f2620bbe31cb750e68c6a2258ed585c3f01cdfd6
+heldout:
+  split: kfold
+  selection_role: validation
+  kfold:
+    session: ur10-hand-eye-session-1
+    k: 5
+    seed: 0
+  strata:
+    joints: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+    repeated_tol: 0.01
+    out_of_range_margin: 0.05

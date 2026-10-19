@@ -76,3 +76,40 @@ records the source rows, the retained index range, the clock and units.
 
 SHA-256 of the data files is in `truth/manifest.json` (`files`), checked by
 `tests/test_ur10_identification_truth.py`.
+
+# UR10 hand-eye calibration data
+
+`calibration.csv` is the UR10's only calibration recording: 23 postures of
+one session. Its roles, hash and fold settings are frozen in
+[`hand_eye_protocol.yaml`](hand_eye_protocol.yaml); the design is described in
+the [hand-eye note](../../../docs/development/ur10-hand-eye.md).
+
+## Columns and frame convention
+
+| Columns | Meaning | Units |
+|---|---|---|
+| `x1, y1, z1` | position of the measured frame | m |
+| `phix1, phiy1, phiz1` | orientation of the measured frame, roll-pitch-yaw | rad |
+| `shoulder_pan_joint` ... `wrist_3_joint` | joint angles, selected by name | rad |
+
+The file is fitted as core's `T = B * FK(q) * T_tip`, so the six pose columns
+are the moving frame (the camera, rigid on the flange) in a fixed frame (the
+chessboard). The fitted base-frame parameters are therefore the robot base in
+the board frame, the inverse of the more common "board in base". Only the
+product is observable, which is why the frame parameters carry a gauge (see
+the note).
+
+## Known facts and defects
+
+- Postures: 23, one session, joints within the ranges recorded in the
+  protocol's strata; the nearest posture pair differs by at least 0.7 rad on
+  some joint, so no posture is repeated and the file gives no estimate of the
+  measurement noise.
+- Camera, board geometry, detection method and the recording date: unknown.
+- Orientation noise and the depth (camera z) accuracy: unknown. The
+  simulated study assumes values and says so.
+- There is no second session: held-out evidence is a k-fold split of the
+  rows, which is weaker than a held-out session.
+
+`simulation.csv` (29 postures, same columns) has no recorded provenance and is
+not used by the hand-eye study.

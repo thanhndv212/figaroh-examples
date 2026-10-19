@@ -24,10 +24,11 @@
       "role": "calibration; k-fold within one session",
       "description": "23 postures from one session: 6D chessboard pose seen by a flange camera plus 6 joint angles.",
       "paths": [
-        "examples/ur10/data/calibration.csv"
+        "examples/ur10/data/calibration.csv",
+        "examples/ur10/data/hand_eye_protocol.yaml"
       ],
-      "provenance": "docs/plans/calibration-studies-plan.md (core)",
-      "confirm": "sensor and frame convention are undocumented"
+      "provenance": "examples/ur10/data/README.md; docs/development/ur10-hand-eye.md",
+      "confirm": "camera, board and recording date are unknown (README, hand-eye section)"
     },
     {
       "id": "ur10-calibration-simulation",
@@ -683,6 +684,10 @@
       "sha256": "31d5a3d56cbb5ea3f69775a3f2620bbe31cb750e68c6a2258ed585c3f01cdfd6",
       "bytes": 5458,
       "rows": 23
+    },
+    "examples/ur10/data/hand_eye_protocol.yaml": {
+      "sha256": "2e40e86d2cf8a806dc59531a601d3d97137f8465e44a5314b3304b1839b54299",
+      "bytes": 1162
     },
     "examples/ur10/data/simulation.csv": {
       "sha256": "8661e2012f83e07f32819183806e71f0a91dcf7519c6f31c9e1434f87206747b",
