@@ -1,0 +1,79 @@
+# TIAGo Vicon 2023-09-20 static postures (examples#106) as a data-contract
+# Protocol (figaroh-plus#55). Per-system protocol: independent of
+# ../mocap/protocol.yaml (Qualisys) and ../optitrack/protocol.yaml. Roles are
+# frozen: changing a file or a role needs a new version. No heldout: block: the
+# shared harness needs exactly one training session, and none of these runs is
+# evaluated before the motion-capture study (examples#100), which adds the block
+# in v2.
+# The Vicon files hold labelled markers, not rigid bodies. The shipped "bodies"
+# are marker triads (gripper1..3 -> x1..phiz1, base1..3 -> xb..phizb), frame
+# defined in examples/tiago/utils/vicon_extraction.py; their relation to the
+# TIAGo link frames is unknown (free registration). Shoulder markers are not
+# shipped.
+# source: the original recordings (not distributed): the Vicon export and the
+# PAL introspection bag of the same run (joints), with sha256, and the clock
+# lag measured from them (t_robot - t_mocap, correlation of the gripper centroid
+# speed with the nominal-FK tool speed). The csv clock is the Vicon PC wall time
+# (written without a zone, read as UTC+2). The c3d has no absolute clock: its
+# time axis starts at the first joint sample, so its lag includes that origin.
+# examples/tiago/utils/vicon_extraction.py re-creates each file byte for byte
+# and checks the lag. drops: plateaus found and plateaus without a tracked
+# gripper triad (none here).
+# rigid_bodies: the gripper marker triad of each file, as median side lengths
+# |m1m2|, |m1m3|, |m2m3| (mm). The gripper markers were placed differently in
+# the two runs, so the two definitions are never pooled without a tool
+# registration per definition. The base triad is the same in both runs.
+# not_shipped: recordings of the session that hold no usable mocap postures.
+name: tiago-vicon-2023-09-20
+version: 1
+rigid_bodies:
+  1:
+    name: gripper1-3 marker triad
+    used_by: [2023-09-20-1508]
+    gripper_sides_mm: [162.7, 109.5, 104.1]
+    base_sides_mm: [411.3, 326.0, 334.4]
+  2:
+    name: gripper1-3 marker triad
+    used_by: [2023-09-20-1607]
+    gripper_sides_mm: [142.9, 50.3, 113.3]
+    base_sides_mm: [412.4, 326.4, 334.8]
+    note: gripper markers placed differently from definition 1; shortest side 50 mm
+sessions:
+- id: 2023-09-20-1508
+  role: confirmation
+  frame: vicon:world
+  rigid_body: 1
+  source:
+    mocap: tiago_calib_vicon_1508.c3d
+    mocap_sha256: fe903e228335db17847265f0925b47826c7117e23941d36e4d7ba40794e9a42d
+    bag: calib_mocap_vicon_1508_2023-09-20-13-12-59.bag
+    sha256: 16984a73f51ec22cd8490d8ea893ef4db9d17d2d036cca71649942a0979581e3
+    clock: c3d time axis starts at the first joint sample (no absolute clock)
+    lag_s: 1.9350
+  drops: {plateaus: 17, gripper_lost: 0}
+  files:
+    vicon_2023-09-20-1508_static_postures.csv: 745b6852eb27907a07bfd26e3cd30fc83cd69d4de33d5719a688bb8b01ebf74c
+- id: 2023-09-20-1607
+  role: confirmation
+  frame: vicon:world
+  rigid_body: 2
+  source:
+    mocap: tiago_calib_vicon_1607.csv
+    mocap_sha256: 12d89c21a675ca6d9924af8157da65ba16792cf2c146d6e44e5c110571c1e74c
+    bag: calib_mocap_vicon_2023-09-20-14-08-36.bag
+    sha256: bbedaae0682a32bdfb8bc976d2c86ba8c474fcc68c6e717574e0f67bf8ec7bf2
+    clock: csv wall time, read as UTC+2
+    lag_s: -0.6100
+  drops: {plateaus: 21, gripper_lost: 0}
+  files:
+    vicon_2023-09-20-1607_static_postures.csv: 61aeff12d86e719abbc1eb55c9b5d0e58f3b8be28a561493b0baea12b0ba0986
+not_shipped:
+- recording: calib_mocap_vicon_2023-09-20-13-53-01.bag.active
+  sha256: 1ebae14e0900320781fff44c481ff6d25480f30a4377a59d7aa92027fc6e17e1
+  reason: unclosed bag (no index), not read; recovering it needs rosbag reindex on a copy (ROS Noetic), not done in examples#106. No Vicon export of that run was found with the session recordings.
+- recording: vicon_postures_2023-09-20-15-22-11.bag
+  sha256: d1203779ad23de2017f8864a42d43a019ee306a0a87f39f802979ca3440e7514
+  reason: robot introspection only (4 statistics, no joint positions), no Vicon recording of the run
+- recording: vicon_postures_2023-09-20-15-34-35.bag
+  sha256: aa4ae4eb58c5218adef15ea5e1f6db4d1a0ce116119e9cccb32c91db5571ebd3
+  reason: robot introspection only (only arm_1, arm_2 and arm_4 move), no Vicon recording of the run
