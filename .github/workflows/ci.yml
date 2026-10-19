@@ -71,5 +71,5 @@ jobs:
         run: |
           cd figaroh-examples
           # slow tests (golden and multi-method studies, tens of minutes)
-          # run locally: python -m pytest tests/ -m slow
+          # run weekly by slow.yml, or locally: python -m pytest tests/ -m slow
           python -m pytest tests/ -v --durations=15 -m "not slow"
