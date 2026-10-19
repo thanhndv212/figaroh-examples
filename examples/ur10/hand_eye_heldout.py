@@ -112,11 +112,14 @@ def fit(
     frames_only: bool = False,
     estimation: dict | None = None,
     max_iterations: int = 1,
+    instance: dict | None = None,
 ) -> UR10Calibration:
     """Fit ``data_file`` (default layout: the 6D pose and the six joints).
 
     ``frames_only`` keeps the 12 frame parameters (the registration
     baseline). ``max_iterations=1`` fits once, without outlier exclusion.
+    ``estimation=None`` keeps the config's method; ``instance`` adds to the
+    run's instance record (asset id, operator).
     """
     robot = load_robot(str(URDF), package_dirs=str(MODELS_DIR), load_by_urdf=True)
     calib = UR10Calibration(robot, str(CONFIG))
@@ -128,6 +131,10 @@ def fit(
     calib.calib_config["calib_model"] = level
     if estimation is not None:
         calib.calib_config["estimation"] = dict(estimation)
+    if instance:
+        calib.calib_config["instance"] = dict(
+            calib.calib_config.get("instance") or {}, **instance
+        )
     calib.calib_config["validation_data_file"] = None
     with contextlib.redirect_stdout(io.StringIO()):
         calib.initialize()
