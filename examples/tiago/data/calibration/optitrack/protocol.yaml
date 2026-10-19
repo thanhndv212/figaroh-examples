@@ -1,0 +1,60 @@
+# TIAGo OptiTrack 2023-09-12 static postures (examples#105) as a data-contract
+# Protocol (figaroh-plus#55). Per-system protocol: independent of
+# ../mocap/protocol.yaml (Qualisys). Roles are frozen: changing a file or a role
+# needs a new version. No heldout: block: the shared harness needs exactly one
+# training session, and none of these runs is evaluated before the
+# motion-capture study (examples#100), which adds the block in v2.
+# source: the original recording (not distributed), its sha256 and the clock
+# lag measured from it (t_robot - t_mocap, the difference of the median
+# receive-minus-header stamp offsets of the mocap and robot streams);
+# examples/tiago/utils/optitrack_extraction.py re-creates each file byte for
+# byte (--frame world) and checks the lag. drops: plateaus found and plateaus
+# without a tracked gripper body (the files keep every other plateau; the
+# tiago_base pose is in extra columns, NaN where that body was not tracked).
+# rigid_bodies: the gripper body definition written to each file. Sessions with
+# different definitions are never pooled without a tool registration per
+# definition.
+name: tiago-optitrack-2023-09-12
+version: 1
+rigid_bodies:
+  1:
+    name: tiago_schunk
+    used_by: [2023-09-12-1529, 2023-09-12-1552]
+  2:
+    name: tiago_schunk
+    used_by: [2023-09-12-1658]
+    note: redefined between 15:52 and 16:58 (a constant 5-7 deg tool-frame rotation)
+sessions:
+- id: 2023-09-12-1529
+  role: confirmation
+  frame: optitrack:world
+  rigid_body: 1
+  source:
+    bag: optitrack_tiago_calibration_2023-09-12-15-29-23.bag
+    sha256: 0a11deb42ce1476f74dfc89a871efc6b4c329911f288931f93cfacf9ebfe2f80
+    lag_s: -0.8036
+  drops: {plateaus: 8, gripper_lost: 4}
+  files:
+    optitrack_2023-09-12-1529_static_postures.csv: 7e27603dc975ad8f0929f376e119ba43ba6df99c79362e8e257128531c70c758
+- id: 2023-09-12-1552
+  role: confirmation
+  frame: optitrack:world
+  rigid_body: 1
+  source:
+    bag: optitrack_tiago_calibration_2023-09-12-15-52-58.bag
+    sha256: b400f0e3f987fdaeba73ea004bd41a8e654da98738da78aa26542df2dbd9aa2d
+    lag_s: -1.0840
+  drops: {plateaus: 17, gripper_lost: 8}
+  files:
+    optitrack_2023-09-12-1552_static_postures.csv: 9bfb7004b13d8d4d094c76696513f6015c47a67aa3caf1c6ac73319672ed111b
+- id: 2023-09-12-1658
+  role: confirmation
+  frame: optitrack:world
+  rigid_body: 2
+  source:
+    bag: optitrack_caibration_2023-09-12-16-58-30.bag
+    sha256: 7d93f952da6bd83d86f30437abea2d05fa03878e638750d85d0ba63129a50a94
+    lag_s: -1.3820
+  drops: {plateaus: 22, gripper_lost: 9}
+  files:
+    optitrack_2023-09-12-1658_static_postures.csv: c46bd5d0f1af89ac66bb7af23b6b1d8b48de4d3e7e97a5d7ef01eabfe527d6b5
