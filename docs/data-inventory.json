@@ -88,7 +88,7 @@
       "study": "Mocap calibration (reference)",
       "kind": "real",
       "role": "train / validate / confirmation",
-      "description": "Four frozen Qualisys sessions (37, 62, 63 and 59 postures) plus the base-hand calibration (34) and the protocol that fixes each session's role.",
+      "description": "Four frozen Qualisys sessions of 2021-11 (37, 62, 63 and 59 postures), two 2021-10-26 world-frame confirmation sessions (26 and 25 postures, protocol v2), the base-hand calibration (34) and the protocol that fixes each session's role.",
       "paths": [
         "examples/tiago/data/calibration/mocap/"
       ],
@@ -460,8 +460,18 @@
       "rows": 12092
     },
     "examples/tiago/data/calibration/mocap/protocol.yaml": {
-      "sha256": "2ec4ff505b2537e0090ef2cde6168a10f4e2bf75ff9e5d6e2d19d8c351acb323",
-      "bytes": 1394
+      "sha256": "e1886b43ab1770b658335bfdc099c7fb4294423997a8d3c9fdb421f48a798022",
+      "bytes": 2719
+    },
+    "examples/tiago/data/calibration/mocap/qualisys_2021-10-26-1051_static_postures.csv": {
+      "sha256": "db245498e1bdc023d84d15ccfe5e7ff80b447d47c44d23bef5e0f8b3e5fc2026",
+      "bytes": 11974,
+      "rows": 26
+    },
+    "examples/tiago/data/calibration/mocap/qualisys_2021-10-26-1102_static_postures.csv": {
+      "sha256": "94685056aac421aa511e1d56ab4fbdd9726904a3bbaab3d70db7897fae7b39cc",
+      "bytes": 11495,
+      "rows": 25
     },
     "examples/tiago/data/calibration/mocap/qualisys_2021-11-26_static_postures.csv": {
       "sha256": "7c986df711757c4d31d8bb6db34b354f72318a78673dac280fd3a14abc5460a0",
