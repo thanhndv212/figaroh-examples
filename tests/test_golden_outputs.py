@@ -19,7 +19,18 @@ import golden_outputs as golden  # noqa: E402
 REFERENCE = golden.load_reference()
 
 
-@pytest.mark.parametrize("case", list(golden.CASES))
+# Cases that take over a minute are slow (#141); the script stage of
+# validate.py and the import smoke tests still cover them in the fast tier.
+SLOW_CASES = {"talos/calibration_upperbody.py"}
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        pytest.param(c, marks=pytest.mark.slow) if c in SLOW_CASES else c
+        for c in golden.CASES
+    ],
+)
 def test_example_outputs_match_reference(case):
     assert case in REFERENCE, f"no reference for {case}; run with --update"
     got = golden.summarize(case, golden.run_case(case))
