@@ -47,9 +47,15 @@ from figaroh.calibration.calibration_tools import (  # noqa: E402
 )
 
 
-@pytest.fixture(scope="module")
-def generation_result():
-    df, report = generate_configs(n_candidates=200, seed=0)
+# 40 candidates (one accepted posture, ~7 s) keep every check in the fast
+# tier; the original 200 (~40 s, several accepted postures) is slow (#141).
+@pytest.fixture(
+    scope="module",
+    params=[40, pytest.param(200, marks=pytest.mark.slow)],
+    ids=["n40", "n200"],
+)
+def generation_result(request):
+    df, report = generate_configs(n_candidates=request.param, seed=0)
     return {"df": df, "report": report}
 
 
