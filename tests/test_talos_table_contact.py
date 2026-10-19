@@ -93,13 +93,13 @@ def _load_split(calib: TalosTableContactCalibration, df: pd.DataFrame) -> None:
     calib.PEE_measured = np.zeros(3 * N)
 
 
-@pytest.fixture(scope="module")
-def calibrated_result(tmp_path_factory):
+SMALL_N_TRAIN = 25
+SMALL_N_VAL = 4
+
+
+def _calibrate(tmp_path_factory, n_train_per_session, n_val_per_session):
     """Build synthetic data, run the calibration once, and hand back
-    everything the individual test functions below need. Module-scoped
-    since building the dataset + solving is the expensive part and every
-    assertion below is a read-only check on the same result.
-    """
+    everything the individual test functions below need."""
     # 120 training touches per session: with 40, the 57 joint + 9 plane /
     # contact unknowns were fit from ~56 touches and held-out error landed
     # 1.7-6x above the noise floor depending on tiny data differences
@@ -109,8 +109,8 @@ def calibrated_result(tmp_path_factory):
     # (figaroh-plus#110 changed the generated dataset at this seed).
     df_train, df_val, ground_truth, robot = build_dataset(
         n_sessions=2,
-        n_train_per_session=120,
-        n_val_per_session=40,
+        n_train_per_session=n_train_per_session,
+        n_val_per_session=n_val_per_session,
         seed=42,
         encoder_noise_std=ENCODER_NOISE_STD,
         include_truth_objects=True,
@@ -164,16 +164,32 @@ def calibrated_result(tmp_path_factory):
     }
 
 
+@pytest.fixture(scope="module")
+def calibrated_result(tmp_path_factory):
+    """Full-size run (about a minute of setup), module-scoped since every
+    assertion that uses it is a read-only check on the same result; those
+    tests are slow (#141)."""
+    return _calibrate(tmp_path_factory, 120, 40)
+
+
+@pytest.fixture(scope="module")
+def small_result(tmp_path_factory):
+    """Same pipeline at a size the fast tier can afford (#141): the
+    identifiability count, layout and solver success do not need the
+    full sample; the residual and noise-floor claims do."""
+    return _calibrate(tmp_path_factory, SMALL_N_TRAIN, SMALL_N_VAL)
+
+
 class TestChainIdentifiability:
-    def test_identifiable_base_parameter_count(self, calibrated_result):
+    def test_identifiable_base_parameter_count(self, small_result):
         """The 15-joint leg-torso-arm chain should reduce to 57
         identifiable base parameters -- the exact count the project's
         own manuscript reports for this chain (Section: Identifiability
         of geometric parameters)."""
-        assert calibrated_result["calib"].n_deltaX == 57
+        assert small_result["calib"].n_deltaX == 57
 
-    def test_parameter_layout(self, calibrated_result):
-        calib = calibrated_result["calib"]
+    def test_parameter_layout(self, small_result):
+        calib = small_result["calib"]
         names = calib.calib_config["param_name"]
         assert len(names) == calib.n_deltaX + 3 * calib.n_sessions + 3
         tail = names[calib.n_deltaX :]
@@ -185,10 +201,11 @@ class TestChainIdentifiability:
 
 
 class TestSolveConverges:
-    def test_lm_reports_success(self, calibrated_result):
-        assert calibrated_result["result"].success
+    def test_lm_reports_success(self, small_result):
+        assert small_result["result"].success
 
 
+@pytest.mark.slow
 class TestTrainingResidual:
     """Fit quality on the postures the solver actually saw."""
 
@@ -210,6 +227,7 @@ class TestTrainingResidual:
         assert after["pitch_rmse_deg"] < 0.3
 
 
+@pytest.mark.slow
 class TestHeldOutCrossValidation:
     """The real test: does the calibration generalize to touches the
     solver never saw? Judged against the noise floor -- the true model's
@@ -240,6 +258,7 @@ class TestHeldOutCrossValidation:
             assert after[key] < before[key]
 
 
+@pytest.mark.slow
 class TestPlaneAndContactRecoveryOrderOfMagnitude:
     """Not exact recovery (see module docstring) -- just that the
     estimated plane/contact corrections land in the same, physically
