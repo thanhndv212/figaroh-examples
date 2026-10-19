@@ -13,6 +13,14 @@ Usage:
     python validate.py --scripts-only  # run example scripts only
     python validate.py --robot ur10 # run tests + scripts for one robot
     python validate.py --quick      # skip slow scripts (optimal_config, optimal_trajectory)
+    python validate.py --changed    # only what the diff against main can affect
+    python validate.py --changed origin/main --dry-run  # print the selection only
+
+--changed [BASE] diffs BASE...HEAD plus the working tree and untracked files,
+selects robots, test files and golden cases from tests/impact.yaml, and runs
+those (plus the cheap cross-robot checks). Shared code, core/environment files
+and unmapped paths select the full suite. It combines with --quick,
+--tests-only, --scripts-only and --full-tests; it excludes --robot.
 
 Exit code: 0 if all required checks complete successfully, 1 on failure or timeout.
 """
@@ -29,6 +37,8 @@ from pathlib import Path
 # --- Configuration -------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(REPO_ROOT / "tests"))
+import impact  # noqa: E402  (change-to-test selector, tests/impact.yaml)
 
 # Single-threaded BLAS/OpenMP for every child, as in hosted CI. Threaded
 # reductions change summation order from run to run, and the trajectory
@@ -180,8 +190,11 @@ def run_command(cmd, cwd, timeout, env_extra=None, label=None):
         return -1, out, err, True
 
 
-def run_pytest(full=False):
-    """Run the pytest suite from repo root; skip tests marked slow unless ``full``."""
+def run_pytest(full=False, targets=None):
+    """Run the pytest suite from repo root; skip tests marked slow unless ``full``.
+
+    ``targets`` (test files and node ids) narrows the run; default is tests/.
+    """
     print("\n" + "=" * 70)
     print("  PYTEST SUITE")
     print("=" * 70)
@@ -199,7 +212,7 @@ def run_pytest(full=False):
     # Tests marked slow (script smoke runs, which the script checks below
     # repeat, and multi-draw robot fits) push the suite past this timeout;
     # they run only with --full-tests.
-    cmd = [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"]
+    cmd = [sys.executable, "-m", "pytest", *(targets or ["tests/"]), "-v", "--tb=short"]
     if not full:
         cmd += ["-m", "not slow"]
     rc, stdout, stderr, timed_out = run_command(
@@ -306,7 +319,7 @@ def run_all_scripts(robots=None, quick=False):
     print("=" * 70)
 
     results = []
-    target_robots = robots if robots else list(EXAMPLE_SCRIPTS.keys())
+    target_robots = robots if robots is not None else list(EXAMPLE_SCRIPTS.keys())
 
     for robot in target_robots:
         if robot not in EXAMPLE_SCRIPTS:
@@ -376,6 +389,65 @@ def print_summary(test_results, script_results):
     return counts["fail"] == 0 and counts["timeout"] == 0 and not incomplete
 
 
+def git_lines(*args):
+    proc = subprocess.run(
+        ["git", *args], cwd=str(REPO_ROOT), capture_output=True, text=True
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)} failed: {proc.stderr.strip()}")
+    return [line for line in proc.stdout.splitlines() if line.strip()]
+
+
+def changed_paths(base):
+    """Paths changed in BASE...HEAD, the working tree and untracked files."""
+    paths = set(git_lines("diff", "--name-only", f"{base}...HEAD"))
+    paths.update(git_lines("diff", "--name-only", "HEAD"))
+    paths.update(git_lines("ls-files", "--others", "--exclude-standard"))
+    return sorted(paths)
+
+
+def golden_node_ids(golden_ids):
+    """test_golden_outputs node ids whose case contains one of ``golden_ids``."""
+    if not golden_ids:
+        return []
+    sys.path.insert(0, str(REPO_ROOT / "tests" / "golden"))
+    import golden_outputs
+
+    return [
+        f"tests/test_golden_outputs.py::test_example_outputs_match_reference[{case}]"
+        for case in golden_outputs.CASES
+        if any(g in case for g in golden_ids)
+    ]
+
+
+def print_selection(base, paths, sel):
+    """Print the selection and its reasons; keep a copy in validation_logs/."""
+    print("\n" + "=" * 70)
+    print(f"  CHANGE-SCOPED SELECTION (base: {base}, {len(paths)} changed path(s))")
+    print("=" * 70)
+    if sel.full:
+        print("  Scope:   FULL suite (all robots, all scripts)")
+    else:
+        print(f"  Robots:  {', '.join(sel.robots) or '(none)'}")
+        print(f"  Tests:   {len(sel.test_files)} file(s)")
+        for t in sel.test_files:
+            print(f"    {t}")
+        print(f"  Golden:  {', '.join(sel.golden_ids) or '(none)'}")
+    print("  Reasons:")
+    for reason in sel.reasons:
+        print(f"    {reason}")
+    directory = REPO_ROOT / "validation_logs"
+    directory.mkdir(exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    log = directory / f"changed-selection-{stamp}.json"
+    log.write_text(
+        json.dumps(
+            {"base": base, "changed_paths": paths, **sel.to_dict()}, indent=2
+        )
+    )
+    print(f"  Selection log: {log}")
+
+
 # --- Main ----------------------------------------------------------------
 
 
@@ -409,7 +481,24 @@ def main():
         action="store_true",
         help="Also run tests marked slow (skipped by default).",
     )
+    parser.add_argument(
+        "--changed",
+        nargs="?",
+        const="main",
+        default=None,
+        metavar="BASE",
+        help="Run only what the diff against BASE (default main) can affect.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="With --changed: print the selection and exit without running.",
+    )
     args = parser.parse_args()
+    if args.changed is not None and args.robot:
+        parser.error("--changed and --robot are mutually exclusive")
+    if args.dry_run and args.changed is None:
+        parser.error("--dry-run requires --changed")
 
     print("=" * 70)
     print("  figaroh-examples Validation")
@@ -419,12 +508,26 @@ def main():
 
     test_results = []
     script_results = []
+    targets = None
+    robots = [args.robot] if args.robot else None
+
+    if args.changed is not None:
+        try:
+            paths = changed_paths(args.changed)
+        except RuntimeError as exc:
+            parser.error(str(exc))
+        sel = impact.select(paths)
+        print_selection(args.changed, paths, sel)
+        if args.dry_run:
+            sys.exit(0)
+        if not sel.full:
+            targets = sel.test_files + golden_node_ids(sel.golden_ids)
+            robots = impact.script_keys(sel.robots)
 
     if not args.scripts_only:
-        test_results.append(run_pytest(full=args.full_tests))
+        test_results.append(run_pytest(full=args.full_tests, targets=targets))
 
     if not args.tests_only:
-        robots = [args.robot] if args.robot else None
         script_results = run_all_scripts(robots=robots, quick=args.quick)
 
     success = print_summary(test_results, script_results)
