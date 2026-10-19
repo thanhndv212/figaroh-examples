@@ -96,6 +96,18 @@
       "provenance": "examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md"
     },
     {
+      "id": "tiago-mocap-optitrack-2023-09-12",
+      "robot": "TIAGo",
+      "study": "Mocap calibration (cross-system, #100)",
+      "kind": "real",
+      "role": "confirmation (not evaluated until #100)",
+      "description": "Three OptiTrack static-posture runs of 2023-09-12 (4, 9 and 13 postures), 6D gripper body in the OptiTrack world frame with the tiago_base body pose per row, and the protocol that freezes their roles, rigid-body definitions and hashes.",
+      "paths": [
+        "examples/tiago/data/calibration/optitrack/"
+      ],
+      "provenance": "examples/tiago/data/README.md"
+    },
+    {
       "id": "tiago-optimal-configurations",
       "robot": "TIAGo",
       "study": "Experiment design",
@@ -506,6 +518,25 @@
     "examples/tiago/data/calibration/optimal_configurations/tiago_optimal_configurations.yaml": {
       "sha256": "11eed552a8fedb0f6c4d0158ebf68816bd744c1d00a52f333fbf1222acf27352",
       "bytes": 2524
+    },
+    "examples/tiago/data/calibration/optitrack/optitrack_2023-09-12-1529_static_postures.csv": {
+      "sha256": "7e27603dc975ad8f0929f376e119ba43ba6df99c79362e8e257128531c70c758",
+      "bytes": 2230,
+      "rows": 4
+    },
+    "examples/tiago/data/calibration/optitrack/optitrack_2023-09-12-1552_static_postures.csv": {
+      "sha256": "9bfb7004b13d8d4d094c76696513f6015c47a67aa3caf1c6ac73319672ed111b",
+      "bytes": 4552,
+      "rows": 9
+    },
+    "examples/tiago/data/calibration/optitrack/optitrack_2023-09-12-1658_static_postures.csv": {
+      "sha256": "c46bd5d0f1af89ac66bb7af23b6b1d8b48de4d3e7e97a5d7ef01eabfe527d6b5",
+      "bytes": 6512,
+      "rows": 13
+    },
+    "examples/tiago/data/calibration/optitrack/protocol.yaml": {
+      "sha256": "3fa18bdaaac593a98fb0cf969323eebed19ab855fb1638a9d52125697d17e1d5",
+      "bytes": 2662
     },
     "examples/tiago/data/identification/audit/README.md": {
       "sha256": "7a4f02e54fe17e586f050d6455105b52d818adb4bcbc732e149c7f1eba80d65e",

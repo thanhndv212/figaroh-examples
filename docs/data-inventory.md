@@ -17,6 +17,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-base-parameter-list` | TIAGo | Dynamic identification | unspecified (unconfirmed) | not used | 1 | 3.9 KB | examples/tiago/data/README.md |
 | `tiago-calibration-nov-30-64` | TIAGo | Calibration | unspecified (unconfirmed) | not used | 1 | 13.5 KB | examples/tiago/data/README.md |
 | `tiago-mocap-qualisys-2021-11` | TIAGo | Mocap calibration (reference) | real | train / validate / confirmation | 8 | 136.4 KB | examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md |
+| `tiago-mocap-optitrack-2023-09-12` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 4 | 15.6 KB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
 | `tiago-backlash-2023-07-24` | TIAGo | Backlash surface | real | training; no held-out run | 2 | 34.1 MB | examples/tiago/data/README.md |
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
@@ -116,6 +117,17 @@ Four frozen Qualisys sessions of 2021-11 (37, 62, 63 and 59 postures), two 2021-
 | `examples/tiago/data/calibration/mocap/qualisys_2021-11-30-1504_static_postures.csv` | 59 | 26677 | `cc19eaa74fe8b74b` |
 | `examples/tiago/data/calibration/mocap/qualisys_2021-11-30_static_postures.csv` | 37 | 16904 | `b6c0051e20c6a077` |
 | `examples/tiago/data/calibration/mocap/qualysis_base_hand_calibration.csv` | 34 | 13420 | `d7fcbd96e3e67319` |
+
+### `tiago-mocap-optitrack-2023-09-12`
+
+Three OptiTrack static-posture runs of 2023-09-12 (4, 9 and 13 postures), 6D gripper body in the OptiTrack world frame with the tiago_base body pose per row, and the protocol that freezes their roles, rigid-body definitions and hashes.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/tiago/data/calibration/optitrack/optitrack_2023-09-12-1529_static_postures.csv` | 4 | 2230 | `7e27603dc975ad8f` |
+| `examples/tiago/data/calibration/optitrack/optitrack_2023-09-12-1552_static_postures.csv` | 9 | 4552 | `9bfb7004b13d8d4d` |
+| `examples/tiago/data/calibration/optitrack/optitrack_2023-09-12-1658_static_postures.csv` | 13 | 6512 | `c46bd5d0f1af89ac` |
+| `examples/tiago/data/calibration/optitrack/protocol.yaml` |  | 2662 | `3fa18bdaaac593a9` |
 
 ### `tiago-optimal-configurations`
 
