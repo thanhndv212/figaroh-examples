@@ -34,6 +34,7 @@ def test_fixture_files_match_manifest():
     assert it.check_fixture() == []
 
 
+@pytest.mark.slow  # regenerates the whole fixture, ~50 s (#141)
 def test_regeneration_reproduces_fixture(regenerated):
     for split in ("train", "validation"):
         new, old = it.read_split(split, regenerated), it.read_split(split)
