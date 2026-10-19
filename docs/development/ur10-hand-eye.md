@@ -105,14 +105,44 @@ frame with 0.2 deg tilt and 0.05 deg in-plane, times a level (grid 0.5, 1, 2,
 | full excitation | 28 | 7.45 | 0.082 |
 | full cv_subset | 25 | 7.45 | 0.082 |
 
+Full grid, held-out position RMSE in mm averaged over seeds 0 to 4
+(`python examples/ur10/hand_eye_truth.py`, 140 fits, 18 min single-threaded
+on core `devel` b575b5b):
+
+| Fit | ×0.5 | ×1 | ×2 | ×4 |
+|---|---:|---:|---:|---:|
+| registration only | 19.3 | 19.3 | 19.2 | 19.3 |
+| joint_offset | 5.46 | 5.58 | 6.00 | 7.31 |
+| full structural | 10.9 | 21.7 | 43.3 | 85.6 |
+| full map | **1.52** | **1.94** | 2.99 | 5.31 |
+| full map_cv | 4.43 | 5.05 | 3.12 | 5.25 |
+| full excitation | 2.34 | 2.85 | 2.98 | 8.42 |
+| full cv_subset | 9.60 | 15.0 | 16.7 | 30.3 |
+
+- `map` is the most accurate at every level, and `map_cv` catches up at ×2
+  and above.
+- Full `structural` fits the 23 training postures to the noise level
+  (0.27 mm training RMS at ×0.5), then grows linearly with noise on new
+  postures (10.9 to 85.6 mm, max 211 mm at ×4): 30 free parameters on 23 6D
+  postures extrapolate badly inside the joint range. `cv_subset` inherits
+  this whenever it keeps nearly all parameters. Seed 0 (table above) is one
+  of the mild draws; the spread across seeds is large.
+- The registration-only baseline stays near 19 mm whatever the noise, since
+  it cannot absorb the joint errors.
+
 Where the real data sees about 4 mm for every model, the simulation separates
 them. Whatever limits the real held-out position error is therefore not the
-assumed noise plus joint errors of core's prior size. The full grid and the
-z-scores of the map family (which assume an isotropic `noise_std`, so they
-run above 1 under this anisotropic noise) come from
-`python examples/ur10/hand_eye_truth.py`. A per-component measurement noise
-for the estimation methods would remove that caveat; it is not a core option
-today.
+assumed noise plus joint errors of core's prior size. Its k-fold held-out sets
+(4 to 5 postures each, near the training postures) are also far less
+demanding than the 100 simulated judge postures, which is why the real data
+does not show the structural overfit.
+
+Joint-level recovery of the `full_params` fits, with each fit's own standard
+errors: 1766 z-scores, mean +0.10, RMS 4.56, max |z| 88. The standard errors
+assume an isotropic `noise_std`, so under this anisotropic noise they are
+overconfident and z runs well above 1. Per-component measurement noise for
+the estimation methods (figaroh-plus#215) would remove that caveat; it is not
+a core option today.
 
 ## 5. Limits
 
