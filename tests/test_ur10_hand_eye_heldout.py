@@ -2,7 +2,12 @@
 
 Fast checks of the wiring: model list, the registration baseline, the
 selection guard and one registration fold. The full table (all models, all
-folds) is slow and pinned in tests/golden/ur10_hand_eye.json.
+folds) and the seed-0 simulation are slow and pinned in
+tests/golden/ur10_hand_eye.json (3 decimals; solver round-off differs by
+about 1e-6 across platforms, a changed model or protocol moves the numbers
+by O(1)). Regenerate it (about 4 minutes) from the repository root with::
+
+    python tests/test_ur10_hand_eye_heldout.py > tests/golden/ur10_hand_eye.json
 """
 
 import json
@@ -19,6 +24,55 @@ from examples.calibration_harness import heldout as harness  # noqa: E402
 from examples.ur10 import hand_eye_heldout as heh  # noqa: E402
 
 GOLDEN = ROOT / "tests" / "golden" / "ur10_hand_eye.json"
+SIM_KEEP = (
+    "fit",
+    "noise_mm",
+    "n_params",
+    "train_rms_mm",
+    "heldout_rmse_mm",
+    "heldout_rot_deg",
+)
+
+
+def snapshot() -> dict:
+    """The golden's content, computed from the current code."""
+    from examples.ur10 import hand_eye_truth as het
+
+    results = heh.run()
+    table = heh.summarize(results)
+    df = het.run(seeds=(0,), noise=(1.0,))
+    return {
+        "_about": (
+            "Snapshot of examples/ur10 hand-eye (#99): 'kfold' is the pooled "
+            "5-fold held-out error of every model (position mm, orientation "
+            "deg, parameter count) and the model selected on the validation "
+            "role; 'simulation_seed0' is the seed-0, noise-level-1 case of "
+            "the synthetic-truth study. k-fold within one session. "
+            "Regenerate with: python tests/test_ur10_hand_eye_heldout.py > "
+            "tests/golden/ur10_hand_eye.json (conda env figaroh-dev)."
+        ),
+        "kfold": {
+            "label": heh.PLAN.label,
+            "primary_metric": heh.PRIMARY_METRIC,
+            "selected": heh.select_model(results)[0],
+            "models": {
+                m: {
+                    "n_params": r["n_params"],
+                    "rmse_pos_mm": round(r["rmse_pos_mm"], 3),
+                    "rmse_rot_deg": round(r["rmse_rot_deg"], 3),
+                }
+                for m, r in table.items()
+            },
+        },
+        "simulation_seed0": [
+            {
+                k: (round(v, 3) if isinstance(v, float) else v)
+                for k, v in r.items()
+                if k in SIM_KEEP
+            }
+            for r in df.to_dict("records")
+        ],
+    }
 
 
 def test_models_and_label():
@@ -66,11 +120,16 @@ def test_registration_baseline_fits_one_fold():
 @pytest.mark.slow
 def test_full_table_matches_golden():
     golden = json.loads(GOLDEN.read_text())["kfold"]
-    table = heh.summarize(heh.run())
+    results = heh.run()
+    table = heh.summarize(results)
     assert list(table) == list(golden["models"])
     for model, row in golden["models"].items():
         got = table[model]
         assert got["n_params"] == row["n_params"]
         assert got["rmse_pos_mm"] == pytest.approx(row["rmse_pos_mm"], abs=2e-3)
         assert got["rmse_rot_deg"] == pytest.approx(row["rmse_rot_deg"], abs=2e-3)
-    assert heh.select_model(heh.run())[0] == golden["selected"]
+    assert heh.select_model(results)[0] == golden["selected"]
+
+
+if __name__ == "__main__":
+    print(json.dumps(snapshot(), indent=1, sort_keys=False))

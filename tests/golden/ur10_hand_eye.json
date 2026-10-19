@@ -1,0 +1,103 @@
+{
+ "_about": "Snapshot of examples/ur10 hand-eye (#99): 'kfold' is the pooled 5-fold held-out error of every model (position mm, orientation deg, parameter count) and the model selected on the validation role; 'simulation_seed0' is the seed-0, noise-level-1 case of the synthetic-truth study. k-fold within one session. Regenerate with: python tests/test_ur10_hand_eye_heldout.py > tests/golden/ur10_hand_eye.json (conda env figaroh-dev).",
+ "kfold": {
+  "label": "k-fold within session ur10-hand-eye-session-1 (single session; weaker than held-out sessions)",
+  "primary_metric": "rmse_pos_mm",
+  "selected": "full map_cv",
+  "models": {
+   "registration only": {
+    "n_params": 12,
+    "rmse_pos_mm": 4.125,
+    "rmse_rot_deg": 0.57
+   },
+   "joint_offset": {
+    "n_params": 16,
+    "rmse_pos_mm": 4.09,
+    "rmse_rot_deg": 0.598
+   },
+   "full structural": {
+    "n_params": 30,
+    "rmse_pos_mm": 4.152,
+    "rmse_rot_deg": 0.402
+   },
+   "full map": {
+    "n_params": 48,
+    "rmse_pos_mm": 4.022,
+    "rmse_rot_deg": 0.403
+   },
+   "full map_cv": {
+    "n_params": 48,
+    "rmse_pos_mm": 4.012,
+    "rmse_rot_deg": 0.449
+   },
+   "full excitation": {
+    "n_params": 28,
+    "rmse_pos_mm": 4.127,
+    "rmse_rot_deg": 0.402
+   },
+   "full cv_subset": {
+    "n_params": 25,
+    "rmse_pos_mm": 4.004,
+    "rmse_rot_deg": 0.472
+   }
+  }
+ },
+ "simulation_seed0": [
+  {
+   "fit": "registration only",
+   "noise_mm": 1.0,
+   "n_params": 12,
+   "train_rms_mm": 2.278,
+   "heldout_rmse_mm": 6.441,
+   "heldout_rot_deg": 0.397
+  },
+  {
+   "fit": "joint_offset",
+   "noise_mm": 1.0,
+   "n_params": 16,
+   "train_rms_mm": 1.854,
+   "heldout_rmse_mm": 5.473,
+   "heldout_rot_deg": 0.249
+  },
+  {
+   "fit": "full structural",
+   "noise_mm": 1.0,
+   "n_params": 30,
+   "train_rms_mm": 0.619,
+   "heldout_rmse_mm": 5.041,
+   "heldout_rot_deg": 0.082
+  },
+  {
+   "fit": "full map",
+   "noise_mm": 1.0,
+   "n_params": 48,
+   "train_rms_mm": 0.636,
+   "heldout_rmse_mm": 2.875,
+   "heldout_rot_deg": 0.072
+  },
+  {
+   "fit": "full map_cv",
+   "noise_mm": 1.0,
+   "n_params": 48,
+   "train_rms_mm": 0.62,
+   "heldout_rmse_mm": 3.132,
+   "heldout_rot_deg": 0.081
+  },
+  {
+   "fit": "full excitation",
+   "noise_mm": 1.0,
+   "n_params": 29,
+   "train_rms_mm": 0.62,
+   "heldout_rmse_mm": 7.451,
+   "heldout_rot_deg": 0.082
+  },
+  {
+   "fit": "full cv_subset",
+   "noise_mm": 1.0,
+   "n_params": 29,
+   "train_rms_mm": 0.62,
+   "heldout_rmse_mm": 7.451,
+   "heldout_rot_deg": 0.082
+  }
+ ]
+}
