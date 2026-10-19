@@ -53,6 +53,13 @@ Where:
 - Validated performance across full UR10 workspace
 - Corrected kinematic parameters for robot controller
 
+These are design targets, not measured results. The shipped hand-eye data
+(`data/calibration.csv`, 23 postures, one session) gives a held-out position
+error of about 4 mm for every model in a 5-fold split of that session, with
+orientation error improving from 0.57 to 0.40 deg when joint parameters are
+fitted. See the [hand-eye note](../../docs/development/ur10-hand-eye.md)
+(`hand_eye_heldout.py`, `hand_eye_truth.py`, `hand_eye_reference_run.py`).
+
 ---
 
 ### 2. Dynamic Parameter Identification Task (`identification.py`)
