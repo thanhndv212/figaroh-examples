@@ -15,12 +15,16 @@ Usage:
     python validate.py --quick      # skip slow scripts (optimal_config, optimal_trajectory)
     python validate.py --changed    # only what the diff against main can affect
     python validate.py --changed origin/main --dry-run  # print the selection only
+    python validate.py --changed --slow-scripts  # also run slow scripts
 
 --changed [BASE] diffs BASE...HEAD plus the working tree and untracked files,
 selects robots, test files and golden cases from tests/impact.yaml, and runs
 those (plus the cheap cross-robot checks). Shared code, core/environment files
 and unmapped paths select the full suite. It combines with --quick,
 --tests-only, --scripts-only and --full-tests; it excludes --robot.
+With --changed, slow scripts (is_slow entries such as optimal_config and
+optimal_trajectory) are skipped by default; add --slow-scripts to run them.
+A full run (no --changed) keeps running every script unless --quick is given.
 
 Exit code: 0 if all required checks complete successfully, 1 on failure or timeout.
 """
@@ -256,7 +260,7 @@ def run_example_script(robot, script, timeout, is_slow, quick=False, extra_args=
     if quick and is_slow:
         r = Result(f"{robot}/{script}", "script")
         r.status = "skip"
-        r.output = "Skipped (--quick mode)"
+        r.output = "Skipped (slow script; --quick, or --changed without --slow-scripts)"
         print(f"  -> {r}")
         return r
 
@@ -482,6 +486,11 @@ def main():
         help="Also run tests marked slow (skipped by default).",
     )
     parser.add_argument(
+        "--slow-scripts",
+        action="store_true",
+        help="With --changed: also run slow scripts (skipped by default).",
+    )
+    parser.add_argument(
         "--changed",
         nargs="?",
         const="main",
@@ -499,6 +508,8 @@ def main():
         parser.error("--changed and --robot are mutually exclusive")
     if args.dry_run and args.changed is None:
         parser.error("--dry-run requires --changed")
+    if args.slow_scripts and args.changed is None:
+        parser.error("--slow-scripts requires --changed")
 
     print("=" * 70)
     print("  figaroh-examples Validation")
@@ -528,7 +539,9 @@ def main():
         test_results.append(run_pytest(full=args.full_tests, targets=targets))
 
     if not args.tests_only:
-        script_results = run_all_scripts(robots=robots, quick=args.quick)
+        # --changed skips slow scripts unless --slow-scripts (#141)
+        skip_slow = args.quick or (args.changed is not None and not args.slow_scripts)
+        script_results = run_all_scripts(robots=robots, quick=skip_slow)
 
     success = print_summary(test_results, script_results)
     sys.exit(0 if success else 1)
