@@ -29,6 +29,7 @@ posture files below were extracted from them with the rules in
 | 2021-10-26 ×2 | 26 + 25 | world | **confirmation (v2)**, listed and frozen but not evaluated here: no base body, see section 6 |
 | 2021-09 sessions | — | — | unusable: end-effector body under two alternating names |
 | 2023-09-12 OptiTrack ×3 | 4 + 9 + 13 | world, 6D | not evaluated here: shipped under their own protocol (`calibration/optitrack/`, #105); different bodies, needs re-registration |
+| 2023-09-20 Vicon ×2 | 17 + 21 | world, 6D (marker triads) | not evaluated here: shipped under their own protocol (`calibration/vicon/`, #106); markers not bodies, gripper triad differs between runs, needs re-registration |
 | 2023-11-07 OptiTrack | 16 | world, 6D | unusable: chessboard body flips |
 
 **Same frame:** the four sessions used here express the hand's Qualisys
