@@ -29,7 +29,12 @@ robots:
   ur10:
     paths:
       - examples/ur10/**
+      - tests/golden/ur10_hand_eye.json
     tests:
+      - tests/test_ur10_hand_eye_heldout.py
+      - tests/test_ur10_hand_eye_protocol.py
+      - tests/test_ur10_hand_eye_reference_run.py
+      - tests/test_ur10_hand_eye_truth.py
       - tests/test_ur10_identification_truth.py
       - tests/test_ur10_physical_comparison.py
       - tests/test_ur10_signal_processing.py
