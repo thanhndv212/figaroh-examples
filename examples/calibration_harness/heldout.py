@@ -90,6 +90,7 @@ def load_plan(path, verify: bool = True) -> HeldoutPlan:
                 tuple(range(_n_rows(root / rel))),
             )
             for s in protocol.sessions
+            if s.id not in spec.not_evaluated
             for rel in s.files
         ]
         train = tuple(x for x in sets if x.role == "training")

@@ -15,6 +15,8 @@ file without changing the data contract::
         joints: [torso_lift_joint, arm_1_joint]
         repeated_tol: 0.01
         out_of_range_margin: 0.05
+      not_evaluated: [2021-10-26-1051]  # optional: manifest only (hashes, roles),
+                                        # not in the plan (other frame)
 """
 
 from __future__ import annotations
@@ -28,7 +30,7 @@ from figaroh.data.protocol import Protocol
 
 ROLES = ("training", "validation", "confirmation")
 SPLITS = ("sessions", "kfold")
-_BLOCK_KEYS = {"split", "selection_role", "kfold", "strata"}
+_BLOCK_KEYS = {"split", "selection_role", "kfold", "strata", "not_evaluated"}
 _KFOLD_KEYS = {"session", "k", "seed"}
 _STRATA_KEYS = {"joints", "repeated_tol", "out_of_range_margin"}
 
@@ -53,6 +55,7 @@ class HeldoutSpec:
     selection_role: str = "validation"
     kfold: Optional[KFoldSpec] = None
     strata: Optional[StrataSpec] = None
+    not_evaluated: Tuple[str, ...] = ()
 
 
 def _unknown(where: str, got: dict, allowed: set) -> None:
@@ -127,7 +130,15 @@ def parse_heldout(raw: Optional[dict], protocol: Protocol) -> HeldoutSpec:
             float(s.get("repeated_tol", 0.01)),
             float(s.get("out_of_range_margin", 0.05)),
         )
-    return HeldoutSpec(split, role, kfold, strata)
+    skipped = raw.get("not_evaluated") or []
+    if not isinstance(skipped, list):
+        raise ValueError("heldout.not_evaluated must be a list of session ids")
+    skipped = tuple(str(i) for i in skipped)
+    for sid in skipped:
+        protocol.session(sid)  # KeyError if unknown
+    if split == "kfold" and skipped:
+        raise ValueError("heldout.not_evaluated is only valid with split: sessions")
+    return HeldoutSpec(split, role, kfold, strata, skipped)
 
 
 def read_heldout(path) -> Tuple[Protocol, HeldoutSpec]:

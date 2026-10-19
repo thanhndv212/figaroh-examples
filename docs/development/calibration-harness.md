@@ -79,6 +79,9 @@ heldout:
     joints: [torso_lift_joint, arm_1_joint]
     repeated_tol: 0.01
     out_of_range_margin: 0.05
+  not_evaluated: []          # optional: session ids kept in the manifest (role,
+                             # sha256) but left out of the plan, e.g. a session
+                             # in another frame; split: sessions only
 ```
 
 Rules: roles are `training`, `validation`, `confirmation`; `sessions` needs
