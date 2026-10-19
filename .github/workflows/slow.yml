@@ -79,10 +79,13 @@ jobs:
           else
             MARKER="slow and ${{ matrix.robot }}"
           fi
-          # exit code 5: the marker selects no test, which is not a failure
+          # exit code 5: the marker selects no test, which is not a failure.
+          # No explicit `exit` here: in this login shell it reported 1 even
+          # after pytest passed, so the step ends on the test below instead.
+          rc=0
           python -m pytest tests/ -v --durations=15 -m "$MARKER" || rc=$?
-          if [ "${rc:-0}" -eq 5 ]; then
+          if [ "$rc" -eq 5 ]; then
             echo "no slow tests for '$MARKER'"
-            exit 0
+            rc=0
           fi
-          exit "${rc:-0}"
+          [ "$rc" -eq 0 ]
