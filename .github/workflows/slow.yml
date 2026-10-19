@@ -1,0 +1,88 @@
+name: Slow tests
+
+# Tests marked slow (golden multi-method studies, full-size fits), which the
+# per-PR CI skips. One job per robot marker, plus one for cross_robot and
+# shared; tests/test_impact.py keeps this matrix equal to tests/impact.yaml.
+on:
+  schedule:
+    - cron: '0 3 * * 1'  # Mondays 03:00 UTC
+  workflow_dispatch:
+  pull_request:
+    paths: ['.github/workflows/slow.yml']
+
+concurrency:
+  group: slow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  slow:
+    name: Slow ${{ matrix.robot }} (pinocchio-4.1.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        robot: [ur10, tiago, tiago_pro, talos, talos_table_contact, staubli_tx40, so101, cross_robot_shared]
+    env:
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      PIP_CONSTRAINT: ${{ github.workspace }}/ci-constraints.txt
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: figaroh-examples
+
+      - uses: actions/checkout@v4
+        with:
+          repository: thanhndv212/figaroh-plus
+          ref: devel
+          path: figaroh
+
+      # Mesh packages the example URDFs need beyond models/, fetched at the
+      # revisions pinned in scripts/fetch_models.py (never copied into this
+      # repository; see models/README.md).
+      - name: Fetch pinned mesh packages
+        run: |
+          python3 figaroh-examples/scripts/fetch_models.py --dest ci-models
+          echo "ROS_PACKAGE_PATH=$(python3 figaroh-examples/scripts/fetch_models.py --dest ci-models --print-ros-package-path)" >> "$GITHUB_ENV"
+
+      - name: Prepare constrained environment
+        env:
+          PINOCCHIO_VERSION: '4.1.0'
+        run: |
+          cp "figaroh/ci/pinocchio-${PINOCCHIO_VERSION}.txt" "$PIP_CONSTRAINT"
+          cat figaroh-examples/ci/constraints.txt >> "$PIP_CONSTRAINT"
+          # Core is installed editable after activation, from its checkout.
+          sed '/  - pip:/,$d' figaroh/environment.yml > ci-environment.yml
+
+      - name: Set up conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: ci-environment.yml
+          activate-environment: figaroh-dev
+
+      - name: Install figaroh
+        shell: bash -el {0}
+        run: |
+          python -m pip install -e './figaroh[dev]'
+          python -m pip check
+          python -c "import figaroh, pinocchio; print('figaroh', figaroh.__file__, 'pinocchio', pinocchio.__version__)"
+          echo "figaroh-plus devel: $(git -C figaroh rev-parse HEAD)"
+
+      - name: Run slow tests
+        shell: bash -el {0}
+        run: |
+          cd figaroh-examples
+          if [ "${{ matrix.robot }}" = "cross_robot_shared" ]; then
+            MARKER="slow and (cross_robot or shared)"
+          else
+            MARKER="slow and ${{ matrix.robot }}"
+          fi
+          # exit code 5: the marker selects no test, which is not a failure
+          python -m pytest tests/ -v --durations=15 -m "$MARKER" || rc=$?
+          if [ "${rc:-0}" -eq 5 ]; then
+            echo "no slow tests for '$MARKER'"
+            exit 0
+          fi
+          exit "${rc:-0}"
