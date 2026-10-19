@@ -152,6 +152,7 @@ with [`figaroh-start`](skills/figaroh-start/SKILL.md).
 ```bash
 python validate.py          # pytest plus the example scripts; exit 1 on any failure or timeout
 python validate.py --quick  # skips the slow IPOPT scripts (reported as not run, not passed)
+python validate.py --changed  # only the robots the diff against main can affect (PR evidence)
 ```
 
 Each child's output, exit code and timeout data are kept under the git-ignored

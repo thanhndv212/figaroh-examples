@@ -55,7 +55,11 @@ shared `models/` (robot description packages) and a Viser-based `web-interface/`
   python validate.py --tests-only     # pytest only
   python validate.py --scripts-only   # example scripts only
   python validate.py --robot ur10     # tests + scripts for one robot
+  python validate.py --changed        # scoped to the diff against main (tests/impact.yaml); PR evidence
   ```
+- Full `validate.py` is required only for shared code, core, environment, release/acceptance;
+  otherwise `--changed` output is the evidence (see CONTRIBUTING.md, Validation). New
+  `tests/test_*.py` files must be added to `tests/impact.yaml`.
 - `validate.py` sets `MPLBACKEND=Agg` so matplotlib doesn't block on plot windows.
 - Slow scripts (optimal_config, optimal_trajectory) use IPOPT and can take 5+ minutes.
   Use `--quick` for fast feedback loops; run full validation before declaring done.

@@ -120,7 +120,8 @@ runs and keep visual inspection instructions separate.
 - [ ] Paired revisions, environment, hashes, commands and artifacts are retained.
 
 Follow [CONTRIBUTING](../CONTRIBUTING.md) for the focused issue/PR workflow,
-full implementation-phase `validate.py` evidence and explicit review before
+scoped `validate.py --changed` evidence (full `validate.py` only for shared code, core or
+environment changes; list new tests and the robot in `tests/impact.yaml`) and explicit review before
 merge. Documentation planning does not authorize implementing all proposed
 methods. A research-only example must retain that label until its acceptance
 criteria are met.
