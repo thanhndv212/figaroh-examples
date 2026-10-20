@@ -557,3 +557,61 @@ session; that recording is not read here (see Not shipped).
   byte for byte when `TIAGO_RECORDINGS_ROOT` points at a folder holding the
   original recordings (the c3d run is skipped without the `c3d` package);
   `tests/test_tiago_vicon_2023_09_20.py` checks the shipped files alone.
+
+## Square-motion validation runs (`validation/square_motion/`)
+
+Seven end-effector square-motion runs recorded with Qualisys on 2021-12-16
+(three) and 2022-01-12 (four)
+([#107](https://github.com/thanhndv212/figaroh-examples/issues/107)),
+extracted from the original recordings. They are `validation` sessions of
+their own protocol (`validation/square_motion/protocol.yaml`,
+`tiago-square-motion-validation` v1): never used to fit anything. Each run is
+two files on **one clock** (the robot clock, seconds from the first joint
+sample): `<run>_joints.csv` (`t` and the eight joints, 100 Hz) and
+`<run>_markers.csv` (`t, body, x, y, z, qx, qy, qz, qw`, metres, Qualisys
+world frame, one row per Qualisys sample, no interpolation: a lost marker is a
+gap). Bodies: `base_frame` and the end-effector body (the plate point
+`eeframe_BL`, with `BR/TR/TL`, in 2021-12; the rigid body `endeffector_frame`
+in 2022-01).
+
+| Run | Offset set | Duration (s) | Lag (s) | Correlation | Nominal registration (mm) | Rows joints / markers | sha256 (prefix) joints / markers |
+|---|---|---|---|---|---|---|---|
+| `2021-12-16-15-04-54_zero` | zero | 111.2 | +5.770 | 0.989 | 4.82 | 11124 / 38202 | `0d1ad569765f` / `b17f2c4d04b8` |
+| `2021-12-16-15-07-04_zero` | zero | 106.2 | +5.775 | 0.997 | 4.23 | 10618 / 34012 | `b5e6a1fb6cf2` / `ac5cc409a575` |
+| `2021-12-16-15-38-03_mocap` | mocap | 161.0 | +6.040 | 0.959 | 4.05 | 16101 / 18735 | `715260de4a8b` / `e873605701e2` |
+| `2022-01-12-10-55-17_zero` | zero | 491.2 | +7.730 | 0.999 | 2.90 | 49124 / 96767 | `224b08a956d4` / `3609c411f5a2` |
+| `2022-01-12-11-25-38_mocap` | mocap | 317.5 | +8.105 | 0.985 | 3.75 | 31752 / 54919 | `fed3a4336d67` / `441cd2b89e46` |
+| `2022-01-12-11-10-58_mocap_inv` | mocap_inv | 318.2 | +7.915 | 0.984 | 2.18 | 31819 / 61590 | `7c59107f5650` / `e633a0ac448c` |
+| `2022-01-12-11-38-43_pal` | pal | 327.8 | +8.100 | 0.998 | 3.30 | 32779 / 64744 | `9e08e5dc967e` / `917ea9bc2846` |
+
+- **Provenance:** the PAL introspection bag of each run (joints, Qualisys
+  `/tf`), named and hashed in `protocol.yaml` as original recordings, not
+  distributed. Sensor model, camera count and marker placement are unknown.
+- **Clock:** `lag = t_robot - t_mocap` is measured per run by the correlation
+  of the nominal-FK `wrist_ft_tool_link` speed with the end-effector marker
+  speed (+-60 s at 0.05 s, refined to 0.005 s), stored in the protocol with
+  its correlation and method. The marker stamps are put on the robot clock as
+  `t = stamp + lag - t0` (lag rounded to 1 ms). The lag is a measured value
+  (5.8 to 8.1 s), not a constant of the setup.
+- **Offset sets:** the joint offsets the robot was running (zero, mocap,
+  mocap_inv, pal) are recovered from the recorded `/tf` against the nominal
+  URDF and written with their values in `protocol.yaml`. `zero` is all 0;
+  `mocap` is the same on both dates (within 1e-5); `mocap_inv` is its sign
+  reversal (within 8e-4). PAL's own offsets are applied inside its controller
+  and are not in the recordings: the `pal` values are `unknown`, not guessed.
+- **Nominal registration:** RMS distance of the nominal-FK tool point to the
+  marker path after a rigid fit and a fixed tool point: 2.2 to 4.8 mm. A
+  check that the files agree on one clock, not a calibration; no joint
+  offset is fitted.
+- **2022-01-12 zero folder:** the issue expected no usable joint data; the
+  bag holds a complete run (491 s, correlation 0.999) and it is shipped.
+- **Not shipped:** seven 2021-12 recordings (one with marker loss, two
+  aborted and static, four without end-effector markers) and thirteen QTM
+  exports of 2022-01 (Qualisys clock only, no joints); reasons and sha256 in
+  `protocol.yaml`.
+- **Re-creation:** `python -m examples.tiago.utils.square_motion_extraction
+  BAG PREFIX --expected-sha256 SHA` from the repository root (`rosbags`
+  required). `tests/test_tiago_square_motion_extraction.py` re-creates every
+  file byte for byte when `TIAGO_RECORDINGS_ROOT` points at the original
+  recordings; `tests/test_tiago_square_motion.py` checks the shipped files
+  alone.
