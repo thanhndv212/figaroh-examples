@@ -1,0 +1,39 @@
+# TIAGo mocap across hardware (examples#100): the one fixed model every fit of
+# the study uses, whichever system recorded the session. Nothing is selected
+# on any session; see docs/development/tiago-mocap-hardware.md.
+#
+# Model: joint_offset level, core's structural selection stated explicitly,
+# the tool point (x, y, z) of wrist_ft_tool_link as the only observation, base
+# frame (6D) and tool point (3D) free. Gauge: torso and arm_1 offsets are
+# absorbed by the base, arm_7 by the tool point, so arm_2..arm_6 are the
+# comparable parameters.
+#
+# source_file is a placeholder (the Qualisys training session of the reference
+# run): examples/tiago/mocap_hardware.py sets the data file of each session, as
+# heldout_protocol.fit does, and sets known_baseframe / known_tipframe to False
+# (both frames are estimated). No validation file: held-out sessions are scored
+# by leave-one-out re-registration, never by the fit.
+extends: "tiago_unified_config.yaml"
+
+tasks:
+  calibration:
+    parameters:
+      calibration_level: "joint_offset"
+      estimation:
+        method: "structural"
+    measurements:
+      markers:
+        - name: "wrist_marker"
+          reference_joint: "arm_7_joint"
+          measurable_dof: [true, true, true, false, false, false]
+          sensor_type: "mocap"
+    data:
+      validation_data_file: ""
+
+custom:
+  mocap_hardware:
+    # Secondary run (2023 OptiTrack / Vicon only, where the files carry the
+    # tool orientation): position and orientation, core's fixed weighting
+    # (0.1 m/rad). Not optimally weighted until figaroh-plus#215, so it never
+    # drives a verdict.
+    six_d_measurable_dof: [true, true, true, true, true, true]
