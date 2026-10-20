@@ -1,0 +1,1506 @@
+{
+ "comparisons": {
+  "C1": {
+   "rows": {
+    "M_OT": {
+     "condition": 13.147792018491764,
+     "n": 13,
+     "other_session": "optitrack/2023-09-12-1552",
+     "other_session_insample_mm": 6.989805341531382,
+     "other_session_loo_mm": 11.080945095535132,
+     "params_mrad": {
+      "offsetRZ_arm_2_joint": -11.482696534419786,
+      "offsetRZ_arm_3_joint": -2.0701387207946476,
+      "offsetRZ_arm_4_joint": -1.7499704808961032,
+      "offsetRZ_arm_5_joint": -79.10914086532382,
+      "offsetRZ_arm_6_joint": 2.7087744510190976
+     },
+     "se_mrad": {
+      "offsetRZ_arm_2_joint": 4.834815080695397,
+      "offsetRZ_arm_3_joint": 4.454571961306345,
+      "offsetRZ_arm_4_joint": 4.216640137125068,
+      "offsetRZ_arm_5_joint": 11.41315039029448,
+      "offsetRZ_arm_6_joint": 8.818384523803577
+     },
+     "session": "optitrack/2023-09-12-1658",
+     "train_insample_mm": 7.094795386638976,
+     "train_loo_mm": 9.447120565149861
+    },
+    "M_Q": {
+     "condition": 62.19817465798481,
+     "n": 37,
+     "params_mrad": {
+      "offsetRZ_arm_2_joint": -2.3482045074637674,
+      "offsetRZ_arm_3_joint": 0.9977677788248253,
+      "offsetRZ_arm_4_joint": -3.741816604197472,
+      "offsetRZ_arm_5_joint": -49.82475491178067,
+      "offsetRZ_arm_6_joint": 2.8843852516631854
+     },
+     "se_mrad": {
+      "offsetRZ_arm_2_joint": 2.5938598615171276,
+      "offsetRZ_arm_3_joint": 2.421355152875527,
+      "offsetRZ_arm_4_joint": 2.5776490034939257,
+      "offsetRZ_arm_5_joint": 10.077655684421101,
+      "offsetRZ_arm_6_joint": 7.927529908991846
+     },
+     "session": "qualisys/2021-11-30-1544",
+     "train_insample_mm": 2.8756062129543527,
+     "train_loo_mm": 3.1981560982785715
+    },
+    "M_V": {
+     "condition": 12.40190954835773,
+     "n": 17,
+     "other_session": "vicon/2023-09-20-1607",
+     "other_session_insample_mm": 7.544738688027551,
+     "other_session_loo_mm": 8.71977039913926,
+     "params_mrad": {
+      "offsetRZ_arm_2_joint": -12.331990463633305,
+      "offsetRZ_arm_3_joint": -2.531253391750128,
+      "offsetRZ_arm_4_joint": -2.368766433847115,
+      "offsetRZ_arm_5_joint": -119.84163053556263,
+      "offsetRZ_arm_6_joint": 32.63291159277719
+     },
+     "se_mrad": {
+      "offsetRZ_arm_2_joint": 3.4131175716833564,
+      "offsetRZ_arm_3_joint": 4.102890427390148,
+      "offsetRZ_arm_4_joint": 3.361073222022393,
+      "offsetRZ_arm_5_joint": 9.185599165517704,
+      "offsetRZ_arm_6_joint": 6.8113312484073925
+     },
+     "session": "vicon/2023-09-20-1508",
+     "train_insample_mm": 7.260064140192828,
+     "train_loo_mm": 8.717969243852364
+    }
+   },
+   "title": "per-system fit and own-system LOO",
+   "verdict": "descriptive (no pre-registered band)"
+  },
+  "C2": {
+   "rows": {
+    "qualisys->optitrack/2023-09-12-1552|3d": {
+     "band_mm": 2.8207945840104003,
+     "class": "beyond",
+     "gap_mm": 5.353233529643049,
+     "model_loo_mm": 16.43417862517818,
+     "own_loo_mm": 11.080945095535132,
+     "ratio": 1.8977750311872095
+    },
+    "qualisys->optitrack/2023-09-12-1658|3d": {
+     "band_mm": 2.740231614175208,
+     "class": "within",
+     "gap_mm": 1.6803447582298308,
+     "model_loo_mm": 11.127465323379692,
+     "own_loo_mm": 9.447120565149861,
+     "ratio": 0.6132126749933887
+    },
+    "qualisys->vicon/2023-09-20-1508|3d": {
+     "band_mm": 1.775274012281785,
+     "class": "beyond",
+     "gap_mm": 7.839103157629358,
+     "model_loo_mm": 16.557072401481722,
+     "own_loo_mm": 8.717969243852364,
+     "ratio": 4.415714477537835
+    },
+    "qualisys->vicon/2023-09-20-1607|3d": {
+     "band_mm": 0.8574264435135277,
+     "class": "beyond",
+     "gap_mm": 8.616597477418296,
+     "model_loo_mm": 17.336367876557556,
+     "own_loo_mm": 8.71977039913926,
+     "ratio": 10.049372214495214
+    }
+   },
+   "title": "2021 model on 2023 data: transfer gap vs band",
+   "verdict": "not explained by measurement hardware alone"
+  },
+  "C3": {
+   "parameters": {
+    "optitrack-vicon|offsetRZ_arm_2_joint|3d": {
+     "band_mrad": 5.407191243802895,
+     "class": "within",
+     "difference_mrad": 0.8492939292135195,
+     "ratio": 0.15706748493256703,
+     "se_mrad": 5.918176106086514
+    },
+    "optitrack-vicon|offsetRZ_arm_3_joint|3d": {
+     "band_mrad": 5.577660156154466,
+     "class": "within",
+     "difference_mrad": 0.4611146709554803,
+     "ratio": 0.08267170427131171,
+     "se_mrad": 6.05614739067886
+    },
+    "optitrack-vicon|offsetRZ_arm_4_joint|3d": {
+     "band_mrad": 5.27279942892973,
+     "class": "within",
+     "difference_mrad": 0.6187959529510119,
+     "ratio": 0.11735624714946054,
+     "se_mrad": 5.39229702907862
+    },
+    "optitrack-vicon|offsetRZ_arm_5_joint|3d": {
+     "band_mrad": 13.694095216103536,
+     "class": "beyond",
+     "difference_mrad": 40.732489670238806,
+     "ratio": 2.974456437424178,
+     "se_mrad": 14.650434596319613
+    },
+    "optitrack-vicon|offsetRZ_arm_6_joint|3d": {
+     "band_mrad": 8.102920862561199,
+     "class": "beyond",
+     "difference_mrad": -29.92413714175809,
+     "ratio": 3.693006219525087,
+     "se_mrad": 11.142627113261462
+    }
+   },
+   "title": "near-date hardware: OptiTrack model on Vicon and the reverse",
+   "transfer": {
+    "optitrack->vicon/2023-09-20-1508|3d": {
+     "band_mm": 1.4184863441214044,
+     "class": "beyond",
+     "gap_mm": 4.168134263393089,
+     "model_loo_mm": 12.886103507245453,
+     "own_loo_mm": 8.717969243852364,
+     "ratio": 2.9384380615766785
+    },
+    "optitrack->vicon/2023-09-20-1607|3d": {
+     "band_mm": 1.4916701667894985,
+     "class": "beyond",
+     "gap_mm": 4.913367502437536,
+     "model_loo_mm": 13.633137901576797,
+     "own_loo_mm": 8.71977039913926,
+     "ratio": 3.2938699263608058
+    },
+    "vicon->optitrack/2023-09-12-1552|3d": {
+     "band_mm": 2.7476738493121746,
+     "class": "within",
+     "gap_mm": -0.2347190601479845,
+     "model_loo_mm": 10.846226035387147,
+     "own_loo_mm": 11.080945095535132,
+     "ratio": 0.08542464390624153
+    },
+    "vicon->optitrack/2023-09-12-1658|3d": {
+     "band_mm": 1.3052937762038619,
+     "class": "beyond",
+     "gap_mm": 4.447571992067719,
+     "model_loo_mm": 13.89469255721758,
+     "own_loo_mm": 9.447120565149861,
+     "ratio": 3.4073340983839127
+    }
+   },
+   "verdict": "not explained by measurement hardware alone"
+  },
+  "C5": {
+   "arm_1_arm_7_unobservable": true,
+   "arm_6_null_also_within_limit": true,
+   "pass": true,
+   "rows": {
+    "offsetRZ_arm_2_joint": {
+     "deviation_mrad": 6.167355687135488,
+     "difference_mrad": 6.167355687135488,
+     "expected_mrad": "0",
+     "limit_mrad": 7.2894870357495325,
+     "pass": true,
+     "se_mrad": 3.6447435178747662
+    },
+    "offsetRZ_arm_3_joint": {
+     "deviation_mrad": 1.153516442992239,
+     "difference_mrad": -1.153516442992239,
+     "expected_mrad": "0",
+     "limit_mrad": 6.585568643866501,
+     "pass": true,
+     "se_mrad": 3.2927843219332504
+    },
+    "offsetRZ_arm_4_joint": {
+     "deviation_mrad": 6.976412528321005,
+     "difference_mrad": -6.976412528321005,
+     "expected_mrad": "0",
+     "limit_mrad": 7.253046824359095,
+     "pass": true,
+     "se_mrad": 3.6265234121795475
+    },
+    "offsetRZ_arm_5_joint": {
+     "deviation_mrad": 2.5868843483534825,
+     "difference_mrad": 2.5868843483534825,
+     "expected_mrad": "0",
+     "limit_mrad": 24.005040718347207,
+     "pass": true,
+     "se_mrad": 12.002520359173603
+    },
+    "offsetRZ_arm_6_joint": {
+     "deviation_mrad": 16.516709518722024,
+     "difference_mrad": -2.7832904812779766,
+     "expected_mrad": "-19.3",
+     "limit_mrad": 36.86686499456479,
+     "pass": true,
+     "se_mrad": 18.433432497282396
+    }
+   },
+   "title": "positive control: 2021-10-26 1051 against 1102",
+   "verdict": "control passed"
+  },
+  "arm5_diagnostic": {
+   "rows": {
+    "optitrack/2023-09-12-1552": {
+     "arm_5_offset_M_Q_mrad": -49.82475491178067,
+     "arm_5_offset_mrad": -90.96606966483864,
+     "loo_mm": 14.339649222654133
+    },
+    "optitrack/2023-09-12-1658": {
+     "arm_5_offset_M_Q_mrad": -49.82475491178067,
+     "arm_5_offset_mrad": -71.65306601843734,
+     "loo_mm": 10.797349289922645
+    },
+    "vicon/2023-09-20-1508": {
+     "arm_5_offset_M_Q_mrad": -49.82475491178067,
+     "arm_5_offset_mrad": -116.24686368589062,
+     "loo_mm": 12.425224385347866
+    },
+    "vicon/2023-09-20-1607": {
+     "arm_5_offset_M_Q_mrad": -49.82475491178067,
+     "arm_5_offset_mrad": -122.04211247138308,
+     "loo_mm": 12.906162370376261
+    }
+   },
+   "title": "M_Q with only arm_5 refitted"
+  },
+  "secondary_6d": {
+   "parameters": {
+    "optitrack-vicon|offsetRZ_arm_2_joint|6d": {
+     "band_mrad": 5.087045719508922,
+     "class": "within",
+     "difference_mrad": 0.6085028099443237,
+     "ratio": 0.11961811304559411,
+     "se_mrad": 4.055826777846579
+    },
+    "optitrack-vicon|offsetRZ_arm_3_joint|6d": {
+     "band_mrad": 5.126458307154514,
+     "class": "within",
+     "difference_mrad": 0.34300648909669923,
+     "ratio": 0.0669090566128271,
+     "se_mrad": 4.098097537384895
+    },
+    "optitrack-vicon|offsetRZ_arm_4_joint|6d": {
+     "band_mrad": 4.921105076742323,
+     "class": "within",
+     "difference_mrad": -0.014881436742360601,
+     "ratio": 0.003024003046123093,
+     "se_mrad": 3.6717038401689006
+    },
+    "optitrack-vicon|offsetRZ_arm_5_joint|6d": {
+     "band_mrad": 10.056193099766515,
+     "class": "beyond",
+     "difference_mrad": 43.86176582228976,
+     "ratio": 4.361667023210616,
+     "se_mrad": 8.899902788037961
+    },
+    "optitrack-vicon|offsetRZ_arm_6_joint|6d": {
+     "band_mrad": 6.273649588432467,
+     "class": "beyond",
+     "difference_mrad": -30.73403684687886,
+     "ratio": 4.8989087473975514,
+     "se_mrad": 7.0359436183665105
+    }
+   },
+   "title": "6D (W_ROT = 0.1 m/rad; not optimal until core #215; never decides)",
+   "transfer": {
+    "optitrack->vicon/2023-09-20-1508|6d": {
+     "band_mm": 1.261355462697653,
+     "class": "beyond",
+     "gap_mm": 5.211675309899009,
+     "model_loo_mm": 14.395278361424044,
+     "own_loo_mm": 9.183603051525035,
+     "ratio": 4.131805398260084
+    },
+    "optitrack->vicon/2023-09-20-1607|6d": {
+     "band_mm": 1.2840755249665474,
+     "class": "beyond",
+     "gap_mm": 5.9207394947299665,
+     "model_loo_mm": 15.181465232417995,
+     "own_loo_mm": 9.260725737688029,
+     "ratio": 4.610896617536739
+    },
+    "qualisys->optitrack/2023-09-12-1552|6d": {
+     "band_mm": 2.892584935213787,
+     "class": "beyond",
+     "gap_mm": 4.849349896122261,
+     "model_loo_mm": 17.023881742076785,
+     "own_loo_mm": 12.174531845954524,
+     "ratio": 1.6764762331045784
+    },
+    "qualisys->optitrack/2023-09-12-1658|6d": {
+     "band_mm": 2.7090042815028594,
+     "class": "within",
+     "gap_mm": 1.6472823816558062,
+     "model_loo_mm": 11.889507076935061,
+     "own_loo_mm": 10.242224695279255,
+     "ratio": 0.6080766992150903
+    },
+    "qualisys->vicon/2023-09-20-1508|6d": {
+     "band_mm": 1.9290976006574332,
+     "class": "beyond",
+     "gap_mm": 8.849879977085399,
+     "model_loo_mm": 18.033483028610434,
+     "own_loo_mm": 9.183603051525035,
+     "ratio": 4.58757502682569
+    },
+    "qualisys->vicon/2023-09-20-1607|6d": {
+     "band_mm": 0.9581643552408959,
+     "class": "beyond",
+     "gap_mm": 9.624394880650291,
+     "model_loo_mm": 18.88512061833832,
+     "own_loo_mm": 9.260725737688029,
+     "ratio": 10.044617948901452
+    },
+    "vicon->optitrack/2023-09-12-1552|6d": {
+     "band_mm": 2.381230561827089,
+     "class": "within",
+     "gap_mm": 0.3419169756966429,
+     "model_loo_mm": 12.516448821651167,
+     "own_loo_mm": 12.174531845954524,
+     "ratio": 0.14358835350840377
+    },
+    "vicon->optitrack/2023-09-12-1658|6d": {
+     "band_mm": 1.1728351372575372,
+     "class": "beyond",
+     "gap_mm": 5.144635457964624,
+     "model_loo_mm": 15.386860153243878,
+     "own_loo_mm": 10.242224695279255,
+     "ratio": 4.386494993656503
+    }
+   },
+   "verdict": "not explained by measurement hardware alone"
+  },
+  "supporting": {
+   "parameters_vs_qualisys": {
+    "qualisys-optitrack|offsetRZ_arm_2_joint|3d": {
+     "band_mrad": 7.183402305208742,
+     "class": "borderline",
+     "difference_mrad": 9.134492026956018,
+     "ratio": 1.271610810427884,
+     "se_mrad": 5.486669832030108
+    },
+    "qualisys-optitrack|offsetRZ_arm_3_joint|3d": {
+     "band_mrad": 2.9688268669394455,
+     "class": "borderline",
+     "difference_mrad": 3.067906499619473,
+     "ratio": 1.0333733279577089,
+     "se_mrad": 5.0701254555300235
+    },
+    "qualisys-optitrack|offsetRZ_arm_4_joint|3d": {
+     "band_mrad": 6.006090779934205,
+     "class": "within",
+     "difference_mrad": -1.9918461233013693,
+     "ratio": 0.3316376985103095,
+     "se_mrad": 4.942097574029406
+    },
+    "qualisys-optitrack|offsetRZ_arm_5_joint|3d": {
+     "band_mrad": 25.08037804988323,
+     "class": "borderline",
+     "difference_mrad": 29.28438595354315,
+     "ratio": 1.1676213929191348,
+     "se_mrad": 15.22560822841649
+    },
+    "qualisys-optitrack|offsetRZ_arm_6_joint|3d": {
+     "band_mrad": 9.203806172263343,
+     "class": "within",
+     "difference_mrad": 0.17561080064408757,
+     "ratio": 0.019080236736548142,
+     "se_mrad": 11.857893407668106
+    },
+    "qualisys-vicon|offsetRZ_arm_2_joint|3d": {
+     "band_mrad": 7.769433563515708,
+     "class": "borderline",
+     "difference_mrad": 9.983785956169537,
+     "ratio": 1.2850082151486761,
+     "se_mrad": 4.286896376088807
+    },
+    "qualisys-vicon|offsetRZ_arm_3_joint|3d": {
+     "band_mrad": 5.073651660157329,
+     "class": "borderline",
+     "difference_mrad": 3.529021170574953,
+     "ratio": 0.6955584275301868,
+     "se_mrad": 4.764102290623761
+    },
+    "qualisys-vicon|offsetRZ_arm_4_joint|3d": {
+     "band_mrad": 5.908442976631972,
+     "class": "within",
+     "difference_mrad": -1.3730501703503573,
+     "ratio": 0.23238781787025828,
+     "se_mrad": 4.235692102715826
+    },
+    "qualisys-vicon|offsetRZ_arm_5_joint|3d": {
+     "band_mrad": 12.693963415851016,
+     "class": "beyond",
+     "difference_mrad": 70.01687562378194,
+     "ratio": 5.5157615734382475,
+     "se_mrad": 13.635775596690658
+    },
+    "qualisys-vicon|offsetRZ_arm_6_joint|3d": {
+     "band_mrad": 6.76968862339985,
+     "class": "beyond",
+     "difference_mrad": -29.748526341114,
+     "ratio": 4.39437143952033,
+     "se_mrad": 10.451792374205072
+    }
+   }
+  }
+ },
+ "fits": {
+  "M_OT|3d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint"
+   ],
+   "condition": 13.147792018491764,
+   "n": 13,
+   "params": {
+    "base_phix": -1.5926334939151683,
+    "base_phiy": -0.0023022132426444475,
+    "base_phiz": -0.01972094423575476,
+    "base_px": 7.129337455772617,
+    "base_py": -0.30081369439832745,
+    "base_pz": -1.764017513526362,
+    "offsetRZ_arm_2_joint": -0.011482696534419785,
+    "offsetRZ_arm_3_joint": -0.0020701387207946475,
+    "offsetRZ_arm_4_joint": -0.001749970480896103,
+    "offsetRZ_arm_5_joint": -0.07910914086532382,
+    "offsetRZ_arm_6_joint": 0.0027087744510190977,
+    "pEEx_1": 0.13440357137047043,
+    "pEEy_1": -0.0020699464889467178,
+    "pEEz_1": 0.02425011981083943
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.003061146475571731,
+    "base_phiy": 0.003587492675246918,
+    "base_phiz": 0.004859240276572634,
+    "base_px": 0.004329893891044859,
+    "base_py": 0.0027813998917869693,
+    "base_pz": 0.0033421858793402557,
+    "offsetRZ_arm_2_joint": 0.004834815080695397,
+    "offsetRZ_arm_3_joint": 0.004454571961306345,
+    "offsetRZ_arm_4_joint": 0.004216640137125068,
+    "offsetRZ_arm_5_joint": 0.01141315039029448,
+    "offsetRZ_arm_6_joint": 0.008818384523803577,
+    "pEEx_1": 0.0016468409330158706,
+    "pEEy_1": 0.0018502788600641346,
+    "pEEz_1": 0.002027794867445791
+   }
+  },
+  "M_OT|6d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint",
+    "offsetRZ_arm_7_joint"
+   ],
+   "condition": 19.20114102873228,
+   "n": 13,
+   "params": {
+    "base_phix": -1.5928446014403863,
+    "base_phiy": -0.002531361975287703,
+    "base_phiz": -0.020915106279340713,
+    "base_px": 7.128197702301352,
+    "base_py": -0.2998833811884363,
+    "base_pz": -1.7638957243639344,
+    "offsetRZ_arm_2_joint": -0.011964010009139731,
+    "offsetRZ_arm_3_joint": -0.002391449552918317,
+    "offsetRZ_arm_4_joint": -0.0027939358546099245,
+    "offsetRZ_arm_5_joint": -0.0758193098444912,
+    "offsetRZ_arm_6_joint": 0.0017934608478386836,
+    "pEEx_1": 0.1341924372007156,
+    "pEEy_1": -0.001715102465984976,
+    "pEEz_1": 0.024403967568230007,
+    "phiEEx_1": 1.735864614895085,
+    "phiEEy_1": 0.2243649768015132,
+    "phiEEz_1": -0.02733693844486924
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.002130345261748044,
+    "base_phiy": 0.0024767117534445484,
+    "base_phiz": 0.0033055953172879903,
+    "base_px": 0.0029436696420176013,
+    "base_py": 0.0019000984202715834,
+    "base_pz": 0.0023318282520037323,
+    "offsetRZ_arm_2_joint": 0.0033196891355142923,
+    "offsetRZ_arm_3_joint": 0.0030328694785015232,
+    "offsetRZ_arm_4_joint": 0.0028929990729751514,
+    "offsetRZ_arm_5_joint": 0.0069602782458626725,
+    "offsetRZ_arm_6_joint": 0.005608724241785549,
+    "pEEx_1": 0.0011683456610628018,
+    "pEEy_1": 0.0012891572762114762,
+    "pEEz_1": 0.0014042420476545305,
+    "phiEEx_1": 0.011279157796400645,
+    "phiEEy_1": 0.010471506665993705,
+    "phiEEz_1": 0.010584061103440482
+   }
+  },
+  "M_Q|3d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint"
+   ],
+   "condition": 62.19817465798481,
+   "n": 37,
+   "params": {
+    "base_phix": 0.008912104233826185,
+    "base_phiy": 0.007249495002998233,
+    "base_phiz": -0.0027358684437314056,
+    "base_px": 0.006622633245057755,
+    "base_py": 0.19707121243625467,
+    "base_pz": -0.33270901122753666,
+    "offsetRZ_arm_2_joint": -0.0023482045074637676,
+    "offsetRZ_arm_3_joint": 0.0009977677788248253,
+    "offsetRZ_arm_4_joint": -0.0037418166041974722,
+    "offsetRZ_arm_5_joint": -0.04982475491178067,
+    "offsetRZ_arm_6_joint": 0.0028843852516631852,
+    "pEEx_1": 0.06306032071780275,
+    "pEEy_1": -0.0029019706594123683,
+    "pEEz_1": 0.07038756287922787
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.0014792501621634598,
+    "base_phiy": 0.002593128030107597,
+    "base_phiz": 0.0016628675056824707,
+    "base_px": 0.0021091573367081886,
+    "base_py": 0.0013852161938696498,
+    "base_pz": 0.0013442884209614303,
+    "offsetRZ_arm_2_joint": 0.0025938598615171276,
+    "offsetRZ_arm_3_joint": 0.002421355152875527,
+    "offsetRZ_arm_4_joint": 0.0025776490034939256,
+    "offsetRZ_arm_5_joint": 0.010077655684421101,
+    "offsetRZ_arm_6_joint": 0.007927529908991846,
+    "pEEx_1": 0.0007271997358637523,
+    "pEEy_1": 0.001565400527896874,
+    "pEEz_1": 0.0007568994384086668
+   }
+  },
+  "M_V|3d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint"
+   ],
+   "condition": 12.40190954835773,
+   "n": 17,
+   "params": {
+    "base_phix": 0.002698376444504294,
+    "base_phiy": 0.006419771678747253,
+    "base_phiz": -1.5403538457129442,
+    "base_px": 1.0726018341065533,
+    "base_py": 0.45692892642558425,
+    "base_pz": -0.004566899558929005,
+    "offsetRZ_arm_2_joint": -0.012331990463633305,
+    "offsetRZ_arm_3_joint": -0.002531253391750128,
+    "offsetRZ_arm_4_joint": -0.002368766433847115,
+    "offsetRZ_arm_5_joint": -0.11984163053556263,
+    "offsetRZ_arm_6_joint": 0.03263291159277719,
+    "pEEx_1": 0.13387118286595437,
+    "pEEy_1": 0.001630750206255274,
+    "pEEz_1": 0.023165473808803662
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.0022853766772129337,
+    "base_phiy": 0.003301941741954123,
+    "base_phiz": 0.002913496854783423,
+    "base_px": 0.0024393338107554312,
+    "base_py": 0.003147829167895285,
+    "base_pz": 0.0018079682282973622,
+    "offsetRZ_arm_2_joint": 0.0034131175716833563,
+    "offsetRZ_arm_3_joint": 0.004102890427390147,
+    "offsetRZ_arm_4_joint": 0.003361073222022393,
+    "offsetRZ_arm_5_joint": 0.009185599165517705,
+    "offsetRZ_arm_6_joint": 0.006811331248407392,
+    "pEEx_1": 0.0012439733641016375,
+    "pEEy_1": 0.0015531435436566092,
+    "pEEz_1": 0.0015638261263211486
+   }
+  },
+  "M_V|6d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint",
+    "offsetRZ_arm_7_joint"
+   ],
+   "condition": 34.021234890099784,
+   "n": 17,
+   "params": {
+    "base_phix": 0.0026283095636838575,
+    "base_phiy": 0.006569388675498757,
+    "base_phiz": -1.5400583406001565,
+    "base_px": 1.0724449735935535,
+    "base_py": 0.45709225768314077,
+    "base_pz": -0.004400252598867487,
+    "offsetRZ_arm_2_joint": -0.012572512819084055,
+    "offsetRZ_arm_3_joint": -0.002734456042015016,
+    "offsetRZ_arm_4_joint": -0.002779054417867564,
+    "offsetRZ_arm_5_joint": -0.11968107566678096,
+    "offsetRZ_arm_6_joint": 0.03252749769471754,
+    "pEEx_1": 0.13388724323767656,
+    "pEEy_1": 0.0016907473388628456,
+    "pEEz_1": 0.023245737174144562,
+    "phiEEx_1": 1.5145587164285825,
+    "phiEEy_1": -0.8825882187749812,
+    "phiEEz_1": 3.147995843206588
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.0015757439580553977,
+    "base_phiy": 0.0022470599124147124,
+    "base_phiz": 0.0019783755784583824,
+    "base_px": 0.0016938960714170874,
+    "base_py": 0.002123400511654035,
+    "base_pz": 0.0012378170867143178,
+    "offsetRZ_arm_2_joint": 0.0023301061983192375,
+    "offsetRZ_arm_3_joint": 0.0027561034364286903,
+    "offsetRZ_arm_4_joint": 0.002260965602055009,
+    "offsetRZ_arm_5_joint": 0.005546421943622456,
+    "offsetRZ_arm_6_joint": 0.004248142532971268,
+    "pEEx_1": 0.0008738363019569281,
+    "pEEy_1": 0.0010708063659343298,
+    "pEEz_1": 0.0010819884033566082,
+    "phiEEx_1": 0.01393268974597524,
+    "phiEEy_1": 0.008558865058273005,
+    "phiEEz_1": 0.013450175008235376
+   }
+  },
+  "OT1552|3d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint"
+   ],
+   "condition": 14.955444542391202,
+   "n": 9,
+   "params": {
+    "base_phix": -1.5898194599412323,
+    "base_phiy": -0.0009854878475033706,
+    "base_phiz": -0.01380813333360861,
+    "base_px": 7.13642974367664,
+    "base_py": -0.30253834738287894,
+    "base_pz": -1.7684011881199488,
+    "offsetRZ_arm_2_joint": -0.01628802795591829,
+    "offsetRZ_arm_3_joint": -0.010473637207805545,
+    "offsetRZ_arm_4_joint": 0.0004278255748798227,
+    "offsetRZ_arm_5_joint": -0.10246895484834886,
+    "offsetRZ_arm_6_joint": 0.02004612446220514,
+    "pEEx_1": 0.1342681499342168,
+    "pEEy_1": 0.0008222149000181328,
+    "pEEz_1": 0.021768799617357577
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.003570166458704168,
+    "base_phiy": 0.0039274394508739255,
+    "base_phiz": 0.006159914494362703,
+    "base_px": 0.005709912715556533,
+    "base_py": 0.0028602126257144963,
+    "base_pz": 0.003790153726904269,
+    "offsetRZ_arm_2_joint": 0.006147494519350607,
+    "offsetRZ_arm_3_joint": 0.0057607097439392844,
+    "offsetRZ_arm_4_joint": 0.005287315942506633,
+    "offsetRZ_arm_5_joint": 0.011296155390898526,
+    "offsetRZ_arm_6_joint": 0.008756761167210757,
+    "pEEx_1": 0.0016397490346000832,
+    "pEEy_1": 0.0019743010700465136,
+    "pEEz_1": 0.002581804293225541
+   }
+  },
+  "Q1051|3d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint"
+   ],
+   "condition": 75.91324293323085,
+   "n": 26,
+   "params": {
+    "base_phix": 0.008949540601871968,
+    "base_phiy": 0.019435532984964417,
+    "base_phiz": -0.06393738710030795,
+    "base_px": 0.6544005614587418,
+    "base_py": 0.0074578430086421925,
+    "base_pz": -0.08305626410718765,
+    "offsetRZ_arm_2_joint": 0.0010591163223757534,
+    "offsetRZ_arm_3_joint": 0.0030570879511164907,
+    "offsetRZ_arm_4_joint": -0.01651106320402306,
+    "offsetRZ_arm_5_joint": -0.0894691963993743,
+    "offsetRZ_arm_6_joint": 0.04589194870182921,
+    "pEEx_1": 0.04539540095309938,
+    "pEEy_1": -0.0021729068096592386,
+    "pEEz_1": -0.10397995078547828
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.0017323104784289372,
+    "base_phiy": 0.0025556856268584604,
+    "base_phiz": 0.0017539179778253992,
+    "base_px": 0.0021951823465033615,
+    "base_py": 0.0014928259618278773,
+    "base_pz": 0.0012209342878205642,
+    "offsetRZ_arm_2_joint": 0.002670499204297431,
+    "offsetRZ_arm_3_joint": 0.0024220272740876837,
+    "offsetRZ_arm_4_joint": 0.00258880072344569,
+    "offsetRZ_arm_5_joint": 0.008796850833956569,
+    "offsetRZ_arm_6_joint": 0.014826372974242618,
+    "pEEx_1": 0.0005916011808723861,
+    "pEEy_1": 0.0013647565567692533,
+    "pEEz_1": 0.0010323983640954943
+   }
+  },
+  "Q1102|3d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint"
+   ],
+   "condition": 54.561370260037485,
+   "n": 25,
+   "params": {
+    "base_phix": 0.008570455470754832,
+    "base_phiy": 0.016124068709268816,
+    "base_phiz": -0.0410418069913691,
+    "base_px": 0.6575545523283509,
+    "base_py": 0.005279237402548316,
+    "base_pz": -0.08277867961681339,
+    "offsetRZ_arm_2_joint": -0.005108239364759734,
+    "offsetRZ_arm_3_joint": 0.00421060439410873,
+    "offsetRZ_arm_4_joint": -0.009534650675702054,
+    "offsetRZ_arm_5_joint": -0.09205608074772778,
+    "offsetRZ_arm_6_joint": 0.048675239183107184,
+    "pEEx_1": 0.044249700705609595,
+    "pEEy_1": -0.0026203744636975994,
+    "pEEz_1": -0.10263974190246643
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.001864523131610284,
+    "base_phiy": 0.0026283532954964207,
+    "base_phiz": 0.0015563448014238445,
+    "base_px": 0.0022399716731297484,
+    "base_py": 0.00151916621298104,
+    "base_pz": 0.0012564014735436603,
+    "offsetRZ_arm_2_joint": 0.0024804413540611904,
+    "offsetRZ_arm_3_joint": 0.002230742583613089,
+    "offsetRZ_arm_4_joint": 0.002539642272717451,
+    "offsetRZ_arm_5_joint": 0.008165531849028235,
+    "offsetRZ_arm_6_joint": 0.010953086234505542,
+    "pEEx_1": 0.0006310125913152343,
+    "pEEy_1": 0.000966505985586759,
+    "pEEz_1": 0.0008089759633654643
+   }
+  },
+  "V1607|3d": {
+   "absorbed": [
+    "offsetPZ_torso_lift_joint",
+    "offsetRZ_arm_1_joint"
+   ],
+   "condition": 11.189856024640763,
+   "n": 21,
+   "params": {
+    "base_phix": 0.006141007058806291,
+    "base_phiy": 0.004647640772399007,
+    "base_phiz": -1.6343576901551664,
+    "base_px": 0.9254000941158168,
+    "base_py": 0.5332785562451053,
+    "base_pz": -0.003815375124315975,
+    "offsetRZ_arm_2_joint": -0.010111760948082594,
+    "offsetRZ_arm_3_joint": -0.0004264507126138529,
+    "offsetRZ_arm_4_joint": -0.00205963860636125,
+    "offsetRZ_arm_5_joint": -0.12246229476578768,
+    "offsetRZ_arm_6_joint": 0.04315430742911661,
+    "pEEx_1": 0.1349307165214124,
+    "pEEy_1": -0.0007009435967743095,
+    "pEEz_1": 0.022269351921772988
+   },
+   "status": 2,
+   "std": {
+    "base_phix": 0.0021581236216855013,
+    "base_phiy": 0.002703554918066973,
+    "base_phiz": 0.002439182515400274,
+    "base_px": 0.002220048722267202,
+    "base_py": 0.0025979346124666678,
+    "base_pz": 0.0015774490837294065,
+    "offsetRZ_arm_2_joint": 0.003457939112327154,
+    "offsetRZ_arm_3_joint": 0.003163399125595608,
+    "offsetRZ_arm_4_joint": 0.002934861978546857,
+    "offsetRZ_arm_5_joint": 0.007633056812526293,
+    "offsetRZ_arm_6_joint": 0.005961292674582233,
+    "pEEx_1": 0.0010883830309902395,
+    "pEEy_1": 0.0012602687317979351,
+    "pEEz_1": 0.0013318723629320082
+   }
+  }
+ },
+ "fixture_recovery_z": {
+  "3d": {
+   "n": 75,
+   "rms": 1.007
+  },
+  "6d": {
+   "n": 50,
+   "rms": 1.538
+  },
+  "all": {
+   "n": 125,
+   "rms": 1.247
+  }
+ },
+ "matrix": {
+  "OT1552|optitrack/2023-09-12-1552|3d": {
+   "insample_mm": 5.0556467904530615,
+   "loo_mm": 8.24908541334069
+  },
+  "OT1552|optitrack/2023-09-12-1658|3d": {
+   "insample_mm": 8.835639717514663,
+   "loo_mm": 12.423591144305112
+  },
+  "OT1552|qualisys/2021-10-26-1051|3d": {
+   "insample_mm": 5.220635805317759,
+   "loo_mm": 5.9887313837825324
+  },
+  "OT1552|qualisys/2021-10-26-1102|3d": {
+   "insample_mm": 4.124363741458215,
+   "loo_mm": 4.823215234562226
+  },
+  "OT1552|qualisys/2021-11-26-1105|3d": {
+   "insample_mm": 5.0690194651593306,
+   "loo_mm": 5.326421674985775
+  },
+  "OT1552|qualisys/2021-11-30-1403|3d": {
+   "insample_mm": 5.168649781596951,
+   "loo_mm": 5.423224610653683
+  },
+  "OT1552|qualisys/2021-11-30-1504|3d": {
+   "insample_mm": 4.957531577886531,
+   "loo_mm": 5.207296782658488
+  },
+  "OT1552|qualisys/2021-11-30-1544|3d": {
+   "insample_mm": 4.090104344000129,
+   "loo_mm": 4.492931088166306
+  },
+  "OT1552|vicon/2023-09-20-1508|3d": {
+   "insample_mm": 8.736304270670807,
+   "loo_mm": 10.818951082757524
+  },
+  "OT1552|vicon/2023-09-20-1607|3d": {
+   "insample_mm": 9.445291596807849,
+   "loo_mm": 11.025439523126922
+  },
+  "Q1051|optitrack/2023-09-12-1552|3d": {
+   "insample_mm": 11.943594904836713,
+   "loo_mm": 18.547009891045054
+  },
+  "Q1051|optitrack/2023-09-12-1658|3d": {
+   "insample_mm": 13.21700840783711,
+   "loo_mm": 18.033115464584295
+  },
+  "Q1051|qualisys/2021-10-26-1051|3d": {
+   "insample_mm": 2.6188651238817666,
+   "loo_mm": 3.0807442868548724
+  },
+  "Q1051|qualisys/2021-10-26-1102|3d": {
+   "insample_mm": 3.0535265363112116,
+   "loo_mm": 3.6028526766789097
+  },
+  "Q1051|qualisys/2021-11-26-1105|3d": {
+   "insample_mm": 4.274365660520252,
+   "loo_mm": 4.618086872523159
+  },
+  "Q1051|qualisys/2021-11-30-1403|3d": {
+   "insample_mm": 4.183311291190671,
+   "loo_mm": 4.502651249302545
+  },
+  "Q1051|qualisys/2021-11-30-1504|3d": {
+   "insample_mm": 3.898547141181519,
+   "loo_mm": 4.215900583552817
+  },
+  "Q1051|qualisys/2021-11-30-1544|3d": {
+   "insample_mm": 3.7805997212415092,
+   "loo_mm": 4.350396363573947
+  },
+  "Q1051|vicon/2023-09-20-1508|3d": {
+   "insample_mm": 11.76653517260033,
+   "loo_mm": 14.499866551322604
+  },
+  "Q1051|vicon/2023-09-20-1607|3d": {
+   "insample_mm": 12.020735654473421,
+   "loo_mm": 14.536924644068792
+  },
+  "Q1102|optitrack/2023-09-12-1552|3d": {
+   "insample_mm": 9.423731868915077,
+   "loo_mm": 14.323933909208977
+  },
+  "Q1102|optitrack/2023-09-12-1658|3d": {
+   "insample_mm": 11.531079749109415,
+   "loo_mm": 15.32335330836249
+  },
+  "Q1102|qualisys/2021-10-26-1051|3d": {
+   "insample_mm": 3.0639736359110734,
+   "loo_mm": 3.5371129246549105
+  },
+  "Q1102|qualisys/2021-10-26-1102|3d": {
+   "insample_mm": 2.561214065394319,
+   "loo_mm": 2.9848726238726013
+  },
+  "Q1102|qualisys/2021-11-26-1105|3d": {
+   "insample_mm": 3.8115913103165218,
+   "loo_mm": 4.09475631397947
+  },
+  "Q1102|qualisys/2021-11-30-1403|3d": {
+   "insample_mm": 3.7784763929309224,
+   "loo_mm": 4.041698181283239
+  },
+  "Q1102|qualisys/2021-11-30-1504|3d": {
+   "insample_mm": 3.5722122464733412,
+   "loo_mm": 3.840744646236642
+  },
+  "Q1102|qualisys/2021-11-30-1544|3d": {
+   "insample_mm": 3.4501317358782306,
+   "loo_mm": 3.926319156422118
+  },
+  "Q1102|vicon/2023-09-20-1508|3d": {
+   "insample_mm": 9.375451166512235,
+   "loo_mm": 11.33734765118857
+  },
+  "Q1102|vicon/2023-09-20-1607|3d": {
+   "insample_mm": 9.493867991354632,
+   "loo_mm": 11.261881154306476
+  },
+  "V1607|optitrack/2023-09-12-1552|3d": {
+   "insample_mm": 8.11626419641971,
+   "loo_mm": 12.539070985506473
+  },
+  "V1607|optitrack/2023-09-12-1658|3d": {
+   "insample_mm": 11.405458407815471,
+   "loo_mm": 15.3254003258016
+  },
+  "V1607|qualisys/2021-10-26-1051|3d": {
+   "insample_mm": 4.313207726356904,
+   "loo_mm": 5.002808796965096
+  },
+  "V1607|qualisys/2021-10-26-1102|3d": {
+   "insample_mm": 3.3689283626718534,
+   "loo_mm": 4.089331869711749
+  },
+  "V1607|qualisys/2021-11-26-1105|3d": {
+   "insample_mm": 4.2289427196736655,
+   "loo_mm": 4.483941546359262
+  },
+  "V1607|qualisys/2021-11-30-1403|3d": {
+   "insample_mm": 4.392151250873498,
+   "loo_mm": 4.644807789142286
+  },
+  "V1607|qualisys/2021-11-30-1504|3d": {
+   "insample_mm": 4.191950399350535,
+   "loo_mm": 4.435222007809558
+  },
+  "V1607|qualisys/2021-11-30-1544|3d": {
+   "insample_mm": 3.791946656956951,
+   "loo_mm": 4.210767401489371
+  },
+  "V1607|vicon/2023-09-20-1508|3d": {
+   "insample_mm": 7.565912846022414,
+   "loo_mm": 9.06975544622519
+  },
+  "V1607|vicon/2023-09-20-1607|3d": {
+   "insample_mm": 7.286858383300896,
+   "loo_mm": 8.438834819678155
+  },
+  "optitrack|optitrack/2023-09-12-1552|3d": {
+   "insample_mm": 6.989805341531382,
+   "loo_mm": 11.080945095535132
+  },
+  "optitrack|optitrack/2023-09-12-1552|6d": {
+   "insample_6d_mm": 7.873468844843206,
+   "insample_mm": 7.26008995375308,
+   "loo_6d_mm": 12.174531845954524,
+   "loo_mm": 11.586662600806203
+  },
+  "optitrack|optitrack/2023-09-12-1658|3d": {
+   "insample_mm": 7.094795386638976,
+   "loo_mm": 9.447120565149861
+  },
+  "optitrack|optitrack/2023-09-12-1658|6d": {
+   "insample_6d_mm": 7.907084459023151,
+   "insample_mm": 7.126547508507186,
+   "loo_6d_mm": 10.242224695279255,
+   "loo_mm": 9.512958477095937
+  },
+  "optitrack|qualisys/2021-10-26-1051|3d": {
+   "insample_mm": 4.112816813916473,
+   "loo_mm": 4.715220932766108
+  },
+  "optitrack|qualisys/2021-10-26-1102|3d": {
+   "insample_mm": 3.2546023651465643,
+   "loo_mm": 3.7179232165894835
+  },
+  "optitrack|qualisys/2021-11-26-1105|3d": {
+   "insample_mm": 4.059992259185394,
+   "loo_mm": 4.29624174974499
+  },
+  "optitrack|qualisys/2021-11-30-1403|3d": {
+   "insample_mm": 4.16827996629191,
+   "loo_mm": 4.393589305419045
+  },
+  "optitrack|qualisys/2021-11-30-1504|3d": {
+   "insample_mm": 4.050372248553156,
+   "loo_mm": 4.276186690066611
+  },
+  "optitrack|qualisys/2021-11-30-1544|3d": {
+   "insample_mm": 3.2752651791459657,
+   "loo_mm": 3.6078377202646084
+  },
+  "optitrack|vicon/2023-09-20-1508|3d": {
+   "insample_mm": 10.598315923363266,
+   "loo_mm": 12.886103507245453
+  },
+  "optitrack|vicon/2023-09-20-1508|6d": {
+   "insample_6d_mm": 12.04457889420761,
+   "insample_mm": 10.920929857793244,
+   "loo_6d_mm": 14.395278361424044,
+   "loo_mm": 13.302842292709752
+  },
+  "optitrack|vicon/2023-09-20-1607|3d": {
+   "insample_mm": 11.717453897545386,
+   "loo_mm": 13.633137901576797
+  },
+  "optitrack|vicon/2023-09-20-1607|6d": {
+   "insample_6d_mm": 13.199142040215241,
+   "insample_mm": 12.011943208469905,
+   "loo_6d_mm": 15.181465232417995,
+   "loo_mm": 14.007131417984539
+  },
+  "qualisys|optitrack/2023-09-12-1552|3d": {
+   "insample_mm": 10.066712782749091,
+   "loo_mm": 16.43417862517818
+  },
+  "qualisys|optitrack/2023-09-12-1552|6d": {
+   "insample_6d_mm": 10.740448457258326,
+   "insample_mm": 10.071657406975069,
+   "loo_6d_mm": 17.023881742076785,
+   "loo_mm": 16.38878204058688
+  },
+  "qualisys|optitrack/2023-09-12-1658|3d": {
+   "insample_mm": 8.489407335645854,
+   "loo_mm": 11.127465323379692
+  },
+  "qualisys|optitrack/2023-09-12-1658|6d": {
+   "insample_6d_mm": 9.257958195744813,
+   "insample_mm": 8.497411086732725,
+   "loo_6d_mm": 11.889507076935061,
+   "loo_mm": 11.156722340807827
+  },
+  "qualisys|qualisys/2021-10-26-1051|3d": {
+   "insample_mm": 3.534465656972677,
+   "loo_mm": 4.159995781707514
+  },
+  "qualisys|qualisys/2021-10-26-1102|3d": {
+   "insample_mm": 3.5148363890961747,
+   "loo_mm": 4.269088758921835
+  },
+  "qualisys|qualisys/2021-11-26-1105|3d": {
+   "insample_mm": 3.722300646043538,
+   "loo_mm": 4.000241878759784
+  },
+  "qualisys|qualisys/2021-11-30-1403|3d": {
+   "insample_mm": 3.650837426235259,
+   "loo_mm": 3.901443398353395
+  },
+  "qualisys|qualisys/2021-11-30-1504|3d": {
+   "insample_mm": 3.4540496544169996,
+   "loo_mm": 3.6895585634676826
+  },
+  "qualisys|qualisys/2021-11-30-1544|3d": {
+   "insample_mm": 2.8756062129543527,
+   "loo_mm": 3.1981560982785715
+  },
+  "qualisys|vicon/2023-09-20-1508|3d": {
+   "insample_mm": 13.552814946909432,
+   "loo_mm": 16.557072401481722
+  },
+  "qualisys|vicon/2023-09-20-1508|6d": {
+   "insample_6d_mm": 15.066109764274703,
+   "insample_mm": 13.555701971782959,
+   "loo_6d_mm": 18.033483028610434,
+   "loo_mm": 16.571427020335395
+  },
+  "qualisys|vicon/2023-09-20-1607|3d": {
+   "insample_mm": 14.76275209155931,
+   "loo_mm": 17.336367876557556
+  },
+  "qualisys|vicon/2023-09-20-1607|6d": {
+   "insample_6d_mm": 16.316291539725896,
+   "insample_mm": 14.763921960913427,
+   "loo_6d_mm": 18.88512061833832,
+   "loo_mm": 17.357966146709934
+  },
+  "registration only|optitrack/2023-09-12-1552|3d": {
+   "insample_mm": 14.879172564166641,
+   "loo_mm": 24.004546053874314
+  },
+  "registration only|optitrack/2023-09-12-1552|6d": {
+   "insample_6d_mm": 16.359423648981277,
+   "insample_mm": 14.888078427749402,
+   "loo_6d_mm": 25.22041980952697,
+   "loo_mm": 23.894487814415303
+  },
+  "registration only|optitrack/2023-09-12-1658|3d": {
+   "insample_mm": 12.26795280690222,
+   "loo_mm": 15.887156654875403
+  },
+  "registration only|optitrack/2023-09-12-1658|6d": {
+   "insample_6d_mm": 13.730398906233312,
+   "insample_mm": 12.273568038342379,
+   "loo_6d_mm": 17.296465870629376,
+   "loo_mm": 15.90343499968964
+  },
+  "registration only|qualisys/2021-10-26-1051|3d": {
+   "insample_mm": 4.931135699586294,
+   "loo_mm": 5.907638462378239
+  },
+  "registration only|qualisys/2021-10-26-1102|3d": {
+   "insample_mm": 5.135322136421423,
+   "loo_mm": 6.357879732000222
+  },
+  "registration only|qualisys/2021-11-26-1105|3d": {
+   "insample_mm": 4.272392814105933,
+   "loo_mm": 4.609065274958625
+  },
+  "registration only|qualisys/2021-11-30-1403|3d": {
+   "insample_mm": 3.95992926756175,
+   "loo_mm": 4.258089644342417
+  },
+  "registration only|qualisys/2021-11-30-1504|3d": {
+   "insample_mm": 3.690108764321073,
+   "loo_mm": 3.9584556675513274
+  },
+  "registration only|qualisys/2021-11-30-1544|3d": {
+   "insample_mm": 3.3681130603909173,
+   "loo_mm": 3.756859445342221
+  },
+  "registration only|vicon/2023-09-20-1508|3d": {
+   "insample_mm": 19.12422955245432,
+   "loo_mm": 23.640781145850315
+  },
+  "registration only|vicon/2023-09-20-1508|6d": {
+   "insample_6d_mm": 21.66340629441691,
+   "insample_mm": 19.12963142813006,
+   "loo_6d_mm": 26.084458975389314,
+   "loo_mm": 23.658711890618676
+  },
+  "registration only|vicon/2023-09-20-1607|3d": {
+   "insample_mm": 20.244275673963156,
+   "loo_mm": 23.875643096556722
+  },
+  "registration only|vicon/2023-09-20-1607|6d": {
+   "insample_6d_mm": 22.710037491183538,
+   "insample_mm": 20.246126069400706,
+   "loo_6d_mm": 26.32406216775851,
+   "loo_mm": 23.912774838738898
+  },
+  "vicon|optitrack/2023-09-12-1552|3d": {
+   "insample_mm": 6.877747726427645,
+   "loo_mm": 10.846226035387147
+  },
+  "vicon|optitrack/2023-09-12-1552|6d": {
+   "insample_6d_mm": 8.479560191611561,
+   "insample_mm": 6.892665439871772,
+   "loo_6d_mm": 12.516448821651167,
+   "loo_mm": 11.12778399656768
+  },
+  "vicon|optitrack/2023-09-12-1658|3d": {
+   "insample_mm": 10.194476988717131,
+   "loo_mm": 13.89469255721758
+  },
+  "vicon|optitrack/2023-09-12-1658|6d": {
+   "insample_6d_mm": 11.78937494738425,
+   "insample_mm": 10.191600135648589,
+   "loo_6d_mm": 15.386860153243878,
+   "loo_mm": 13.909809017481653
+  },
+  "vicon|qualisys/2021-10-26-1051|3d": {
+   "insample_mm": 4.433195431661086,
+   "loo_mm": 5.124202262847083
+  },
+  "vicon|qualisys/2021-10-26-1102|3d": {
+   "insample_mm": 3.3879416656053496,
+   "loo_mm": 4.0500023821274524
+  },
+  "vicon|qualisys/2021-11-26-1105|3d": {
+   "insample_mm": 4.33939549469743,
+   "loo_mm": 4.580992771072963
+  },
+  "vicon|qualisys/2021-11-30-1403|3d": {
+   "insample_mm": 4.518787893658919,
+   "loo_mm": 4.759799753101605
+  },
+  "vicon|qualisys/2021-11-30-1504|3d": {
+   "insample_mm": 4.341533251829085,
+   "loo_mm": 4.576807977824853
+  },
+  "vicon|qualisys/2021-11-30-1544|3d": {
+   "insample_mm": 3.752235062175428,
+   "loo_mm": 4.139814172547805
+  },
+  "vicon|vicon/2023-09-20-1508|3d": {
+   "insample_mm": 7.260064140192828,
+   "loo_mm": 8.717969243852364
+  },
+  "vicon|vicon/2023-09-20-1508|6d": {
+   "insample_6d_mm": 7.734713359473432,
+   "insample_mm": 7.263434849582249,
+   "loo_6d_mm": 9.183603051525035,
+   "loo_mm": 8.721574569145536
+  },
+  "vicon|vicon/2023-09-20-1607|3d": {
+   "insample_mm": 7.544738688027551,
+   "loo_mm": 8.71977039913926
+  },
+  "vicon|vicon/2023-09-20-1607|6d": {
+   "insample_6d_mm": 8.09163784747763,
+   "insample_mm": 7.55491716502254,
+   "loo_6d_mm": 9.260725737688029,
+   "loo_mm": 8.732934790731832
+  }
+ },
+ "square": {
+  "lag_sweep_mm": {
+   "2021-12-16-15-04-54_zero": {
+    "M_Q": {
+     "+0.00": 3.4245560301170936,
+     "+0.05": 4.255251570016804,
+     "-0.05": 3.8132533977723044
+    },
+    "zero": {
+     "+0.00": 4.694553886479545,
+     "+0.05": 5.4045368694255735,
+     "-0.05": 4.904297124551555
+    }
+   },
+   "2021-12-16-15-07-04_zero": {
+    "M_Q": {
+     "+0.00": 2.9023669304003556,
+     "+0.05": 3.633799100922225,
+     "-0.05": 3.133980684156045
+    },
+    "zero": {
+     "+0.00": 3.9559785414159854,
+     "+0.05": 4.606973113802158,
+     "-0.05": 4.0201853933512135
+    }
+   },
+   "2021-12-16-15-38-03_mocap": {
+    "M_Q": {
+     "+0.00": 3.286348852211115,
+     "+0.05": 4.704592729805894,
+     "-0.05": 2.4632292395511226
+    },
+    "zero": {
+     "+0.00": 3.8495441317530723,
+     "+0.05": 5.128894353726861,
+     "-0.05": 3.1400639507884813
+    }
+   },
+   "2022-01-12-10-55-17_zero": {
+    "M_Q": {
+     "+0.00": 2.3758637401202845,
+     "+0.05": 3.047115180884928,
+     "-0.05": 2.8086687565787374
+    },
+    "zero": {
+     "+0.00": 2.894609932437459,
+     "+0.05": 3.5422970815989507,
+     "-0.05": 3.165823520119701
+    }
+   },
+   "2022-01-12-11-10-58_mocap_inv": {
+    "M_Q": {
+     "+0.00": 2.0163350996137694,
+     "+0.05": 2.95548252811119,
+     "-0.05": 2.3462981894165824
+    },
+    "zero": {
+     "+0.00": 2.210155651295548,
+     "+0.05": 3.1533791084065257,
+     "-0.05": 2.4332027052696614
+    }
+   },
+   "2022-01-12-11-25-38_mocap": {
+    "M_Q": {
+     "+0.00": 2.8093477923751458,
+     "+0.05": 3.6783277752466326,
+     "-0.05": 2.91736054878955
+    },
+    "zero": {
+     "+0.00": 3.7362723875138752,
+     "+0.05": 4.550303977535072,
+     "-0.05": 3.6693891352778656
+    }
+   },
+   "2022-01-12-11-38-43_pal": {
+    "M_Q": {
+     "+0.00": 3.012318447265354,
+     "+0.05": 3.6709916557967657,
+     "-0.05": 3.2281283125476
+    },
+    "zero": {
+     "+0.00": 3.2654763290010917,
+     "+0.05": 3.9761625058093713,
+     "-0.05": 3.3454112565502347
+    }
+   }
+  },
+  "mean_rmse_mm": {
+   "M_OT": 2.8985064412255457,
+   "M_Q": 2.8324481274433024,
+   "M_V": 3.2790774960777926,
+   "Q1051": 3.015014302816169,
+   "Q1102": 3.177671546036335,
+   "mocap set": 8.048090208310274,
+   "mocap_inv set": 8.934763524797493,
+   "zero": 3.515227265699511
+  },
+  "rmse_mm": {
+   "2021-12-16-15-04-54_zero": {
+    "M_OT": 3.091170252556241,
+    "M_Q": 3.4245560301170936,
+    "M_V": 3.125050415767512,
+    "Q1051": 3.1301884347269726,
+    "Q1102": 3.2471964742732613,
+    "mocap set": 9.559368687840957,
+    "mocap_inv set": 10.651306164116225,
+    "zero": 4.694553886479545
+   },
+   "2021-12-16-15-07-04_zero": {
+    "M_OT": 2.8127364460733597,
+    "M_Q": 2.9023669304003556,
+    "M_V": 2.993148045429361,
+    "Q1051": 2.5156919431251072,
+    "Q1102": 2.845485231634709,
+    "mocap set": 6.042250093567893,
+    "mocap_inv set": 7.614745685330102,
+    "zero": 3.9559785414159854
+   },
+   "2021-12-16-15-38-03_mocap": {
+    "M_OT": 3.110853843223941,
+    "M_Q": 3.286348852211115,
+    "M_V": 3.450701177504539,
+    "Q1051": 3.7123473572655326,
+    "Q1102": 3.5809829292764555,
+    "mocap set": 11.64893091612857,
+    "mocap_inv set": 10.019125819662298,
+    "zero": 3.8495441317530723
+   },
+   "2022-01-12-10-55-17_zero": {
+    "M_OT": 2.7648869036156336,
+    "M_Q": 2.3758637401202845,
+    "M_V": 3.265667144771427,
+    "Q1051": 2.5254071769742974,
+    "Q1102": 2.8922155699194465,
+    "mocap set": 5.786536540153389,
+    "mocap_inv set": 7.4115141584928015,
+    "zero": 2.894609932437459
+   },
+   "2022-01-12-11-10-58_mocap_inv": {
+    "M_OT": 2.2926983420043534,
+    "M_Q": 2.0163350996137694,
+    "M_V": 2.645449733998362,
+    "Q1051": 2.423397428338135,
+    "Q1102": 2.270751077031525,
+    "mocap set": 4.079405678809698,
+    "mocap_inv set": 11.528432710709595,
+    "zero": 2.210155651295548
+   },
+   "2022-01-12-11-25-38_mocap": {
+    "M_OT": 2.513303866339752,
+    "M_Q": 2.8093477923751458,
+    "M_V": 2.8096063626898564,
+    "Q1051": 3.372533381714581,
+    "Q1102": 3.2807370161378926,
+    "mocap set": 13.475884737164796,
+    "mocap_inv set": 6.984126200787821,
+    "zero": 3.7362723875138752
+   },
+   "2022-01-12-11-38-43_pal": {
+    "M_OT": 3.703895434765542,
+    "M_Q": 3.012318447265354,
+    "M_V": 4.663919592383489,
+    "Q1051": 3.425534397568554,
+    "Q1102": 4.126332523981051,
+    "mocap set": 5.744254804506614,
+    "mocap_inv set": 8.33409393448361,
+    "zero": 3.2654763290010917
+   }
+  }
+ },
+ "steps": {
+  "optitrack/2023-09-12-1552": {
+   "after_mm": 5.277290528548341,
+   "arm_5_jump_mrad": -25.996074818984916,
+   "before_mm": 2.9746366766672256,
+   "model": "OT1552",
+   "n": 9,
+   "rmse_mm": 5.0556467904530615,
+   "rmse_split_arm5_mm": 5.004476693343485,
+   "split": 3
+  },
+  "optitrack/2023-09-12-1658": {
+   "after_mm": 7.4192632714504185,
+   "arm_5_jump_mrad": 21.925627300042287,
+   "before_mm": 4.808369522891687,
+   "model": "M_OT",
+   "n": 13,
+   "rmse_mm": 7.094795386638976,
+   "rmse_split_arm5_mm": 7.073440462918593,
+   "split": 3
+  },
+  "qualisys/2021-10-26-1051": {
+   "after_mm": 1.9765945843128794,
+   "arm_5_jump_mrad": 4.408519695610458,
+   "before_mm": 3.7287139664540696,
+   "model": "Q1051",
+   "n": 26,
+   "rmse_mm": 2.6188651238817666,
+   "rmse_split_arm5_mm": 2.613393613026274,
+   "split": 5
+  },
+  "qualisys/2021-10-26-1102": {
+   "after_mm": 2.007961700754968,
+   "arm_5_jump_mrad": 8.756994355933287,
+   "before_mm": 3.786314842626744,
+   "model": "Q1102",
+   "n": 25,
+   "rmse_mm": 2.561214065394319,
+   "rmse_split_arm5_mm": 2.5439070846580147,
+   "split": 3
+  },
+  "qualisys/2021-11-30-1544": {
+   "after_mm": 4.057904862691019,
+   "arm_5_jump_mrad": -22.945331356520082,
+   "before_mm": 2.5285823978261863,
+   "model": "M_Q",
+   "n": 37,
+   "rmse_mm": 2.8756062129543527,
+   "rmse_split_arm5_mm": 2.8476113584058953,
+   "split": 34
+  },
+  "vicon/2023-09-20-1508": {
+   "after_mm": 4.76173978768061,
+   "arm_5_jump_mrad": -7.351108820011262,
+   "before_mm": 7.390899989555214,
+   "model": "M_V",
+   "n": 17,
+   "rmse_mm": 7.260064140192828,
+   "rmse_split_arm5_mm": 7.244653746772278,
+   "split": 13
+  },
+  "vicon/2023-09-20-1607": {
+   "after_mm": 7.444660285377402,
+   "arm_5_jump_mrad": 15.472100542294683,
+   "before_mm": 5.367369167780447,
+   "model": "V1607",
+   "n": 21,
+   "rmse_mm": 7.286858383300896,
+   "rmse_split_arm5_mm": 7.245713396190807,
+   "split": 5
+  }
+ }
+}
