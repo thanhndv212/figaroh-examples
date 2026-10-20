@@ -15,8 +15,12 @@ from examples.tiago.utils.square_motion_extraction import (
     extract_run,
     format_joints,
     format_markers,
+    boxcar_resample,
+    grid_times,
     lag_body,
     marker_rows,
+    motion_window,
+    resample_markers,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +33,44 @@ def test_marker_rows_put_stamps_on_the_robot_clock_sorted_and_stable():
     rows, names = marker_rows({"b": b, "a": a}, lag=2.0, t0=11.0)
     assert np.allclose(rows[:, 0], [1.0, 1.1, 1.2, 1.2])
     assert names == ["a", "b", "a", "b"]  # ties keep sorted-name order
+
+
+def test_motion_window_crops_idle_ends_with_padding():
+    t = np.arange(0, 30, 0.01)
+    q = np.zeros((len(t), 8))
+    moving = (t >= 10) & (t < 20)
+    q[:, 1] = np.cumsum(moving * 0.01 * 0.1)  # 0.1 rad/s between 10 and 20 s
+    start, end = motion_window(t, q)
+    assert 8.4 < start < 8.8 and 21.2 < end < 21.6
+
+
+def test_grid_is_multiples_of_the_rate_inside_the_window():
+    g = grid_times(0.12, 0.43)
+    assert np.allclose(g, [0.15, 0.20, 0.25, 0.30, 0.35, 0.40])
+
+
+def test_boxcar_averages_the_half_open_window_and_reports_empty():
+    t = np.array([0.0, 0.01, 0.02, 0.03, 0.04, 0.30])
+    v = np.arange(6, dtype=float)[:, None]
+    means, count = boxcar_resample(t, v, np.array([0.0, 0.15, 0.30]))
+    # window of 0.05 s centred on 0.0 is [-0.025, 0.025): samples 0, 1, 2
+    assert count.tolist() == [3, 0, 1] and means[0, 0] == 1.0 and means[2, 0] == 5.0
+    assert np.isnan(means[1, 0])
+
+
+def test_marker_gap_stays_a_gap_and_quaternions_stay_unit():
+    t = np.r_[np.arange(0.0, 0.2, 0.01), np.arange(0.6, 0.8, 0.01)]
+    rows = np.zeros((len(t), 8))
+    rows[:, 0] = t
+    rows[:, 1] = t  # x moves
+    rows[:, 7] = 1.0
+    rows[::2, 4:8] *= -1  # alternating sign, as a quaternion may be
+    grid = np.arange(0, 17) / 20.0
+    out, names = resample_markers({"b": rows}, 0.0, 0.0, grid)
+    assert set(np.round(out[:, 0] * 20)) == set(range(0, 5)) | set(range(12, 17))
+    assert np.allclose(np.linalg.norm(out[:, 4:8], axis=1), 1.0)
+    assert np.allclose(out[:, 1], out[:, 0], atol=0.02)
+    assert names == ["b"] * len(out)
 
 
 def test_lag_body_prefers_plate_point_then_rigid_body():
@@ -98,6 +140,10 @@ def test_shipped_files_are_re_created_byte_for_byte(session):
     assert result["registration_rmse_mm"] == pytest.approx(
         entry["nominal_registration_rmse_mm"], abs=0.01
     )
+    assert result["registration_rmse_shipped_mm"] == pytest.approx(
+        entry["nominal_registration_rmse_shipped_mm"], abs=0.01
+    )
+    assert result["crop_s"] == entry["crop_s"]
     offsets = manifest["offset_sets"][entry["offset_set"]]["values"]
     if offsets not in ("unknown",) and isinstance(offsets, dict):
         for joint, value in offsets.items():

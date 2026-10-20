@@ -108,7 +108,9 @@ def test_glob_semantics():
 
 def test_every_test_file_is_mapped():
     mapped = impact.mapped_test_files(IMPACT_MAP)
-    on_disk = {p.relative_to(ROOT).as_posix() for p in (ROOT / "tests").glob("test_*.py")}
+    on_disk = {
+        p.relative_to(ROOT).as_posix() for p in (ROOT / "tests").glob("test_*.py")
+    }
     assert on_disk <= mapped, sorted(on_disk - mapped)
     assert mapped <= on_disk, f"map lists missing files: {sorted(mapped - on_disk)}"
 

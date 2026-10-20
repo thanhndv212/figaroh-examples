@@ -101,7 +101,11 @@ def test_tiago_hey5_config_is_eye_hand(in_dir):
 
     tiago_dir = EXAMPLES / "tiago"
     in_dir(tiago_dir)
-    robot = _load(tiago_dir / "urdf" / "tiago_48_hey5.urdf", robot_pkg="tiago_description")
-    calib = TiagoCalibration(robot, "config/tiago_unified_config_hey5.yaml").calib_config
+    robot = _load(
+        tiago_dir / "urdf" / "tiago_48_hey5.urdf", robot_pkg="tiago_description"
+    )
+    calib = TiagoCalibration(
+        robot, "config/tiago_unified_config_hey5.yaml"
+    ).calib_config
     assert calib["base_to_ref_frame"] == "xtion_link"
     assert calib["ref_frame"] == "head_2_link"

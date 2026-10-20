@@ -28,8 +28,12 @@ from examples.ur10 import compare_physical_estimators as cmp  # noqa: E402
 @pytest.fixture(scope="module")
 def result():
     args = argparse.Namespace(
-        derivatives=["analytic"], noise=["none"], seeds=1, weighting=["none"],
-        solver="cvxopt", d0_timeout=5.0,
+        derivatives=["analytic"],
+        noise=["none"],
+        seeds=1,
+        weighting=["none"],
+        solver="cvxopt",
+        d0_timeout=5.0,
     )
     return cmp.run(args)
 
@@ -37,7 +41,9 @@ def result():
 def test_methods_recover_truth_without_noise(result):
     methods = result["cases"][0]["frozen_extra"]["methods"]
     assert set(methods) == {
-        "base_ols", "exact_reconstruction", "direct_effort_fit",
+        "base_ols",
+        "exact_reconstruction",
+        "direct_effort_fit",
         "per_link_projection",
     }
     for name in ("base_ols", "exact_reconstruction"):

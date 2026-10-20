@@ -127,9 +127,7 @@ def select(changed_paths, impact_map=None):
             if matches(path, spec.get("paths")):
                 robots.update(spec["robots"])
                 tests.update(spec.get("tests", []))
-                reasons.append(
-                    f"{path}: shared {name} -> {', '.join(spec['robots'])}"
-                )
+                reasons.append(f"{path}: shared {name} -> {', '.join(spec['robots'])}")
                 hit = True
         if hit:
             continue

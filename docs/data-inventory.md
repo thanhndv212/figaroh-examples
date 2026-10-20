@@ -19,7 +19,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-mocap-qualisys-2021-11` | TIAGo | Mocap calibration (reference) | real | train / validate / confirmation | 8 | 136.4 KB | examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md |
 | `tiago-mocap-optitrack-2023-09-12` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 4 | 15.6 KB | examples/tiago/data/README.md |
 | `tiago-mocap-vicon-2023-09-20` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 3 | 22.5 KB | examples/tiago/data/README.md |
-| `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 42.8 MB | examples/tiago/data/README.md |
+| `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 8.4 MB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
 | `tiago-backlash-2023-07-24` | TIAGo | Backlash surface | real | training; no held-out run | 2 | 34.1 MB | examples/tiago/data/README.md |
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
@@ -144,25 +144,25 @@ Two Vicon static-posture runs of 2023-09-20 (17 and 21 postures), gripper and ba
 
 ### `tiago-square-motion-validation`
 
-Seven Qualisys square-motion runs (2021-12-16 and 2022-01-12), joint positions and end-effector marker paths on one robot clock, with the clock lag, the offset set the robot ran (zero, mocap, mocap_inv, pal) and the protocol that freezes hashes and roles.
+Seven Qualisys square-motion runs (2021-12-16 and 2022-01-12), joint positions and end-effector marker paths on one robot clock (cropped to the motion, 20 Hz), with the clock lag, the offset set the robot ran (zero, mocap, mocap_inv, pal) and the protocol that freezes hashes and roles.
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_joints.csv` | 11124 | 912394 | `0d1ad569765f3ddb` |
-| `examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_markers.csv` | 38202 | 3006990 | `b17f2c4d04b818e1` |
-| `examples/tiago/data/validation/square_motion/2021-12-16-15-07-04_zero_joints.csv` | 10618 | 870397 | `b5e6a1fb6cf29596` |
-| `examples/tiago/data/validation/square_motion/2021-12-16-15-07-04_zero_markers.csv` | 34012 | 2674938 | `ac5cc409a575ea9d` |
-| `examples/tiago/data/validation/square_motion/2021-12-16-15-38-03_mocap_joints.csv` | 16101 | 1325486 | `715260de4a8b7825` |
-| `examples/tiago/data/validation/square_motion/2021-12-16-15-38-03_mocap_markers.csv` | 18735 | 1479295 | `e873605701e2bc00` |
-| `examples/tiago/data/validation/square_motion/2022-01-12-10-55-17_zero_joints.csv` | 49124 | 4068095 | `224b08a956d40691` |
-| `examples/tiago/data/validation/square_motion/2022-01-12-10-55-17_zero_markers.csv` | 96767 | 7874436 | `3609c411f5a2e2c6` |
-| `examples/tiago/data/validation/square_motion/2022-01-12-11-10-58_mocap_inv_joints.csv` | 31819 | 2631434 | `7c59107f5650b88d` |
-| `examples/tiago/data/validation/square_motion/2022-01-12-11-10-58_mocap_inv_markers.csv` | 61590 | 4979417 | `e633a0ac448c325b` |
-| `examples/tiago/data/validation/square_motion/2022-01-12-11-25-38_mocap_joints.csv` | 31752 | 2625032 | `fed3a4336d67b741` |
-| `examples/tiago/data/validation/square_motion/2022-01-12-11-25-38_mocap_markers.csv` | 54919 | 4469239 | `441cd2b89e46f774` |
-| `examples/tiago/data/validation/square_motion/2022-01-12-11-38-43_pal_joints.csv` | 32779 | 2710890 | `9e08e5dc967ed395` |
-| `examples/tiago/data/validation/square_motion/2022-01-12-11-38-43_pal_markers.csv` | 64744 | 5243597 | `917ea9bc2846d89b` |
-| `examples/tiago/data/validation/square_motion/protocol.yaml` |  | 14135 | `038204ab84068c01` |
+| `examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_joints.csv` | 2043 | 167718 | `ede5e54fca93a6fc` |
+| `examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_markers.csv` | 7775 | 612875 | `61c39b0a47abf14d` |
+| `examples/tiago/data/validation/square_motion/2021-12-16-15-07-04_zero_joints.csv` | 2039 | 167310 | `d49801f1ca6f7a13` |
+| `examples/tiago/data/validation/square_motion/2021-12-16-15-07-04_zero_markers.csv` | 7065 | 556024 | `237bd3baf3946d65` |
+| `examples/tiago/data/validation/square_motion/2021-12-16-15-38-03_mocap_joints.csv` | 2031 | 166642 | `64c2e1116a11e99b` |
+| `examples/tiago/data/validation/square_motion/2021-12-16-15-38-03_mocap_markers.csv` | 2897 | 227807 | `80eb4bbeb89b46cf` |
+| `examples/tiago/data/validation/square_motion/2022-01-12-10-55-17_zero_joints.csv` | 9751 | 807575 | `1c25f23ec76e3cf8` |
+| `examples/tiago/data/validation/square_motion/2022-01-12-10-55-17_zero_markers.csv` | 19285 | 1569281 | `244df4579a870f1b` |
+| `examples/tiago/data/validation/square_motion/2022-01-12-11-10-58_mocap_inv_joints.csv` | 6333 | 523812 | `12dc638ca8bf6185` |
+| `examples/tiago/data/validation/square_motion/2022-01-12-11-10-58_mocap_inv_markers.csv` | 12305 | 995023 | `1756a5e499758fda` |
+| `examples/tiago/data/validation/square_motion/2022-01-12-11-25-38_mocap_joints.csv` | 6329 | 523312 | `b65540449732d2f8` |
+| `examples/tiago/data/validation/square_motion/2022-01-12-11-25-38_mocap_markers.csv` | 11065 | 900622 | `9a58161aaa6a1cfa` |
+| `examples/tiago/data/validation/square_motion/2022-01-12-11-38-43_pal_joints.csv` | 6440 | 532649 | `0ff775d1ced1b9ed` |
+| `examples/tiago/data/validation/square_motion/2022-01-12-11-38-43_pal_markers.csv` | 12764 | 1033646 | `4231bfd5f471d6ad` |
+| `examples/tiago/data/validation/square_motion/protocol.yaml` |  | 15434 | `20a2d3fa7a94b39d` |
 
 ### `tiago-optimal-configurations`
 
