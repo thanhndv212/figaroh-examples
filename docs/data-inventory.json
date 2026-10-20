@@ -120,6 +120,18 @@
       "provenance": "examples/tiago/data/README.md"
     },
     {
+      "id": "tiago-square-motion-validation",
+      "robot": "TIAGo",
+      "study": "Mocap calibration (end-effector validation, C5 Phase 2, #107)",
+      "kind": "real",
+      "role": "validation (never used to fit)",
+      "description": "Seven Qualisys square-motion runs (2021-12-16 and 2022-01-12), joint positions and end-effector marker paths on one robot clock, with the clock lag, the offset set the robot ran (zero, mocap, mocap_inv, pal) and the protocol that freezes hashes and roles.",
+      "paths": [
+        "examples/tiago/data/validation/square_motion/"
+      ],
+      "provenance": "examples/tiago/data/README.md"
+    },
+    {
       "id": "tiago-optimal-configurations",
       "robot": "TIAGo",
       "study": "Experiment design",
@@ -716,6 +728,80 @@
       "sha256": "8a0b993304e57b57e8d8a6e905dbaf6ef41cae13b7c035a5f7c6dbefbaef08f4",
       "bytes": 3877388,
       "rows": 5546
+    },
+    "examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_joints.csv": {
+      "sha256": "0d1ad569765f3ddb8218528184b4713742b1a92b7675ff669d5dc7e99006cc57",
+      "bytes": 912394,
+      "rows": 11124
+    },
+    "examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_markers.csv": {
+      "sha256": "b17f2c4d04b818e1b6b50c6b1befac56acb446db23c98ef4e8760753e55b0aa0",
+      "bytes": 3006990,
+      "rows": 38202
+    },
+    "examples/tiago/data/validation/square_motion/2021-12-16-15-07-04_zero_joints.csv": {
+      "sha256": "b5e6a1fb6cf295963941f6e87eb6ee806853a420a188332ac2e75efeec577832",
+      "bytes": 870397,
+      "rows": 10618
+    },
+    "examples/tiago/data/validation/square_motion/2021-12-16-15-07-04_zero_markers.csv": {
+      "sha256": "ac5cc409a575ea9ddc389d64c6b5aa25a26c293975a10e88753d0d3ca4e501e1",
+      "bytes": 2674938,
+      "rows": 34012
+    },
+    "examples/tiago/data/validation/square_motion/2021-12-16-15-38-03_mocap_joints.csv": {
+      "sha256": "715260de4a8b78251dac042cb28db2aa6583df34daad328410ae1bc30f603ada",
+      "bytes": 1325486,
+      "rows": 16101
+    },
+    "examples/tiago/data/validation/square_motion/2021-12-16-15-38-03_mocap_markers.csv": {
+      "sha256": "e873605701e2bc001f9a946334cf0d61b41c9415ec2402d21a2fd42e8176253a",
+      "bytes": 1479295,
+      "rows": 18735
+    },
+    "examples/tiago/data/validation/square_motion/2022-01-12-10-55-17_zero_joints.csv": {
+      "sha256": "224b08a956d40691c6fc8f778ecfc9feaa2554eccc97499eda23dab4ffb9dca7",
+      "bytes": 4068095,
+      "rows": 49124
+    },
+    "examples/tiago/data/validation/square_motion/2022-01-12-10-55-17_zero_markers.csv": {
+      "sha256": "3609c411f5a2e2c670a4cad3fdbc0367dea0287356fc263ecf0d5b8eeb5a60bb",
+      "bytes": 7874436,
+      "rows": 96767
+    },
+    "examples/tiago/data/validation/square_motion/2022-01-12-11-10-58_mocap_inv_joints.csv": {
+      "sha256": "7c59107f5650b88db3c00143da292277ecbf8c2c334a126afcc67edb2b86d44c",
+      "bytes": 2631434,
+      "rows": 31819
+    },
+    "examples/tiago/data/validation/square_motion/2022-01-12-11-10-58_mocap_inv_markers.csv": {
+      "sha256": "e633a0ac448c325bf1ebf2f66b5a0a306b70ba21dda9f66e368c0e62fc8b8ae6",
+      "bytes": 4979417,
+      "rows": 61590
+    },
+    "examples/tiago/data/validation/square_motion/2022-01-12-11-25-38_mocap_joints.csv": {
+      "sha256": "fed3a4336d67b741c2e8b1c784bf6bc7c8535c38aa3dd4eae1e427a108f45efe",
+      "bytes": 2625032,
+      "rows": 31752
+    },
+    "examples/tiago/data/validation/square_motion/2022-01-12-11-25-38_mocap_markers.csv": {
+      "sha256": "441cd2b89e46f7742f02286693df1f426a2dbc636ff0c98441bc45c4f9d63e55",
+      "bytes": 4469239,
+      "rows": 54919
+    },
+    "examples/tiago/data/validation/square_motion/2022-01-12-11-38-43_pal_joints.csv": {
+      "sha256": "9e08e5dc967ed395da63c13879f33013d743c53de153348fb417f41b9bacca97",
+      "bytes": 2710890,
+      "rows": 32779
+    },
+    "examples/tiago/data/validation/square_motion/2022-01-12-11-38-43_pal_markers.csv": {
+      "sha256": "917ea9bc2846d89b5e927c887754aa00a61c634c7ddffa48dbc8e357dc86230b",
+      "bytes": 5243597,
+      "rows": 64744
+    },
+    "examples/tiago/data/validation/square_motion/protocol.yaml": {
+      "sha256": "038204ab84068c018e8d4332745e24fe1feabb8d221326d4709aebe313ad291a",
+      "bytes": 14135
     },
     "examples/tiago_pro/data/calibration_results_20260701_0913.yaml": {
       "sha256": "ed738ce73658147ca93310179c67549510df597724c32b1308a7021ae2559010",
