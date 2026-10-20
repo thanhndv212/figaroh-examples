@@ -17,7 +17,9 @@ TALOS humanoid robot's torso/arm kinematic chain using FIGAROH.
   `figaroh.calibration.base_calibration.BaseCalibration`.
 - `config/`: YAML configuration files (typically use `talos_unified_config.yaml`).
 - `data/`: example measurement CSV(s) used by the calibration and timestamped
-  calibration results (`calibration_results_*.npz`).
+  calibration results (`calibration_results_*.npz`), and the motion-capture
+  sessions of 2022-03-15 (`data/calibration/mocap/`, described in
+  [`data/README.md`](data/README.md)).
 - `urdf/`: TALOS URDF(s) and timestamped modified URDFs.
 
 ## Run

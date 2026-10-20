@@ -28,6 +28,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-pro-notes` | TIAGo Pro | Mocap calibration | notes | documentation | 0 | 0 B |  |
 | `tiago-pro-optimal-configs` | TIAGo Pro | Experiment design | generated | calibration postures | 1 | 9.6 KB |  |
 | `talos-left-arm-contact` | TALOS | Arm contact calibration | real | calibration | 1 | 14.2 KB | examples/talos/config/talos_unified_config.yaml |
+| `talos-mocap-2022-03-15` | TALOS | Motion-capture calibration | real | calibration | 0 | 0 B | examples/talos/data/README.md; examples/talos/utils/mocap_extraction.py |
 | `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 9 | 70.1 KB | examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
 | `talos-table-contact-synthetic` | TALOS | Table contact | simulated | synthetic train + validation | 3 | 27.5 KB | examples/talos_table_contact/generate_synthetic_data.py |
 | `staubli-tx40-logs` | Staubli TX40 | Dynamic identification | unspecified (unconfirmed) | identification; no separate validation set | 2 | 4.3 MB | examples/staubli_tx40/README.md |
@@ -220,6 +221,13 @@ Optimal configurations computed for the model.
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
 | `examples/talos/data/talos_left_arm_02_10_contact.csv` | 61 | 14533 | `36b7a3b92f468b6e` |
+
+### `talos-mocap-2022-03-15`
+
+Plateau-averaged static postures (joint angles and Qualisys marker poses of three bodies) from three 2022-03-15 sessions: left 56 (training), right 39 (validation), right 23 (confirmation). Roles and hashes are frozen in examples/talos/data/calibration/mocap/protocol.yaml.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
 
 ### `talos-table-contact-real`
 

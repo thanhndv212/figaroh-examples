@@ -228,6 +228,18 @@
       "provenance": "examples/talos/config/talos_unified_config.yaml"
     },
     {
+      "id": "talos-mocap-2022-03-15",
+      "robot": "TALOS",
+      "study": "Motion-capture calibration",
+      "kind": "real",
+      "role": "calibration",
+      "description": "Plateau-averaged static postures (joint angles and Qualisys marker poses of three bodies) from three 2022-03-15 sessions: left 56 (training), right 39 (validation), right 23 (confirmation). Roles and hashes are frozen in examples/talos/data/calibration/mocap/protocol.yaml.",
+      "paths": [
+        "examples/talos/data/calibration/mocap/"
+      ],
+      "provenance": "examples/talos/data/README.md; examples/talos/utils/mocap_extraction.py"
+    },
+    {
       "id": "talos-table-contact-real",
       "robot": "TALOS",
       "study": "Table contact",
