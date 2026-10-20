@@ -426,6 +426,25 @@
       "bytes": 2101824,
       "rows": 45000
     },
+    "examples/talos/data/calibration/mocap/protocol.yaml": {
+      "sha256": "b74f3a717943de4da038629f9d18eb877360ddecf719582270a9287f23c6f005",
+      "bytes": 5291
+    },
+    "examples/talos/data/calibration/mocap/qualisys_2022-03-15-1354_left_static_postures.csv": {
+      "sha256": "4bfa50c2219acf776c18d484433553ab5283ba0ecc29a6bf053584a314ae92ef",
+      "bytes": 40050,
+      "rows": 56
+    },
+    "examples/talos/data/calibration/mocap/qualisys_2022-03-15-1418_right_static_postures.csv": {
+      "sha256": "8b1d0c5e3b4e5befc58b826c3e0376124e01864f5609503b075d724e81dae5ea",
+      "bytes": 28079,
+      "rows": 39
+    },
+    "examples/talos/data/calibration/mocap/qualisys_2022-03-15-1439_right_static_postures.csv": {
+      "sha256": "c6cc469bd21da32e5c4bdbb901131770f23e5e85267a549700573eb24e2f1989",
+      "bytes": 16702,
+      "rows": 23
+    },
     "examples/talos/data/talos_left_arm_02_10_contact.csv": {
       "sha256": "36b7a3b92f468b6ee7c0aa1e204c9a2126c84869c778ad34dc061c80aeb25919",
       "bytes": 14533,
