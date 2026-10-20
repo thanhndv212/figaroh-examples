@@ -66,6 +66,13 @@ SESSIONS = {
 }
 
 
+ROLES_V2 = {
+    "2023-09-12-1529": "confirmation",
+    "2023-09-12-1552": "confirmation",
+    "2023-09-12-1658": "training",
+}
+
+
 @pytest.fixture(scope="module")
 def manifest():
     return yaml.safe_load((OPTITRACK / "protocol.yaml").read_text())
@@ -76,17 +83,18 @@ def frames():
     return {sid: pd.read_csv(OPTITRACK / v[0]) for sid, v in SESSIONS.items()}
 
 
-def test_protocol_lists_three_confirmation_sessions(manifest):
+def test_protocol_lists_the_three_sessions(manifest):
     from figaroh.data import Protocol
 
-    assert (manifest["name"], manifest["version"]) == ("tiago-optitrack-2023-09-12", 1)
-    assert "heldout" not in manifest  # #100 adds it in v2
+    assert (manifest["name"], manifest["version"]) == ("tiago-optitrack-2023-09-12", 2)
+    # v2 (#100) only assigns roles: files and hashes are v1's (SESSIONS)
+    assert manifest["heldout"]["not_evaluated"] == ["2023-09-12-1529"]
     protocol = Protocol.load(OPTITRACK / "protocol.yaml")
     protocol.verify(root=OPTITRACK)
     assert len(protocol.sessions) == 3
     for sid, v in SESSIONS.items():
         session = protocol.session(sid)
-        assert session.role == "confirmation"
+        assert session.role == ROLES_V2[sid]
         assert session.files == {v[0]: v[6]}
 
 

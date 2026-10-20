@@ -1,10 +1,20 @@
-# TIAGo Vicon 2023-09-20 static postures (examples#106) as a data-contract
-# Protocol (figaroh-plus#55). Per-system protocol: independent of
+# TIAGo Vicon 2023-09-20 static postures (examples#106, v2 examples#100) as a
+# data-contract Protocol (figaroh-plus#55). Per-system protocol: independent of
 # ../mocap/protocol.yaml (Qualisys) and ../optitrack/protocol.yaml. Roles are
-# frozen: changing a file or a role needs a new version. No heldout: block: the
-# shared harness needs exactly one training session, and none of these runs is
-# evaluated before the motion-capture study (examples#100), which adds the block
-# in v2.
+# frozen: changing a file or a role needs a new version.
+# v2 (examples#100) assigns the roles the v1 note deferred to the
+# motion-capture study and adds the heldout: block. The two files and their
+# sha256 are unchanged. v1 roles: 1508 and 1607 were both `confirmation` ("not
+# yet looked at"; v1 had no heldout: block and no run was evaluated). v2 roles:
+# 1508 training, 1607 confirmation. No validation role. Why the change is
+# legitimate (rule 4 of docs/development/tiago-mocap-heldout-protocol.md): v1
+# deferred the held-out split to #100, and its "confirmation" meant only "not
+# yet looked at"; no joint-level model was fitted or scored on either session
+# (the registration-only sanity fits in tests/test_tiago_vicon_2023_09_20.py
+# are the baseline and informed no choice); the roles follow a rule stated
+# before any fit (training = the largest usable run, which leaves the most new
+# postures in confirmation); nothing is selected on any role (the harness
+# `select` refuses confirmation). See docs/development/tiago-mocap-hardware.md.
 # The Vicon files hold labelled markers, not rigid bodies. The shipped "bodies"
 # are marker triads (gripper1..3 -> x1..phiz1, base1..3 -> xb..phizb), frame
 # defined in examples/tiago/utils/vicon_extraction.py; their relation to the
@@ -29,7 +39,7 @@
 # (repair_triad_labels). The 1508 c3d has no exchange (no jump above 19 mm).
 # not_shipped: recordings of the session that hold no usable mocap postures.
 name: tiago-vicon-2023-09-20
-version: 1
+version: 2
 rigid_bodies:
   1:
     name: gripper1-3 marker triad
@@ -44,7 +54,7 @@ rigid_bodies:
     note: gripper markers placed differently from definition 1; shortest side 50 mm; sides are those after the gripper1/gripper2 label repair
 sessions:
 - id: 2023-09-20-1508
-  role: confirmation
+  role: training  # v1: confirmation
   frame: vicon:world
   rigid_body: 1
   source:
@@ -59,7 +69,7 @@ sessions:
   files:
     vicon_2023-09-20-1508_static_postures.csv: 745b6852eb27907a07bfd26e3cd30fc83cd69d4de33d5719a688bb8b01ebf74c
 - id: 2023-09-20-1607
-  role: confirmation
+  role: confirmation  # v1: confirmation
   frame: vicon:world
   rigid_body: 2
   source:
@@ -73,6 +83,13 @@ sessions:
   relabelled_frames: {gripper: 16494, base: 0}
   files:
     vicon_2023-09-20-1607_static_postures.csv: 18f213f8fdc51a267aa4b1dc6a8002d3bbc9186eb62e6a9a39e4f8a444595c62
+heldout:
+  split: sessions
+  selection_role: validation
+  strata:
+    joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
+    repeated_tol: 0.01
+    out_of_range_margin: 0.05
 not_shipped:
 - recording: calib_mocap_vicon_2023-09-20-13-53-01.bag.active
   sha256: 1ebae14e0900320781fff44c481ff6d25480f30a4377a59d7aa92027fc6e17e1

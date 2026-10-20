@@ -53,6 +53,7 @@ robots:
       - tests/test_tiago_mocap_2021_10_26.py
       - tests/test_tiago_mocap_baseline.py
       - tests/test_tiago_mocap_extraction.py
+      - tests/test_tiago_mocap_hardware_protocol.py
       - tests/test_tiago_optitrack_2023_09_12.py
       - tests/test_tiago_optitrack_extraction.py
       - tests/test_tiago_reference_run.py
