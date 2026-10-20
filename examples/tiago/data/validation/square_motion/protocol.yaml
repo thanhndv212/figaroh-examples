@@ -2,15 +2,26 @@
 # data-contract Protocol (figaroh-plus#55). Role is validation only: none of
 # these runs is ever used to fit. Independent of the calibration protocols.
 # Each run is two files on ONE clock, the robot clock in seconds from the first
-# joint sample: <run>_joints.csv (eight joint positions at 100 Hz) and
-# <run>_markers.csv (Qualisys samples, frame Qualisys, metres; bodies base_frame
-# and the end-effector body; no interpolation, a lost marker is a gap).
+# joint sample: <run>_joints.csv (eight joint positions) and <run>_markers.csv
+# (Qualisys, frame Qualisys, metres; bodies base_frame and the end-effector
+# body). Both are cropped and decimated onto a common 20 Hz grid t = k / 20 s:
+# each value is the mean of the full-rate (100 Hz) samples in [t - 0.025,
+# t + 0.025) s (a 0.05 s boxcar, the anti-alias filter); quaternions are
+# sign-aligned, averaged and normalised. A body with no sample in the window has
+# no row: tracking loss stays a gap, never interpolated (no other loss flag).
+# crop_s: first and last grid time kept. Rule: joint speed over a 0.5 s baseline
+# above 0.02 rad/s marks motion; the window is the first moving sample - 1 s to
+# the end of the last moving span + 1 s, clipped to the recording (idle lead-in
+# and lead-out dropped). duration_s is the full recording.
 # source: the original recordings (not distributed), PAL introspection + Qualisys
 # /tf of the same bag, by filename and sha256. clock: marker stamps are on the
 # mocap PC clock; lag_s = t_robot - t_mocap measured by speed-profile
 # cross-correlation (coarse +-60 s at 0.05 s, then 0.005 s) of the nominal-FK
 # wrist_ft_tool_link speed against the end-effector marker speed, correlation
 # stored as lag_correlation; t_robot = stamp + lag_s, t = t_robot - t0_unix_s.
+# The lag and nominal_registration_rmse_mm are computed on the FULL-rate,
+# uncropped data; nominal_registration_rmse_shipped_mm repeats the registration
+# on the shipped files (every grid sample).
 # examples/tiago/utils/square_motion_extraction.py re-creates every file byte
 # for byte and checks the lag.
 # nominal_registration_rmse_mm: RMS distance of nominal-FK tool point to the
@@ -22,6 +33,7 @@
 # recovered from the recorded /tf versus the nominal URDF. unknown = not
 # established from the data. The 2022-01-12 zero folder holds a usable run.
 # not_shipped: recordings that hold no usable square, with the reason.
+rate_hz: 20
 name: tiago-square-motion-validation
 version: 1
 offset_sets:
@@ -87,11 +99,13 @@ sessions:
   source: {bag: square_motion_offset0_2021-12-16-15-04-54.bag, sha256: 85f75987b29bd0817b87c9834b77464d35b2149fe09f43a53adff79016d016a8,
     description: 'original recording, not distributed', lag_s: 5.77, lag_correlation: 0.989, lag_method: 'speed-profile
       cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1639667094.29797}
-  rows: {joints: 11124, markers: 38202}
+  rows: {joints: 2043, markers: 7775}
   duration_s: 111.2
+  crop_s: [6.15, 108.25]
   nominal_registration_rmse_mm: 4.82
-  files: {2021-12-16-15-04-54_zero_joints.csv: 0d1ad569765f3ddb8218528184b4713742b1a92b7675ff669d5dc7e99006cc57,
-    2021-12-16-15-04-54_zero_markers.csv: b17f2c4d04b818e1b6b50c6b1befac56acb446db23c98ef4e8760753e55b0aa0}
+  nominal_registration_rmse_shipped_mm: 4.69
+  files: {2021-12-16-15-04-54_zero_joints.csv: ede5e54fca93a6fc93d0f796984dd825592b7a5f98c464b9b7abe04cc009d2c5,
+    2021-12-16-15-04-54_zero_markers.csv: 61c39b0a47abf14d782c1fc7d341dc5e46dbeb5e16bc98daa7fb8b18041bf54f}
 - id: 2021-12-16-15-07-04_zero
   role: validation
   frame: qualisys:world
@@ -100,11 +114,13 @@ sessions:
   source: {bag: square_motion_offset0_2_2021-12-16-15-07-04.bag, sha256: 4ede2611ea4b2514c70ba64c97306d286f2b309c3d6332393f0bb808ac7a4588,
     description: 'original recording, not distributed', lag_s: 5.775, lag_correlation: 0.997, lag_method: 'speed-profile
       cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1639667225.197906}
-  rows: {joints: 10618, markers: 34012}
+  rows: {joints: 2039, markers: 7065}
   duration_s: 106.2
+  crop_s: [4.25, 106.15]
   nominal_registration_rmse_mm: 4.23
-  files: {2021-12-16-15-07-04_zero_joints.csv: b5e6a1fb6cf295963941f6e87eb6ee806853a420a188332ac2e75efeec577832,
-    2021-12-16-15-07-04_zero_markers.csv: ac5cc409a575ea9ddc389d64c6b5aa25a26c293975a10e88753d0d3ca4e501e1}
+  nominal_registration_rmse_shipped_mm: 3.96
+  files: {2021-12-16-15-07-04_zero_joints.csv: d49801f1ca6f7a13fdc6344bdda05f5a186793f978a9ea765e1238da8bb71181,
+    2021-12-16-15-07-04_zero_markers.csv: 237bd3baf3946d65fb7bd4561e0edfc08e48f4da13d85ae8449f99ded1bc30bc}
 - id: 2021-12-16-15-38-03_mocap
   role: validation
   frame: qualisys:world
@@ -113,11 +129,13 @@ sessions:
   source: {bag: square_motion_offset_mocap_2_2021-12-16-15-38-03.bag, sha256: d0c2445bf5c0d3068ea6468e24a4e2c4abf0f166bed693d2b285756ab2e9169a,
     description: 'original recording, not distributed', lag_s: 6.04, lag_correlation: 0.959, lag_method: 'speed-profile
       cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1639669083.349489}
-  rows: {joints: 16101, markers: 18735}
+  rows: {joints: 2031, markers: 2897}
   duration_s: 161.0
+  crop_s: [4.15, 105.65]
   nominal_registration_rmse_mm: 4.05
-  files: {2021-12-16-15-38-03_mocap_joints.csv: 715260de4a8b78251dac042cb28db2aa6583df34daad328410ae1bc30f603ada,
-    2021-12-16-15-38-03_mocap_markers.csv: e873605701e2bc001f9a946334cf0d61b41c9415ec2402d21a2fd42e8176253a}
+  nominal_registration_rmse_shipped_mm: 3.85
+  files: {2021-12-16-15-38-03_mocap_joints.csv: 64c2e1116a11e99b42997727e24131c3b125e0b8d11a9d9b35bcca64a749ed38,
+    2021-12-16-15-38-03_mocap_markers.csv: 80eb4bbeb89b46cfc7fa2193e523226e15cb7d47321afc820e76c678975d1304}
 - id: 2022-01-12-10-55-17_zero
   role: validation
   frame: qualisys:world
@@ -126,11 +144,13 @@ sessions:
   source: {bag: square_motion_4_zero_offsets_2022-01-12-10-55-17.bag, sha256: 7b44d4ecc211861e37f45af5b4c9d21da27fd939d10c761cb4dfe578aa4ce545,
     description: 'original recording, not distributed', lag_s: 7.73, lag_correlation: 0.999, lag_method: 'speed-profile
       cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1641984917.634315}
-  rows: {joints: 49124, markers: 96767}
+  rows: {joints: 9751, markers: 19285}
   duration_s: 491.2
+  crop_s: [0.0, 487.5]
   nominal_registration_rmse_mm: 2.9
-  files: {2022-01-12-10-55-17_zero_joints.csv: 224b08a956d40691c6fc8f778ecfc9feaa2554eccc97499eda23dab4ffb9dca7,
-    2022-01-12-10-55-17_zero_markers.csv: 3609c411f5a2e2c670a4cad3fdbc0367dea0287356fc263ecf0d5b8eeb5a60bb}
+  nominal_registration_rmse_shipped_mm: 2.89
+  files: {2022-01-12-10-55-17_zero_joints.csv: 1c25f23ec76e3cf8259e290ed4dd826babcba4240682999564dd96064e3ad55b,
+    2022-01-12-10-55-17_zero_markers.csv: 244df4579a870f1b191e060f7302863916fd1a5453a577208f1ae78a6a8e41be}
 - id: 2022-01-12-11-25-38_mocap
   role: validation
   frame: qualisys:world
@@ -139,11 +159,13 @@ sessions:
   source: {bag: square_motion_4_mocap_offsets_2022-01-12-11-25-38.bag, sha256: 54ce3ba045ca91a75ae618035d3fa0e62a53f1b82b4876c3b394aa3e80cde197,
     description: 'original recording, not distributed', lag_s: 8.105, lag_correlation: 0.985, lag_method: 'speed-profile
       cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1641986738.672281}
-  rows: {joints: 31752, markers: 54919}
+  rows: {joints: 6329, markers: 11065}
   duration_s: 317.5
+  crop_s: [0.0, 316.4]
   nominal_registration_rmse_mm: 3.75
-  files: {2022-01-12-11-25-38_mocap_joints.csv: fed3a4336d67b741c2e8b1c784bf6bc7c8535c38aa3dd4eae1e427a108f45efe,
-    2022-01-12-11-25-38_mocap_markers.csv: 441cd2b89e46f7742f02286693df1f426a2dbc636ff0c98441bc45c4f9d63e55}
+  nominal_registration_rmse_shipped_mm: 3.74
+  files: {2022-01-12-11-25-38_mocap_joints.csv: b65540449732d2f808070c0b609ed4f8dfc8eebc6d53416dff461d774a18054a,
+    2022-01-12-11-25-38_mocap_markers.csv: 9a58161aaa6a1cfac3f42eeb187499a7a76134fc2b58f6131dbb2e6492681f72}
 - id: 2022-01-12-11-10-58_mocap_inv
   role: validation
   frame: qualisys:world
@@ -152,11 +174,13 @@ sessions:
   source: {bag: square_motion_4_mocap_inv_offsets_2022-01-12-11-10-58.bag, sha256: 0053414d18b2e36bbc312e0620fda731dbcea46c4214494083dfcfb76dcae6ec,
     description: 'original recording, not distributed', lag_s: 7.915, lag_correlation: 0.984, lag_method: 'speed-profile
       cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1641985858.790309}
-  rows: {joints: 31819, markers: 61590}
+  rows: {joints: 6333, markers: 12305}
   duration_s: 318.2
+  crop_s: [0.0, 316.6]
   nominal_registration_rmse_mm: 2.18
-  files: {2022-01-12-11-10-58_mocap_inv_joints.csv: 7c59107f5650b88db3c00143da292277ecbf8c2c334a126afcc67edb2b86d44c,
-    2022-01-12-11-10-58_mocap_inv_markers.csv: e633a0ac448c325bf1ebf2f66b5a0a306b70ba21dda9f66e368c0e62fc8b8ae6}
+  nominal_registration_rmse_shipped_mm: 2.21
+  files: {2022-01-12-11-10-58_mocap_inv_joints.csv: 12dc638ca8bf61857f99a1963dd120b89e34db94ee1fb76f5de5ba0ee8131949,
+    2022-01-12-11-10-58_mocap_inv_markers.csv: 1756a5e499758fda16c3b981d11c44a391fa6564420cf052424604fe8a4d36cd}
 - id: 2022-01-12-11-38-43_pal
   role: validation
   frame: qualisys:world
@@ -165,11 +189,13 @@ sessions:
   source: {bag: square_motion_4_pal_offsets_2022-01-12-11-38-43.bag, sha256: 0b02978b5af81c2af170a2e2926b66acb7c5ed1045e99b76ef667711a6af378f,
     description: 'original recording, not distributed', lag_s: 8.1, lag_correlation: 0.998, lag_method: 'speed-profile
       cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1641987523.437179}
-  rows: {joints: 32779, markers: 64744}
+  rows: {joints: 6440, markers: 12764}
   duration_s: 327.8
+  crop_s: [0.0, 321.95]
   nominal_registration_rmse_mm: 3.3
-  files: {2022-01-12-11-38-43_pal_joints.csv: 9e08e5dc967ed395da63c13879f33013d743c53de153348fb417f41b9bacca97,
-    2022-01-12-11-38-43_pal_markers.csv: 917ea9bc2846d89b5e927c887754aa00a61c634c7ddffa48dbc8e357dc86230b}
+  nominal_registration_rmse_shipped_mm: 3.27
+  files: {2022-01-12-11-38-43_pal_joints.csv: 0ff775d1ced1b9edad7aa1f54880332ec188d04432bf485d536bd2149026643b,
+    2022-01-12-11-38-43_pal_markers.csv: 4231bfd5f471d6ad5630cf42cde4bd9c4272bc46713a2b2b6af94fe999ace94c}
 not_shipped:
 - recording: square_motion_offset_mocap_1_2021-12-16-15-41-18.bag
   sha256: b275cc7de960945168d499c5905844421da6e706b6b0a92160927401bbddae25

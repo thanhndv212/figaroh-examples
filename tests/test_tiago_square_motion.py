@@ -88,9 +88,15 @@ def test_files_share_one_clock_and_schema(run, manifest):
         len(joints),
         len(markers),
     )
-    assert joints["t"].iloc[0] == 0.0
-    assert (np.diff(joints["t"]) > 0).all()
+    assert manifest["rate_hz"] == 20
+    # common 20 Hz grid, cropped to the recorded window, no gap in the joints
+    start, end = entry["crop_s"]
+    assert joints["t"].iloc[0] == start and joints["t"].iloc[-1] == end
+    assert np.allclose(np.diff(joints["t"]), 0.05, atol=1e-9)
+    assert np.allclose(markers["t"] * 20, np.round(markers["t"] * 20), atol=1e-6)
     assert (np.diff(markers["t"]) >= 0).all()
+    assert markers["t"].min() >= start and markers["t"].max() <= end
+    assert end - start <= entry["duration_s"]
     assert {"base_frame", body} <= set(markers["body"])
     # markers sit on the robot clock: they overlap the joint recording
     ee = markers[markers["body"] == body]
@@ -100,7 +106,7 @@ def test_files_share_one_clock_and_schema(run, manifest):
 
 
 @pytest.mark.parametrize("run", sorted(RUNS))
-def test_nominal_registration_residual_matches_protocol(run, manifest):
+def test_nominal_registration_residual_of_shipped_files_matches_protocol(run, manifest):
     pytest.importorskip("pinocchio")
     from examples.tiago.utils.square_motion_extraction import registration_rmse
 
@@ -114,7 +120,12 @@ def test_nominal_registration_residual_matches_protocol(run, manifest):
         ee["t"].to_numpy(),
         ee[["x", "y", "z"]].to_numpy(),
         str(URDF),
+        step=1,
     )
     assert rmse < 6.0
     # CSV rounding moves the fit by a few micrometres only
-    assert rmse == pytest.approx(entry["nominal_registration_rmse_mm"], abs=0.05)
+    assert rmse == pytest.approx(
+        entry["nominal_registration_rmse_shipped_mm"], abs=0.02
+    )
+    # decimating moves the residual by less than 0.3 mm (full rate in the protocol)
+    assert abs(rmse - entry["nominal_registration_rmse_mm"]) < 0.3

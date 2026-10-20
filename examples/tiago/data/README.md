@@ -567,29 +567,39 @@ extracted from the original recordings. They are `validation` sessions of
 their own protocol (`validation/square_motion/protocol.yaml`,
 `tiago-square-motion-validation` v1): never used to fit anything. Each run is
 two files on **one clock** (the robot clock, seconds from the first joint
-sample): `<run>_joints.csv` (`t` and the eight joints, 100 Hz) and
+sample): `<run>_joints.csv` (`t` and the eight joints) and
 `<run>_markers.csv` (`t, body, x, y, z, qx, qy, qz, qw`, metres, Qualisys
-world frame, one row per Qualisys sample, no interpolation: a lost marker is a
-gap). Bodies: `base_frame` and the end-effector body (the plate point
+world frame). Both are cropped and decimated to a common **20 Hz** grid
+(`t = k / 20` s), 8.4 MB in total (the full-rate files were 43 MB). Bodies: `base_frame` and the end-effector body (the plate point
 `eeframe_BL`, with `BR/TR/TL`, in 2021-12; the rigid body `endeffector_frame`
 in 2022-01).
 
-| Run | Offset set | Duration (s) | Lag (s) | Correlation | Nominal registration (mm) | Rows joints / markers | sha256 (prefix) joints / markers |
+| Run | Offset set | Recording / kept (s) | Lag (s) | Correlation | Registration full / shipped (mm) | Rows joints / markers | sha256 (prefix) joints / markers |
 |---|---|---|---|---|---|---|---|
-| `2021-12-16-15-04-54_zero` | zero | 111.2 | +5.770 | 0.989 | 4.82 | 11124 / 38202 | `0d1ad569765f` / `b17f2c4d04b8` |
-| `2021-12-16-15-07-04_zero` | zero | 106.2 | +5.775 | 0.997 | 4.23 | 10618 / 34012 | `b5e6a1fb6cf2` / `ac5cc409a575` |
-| `2021-12-16-15-38-03_mocap` | mocap | 161.0 | +6.040 | 0.959 | 4.05 | 16101 / 18735 | `715260de4a8b` / `e873605701e2` |
-| `2022-01-12-10-55-17_zero` | zero | 491.2 | +7.730 | 0.999 | 2.90 | 49124 / 96767 | `224b08a956d4` / `3609c411f5a2` |
-| `2022-01-12-11-25-38_mocap` | mocap | 317.5 | +8.105 | 0.985 | 3.75 | 31752 / 54919 | `fed3a4336d67` / `441cd2b89e46` |
-| `2022-01-12-11-10-58_mocap_inv` | mocap_inv | 318.2 | +7.915 | 0.984 | 2.18 | 31819 / 61590 | `7c59107f5650` / `e633a0ac448c` |
-| `2022-01-12-11-38-43_pal` | pal | 327.8 | +8.100 | 0.998 | 3.30 | 32779 / 64744 | `9e08e5dc967e` / `917ea9bc2846` |
+| `2021-12-16-15-04-54_zero` | zero | 111.2 / 102.1 | +5.770 | 0.989 | 4.82 / 4.69 | 2043 / 7775 | `ede5e54fca93` / `61c39b0a47ab` |
+| `2021-12-16-15-07-04_zero` | zero | 106.2 / 101.9 | +5.775 | 0.997 | 4.23 / 3.96 | 2039 / 7065 | `d49801f1ca6f` / `237bd3baf394` |
+| `2021-12-16-15-38-03_mocap` | mocap | 161.0 / 101.5 | +6.040 | 0.959 | 4.05 / 3.85 | 2031 / 2897 | `64c2e1116a11` / `80eb4bbeb89b` |
+| `2022-01-12-10-55-17_zero` | zero | 491.2 / 487.5 | +7.730 | 0.999 | 2.90 / 2.89 | 9751 / 19285 | `1c25f23ec76e` / `244df4579a87` |
+| `2022-01-12-11-25-38_mocap` | mocap | 317.5 / 316.4 | +8.105 | 0.985 | 3.75 / 3.74 | 6329 / 11065 | `b65540449732` / `9a58161aaa6a` |
+| `2022-01-12-11-10-58_mocap_inv` | mocap_inv | 318.2 / 316.6 | +7.915 | 0.984 | 2.18 / 2.21 | 6333 / 12305 | `12dc638ca8bf` / `1756a5e49975` |
+| `2022-01-12-11-38-43_pal` | pal | 327.8 / 321.9 | +8.100 | 0.998 | 3.30 / 3.27 | 6440 / 12764 | `0ff775d1ced1` / `4231bfd5f471` |
 
+- **Decimation and crop:** each value is the mean of the full-rate (100 Hz)
+  samples in `[t - 0.025, t + 0.025)` s, a 0.05 s boxcar that is the
+  anti-alias filter; quaternions are sign-aligned, averaged and normalised.
+  A body with no sample in a window has no row there: tracking loss stays a
+  gap and is never interpolated (the absence of a row is the loss flag; the
+  joints have no gap). The idle lead-in and lead-out are cropped: joint speed
+  over a 0.5 s baseline above 0.02 rad/s marks motion, and the window is
+  1 s before the first moving sample to 1 s after the last moving span. The
+  crop window of each run is `crop_s` in `protocol.yaml`; the 2022-01 runs
+  start moving at once and lose 1.1 to 5.9 s, the 2021-12 runs 4.3 to 59.5 s.
 - **Provenance:** the PAL introspection bag of each run (joints, Qualisys
   `/tf`), named and hashed in `protocol.yaml` as original recordings, not
   distributed. Sensor model, camera count and marker placement are unknown.
 - **Clock:** `lag = t_robot - t_mocap` is measured per run by the correlation
   of the nominal-FK `wrist_ft_tool_link` speed with the end-effector marker
-  speed (+-60 s at 0.05 s, refined to 0.005 s), stored in the protocol with
+  speed on the full-rate data (+-60 s at 0.05 s, refined to 0.005 s), stored in the protocol with
   its correlation and method. The marker stamps are put on the robot clock as
   `t = stamp + lag - t0` (lag rounded to 1 ms). The lag is a measured value
   (5.8 to 8.1 s), not a constant of the setup.
@@ -600,9 +610,11 @@ in 2022-01).
   reversal (within 8e-4). PAL's own offsets are applied inside its controller
   and are not in the recordings: the `pal` values are `unknown`, not guessed.
 - **Nominal registration:** RMS distance of the nominal-FK tool point to the
-  marker path after a rigid fit and a fixed tool point: 2.2 to 4.8 mm. A
-  check that the files agree on one clock, not a calibration; no joint
-  offset is fitted.
+  marker path after a rigid fit and a fixed tool point: 2.2 to 4.8 mm on the
+  full-rate data (in `protocol.yaml` as `nominal_registration_rmse_mm`), 2.2
+  to 4.7 mm on the shipped files (`nominal_registration_rmse_shipped_mm`, the
+  decimation moves it by at most 0.27 mm). A check that the files agree on
+  one clock, not a calibration; no joint offset is fitted.
 - **2022-01-12 zero folder:** the issue expected no usable joint data; the
   bag holds a complete run (491 s, correlation 0.999) and it is shipped.
 - **Not shipped:** seven 2021-12 recordings (one with marker loss, two

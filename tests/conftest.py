@@ -65,8 +65,12 @@ def pytest_collection_modifyitems(config, items):
             continue
         if rel == GOLDEN_FILE:
             callspec = getattr(item, "callspec", None)
-            robot = impact.golden_case_for(callspec.id, IMPACT_MAP) if callspec else None
-            item.add_marker(getattr(pytest.mark, robot) if robot else pytest.mark.cross_robot)
+            robot = (
+                impact.golden_case_for(callspec.id, IMPACT_MAP) if callspec else None
+            )
+            item.add_marker(
+                getattr(pytest.mark, robot) if robot else pytest.mark.cross_robot
+            )
             continue
         known = False
         for robot in robot_files.get(rel, []):

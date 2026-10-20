@@ -13,13 +13,15 @@ Each run is a ROS bag with the PAL introspection stream (joint positions at
 clock**, the robot clock in seconds from the first joint sample:
 
 * ``<run>_joints.csv``: ``t`` and the eight :data:`JOINTS` positions (rad),
-  the introspection ``<joint>_position`` channels at their header stamps;
-* ``<run>_markers.csv``: one row per Qualisys sample, ``t, body, x, y, z, qx,
-  qy, qz, qw`` (metres, Qualisys world frame, unit quaternion), sorted by
-  ``t``. The bodies are ``base_frame`` and the end-effector body (the plate
-  points ``eeframe_BL/BR/TR/TL`` in 2021-12, the rigid body
-  ``endeffector_frame`` in 2022-01). Samples are never interpolated: a lost
-  marker is a gap in ``t``.
+  the introspection ``<joint>_position`` channels (100 Hz);
+* ``<run>_markers.csv``: ``t, body, x, y, z, qx, qy, qz, qw`` (metres,
+  Qualisys world frame, unit quaternion), sorted by ``t``. The bodies are
+  ``base_frame`` and the end-effector body (the plate points
+  ``eeframe_BL/BR/TR/TL`` in 2021-12, the rigid body ``endeffector_frame`` in
+  2022-01).
+
+The shipped files are cropped and decimated (steps 5 and 6); the lag and the
+registration are computed on the full-rate data.
 
 1. **Clock lag** (:func:`measure_clock_lag`): speed-profile cross-correlation.
    The speed of the nominal-FK ``wrist_ft_tool_link`` point is correlated with
@@ -40,7 +42,21 @@ clock**, the robot clock in seconds from the first joint sample:
 4. **Nominal registration** (:func:`registration_rmse`): the RMS distance
    between the nominal-FK tool point (reported joints) and the measured marker
    path after the best rigid transform and a fixed tool point. It is the
-   check that the two files agree on one clock; it is not a calibration.
+   check that the two files agree on one clock; it is not a calibration. It
+   is computed on the full-rate data and again on the shipped files.
+5. **Crop** (:func:`motion_window`): the speed of the eight joints over a
+   0.5 s baseline is compared with :data:`SPEED_THRESHOLD` (0.02 rad/s); the
+   window runs from :data:`CROP_PAD` (1 s) before the first moving sample to
+   1 s after the last, clipped to the recording. The idle lead-in and
+   lead-out are dropped.
+6. **Decimation** (:func:`boxcar_resample`, :func:`resample_markers`): onto the
+   grid ``t = k / RATE_HZ`` (20 Hz, ``k`` integer) of the robot clock, every
+   value is the mean of the full-rate samples in ``[t - 0.025, t + 0.025)`` s
+   (a 0.05 s boxcar, which is the anti-alias filter). Quaternions are
+   sign-aligned to the first sample of the window, averaged and normalised. A
+   body with no sample in the window has no row at that ``t``: tracking loss
+   stays a gap and is never interpolated, so the absence of a row is the loss
+   flag. Joints have no gap.
 
 Run
 
@@ -78,6 +94,10 @@ ARM_PAIRS = [("torso_lift_link", "arm_1_link")] + [
 OFFSET_DECIMALS = 5
 JOINT_COLUMNS = ["t"] + JOINTS
 MARKER_COLUMNS = ["t", "body", "x", "y", "z", "qx", "qy", "qz", "qw"]
+RATE_HZ = 20.0
+SPEED_THRESHOLD = 0.02  # rad/s over SPEED_BASELINE
+SPEED_BASELINE = 0.5  # s
+CROP_PAD = 1.0  # s
 
 
 def read_square_bag(path: str) -> Dict[str, object]:
@@ -229,6 +249,93 @@ def marker_rows(
     return rows[order], [names[i] for i in order]
 
 
+def motion_window(t: np.ndarray, q: np.ndarray) -> Tuple[float, float]:
+    """``(start, end)`` of the motion on the robot clock, idle ends cropped.
+
+    ``t`` is seconds from the first joint sample, ``q`` (n, 8). Rule: the speed
+    of the joints over a :data:`SPEED_BASELINE` baseline above
+    :data:`SPEED_THRESHOLD` marks the span it covers as moving; the window is
+    that union padded by :data:`CROP_PAD` and clipped to ``[t[0], t[-1]]``.
+    """
+    k = int(round(SPEED_BASELINE / np.median(np.diff(t))))
+    speed = np.linalg.norm(q[k:] - q[:-k], axis=1) / (t[k:] - t[:-k])
+    moving = np.flatnonzero(speed > SPEED_THRESHOLD)
+    if len(moving) == 0:
+        raise ValueError("no motion found")
+    start = t[moving[0]] - CROP_PAD
+    end = t[moving[-1] + k] + CROP_PAD
+    return float(max(start, t[0])), float(min(end, t[-1]))
+
+
+def grid_times(start: float, end: float) -> np.ndarray:
+    """Grid ``k / RATE_HZ`` inside ``[start, end]``."""
+    return (
+        np.arange(int(np.ceil(start * RATE_HZ)), int(np.floor(end * RATE_HZ)) + 1)
+        / RATE_HZ
+    )
+
+
+def _window_bounds(t: np.ndarray, grid: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    half = 0.5 / RATE_HZ
+    return np.searchsorted(t, grid - half, "left"), np.searchsorted(
+        t, grid + half, "left"
+    )
+
+
+def boxcar_resample(
+    t: np.ndarray, values: np.ndarray, grid: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Mean of ``values`` (n, m) over ``[g - h, g + h)`` for each grid time ``g``.
+
+    ``h`` is half a grid step. Returns ``(means, count)``; grid times with no
+    sample have ``count == 0`` and NaN means. ``t`` must be increasing.
+    """
+    lo, hi = _window_bounds(t, grid)
+    csum = np.vstack([np.zeros((1, values.shape[1])), np.cumsum(values, axis=0)])
+    count = hi - lo
+    with np.errstate(invalid="ignore", divide="ignore"):
+        means = (csum[hi] - csum[lo]) / count[:, None]
+    return means, count
+
+
+def resample_joints(t: np.ndarray, q: np.ndarray, grid: np.ndarray) -> np.ndarray:
+    """Joint means on ``grid`` (every window holds samples; checked)."""
+    means, count = boxcar_resample(t, q, grid)
+    if (count == 0).any():
+        raise ValueError("gap in the joint stream")
+    return means
+
+
+def resample_markers(
+    bodies: Dict[str, np.ndarray], lag: float, t0: float, grid: np.ndarray
+) -> Tuple[np.ndarray, List[str]]:
+    """Qualisys bodies decimated onto ``grid`` (module docstring, step 6).
+
+    Same return as :func:`marker_rows`: rows ``t, x, y, z, qx, qy, qz, qw``
+    sorted by ``t`` (stable, bodies in sorted-name order) and the body names.
+    Non-finite samples are dropped before averaging.
+    """
+    parts, names = [], []
+    for name in sorted(bodies):
+        rows = bodies[name]
+        rows = rows[np.isfinite(rows).all(axis=1)]
+        t = rows[:, 0] + lag - t0
+        quat = rows[:, 4:8].copy()
+        for i in range(1, len(quat)):  # hemisphere continuity
+            if quat[i] @ quat[i - 1] < 0:
+                quat[i] = -quat[i]
+        means, count = boxcar_resample(t, np.hstack([rows[:, 1:4], quat]), grid)
+        live = count > 0
+        out = np.column_stack([grid[live], means[live]])
+        norm = np.linalg.norm(out[:, 4:8], axis=1)
+        out[:, 4:8] /= norm[:, None]
+        parts.append(out)
+        names += [name] * len(out)
+    rows = np.vstack(parts)
+    order = np.argsort(rows[:, 0], kind="stable")
+    return rows[order], [names[i] for i in order]
+
+
 def format_joints(t: np.ndarray, q: np.ndarray, t0: float) -> str:
     """The joints file: ``t`` (4 decimals) and eight positions (6 decimals)."""
     lines = [",".join(JOINT_COLUMNS)]
@@ -313,8 +420,10 @@ def extract_run(
     the recorded one. Returns ``joints_csv`` and ``markers_csv`` (the file
     texts), ``t0`` (first joint stamp, Unix s), ``lag``, ``correlation`` (None
     when ``lag`` is given), ``body`` (lag body), ``offsets``
-    (:func:`measure_applied_offsets`), ``registration_rmse_mm``, ``n_joint_rows``
-    and ``n_marker_rows``.
+    (:func:`measure_applied_offsets`), ``registration_rmse_mm`` (full rate),
+    ``registration_rmse_shipped_mm`` (shipped files), ``crop_s`` (first and last
+    grid time), ``full_duration_s`` and the row counts (``n_full_*`` before the
+    crop and decimation).
     """
     if expected_sha256 is not None:
         actual = file_sha256(bag)
@@ -331,19 +440,30 @@ def extract_run(
     t0 = float(t[0])
     rows, names = marker_rows(bodies, lag, t0)
     lag_rows = rows[np.array(names) == body]
+    full_rmse = registration_rmse(t - t0, q, lag_rows[:, 0], lag_rows[:, 1:4], urdf)
+    start, end = motion_window(t - t0, q)
+    grid = grid_times(start, end)
+    q_grid = resample_joints(t - t0, q, grid)
+    m_rows, m_names = resample_markers(bodies, lag, t0, grid)
+    m_lag = m_rows[np.array(m_names) == body]
     return {
-        "joints_csv": format_joints(t, q, t0),
-        "markers_csv": format_markers(rows, names),
+        "joints_csv": format_joints(grid, q_grid, 0.0),
+        "markers_csv": format_markers(m_rows, m_names),
         "t0": t0,
         "lag": lag,
         "correlation": corr,
         "body": body,
         "offsets": measure_applied_offsets(run["tf"], t, q, urdf),
-        "registration_rmse_mm": registration_rmse(
-            t - t0, q, lag_rows[:, 0], lag_rows[:, 1:4], urdf
+        "registration_rmse_mm": full_rmse,
+        "registration_rmse_shipped_mm": registration_rmse(
+            grid, q_grid, m_lag[:, 0], m_lag[:, 1:4], urdf, step=1
         ),
-        "n_joint_rows": len(t),
-        "n_marker_rows": len(rows),
+        "crop_s": [float(grid[0]), float(grid[-1])],
+        "full_duration_s": float(t[-1] - t0),
+        "n_joint_rows": len(grid),
+        "n_marker_rows": len(m_rows),
+        "n_full_joint_rows": len(t),
+        "n_full_marker_rows": len(rows),
     }
 
 
@@ -371,9 +491,11 @@ if __name__ == "__main__":
             stream.write(result[f"{kind}_csv"])
     corr = result["correlation"]
     print(
-        f"{result['n_joint_rows']} joint rows, {result['n_marker_rows']} marker rows, "
+        f"{result['n_joint_rows']} joint rows, {result['n_marker_rows']} marker rows "
+        f"(crop {result['crop_s'][0]:.2f}-{result['crop_s'][1]:.2f} s), "
         f"lag {result['lag']:+.3f} s"
         + ("" if corr is None else f" (correlation {corr:.3f} on {result['body']})")
-        + f", nominal registration {result['registration_rmse_mm']:.2f} mm, "
+        + f", nominal registration {result['registration_rmse_mm']:.2f} mm full, "
+        f"{result['registration_rmse_shipped_mm']:.2f} mm shipped, "
         f"t0 {result['t0']:.6f}"
     )
