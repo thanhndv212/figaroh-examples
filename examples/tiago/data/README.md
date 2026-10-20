@@ -355,18 +355,19 @@ Its "marker 4" repeated marker 3, so TL was missing.
 Three static-posture runs recorded on 2023-09-12
 ([#105](https://github.com/thanhndv212/figaroh-examples/issues/105)) with an
 OptiTrack system, extracted from the original recordings. They are
-`confirmation` sessions of their own protocol
-(`calibration/optitrack/protocol.yaml`, `tiago-optitrack-2023-09-12` v1,
-independent of the Qualisys protocol). None is evaluated before the
+sessions of their own protocol (`calibration/optitrack/protocol.yaml`,
+`tiago-optitrack-2023-09-12` v2, independent of the Qualisys protocol). The
 motion-capture study
-([#100](https://github.com/thanhndv212/figaroh-examples/issues/100)), which
-adds the held-out block in v2.
+([#100](https://github.com/thanhndv212/figaroh-examples/issues/100)) fixed the
+roles in v2: 1658 `training`, 1552 `confirmation`, 1529 `confirmation` and not
+evaluated (4 postures, fewer than the 6 a re-registration needs). The v1 roles
+were all `confirmation`.
 
 | File | Role | Session (bag stem) | Postures | Plateaus | Gripper lost | Rigid body | Lag (s) | sha256 (prefix) |
 |---|---|---|---|---|---|---|---|---|
 | `optitrack_2023-09-12-1529_static_postures.csv` | confirmation | `optitrack_tiago_calibration_2023-09-12-15-29-23` | 4 | 8 | 4 | 1 | −0.8036 | `7e27603dc975ad8f` |
 | `optitrack_2023-09-12-1552_static_postures.csv` | confirmation | `optitrack_tiago_calibration_2023-09-12-15-52-58` | 9 | 17 | 8 | 1 | −1.0840 | `9bfb7004b13d8d4d` |
-| `optitrack_2023-09-12-1658_static_postures.csv` | confirmation | `optitrack_caibration_2023-09-12-16-58-30` | 13 | 22 | 9 | 2 | −1.3820 | `c46bd5d0f1af89ac` |
+| `optitrack_2023-09-12-1658_static_postures.csv` | training | `optitrack_caibration_2023-09-12-16-58-30` | 13 | 22 | 9 | 2 | −1.3820 | `c46bd5d0f1af89ac` |
 
 - **Provenance:** original recordings (ROS bags, not distributed) of
   2023-09-12, named and hashed in `protocol.yaml`. Recorded on the TIAGo
@@ -448,17 +449,17 @@ adds the held-out block in v2.
 
 Two static-posture runs recorded on 2023-09-20
 ([#106](https://github.com/thanhndv212/figaroh-examples/issues/106)) with a
-Vicon system, extracted from the original recordings. They are `confirmation`
-sessions of their own protocol (`calibration/vicon/protocol.yaml`,
-`tiago-vicon-2023-09-20` v1, independent of the Qualisys and OptiTrack
-protocols). None is evaluated before the motion-capture study
-([#100](https://github.com/thanhndv212/figaroh-examples/issues/100)), which
-adds the held-out block in v2. The issue asked for the unclosed bag of the
+Vicon system, extracted from the original recordings. They belong to their own
+protocol (`calibration/vicon/protocol.yaml`, `tiago-vicon-2023-09-20` v2,
+independent of the Qualisys and OptiTrack protocols). The motion-capture study
+([#100](https://github.com/thanhndv212/figaroh-examples/issues/100)) fixed the
+roles in v2: 1508 `training`, 1607 `confirmation` (v1: both `confirmation`).
+The issue asked for the unclosed bag of the
 session; that recording is not read here (see Not shipped).
 
 | File | Role | Run (local time) | Postures | Plateaus | Gripper lost | Marker triad | Lag (s) | sha256 (prefix) |
 |---|---|---|---|---|---|---|---|---|
-| `vicon_2023-09-20-1508_static_postures.csv` | confirmation | 1508, `.c3d` | 17 | 17 | 0 | 1 | +1.9350 (origin) | `745b6852eb27907a` |
+| `vicon_2023-09-20-1508_static_postures.csv` | training | 1508, `.c3d` | 17 | 17 | 0 | 1 | +1.9350 (origin) | `745b6852eb27907a` |
 | `vicon_2023-09-20-1607_static_postures.csv` | confirmation | 1607, `.csv` | 21 | 21 | 0 | 2 | −0.6100 | `18f213f8fdc51a26` |
 
 - **Provenance:** original recordings (not distributed), named and hashed in

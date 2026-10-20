@@ -43,6 +43,7 @@ robots:
   tiago:
     paths:
       - examples/tiago/**
+      - tests/golden/tiago_mocap_hardware.json
       - tests/golden/tiago_mocap_hardware_truth.json
     tests:
       - tests/test_calibration_harness_tiago.py
@@ -56,6 +57,7 @@ robots:
       - tests/test_tiago_mocap_extraction.py
       - tests/test_tiago_mocap_hardware.py
       - tests/test_tiago_mocap_hardware_protocol.py
+      - tests/test_tiago_mocap_hardware_study.py
       - tests/test_tiago_mocap_hardware_truth.py
       - tests/test_tiago_optitrack_2023_09_12.py
       - tests/test_tiago_optitrack_extraction.py
