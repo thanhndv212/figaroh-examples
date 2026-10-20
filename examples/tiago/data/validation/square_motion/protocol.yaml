@@ -1,0 +1,233 @@
+# TIAGo square-motion validation runs (examples#107, C5 Phase 2) as a
+# data-contract Protocol (figaroh-plus#55). Role is validation only: none of
+# these runs is ever used to fit. Independent of the calibration protocols.
+# Each run is two files on ONE clock, the robot clock in seconds from the first
+# joint sample: <run>_joints.csv (eight joint positions at 100 Hz) and
+# <run>_markers.csv (Qualisys samples, frame Qualisys, metres; bodies base_frame
+# and the end-effector body; no interpolation, a lost marker is a gap).
+# source: the original recordings (not distributed), PAL introspection + Qualisys
+# /tf of the same bag, by filename and sha256. clock: marker stamps are on the
+# mocap PC clock; lag_s = t_robot - t_mocap measured by speed-profile
+# cross-correlation (coarse +-60 s at 0.05 s, then 0.005 s) of the nominal-FK
+# wrist_ft_tool_link speed against the end-effector marker speed, correlation
+# stored as lag_correlation; t_robot = stamp + lag_s, t = t_robot - t0_unix_s.
+# examples/tiago/utils/square_motion_extraction.py re-creates every file byte
+# for byte and checks the lag.
+# nominal_registration_rmse_mm: RMS distance of nominal-FK tool point to the
+# marker path after a rigid fit + fixed tool point (a consistency check of the
+# one clock, not a calibration). end_effector: 2021-12 is the plate point
+# eeframe_BL (and BR/TR/TL), 2022-01 the rigid body endeffector_frame.
+# offset_sets: the joint-offset set the robot was running, with values (parent
+# side joint-origin offsets of arm_1..arm_7, translation m + rotation vector rad)
+# recovered from the recorded /tf versus the nominal URDF. unknown = not
+# established from the data. The 2022-01-12 zero folder holds a usable run.
+# not_shipped: recordings that hold no usable square, with the reason.
+name: tiago-square-motion-validation
+version: 1
+offset_sets:
+  zero: {values: zero (all offsets 0), evidence: the /tf of the zero runs equals the nominal URDF (all
+      offsets below 1e-4 m / rad)}
+  mocap:
+    values:
+      arm_1_joint:
+        translation_m: [0.0, 0.0, 0.0]
+        rotation_rad: [-0.00046, -0.00029, 0.0]
+      arm_2_joint:
+        translation_m: [-0.00021, -0.00038, 0.0]
+        rotation_rad: [-0.01268, -4.0e-05, 0.0]
+      arm_3_joint:
+        translation_m: [0.0, 1.0e-05, -0.00408]
+        rotation_rad: [-0.00102, 0.04984, 3.0e-05]
+      arm_4_joint:
+        translation_m: [-0.00088, 0.0, 0.00128]
+        rotation_rad: [-0.01368, 6.0e-05, 0.00932]
+      arm_5_joint:
+        translation_m: [-0.00114, -0.00482, 0.0]
+        rotation_rad: [-0.01371, 0.0, 0.00034]
+      arm_6_joint:
+        translation_m: [0.00508, 0.0, -0.00195]
+        rotation_rad: [-0.00011, -0.15913, 1.0e-05]
+      arm_7_joint:
+        translation_m: [0.0, 0.00583, 0.00312]
+        rotation_rad: [-0.02799, -0.028, -0.00039]
+    evidence: median parent-side joint-origin offset recovered from the recorded /tf of each mocap run
+      (module docstring of square_motion_extraction.py); the 2021-12 and 2022-01 runs agree within 1e-5
+  mocap_inv:
+    values:
+      arm_1_joint:
+        translation_m: [0.0, 0.0, 0.0]
+        rotation_rad: [0.00046, 0.00029, 0.0]
+      arm_2_joint:
+        translation_m: [0.00021, 0.00038, 0.0]
+        rotation_rad: [0.01268, 4.0e-05, 0.0]
+      arm_3_joint:
+        translation_m: [0.0, -1.0e-05, 0.00408]
+        rotation_rad: [0.00102, -0.04984, 3.0e-05]
+      arm_4_joint:
+        translation_m: [0.00088, 0.0, -0.00128]
+        rotation_rad: [0.01368, 6.0e-05, -0.0093]
+      arm_5_joint:
+        translation_m: [0.00114, 0.00482, 0.0]
+        rotation_rad: [0.01371, 0.0, -0.00033]
+      arm_6_joint:
+        translation_m: [-0.00508, 0.0, 0.00195]
+        rotation_rad: [0.00011, 0.15913, 1.0e-05]
+      arm_7_joint:
+        translation_m: [0.0, -0.00583, -0.00312]
+        rotation_rad: [0.02799, 0.028, -0.0004]
+    evidence: recovered the same way; the mocap values with the sign reversed, within 8e-4
+  pal: {values: unknown, evidence: 'the /tf of the pal run equals the nominal URDF: PAL''s own offsets
+      are applied inside its controller and are not in these recordings. Not guessed.'}
+sessions:
+- id: 2021-12-16-15-04-54_zero
+  role: validation
+  frame: qualisys:world
+  offset_set: zero
+  end_effector: eeframe_BL
+  source: {bag: square_motion_offset0_2021-12-16-15-04-54.bag, sha256: 85f75987b29bd0817b87c9834b77464d35b2149fe09f43a53adff79016d016a8,
+    description: 'original recording, not distributed', lag_s: 5.77, lag_correlation: 0.989, lag_method: 'speed-profile
+      cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1639667094.29797}
+  rows: {joints: 11124, markers: 38202}
+  duration_s: 111.2
+  nominal_registration_rmse_mm: 4.82
+  files: {2021-12-16-15-04-54_zero_joints.csv: 0d1ad569765f3ddb8218528184b4713742b1a92b7675ff669d5dc7e99006cc57,
+    2021-12-16-15-04-54_zero_markers.csv: b17f2c4d04b818e1b6b50c6b1befac56acb446db23c98ef4e8760753e55b0aa0}
+- id: 2021-12-16-15-07-04_zero
+  role: validation
+  frame: qualisys:world
+  offset_set: zero
+  end_effector: eeframe_BL
+  source: {bag: square_motion_offset0_2_2021-12-16-15-07-04.bag, sha256: 4ede2611ea4b2514c70ba64c97306d286f2b309c3d6332393f0bb808ac7a4588,
+    description: 'original recording, not distributed', lag_s: 5.775, lag_correlation: 0.997, lag_method: 'speed-profile
+      cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1639667225.197906}
+  rows: {joints: 10618, markers: 34012}
+  duration_s: 106.2
+  nominal_registration_rmse_mm: 4.23
+  files: {2021-12-16-15-07-04_zero_joints.csv: b5e6a1fb6cf295963941f6e87eb6ee806853a420a188332ac2e75efeec577832,
+    2021-12-16-15-07-04_zero_markers.csv: ac5cc409a575ea9ddc389d64c6b5aa25a26c293975a10e88753d0d3ca4e501e1}
+- id: 2021-12-16-15-38-03_mocap
+  role: validation
+  frame: qualisys:world
+  offset_set: mocap
+  end_effector: eeframe_BL
+  source: {bag: square_motion_offset_mocap_2_2021-12-16-15-38-03.bag, sha256: d0c2445bf5c0d3068ea6468e24a4e2c4abf0f166bed693d2b285756ab2e9169a,
+    description: 'original recording, not distributed', lag_s: 6.04, lag_correlation: 0.959, lag_method: 'speed-profile
+      cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1639669083.349489}
+  rows: {joints: 16101, markers: 18735}
+  duration_s: 161.0
+  nominal_registration_rmse_mm: 4.05
+  files: {2021-12-16-15-38-03_mocap_joints.csv: 715260de4a8b78251dac042cb28db2aa6583df34daad328410ae1bc30f603ada,
+    2021-12-16-15-38-03_mocap_markers.csv: e873605701e2bc001f9a946334cf0d61b41c9415ec2402d21a2fd42e8176253a}
+- id: 2022-01-12-10-55-17_zero
+  role: validation
+  frame: qualisys:world
+  offset_set: zero
+  end_effector: endeffector_frame
+  source: {bag: square_motion_4_zero_offsets_2022-01-12-10-55-17.bag, sha256: 7b44d4ecc211861e37f45af5b4c9d21da27fd939d10c761cb4dfe578aa4ce545,
+    description: 'original recording, not distributed', lag_s: 7.73, lag_correlation: 0.999, lag_method: 'speed-profile
+      cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1641984917.634315}
+  rows: {joints: 49124, markers: 96767}
+  duration_s: 491.2
+  nominal_registration_rmse_mm: 2.9
+  files: {2022-01-12-10-55-17_zero_joints.csv: 224b08a956d40691c6fc8f778ecfc9feaa2554eccc97499eda23dab4ffb9dca7,
+    2022-01-12-10-55-17_zero_markers.csv: 3609c411f5a2e2c670a4cad3fdbc0367dea0287356fc263ecf0d5b8eeb5a60bb}
+- id: 2022-01-12-11-25-38_mocap
+  role: validation
+  frame: qualisys:world
+  offset_set: mocap
+  end_effector: endeffector_frame
+  source: {bag: square_motion_4_mocap_offsets_2022-01-12-11-25-38.bag, sha256: 54ce3ba045ca91a75ae618035d3fa0e62a53f1b82b4876c3b394aa3e80cde197,
+    description: 'original recording, not distributed', lag_s: 8.105, lag_correlation: 0.985, lag_method: 'speed-profile
+      cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1641986738.672281}
+  rows: {joints: 31752, markers: 54919}
+  duration_s: 317.5
+  nominal_registration_rmse_mm: 3.75
+  files: {2022-01-12-11-25-38_mocap_joints.csv: fed3a4336d67b741c2e8b1c784bf6bc7c8535c38aa3dd4eae1e427a108f45efe,
+    2022-01-12-11-25-38_mocap_markers.csv: 441cd2b89e46f7742f02286693df1f426a2dbc636ff0c98441bc45c4f9d63e55}
+- id: 2022-01-12-11-10-58_mocap_inv
+  role: validation
+  frame: qualisys:world
+  offset_set: mocap_inv
+  end_effector: endeffector_frame
+  source: {bag: square_motion_4_mocap_inv_offsets_2022-01-12-11-10-58.bag, sha256: 0053414d18b2e36bbc312e0620fda731dbcea46c4214494083dfcfb76dcae6ec,
+    description: 'original recording, not distributed', lag_s: 7.915, lag_correlation: 0.984, lag_method: 'speed-profile
+      cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1641985858.790309}
+  rows: {joints: 31819, markers: 61590}
+  duration_s: 318.2
+  nominal_registration_rmse_mm: 2.18
+  files: {2022-01-12-11-10-58_mocap_inv_joints.csv: 7c59107f5650b88db3c00143da292277ecbf8c2c334a126afcc67edb2b86d44c,
+    2022-01-12-11-10-58_mocap_inv_markers.csv: e633a0ac448c325bf1ebf2f66b5a0a306b70ba21dda9f66e368c0e62fc8b8ae6}
+- id: 2022-01-12-11-38-43_pal
+  role: validation
+  frame: qualisys:world
+  offset_set: pal
+  end_effector: endeffector_frame
+  source: {bag: square_motion_4_pal_offsets_2022-01-12-11-38-43.bag, sha256: 0b02978b5af81c2af170a2e2926b66acb7c5ed1045e99b76ef667711a6af378f,
+    description: 'original recording, not distributed', lag_s: 8.1, lag_correlation: 0.998, lag_method: 'speed-profile
+      cross-correlation, t_robot = t_mocap + lag_s', t0_unix_s: 1641987523.437179}
+  rows: {joints: 32779, markers: 64744}
+  duration_s: 327.8
+  nominal_registration_rmse_mm: 3.3
+  files: {2022-01-12-11-38-43_pal_joints.csv: 9e08e5dc967ed395da63c13879f33013d743c53de153348fb417f41b9bacca97,
+    2022-01-12-11-38-43_pal_markers.csv: 917ea9bc2846d89b5e927c887754aa00a61c634c7ddffa48dbc8e357dc86230b}
+not_shipped:
+- recording: square_motion_offset_mocap_1_2021-12-16-15-41-18.bag
+  sha256: b275cc7de960945168d499c5905844421da6e706b6b0a92160927401bbddae25
+  reason: end-effector markers lost during the square (marker loss); no continuous path
+- recording: square_motion_offset_mocap_2_2021-12-16-15-37-09.bag
+  sha256: d1726c5e54ce8a463b2365ad685ec2de320c498cd35e5b28cc7311938a948eaa
+  reason: aborted run, robot static
+- recording: square_motion_offset_pal_1_2021-12-16-16-05-12.bag
+  sha256: 79cd3e80e00fc41165a1ca7fd83e2b276315fbb77fb4637cb1dfdc1c0b5f5471
+  reason: aborted run, robot static
+- recording: square_motion_offset_mocap_inv_1_2021-12-16-15-53-51.bag
+  sha256: 2633f8267ff79a3a55e7d9ae6a7f51815d37df287e2f5525dc1538e917125a19
+  reason: no end-effector markers in the Qualisys stream
+- recording: square_motion_offset_mocap_inv_2_2021-12-16-15-55-50.bag
+  sha256: 7f03f1231f69da2dbae66d328d6b597b70509a964c3240abc5d4e174d5c5359f
+  reason: no end-effector markers in the Qualisys stream
+- recording: square_motion_offset_pal_1_2021-12-16-16-05-35.bag
+  sha256: 75a13cbbd44f92e6ed2440e46fc6db5d50d374462fcddcad87736dff8db7338d
+  reason: no end-effector markers in the Qualisys stream
+- recording: square_motion_offset_pal_2_2021-12-16-16-07-26.bag
+  sha256: 8f78fcc1defb3dc8d8405dea12c55b3bacf89c73ec13787e9f65eb2d8206cebb
+  reason: no end-effector markers in the Qualisys stream
+- recording: mocapminus1.tsv
+  sha256: 22b60388533b66bb91672fb4e47a7cea79c90dbcb6775f0089c506e33637ff41
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: mocapminus1_6D.tsv
+  sha256: c5b7fb4cfc6a0b551f59c5583d219c1eab21a1ed94392ee858838b398fc8f49e
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: mocapplus.tsv
+  sha256: 91fa7b12f522734e89ccb3a1f0c145d06b792c06bff47cac86ecdc4367b90129
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: mocapplus_6D.tsv
+  sha256: a6670fa9f6e038e529910a82c4b62263f26053690b1655830d7c4e406de3f436
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: nooffset1.tsv
+  sha256: 229dbfcfbcb37b14119ef051143760eac8ac2e5d6f7d759bd7373e6b71a5b577
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: nooffset2.tsv
+  sha256: 61c72a574f0c5ff2b33fcc2ea897879eb00a58565ab6efb0cd771afcae6dba80
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: nooffset3.tsv
+  sha256: 223eded3dd679422c7f3c82576fe53a394699fbe956e07d55f03a1f6fe1fae84
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: nooffset3_6D.tsv
+  sha256: 78804f84cb707e719a057d56bf9d083694ec46cf75ba969ecd16171f7eb4a90d
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: pal1.tsv
+  sha256: 96e134b285605f0efc84b456a489ebbcd9fb2fccd5f270d164fee130c1ae5a11
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: pal1_6D.tsv
+  sha256: 1e45ba4451988beab984cc685f53b46705c037fed29cec15b4992a713e2c6844
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: output.csv
+  sha256: 0cfeaa7b292c43017d2b872906637e3b031771505d912e8542ab93c0c55ebeed
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: test2_1301.tsv
+  sha256: 6cedf2d11e72f3130addd7a1c4d3dec55360d560dabe7e34f38552fa21b54316
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
+- recording: test_1301.tsv
+  sha256: 71ce056c6c5bc159bce02ad3454aa910590cb22d1342fea43977b5b5ba5c3b90
+  reason: QTM export of the 2022-01 session, Qualisys clock only, no joint data; the shipped runs carry the same markers from the bag
