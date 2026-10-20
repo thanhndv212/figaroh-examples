@@ -28,8 +28,8 @@ posture files below were extracted from them with the rules in
 | 2021-11-12 15:07 | 26 | world | not used: same reason |
 | 2021-10-26 ×2 | 26 + 25 | world | **confirmation (v2)**, listed and frozen but not evaluated here: no base body, see section 6 |
 | 2021-09 sessions | — | — | unusable: end-effector body under two alternating names |
-| 2023-09-12 OptiTrack ×3 | 4 + 9 + 13 | world, 6D | not evaluated here: shipped under their own protocol (`calibration/optitrack/`, #105); different bodies, needs re-registration |
-| 2023-09-20 Vicon ×2 | 17 + 21 | world, 6D (marker triads) | not evaluated here: shipped under their own protocol (`calibration/vicon/`, #106); markers not bodies, gripper triad differs between runs, needs re-registration |
+| 2023-09-12 OptiTrack ×3 | 4 + 9 + 13 | world, 6D | not evaluated by this protocol (it needs re-registration). Roles in the OptiTrack protocol v2 (#100): 1658 training, 1552 confirmation, 1529 confirmation and not evaluated (4 postures); used by `docs/development/tiago-mocap-hardware.md` |
+| 2023-09-20 Vicon ×2 | 17 + 21 | world, 6D (marker triads) | not evaluated by this protocol (it needs re-registration; markers not bodies, gripper triad differs between runs). Roles in the Vicon protocol v2 (#100): 1508 training, 1607 confirmation; used by `docs/development/tiago-mocap-hardware.md` |
 | 2023-11-07 OptiTrack | 16 | world, 6D | unusable: chessboard body flips |
 
 **Same frame:** the four sessions used here express the hand's Qualisys
