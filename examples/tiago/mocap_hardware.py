@@ -21,13 +21,18 @@ default ``measurement_std``, 0.001 m over 0.01 rad, through
 so it is applied here). It is not optimally weighted until figaroh-plus#215, so
 it never drives a verdict.
 
-Stages (``--stage``): only ``noise`` is available in the pre-registration
-(PR A of #100): it estimates each system's effective noise from paired postures
-with *registration only* (no joint-level fit). The real-data stages are added
-with the study. Design and thresholds:
+Stages: ``noise`` estimates each system's effective noise from paired postures
+with *registration only* (no joint-level fit; the pre-registration, PR A of
+#100). ``real`` fits the fixed model on the 2021 and 2023 sessions and reads the
+differences against the frozen bands (C1, C2, C3, C5, the arm_5-only
+diagnostic and the 6D secondary); ``square`` scores the models on the seven
+square-motion runs (C4, lag sweep); ``all`` runs both. ``--archive`` writes the
+run record. Design, thresholds and results:
 docs/development/tiago-mocap-hardware.md.
 
-    python mocap_hardware.py --stage noise
+    python mocap_hardware.py noise
+    python mocap_hardware.py real --archive --no-plot
+    python mocap_hardware.py all --archive --no-plot
 """
 
 from __future__ import annotations
@@ -163,6 +168,8 @@ def make_calib(
     cfg["data_file"] = str(data_file)
     calib._data_path = str(Path(data_file).resolve())
     cfg["validation_data_file"] = None
+    # the run record is filed under this asset (every session is tiago-48)
+    cfg["instance"] = {**(cfg.get("instance") or {}), "asset_id": "tiago-48"}
     cfg["known_baseframe"] = False
     cfg["known_tipframe"] = False
     if six_d:
@@ -414,7 +421,7 @@ def score(
     return out
 
 
-# --- joint offsets and placements (square-motion runs, PR B) ----------------
+# --- joint offsets and placements (square-motion runs) ----------------------
 
 
 def apply_joint_offsets(q8: np.ndarray, offsets: np.ndarray) -> np.ndarray:
@@ -441,6 +448,21 @@ def placement_model(
         )
         out.jointPlacements[jid] = model.jointPlacements[jid] * delta
     return out
+
+
+def path_rmse(R: np.ndarray, p: np.ndarray, meas: np.ndarray) -> float:
+    """Registered path RMSE (mm) of predicted tool poses against a marker path.
+
+    ``(R, p)`` are the predicted tool poses of one model along a run and
+    ``meas`` the marker path; a rigid transform and a fixed point in the tool
+    frame are fitted on the run itself (in-sample), as in
+    ``square_motion_extraction.registration_rmse`` (which takes joints and a
+    URDF instead of poses). Generalised to poses so that joint offsets and
+    recorded placements go through the same registration.
+    """
+    x = reregister(R, p, meas)
+    err, _ = residuals(R, p, x, meas)
+    return rms_mm(err)
 
 
 # --- effective noise from paired postures (registration only) ---------------
@@ -567,11 +589,24 @@ def noise_level(sigma_mm: float, grid=NOISE_GRID_MM) -> float:
 
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--stage", choices=["noise"], default="noise")
+    stages = ["noise", "real", "square", "all"]
+    parser.add_argument("stage", nargs="?", choices=stages, default=None)
+    parser.add_argument("--stage", dest="stage_opt", choices=stages)
+    parser.add_argument(
+        "--archive", action="store_true", help="write the run record (real, all)"
+    )
+    parser.add_argument("--root", default="results/runs", help="archive root")
+    parser.add_argument("--out", type=Path, help="write the results as JSON")
+    parser.add_argument("--golden", type=Path, help="write the golden file")
     parser.add_argument(
         "--no-plot", action="store_true", help="accepted for validate.py"
     )
-    parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    stage = args.stage_opt or args.stage or "noise"
+    if stage != "noise":
+        from examples.tiago import mocap_hardware_study as study
+
+        sys.exit(study.run(stage, args))
     est = noise_estimates()
     print("effective noise from paired postures (registration only)")
     for system, v in est.items():
