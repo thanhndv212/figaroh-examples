@@ -1,9 +1,23 @@
-# TIAGo OptiTrack 2023-09-12 static postures (examples#105) as a data-contract
-# Protocol (figaroh-plus#55). Per-system protocol: independent of
-# ../mocap/protocol.yaml (Qualisys). Roles are frozen: changing a file or a role
-# needs a new version. No heldout: block: the shared harness needs exactly one
-# training session, and none of these runs is evaluated before the
-# motion-capture study (examples#100), which adds the block in v2.
+# TIAGo OptiTrack 2023-09-12 static postures (examples#105, v2 examples#100) as
+# a data-contract Protocol (figaroh-plus#55). Per-system protocol: independent
+# of ../mocap/protocol.yaml (Qualisys). Roles are frozen: changing a file or a
+# role needs a new version.
+# v2 (examples#100) assigns the roles the v1 note deferred to the
+# motion-capture study and adds the heldout: block. The three files and their
+# sha256 are unchanged. v1 roles: 1529, 1552 and 1658 were all `confirmation`
+# ("not yet looked at"; v1 had no heldout: block and no run was evaluated).
+# v2 roles: 1658 training, 1552 confirmation, 1529 confirmation and
+# not_evaluated (4 postures, below the 6 a base + tool re-registration needs).
+# No validation role. Why the change is legitimate (rule 4 of
+# docs/development/tiago-mocap-heldout-protocol.md): v1 deferred the held-out
+# split to #100, and its "confirmation" meant only "not yet looked at"; no
+# joint-level model was fitted or scored on any of these sessions (the
+# registration-only sanity fits in tests/test_tiago_optitrack_2023_09_12.py are
+# the baseline and informed no choice); the roles follow a rule stated before
+# any fit (training = the largest usable run of the rigid-body definition that
+# leaves the most new postures in confirmation); nothing is selected on any
+# role (the harness `select` refuses confirmation). See
+# docs/development/tiago-mocap-hardware.md.
 # source: the original recording (not distributed), its sha256 and the clock
 # lag measured from it (t_robot - t_mocap, the difference of the median
 # receive-minus-header stamp offsets of the mocap and robot streams);
@@ -15,7 +29,7 @@
 # different definitions are never pooled without a tool registration per
 # definition.
 name: tiago-optitrack-2023-09-12
-version: 1
+version: 2
 rigid_bodies:
   1:
     name: tiago_schunk
@@ -26,7 +40,7 @@ rigid_bodies:
     note: redefined between 15:52 and 16:58 (a constant 5-7 deg tool-frame rotation)
 sessions:
 - id: 2023-09-12-1529
-  role: confirmation
+  role: confirmation  # v1: confirmation; 4 postures, listed in heldout.not_evaluated
   frame: optitrack:world
   rigid_body: 1
   source:
@@ -37,7 +51,7 @@ sessions:
   files:
     optitrack_2023-09-12-1529_static_postures.csv: 7e27603dc975ad8f0929f376e119ba43ba6df99c79362e8e257128531c70c758
 - id: 2023-09-12-1552
-  role: confirmation
+  role: confirmation  # v1: confirmation
   frame: optitrack:world
   rigid_body: 1
   source:
@@ -48,7 +62,7 @@ sessions:
   files:
     optitrack_2023-09-12-1552_static_postures.csv: 9bfb7004b13d8d4d094c76696513f6015c47a67aa3caf1c6ac73319672ed111b
 - id: 2023-09-12-1658
-  role: confirmation
+  role: training  # v1: confirmation
   frame: optitrack:world
   rigid_body: 2
   source:
@@ -58,3 +72,11 @@ sessions:
   drops: {plateaus: 22, gripper_lost: 9}
   files:
     optitrack_2023-09-12-1658_static_postures.csv: c46bd5d0f1af89ac66bb7af23b6b1d8b48de4d3e7e97a5d7ef01eabfe527d6b5
+heldout:
+  split: sessions
+  selection_role: validation
+  not_evaluated: [2023-09-12-1529]
+  strata:
+    joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
+    repeated_tol: 0.01
+    out_of_range_margin: 0.05

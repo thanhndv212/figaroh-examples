@@ -58,6 +58,9 @@ SESSIONS = {
 }
 
 
+ROLES_V2 = {"2023-09-20-1508": "training", "2023-09-20-1607": "confirmation"}
+
+
 @pytest.fixture(scope="module")
 def manifest():
     return yaml.safe_load((VICON / "protocol.yaml").read_text())
@@ -68,17 +71,18 @@ def frames():
     return {sid: pd.read_csv(VICON / v[0]) for sid, v in SESSIONS.items()}
 
 
-def test_protocol_lists_two_confirmation_sessions(manifest):
+def test_protocol_lists_the_two_sessions(manifest):
     from figaroh.data import Protocol
 
-    assert (manifest["name"], manifest["version"]) == ("tiago-vicon-2023-09-20", 1)
-    assert "heldout" not in manifest  # #100 adds it in v2
+    assert (manifest["name"], manifest["version"]) == ("tiago-vicon-2023-09-20", 2)
+    # v2 (#100) only assigns roles: files and hashes are v1's (SESSIONS)
+    assert "not_evaluated" not in manifest["heldout"]
     protocol = Protocol.load(VICON / "protocol.yaml")
     protocol.verify(root=VICON)
     assert len(protocol.sessions) == 2
     for sid, v in SESSIONS.items():
         session = protocol.session(sid)
-        assert session.role == "confirmation"
+        assert session.role == ROLES_V2[sid]
         assert session.files == {v[0]: v[6]}
 
 

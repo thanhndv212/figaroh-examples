@@ -590,12 +590,12 @@
       "rows": 13
     },
     "examples/tiago/data/calibration/optitrack/protocol.yaml": {
-      "sha256": "3fa18bdaaac593a98fb0cf969323eebed19ab855fb1638a9d52125697d17e1d5",
-      "bytes": 2662
+      "sha256": "7d431e3cdac04ae43c4fcc6209af3e05516b2b9cbf10cd113af80900639effe1",
+      "bytes": 4010
     },
     "examples/tiago/data/calibration/vicon/protocol.yaml": {
-      "sha256": "58060c9081c2dc46a938f4b8b271915232469f9f483a98fc761785b07ef87ea2",
-      "bytes": 4707
+      "sha256": "f7c6747992692b7771ebe1d49444a71eeb35f99ebdc35a925de1ff409034f1db",
+      "bytes": 5803
     },
     "examples/tiago/data/calibration/vicon/vicon_2023-09-20-1508_static_postures.csv": {
       "sha256": "745b6852eb27907a07bfd26e3cd30fc83cd69d4de33d5719a688bb8b01ebf74c",
