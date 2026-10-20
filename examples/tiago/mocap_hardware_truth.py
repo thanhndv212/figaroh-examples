@@ -168,12 +168,15 @@ def run_cell(fx: Fixture, seed: int, levels: Dict[str, float], workdir: Path) ->
         if len({tuple(n) for n in names.values()}) != 1:
             raise RuntimeError(f"fits keep different parameter sets: {names}")
     z = []
-    for f in fits.values():
-        z += [
+    z_by_mode = {"3d": [], "6d": []}
+    for (_, mode), f in fits.items():
+        zs = [
             (f["params"][n] - truth[mh.OFFSET_NAMES.index(n)]) / f["std"][n]
             for n in mh.COMPARABLE
             if f["std"][n] > 0
         ]
+        z += zs
+        z_by_mode[mode] += zs
     theta = {
         mode: {
             s: mh.offsets_of(fits[(s, mode if (s, mode) in fits else "3d")]["params"])
@@ -201,6 +204,7 @@ def run_cell(fx: Fixture, seed: int, levels: Dict[str, float], workdir: Path) ->
         "seed": seed,
         "levels": dict(levels),
         "z": z,
+        "z_by_mode": z_by_mode,
         "params": {
             f"{s}|{mode}": {n: f["params"][n] for n in mh.COMPARABLE}
             for (s, mode), f in fits.items()
@@ -275,6 +279,14 @@ def summarize(cells: List[dict]) -> dict:
                     for j in mh.COMPARABLE
                 }
     z = np.array([v for c in cells for v in c["z"]])
+    by_mode = {}
+    for mode in ("3d", "6d"):
+        zm = np.array([v for c in cells for v in c["z_by_mode"][mode]])
+        by_mode[mode] = {
+            "n": int(zm.size),
+            "mean": float(zm.mean()),
+            "rms": float(np.sqrt(np.mean(zm**2))),
+        }
     return {
         "levels": cells[0]["levels"],
         "seeds": [c["seed"] for c in cells],
@@ -287,6 +299,7 @@ def summarize(cells: List[dict]) -> dict:
             "rms": float(np.sqrt(np.mean(z**2))),
             "max_abs": float(np.abs(z).max()),
         },
+        "recovery_z_by_mode": by_mode,
         "mean": descriptive,
     }
 
@@ -350,6 +363,8 @@ def main(argv=None) -> None:
             continue
         z = s["recovery_z"]
         print(f"\n{label}: recovery z rms {z['rms']:.2f} (n={z['n']})")
+        for mode, zm in s["recovery_z_by_mode"].items():
+            print(f"  z rms {mode}: {zm['rms']:.2f} (n={zm['n']})")
         for k, v in s["transfer_band_mm"].items():
             print(
                 f"  {k:48s} gap {v['gap_mean']:+.3f} sd {v['gap_sd']:.3f}  band {v['band']:.3f}"
