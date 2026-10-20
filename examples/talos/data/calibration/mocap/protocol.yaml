@@ -1,0 +1,92 @@
+# TALOS torso-arm Qualisys motion-capture sessions of 2022-03-15 (examples#114)
+# as a data-contract Protocol (figaroh-plus#55). Roles are frozen: changing a
+# file or a role needs a new version. No heldout: block: the calibration study
+# that evaluates these sessions is a follow-up issue, which adds the block in v2.
+# Three sessions, all usable (>= 15 plateaus kept; the gate below). Roles:
+# training = left arm, validation = right arm (the two roles span the two
+# arms, as the issue asks), confirmation = the third run (right arm, a
+# different set of 23 postures: none of its postures repeats one of the
+# validation run within 5 mrad, so it neither extends the training nor repeats
+# the validation).
+# Frame: every body is expressed in the Qualisys world frame. The recordings
+# hold three bodies (waist_frame, upper_body_frame, endeffector_frame); which
+# robot link each is mounted on, and the offset from that link, are unknown
+# and are not guessed (free registration in a study). Both waist_frame and
+# upper_body_frame move with the torso joints, so none of the three bodies is
+# a fixed base reference.
+# source: the original recording (not distributed): the ROS bag, with sha256, and
+# the clock lag measured from it (t_robot - t_mocap). The bag holds joint
+# positions from the PAL introspection statistics and the Qualisys poses from
+# /tf_throttle; header stamps of both are on the same ROS clock to within 0.1 s.
+# Lag method (examples/talos/utils/mocap_extraction.py, estimate_clock_lag):
+# maximum correlation between the upper_body_frame angular speed and the speed
+# norm of torso_1/torso_2 over +-2 s in 0.02 s steps; the peak is flat to about
+# 0.1 s, far inside the 0.5 s head and 0.3 s tail trimmed from each plateau.
+# examples/talos/utils/mocap_extraction.py re-creates each file byte for byte
+# and checks the lag, drops and audit below.
+# drops: plateaus found (joints within 1 mrad over 0.5 s, at least 2 s), those
+# with too few samples of a body inside the window (the end-effector body comes
+# at about 1 Hz and needs 3), and those with a body coordinate std above 5 mm.
+# audit: per stream, over the whole bag. frozen = pose identical to the
+# previous sample of its body. tracking loss = gap above 5 median periods
+# between samples of a body (a lost body publishes nothing; there is no NaN or
+# flag in the bag), reported as gap count and total seconds. Joint stream: no
+# gaps above 0.042 s (maximum interval).
+name: talos-mocap-2022-03-15
+version: 1
+bodies:
+  waist: {frame: waist_frame, parent: Qualisys, attached_to: unknown}
+  upper_body: {frame: upper_body_frame, parent: Qualisys, attached_to: unknown}
+  endeffector: {frame: endeffector_frame, parent: Qualisys, attached_to: unknown}
+sessions:
+- id: 2022-03-15-1354-left
+  role: training
+  arm: left
+  frame: qualisys:world
+  source:
+    bag: calib_left_15_03_2022-03-15-13-54-45.bag
+    sha256: e0c16e35333b6f3844a3873b26b4e56d58317fba519e5686eb4d92d231e3ba9c
+    lag_s: -0.08
+  usable: true
+  drops: {plateaus: 65, too_few_samples: 9, unsteady: 0}
+  audit:
+    robot: {samples: 70529, duration_s: 1115.8, rate_hz: 62.5}
+    waist: {samples: 42061, rate_hz: 49.1, frozen: 0, nan: 0, tracking_loss_gaps: 56, tracking_loss_s: 8.2}
+    upper_body: {samples: 35695, rate_hz: 33.5, frozen: 0, nan: 0, tracking_loss_gaps: 163, tracking_loss_s: 32.7}
+    endeffector: {samples: 807, rate_hz: 1.0, frozen: 0, nan: 0, tracking_loss_gaps: 27, tracking_loss_s: 183.2}
+  files:
+    qualisys_2022-03-15-1354_left_static_postures.csv: 4bfa50c2219acf776c18d484433553ab5283ba0ecc29a6bf053584a314ae92ef
+- id: 2022-03-15-1418-right
+  role: validation
+  arm: right
+  frame: qualisys:world
+  source:
+    bag: calib_right_15_03_2022-03-15-14-18-26.bag
+    sha256: d8197a1c947fd4e8b95a2076f39629823596579fbefb714d359f010dbfcafb89
+    lag_s: 0.02
+  usable: true
+  drops: {plateaus: 65, too_few_samples: 25, unsteady: 1}
+  audit:
+    robot: {samples: 69884, duration_s: 1105.0, rate_hz: 62.5}
+    waist: {samples: 43067, rate_hz: 49.8, frozen: 0, nan: 0, tracking_loss_gaps: 79, tracking_loss_s: 11.0}
+    upper_body: {samples: 31826, rate_hz: 33.4, frozen: 0, nan: 0, tracking_loss_gaps: 255, tracking_loss_s: 49.5}
+    endeffector: {samples: 615, rate_hz: 1.1, frozen: 0, nan: 0, tracking_loss_gaps: 39, tracking_loss_s: 393.0}
+  files:
+    qualisys_2022-03-15-1418_right_static_postures.csv: 8b1d0c5e3b4e5befc58b826c3e0376124e01864f5609503b075d724e81dae5ea
+- id: 2022-03-15-1439-right
+  role: confirmation
+  arm: right
+  frame: qualisys:world
+  source:
+    bag: calib_TEST27_right_15_03_2022-03-15-14-39-29.bag
+    sha256: 913675513b715a3965cbac181a857fc10ba76de0bceb82686119cda748e8f743
+    lag_s: -0.02
+  usable: true
+  drops: {plateaus: 28, too_few_samples: 5, unsteady: 0}
+  audit:
+    robot: {samples: 30982, duration_s: 489.6, rate_hz: 62.5}
+    waist: {samples: 19787, rate_hz: 49.9, frozen: 0, nan: 0, tracking_loss_gaps: 27, tracking_loss_s: 3.6}
+    upper_body: {samples: 13216, rate_hz: 33.3, frozen: 0, nan: 0, tracking_loss_gaps: 153, tracking_loss_s: 30.4}
+    endeffector: {samples: 343, rate_hz: 1.2, frozen: 0, nan: 0, tracking_loss_gaps: 16, tracking_loss_s: 96.7}
+  files:
+    qualisys_2022-03-15-1439_right_static_postures.csv: c6cc469bd21da32e5c4bdbb901131770f23e5e85267a549700573eb24e2f1989

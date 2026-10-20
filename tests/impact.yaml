@@ -77,7 +77,9 @@ robots:
   talos:
     paths:
       - examples/talos/**
-    tests: []
+    tests:
+      - tests/test_talos_mocap_2022_03_15.py
+      - tests/test_talos_mocap_extraction.py
     golden_ids: ["talos/"]
     script_key: talos
   talos_table_contact:
