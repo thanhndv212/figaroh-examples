@@ -45,6 +45,7 @@ robots:
       - examples/tiago/**
       - tests/golden/tiago_mocap_hardware.json
       - tests/golden/tiago_mocap_hardware_truth.json
+      - tests/golden/tiago_head_camera.json
       - tests/golden/tiago_head_camera_truth.json
     tests:
       - tests/test_calibration_harness_tiago.py
@@ -52,6 +53,7 @@ robots:
       - tests/test_tiago_export_check.py
       - tests/test_tiago_head_camera_2023.py
       - tests/test_tiago_head_camera_extraction.py
+      - tests/test_tiago_head_camera_study.py
       - tests/test_tiago_head_camera.py
       - tests/test_tiago_head_camera_truth.py
       - tests/test_tiago_heldout_protocol.py
