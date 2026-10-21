@@ -108,6 +108,18 @@
       "provenance": "examples/tiago/data/README.md"
     },
     {
+      "id": "tiago-head-camera-2023",
+      "robot": "TIAGo",
+      "study": "Head-camera calibration (#101)",
+      "kind": "real",
+      "role": "training, validation and confirmation sessions plus diagnostics (#108)",
+      "description": "Head-camera chessboard sessions of 2023-10 to 2023-11: 12 PAL eye-hand tool tables (chessboard pose in camera, absolute-encoder joints), 6 mocap runs with flip counts, PAL's reference camera calibration and an offset.xacro of unknown origin, and the protocol that freezes roles and hashes.",
+      "paths": [
+        "examples/tiago/data/calibration/head_camera/"
+      ],
+      "provenance": "examples/tiago/data/README.md"
+    },
+    {
       "id": "tiago-mocap-vicon-2023-09-20",
       "robot": "TIAGo",
       "study": "Mocap calibration (cross-system, #100)",
@@ -526,6 +538,168 @@
       "sha256": "5a0eed92dd000be7ee58157eb40090683e9b3d991a40de3dd15254bdbb201a51",
       "bytes": 35698619,
       "rows": 12092
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-24-test1_chessboard_in_camera.csv": {
+      "sha256": "fdfe14b7df49dc529d7cc29ffdd370bfd44bd0a77ad95450b95c8b54f95a1935",
+      "bytes": 733,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-24-test1_joints.csv": {
+      "sha256": "ff340fe0b88ca79be6588edbcb6ed29621d6ad5546c08bfcf3f37b21d5a27447",
+      "bytes": 1309,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-24-test2_chessboard_in_camera.csv": {
+      "sha256": "c7c05dab860e5e01d5584db2b8c18cf99f82de43d5ce495a713922696da4aaae",
+      "bytes": 556,
+      "rows": 9
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-24-test2_joints.csv": {
+      "sha256": "5b3a1b8afc2f4f3620723d3a43fb2bda314b064bb220fc19ecf93e222e0bcd14",
+      "bytes": 1022,
+      "rows": 9
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-27-test1_chessboard_in_camera.csv": {
+      "sha256": "2a47ddcb147027aa0ccfa1e463bb7cee2b7d02fb5c563ab272931d7c823dc5c0",
+      "bytes": 729,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-27-test1_joints.csv": {
+      "sha256": "79be83808992bc3b46a68cbe89726c552153fcc8ed15e7067aabbe8d8a1874c9",
+      "bytes": 1344,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-27-test2_chessboard_in_camera.csv": {
+      "sha256": "0a80b326fc5523a880a038e0e991362c3461f9f34336f0deee051786f899f943",
+      "bytes": 738,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-27-test2_joints.csv": {
+      "sha256": "92d3d26b714603911b93f1107b6b1abcbacc19b90f10cb5f0ef37752559bd0e4",
+      "bytes": 1345,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-27-test3_chessboard_in_camera.csv": {
+      "sha256": "a2ab240806f60fe52bf972c22edf6855330c491d42406e88f6fe01615e954c18",
+      "bytes": 740,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-10-27-test3_joints.csv": {
+      "sha256": "65be6a272085bf9b07fa0f916e58041b9e3bc94adfd868182e44bdb923034f82",
+      "bytes": 1342,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-07-camera_chessboard_in_camera.csv": {
+      "sha256": "6ab3d01a2209d442aba129fdee124090563c4d4b5728d7e468e9a6792c5ec950",
+      "bytes": 1146,
+      "rows": 19
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-07-camera_joints.csv": {
+      "sha256": "380090e229fb833a8dba52a914d154b8b4053f45d88438398b0eb96bdd970549",
+      "bytes": 1995,
+      "rows": 19
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_calib_chessboard_in_camera.csv": {
+      "sha256": "4abfd32d624901985a518b8f4eedc88cea84d145630cd6ffe78dd110d1e85fb2",
+      "bytes": 1095,
+      "rows": 18
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_calib_joints.csv": {
+      "sha256": "dc12e1c45068c3015d0f7499fc9a12744dfe78bd54488acaf801d2a108cc6752",
+      "bytes": 1895,
+      "rows": 18
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_original_chessboard_in_camera.csv": {
+      "sha256": "673ab181ac7824a35e7499925b11fcf3eb4377d522c31f5e19588835be46ab56",
+      "bytes": 1037,
+      "rows": 17
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_original_joints.csv": {
+      "sha256": "75c6b03681c56a7ecaf6f7cb259d7d0b59439169aad6c83aa4c5c6af1951f5e3",
+      "bytes": 1799,
+      "rows": 17
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_zero_chessboard_in_camera.csv": {
+      "sha256": "7ff4be1c2b592fe39d87b95cf7c53d46b32e1608a018bd269b1fc63cf3210c0d",
+      "bytes": 1035,
+      "rows": 17
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_zero_joints.csv": {
+      "sha256": "ffa93963fd3fdae9f2a514c202a911a797347f82d1d3b3f3e407797eb09987de",
+      "bytes": 1801,
+      "rows": 17
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-24-test_optimal_chessboard_in_camera.csv": {
+      "sha256": "3d1acd309fa9afac5c9463b0e501817c62462c74d3c162b9413b3eb4a59580c2",
+      "bytes": 672,
+      "rows": 11
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-24-test_optimal_joints.csv": {
+      "sha256": "a8a1f128667af17e2a40931cfb17d35f4806f77d94b50a5d126b0cef34430d66",
+      "bytes": 1197,
+      "rows": 11
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-27-center_chessboard_in_camera.csv": {
+      "sha256": "b2c482d003d505acb8cc73558c0996b68656a31a58b50750f3d6ef156dffcafa",
+      "bytes": 1030,
+      "rows": 17
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-27-center_joints.csv": {
+      "sha256": "9b2d7b723919560602efb6ecb926eaf41f406d170ef0eceee2e6677ba221a952",
+      "bytes": 1807,
+      "rows": 17
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-27-topleft_chessboard_in_camera.csv": {
+      "sha256": "dba5b6e71a5cec358f9fb55f49fc13e3295c0ba92dd6a735138422d3eb1db1af",
+      "bytes": 1096,
+      "rows": 18
+    },
+    "examples/tiago/data/calibration/head_camera/camera_2023-11-27-topleft_joints.csv": {
+      "sha256": "ed7756ecf2875fa1fb1eee1a06ffeb1d231b7136c8541e5d74a89c4f44928028",
+      "bytes": 1902,
+      "rows": 18
+    },
+    "examples/tiago/data/calibration/head_camera/mocap_2023-10-27-test1_chessboard_in_camera.csv": {
+      "sha256": "a6af3dbbf881fcec55c846362dae665c24a82912e2e2c6789f91196a81ee58c1",
+      "bytes": 3101,
+      "rows": 11
+    },
+    "examples/tiago/data/calibration/head_camera/mocap_2023-10-27-test2_chessboard_in_camera.csv": {
+      "sha256": "51205ac2a5d063db49f7e8d6f6936f990b379d11dde4ee43dfa3a46cc6727a98",
+      "bytes": 3099,
+      "rows": 11
+    },
+    "examples/tiago/data/calibration/head_camera/mocap_2023-10-27-test3_chessboard_in_camera.csv": {
+      "sha256": "54f3b33e05981b4612f3aeb10ed003f29942b4b8e23c3a82ec9ff69b055967f9",
+      "bytes": 2321,
+      "rows": 8
+    },
+    "examples/tiago/data/calibration/head_camera/mocap_2023-11-07-1444_chessboard_in_camera.csv": {
+      "sha256": "e0d1930aa6c4275f46c5d490243db8a1e9ac95ccdc68c5dacef229ebe2ff7e3e",
+      "bytes": 3355,
+      "rows": 12
+    },
+    "examples/tiago/data/calibration/head_camera/mocap_2023-11-07-1516_chessboard_in_camera.csv": {
+      "sha256": "523f5dc7cda29f9429b0960ebff6845f2694fe832b36c90d43a48b2184af1596",
+      "bytes": 3851,
+      "rows": 14
+    },
+    "examples/tiago/data/calibration/head_camera/mocap_2023-11-07-1528_chessboard_in_camera.csv": {
+      "sha256": "cbf54e64d6fd0f34b2a15ef63829194353de52190cb4a9eb4f7a41622b6a620b",
+      "bytes": 3847,
+      "rows": 14
+    },
+    "examples/tiago/data/calibration/head_camera/pal_reference/master_calibration_pal.yaml": {
+      "sha256": "2edc0b743ee0f86d613866f89fa1969ffc94e825315282c124de39bb27e252b4",
+      "bytes": 1784
+    },
+    "examples/tiago/data/calibration/head_camera/pal_reference/offset.xacro": {
+      "sha256": "8f30b0414fad6bb467435b39770dd41b62504a50f957c8686fa1901766b8f9e6",
+      "bytes": 1265
+    },
+    "examples/tiago/data/calibration/head_camera/protocol.yaml": {
+      "sha256": "92ee282358ba2ac1aaf21621d49e17d67c2aca36edab6c70553e39afae86643c",
+      "bytes": 15128
     },
     "examples/tiago/data/calibration/mocap/protocol.yaml": {
       "sha256": "e1886b43ab1770b658335bfdc099c7fb4294423997a8d3c9fdb421f48a798022",

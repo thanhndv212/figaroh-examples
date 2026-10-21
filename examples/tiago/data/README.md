@@ -445,6 +445,83 @@ were all `confirmation`.
   for byte when `TIAGO_RECORDINGS_ROOT` points at a folder holding the
   original recordings; it is skipped otherwise.
 
+## Head-camera chessboard data (`calibration/head_camera/`)
+
+Chessboard observations by the TIAGo head camera, 2023-10 to 2023-11
+([#108](https://github.com/thanhndv212/figaroh-examples/issues/108), for the
+camera study [#101](https://github.com/thanhndv212/figaroh-examples/issues/101)).
+Fifteen sessions in one protocol (`calibration/head_camera/protocol.yaml`,
+`tiago-head-camera-2023` v1): 12 sessions of PAL eye-hand tool output
+(`camera_*`) and 6 mocap runs (`mocap_*`) of the same boards, three of
+which pair with a PAL CSV of their own and three with the 2023-11-07 CSV.
+
+| Session | Role | Postures | Mocap kept / plateaus (unpaired, lost, flipped, repaired) |
+|---|---|---|---|
+| `2023-10-24-test1` | training | 12 | none |
+| `2023-10-24-test2` | diagnostic | 9 | none |
+| `2023-10-27-test1` | confirmation | 12 | 11 / 12 (0, 1, 0, 1) |
+| `2023-10-27-test2` | confirmation | 12 | 11 / 13 (1, 1, 0, 1) |
+| `2023-10-27-test3` | confirmation | 12 | 8 / 13 (1, 4, 0, 0) |
+| `2023-11-07-camera` | diagnostic | 19 | none |
+| `2023-11-07-1444` | diagnostic | (mocap only) | 12 / 20 (2, 3, 3, 0) |
+| `2023-11-07-1516` | diagnostic | (mocap only) | 14 / 20 (2, 4, 0, 0) |
+| `2023-11-07-1528` | diagnostic | (mocap only) | 14 / 21 (2, 4, 1, 0) |
+| `2023-11-23-distortion_calib` | diagnostic | 18 | none |
+| `2023-11-23-distortion_original`, `_zero` | diagnostic | 17 each | none |
+| `2023-11-24-test_optimal` | diagnostic | 11 | none |
+| `2023-11-27-center` | validation | 17 | none |
+| `2023-11-27-topleft` | diagnostic | 18 | none |
+
+Not usable, recorded in `protocol.yaml` with the reason: the four 2023-10-24
+bags (motor-encoder joints only, no camera observation) and the eight
+2023-10-25 bags (joints and PAL introspection only, no camera observation and
+no PAL CSV).
+
+- **Provenance:** original recordings (PAL eye-hand calibration tool CSVs and
+  ROS bags, not distributed), named and hashed in `protocol.yaml`. The six PAL
+  tool archives that hold the URDF and the image corners are not shipped; the
+  CSV is their derived camera-pose table.
+- **Units and frames:** metres and radians. `x..phiz` is the **chessboard pose
+  in the camera frame**, orientation as pinocchio roll-pitch-yaw
+  (`R = Rz Ry Rx`). Camera rows are in PAL's camera optical frame; mocap rows
+  are in the `tiago_camera` body frame, `p = Rc^T (p_board - p_cam)`,
+  `R = Rc^T R_board`. The two frames differ by a fixed rotation, so the
+  orientation columns of the two kinds are not directly comparable.
+- **Camera tables:** `camera_<id>_chessboard_in_camera.csv` and
+  `camera_<id>_joints.csv` keep PAL's 6-significant-digit values as written.
+  The joints are PAL's **absolute-encoder** readings (arm 1-7, head 1-2). The
+  torso is not in the PAL CSV: it comes from the paired bag for the three
+  2023-10-27 sessions (`torso_source = bag`) and is **assumed 0.30 m**
+  everywhere else (`torso_source = assumed`).
+- **Mocap tables:** one row per static plateau of the 9 arm and head joints
+  (5 mrad over 0.5 s, at least 1 s), averaged over `[start+0.5, end-0.3]`
+  shifted by the measured clock lag (10-27 about +6.71 s, 11-07 about
+  +8.58 s). A plateau is paired to a PAL row by joints (10 mrad, one-to-one),
+  never by time, because the camera CSV has no clock. For 2023-11-07 the
+  pairing is by posture plan and joints only.
+- **Flip handling:** the board rigid body sometimes jumps to a mirrored
+  orientation. Samples more than 90 degrees from the plateau's medoid are
+  removed (`repaired`; a plateau with more than 40 % removed is `ambiguous`
+  and dropped). A plateau more than 90 degrees from the run's medoid of
+  `R_pal^T R_mocap` is `flipped` and dropped. PAL values only select flips;
+  they are never written into the mocap files. The drop counts per run are in
+  `protocol.yaml` and the table above (11-07-1444 has one borderline plateau
+  at 105 degrees, treated as flipped).
+- **Splits are not independent in posture:** all sessions repeat the same
+  posture plan, so training, validation and confirmation share postures.
+- **PAL reference** (`pal_reference/`): `master_calibration_pal.yaml` is
+  PAL Robotics' camera calibration (intrinsics and extrinsics), verbatim,
+  attributed to PAL Robotics S.L. `offset.xacro` is **of unknown origin** and
+  not PAL's reference (its values differ); it is shipped as found.
+- **Limits:** torso assumed where unpaired; 11-07 pairing by plan only; which
+  distortion setting each 2023-11-23 variant applied is not documented; the
+  camera has no clock, so there is no timestamp pairing; the intrinsics exist
+  only in the PAL yaml.
+- **Re-creating the files:** with the original recordings available,
+  `python -m examples.tiago.utils.head_camera_extraction camera <csv> <prefix> [--bag B]`
+  and `... mocap <bag> <csv> <out>`; `tests/test_tiago_head_camera_extraction.py`
+  re-creates every file byte for byte when `TIAGO_RECORDINGS_ROOT` is set.
+
 ## Vicon calibration data (`calibration/vicon/`)
 
 Two static-posture runs recorded on 2023-09-20
