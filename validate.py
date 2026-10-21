@@ -87,6 +87,7 @@ EXAMPLE_SCRIPTS = {
         ("identification_reference.py", 300, False, ["--case", "all"]),
         ("optimal_config.py", 120, False),
         ("mocap_hardware.py", 300, False, ["real", "--archive", "--no-plot"]),
+        ("head_camera_study.py", 300, False, ["--archive", "--no-plot"]),
         ("optimal_trajectory.py", 600, True),
     ],
     "talos": [
