@@ -71,6 +71,14 @@ TIAGo evidence for the choice:
 on all four sessions. It also explains which corrections are identified and
 which are redistributed.
 
+**Head camera instead of mocap** ([#101](https://github.com/thanhndv212/figaroh-examples/issues/101)).
+`head_camera_study.py` fits the arm joint offsets from the head camera's
+chessboard poses and compares them with the motion capture on the same
+postures (2023-10-27), against bands written beforehand. Result: the camera is
+not consistent with mocap for arm calibration. Results and caveats are in the
+[note](../../docs/development/tiago-head-camera.md). Run it with
+`python head_camera_study.py --archive --no-plot` (about 10 s).
+
 **Mathematical Foundation**:
 ```
 P_measured = forward_kinematics(q, θ_nominal + Δθ) + ε
