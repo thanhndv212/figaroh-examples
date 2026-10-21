@@ -17,8 +17,8 @@ HC = Path(__file__).resolve().parents[1] / "examples/tiago/data/calibration/head
 MANIFEST = yaml.safe_load((HC / "protocol.yaml").read_text())
 SESSIONS = MANIFEST["sessions"]
 ROLES = {
-    "2023-10-24-test1": "training",
-    "2023-11-27-center": "validation",
+    "2023-11-27-center": "training",
+    "2023-11-23-distortion_original": "validation",
     "2023-10-27-test1": "confirmation",
     "2023-10-27-test2": "confirmation",
     "2023-10-27-test3": "confirmation",
@@ -40,14 +40,22 @@ def test_every_shipped_file_matches_its_hash_and_nothing_else_is_shipped():
 
 
 def test_roles_are_frozen_and_diagnostic_is_the_default():
-    assert len({s["id"] for s in SESSIONS}) == len(SESSIONS) == 15
+    assert len({s["id"] for s in SESSIONS}) == len(SESSIONS) == 13
     for s in SESSIONS:
         assert s["role"] == ROLES.get(s["id"], "diagnostic"), s["id"]
         assert s["usable"] is True
     assert {n["id"] for n in MANIFEST["not_usable"]} == {
         "2023-10-24-bags",
+        "2023-10-24-camera",
         "2023-10-25",
     }
+
+
+def test_every_session_names_its_robot():
+    for s in SESSIONS:
+        expected = "tiago-155c" if s["id"] == "2023-11-24-test_optimal" else "tiago-48"
+        assert s["robot"] == expected, s["id"]
+    assert not any(s["id"].startswith("2023-10-24") for s in SESSIONS)
 
 
 def test_tables_follow_the_schemas_and_posture_counts():

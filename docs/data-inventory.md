@@ -18,7 +18,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-calibration-nov-30-64` | TIAGo | Calibration | unspecified (unconfirmed) | not used | 1 | 13.5 KB | examples/tiago/data/README.md |
 | `tiago-mocap-qualisys-2021-11` | TIAGo | Mocap calibration (reference) | real | train / validate / confirmation | 8 | 136.4 KB | examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md |
 | `tiago-mocap-optitrack-2023-09-12` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 4 | 16.9 KB | examples/tiago/data/README.md |
-| `tiago-head-camera-2023` | TIAGo | Head-camera calibration (#101) | real | training, validation and confirmation sessions plus diagnostics (#108) | 33 | 65.5 KB | examples/tiago/data/README.md |
+| `tiago-head-camera-2023` | TIAGo | Head-camera calibration (#101) | real | training, validation and confirmation sessions plus diagnostics (#108) | 29 | 62.0 KB | examples/tiago/data/README.md |
 | `tiago-mocap-vicon-2023-09-20` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 3 | 23.6 KB | examples/tiago/data/README.md |
 | `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 8.4 MB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
@@ -139,10 +139,6 @@ Head-camera chessboard sessions of 2023-10 to 2023-11: 12 PAL eye-hand tool tabl
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/tiago/data/calibration/head_camera/camera_2023-10-24-test1_chessboard_in_camera.csv` | 12 | 733 | `fdfe14b7df49dc52` |
-| `examples/tiago/data/calibration/head_camera/camera_2023-10-24-test1_joints.csv` | 12 | 1309 | `ff340fe0b88ca79b` |
-| `examples/tiago/data/calibration/head_camera/camera_2023-10-24-test2_chessboard_in_camera.csv` | 9 | 556 | `c7c05dab860e5e01` |
-| `examples/tiago/data/calibration/head_camera/camera_2023-10-24-test2_joints.csv` | 9 | 1022 | `5b3a1b8afc2f4f36` |
 | `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test1_chessboard_in_camera.csv` | 12 | 729 | `2a47ddcb147027aa` |
 | `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test1_joints.csv` | 12 | 1344 | `79be83808992bc3b` |
 | `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test2_chessboard_in_camera.csv` | 12 | 738 | `0a80b326fc5523a8` |
@@ -171,7 +167,7 @@ Head-camera chessboard sessions of 2023-10 to 2023-11: 12 PAL eye-hand tool tabl
 | `examples/tiago/data/calibration/head_camera/mocap_2023-11-07-1528_chessboard_in_camera.csv` | 14 | 3847 | `cbf54e64d6fd0f34` |
 | `examples/tiago/data/calibration/head_camera/pal_reference/master_calibration_pal.yaml` |  | 1784 | `2edc0b743ee0f86d` |
 | `examples/tiago/data/calibration/head_camera/pal_reference/offset.xacro` |  | 1265 | `8f30b0414fad6bb4` |
-| `examples/tiago/data/calibration/head_camera/protocol.yaml` |  | 15128 | `92ee282358ba2ac1` |
+| `examples/tiago/data/calibration/head_camera/protocol.yaml` |  | 15165 | `e3f3ea344fba1671` |
 
 ### `tiago-mocap-vicon-2023-09-20`
 

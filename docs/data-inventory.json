@@ -539,26 +539,6 @@
       "bytes": 35698619,
       "rows": 12092
     },
-    "examples/tiago/data/calibration/head_camera/camera_2023-10-24-test1_chessboard_in_camera.csv": {
-      "sha256": "fdfe14b7df49dc529d7cc29ffdd370bfd44bd0a77ad95450b95c8b54f95a1935",
-      "bytes": 733,
-      "rows": 12
-    },
-    "examples/tiago/data/calibration/head_camera/camera_2023-10-24-test1_joints.csv": {
-      "sha256": "ff340fe0b88ca79be6588edbcb6ed29621d6ad5546c08bfcf3f37b21d5a27447",
-      "bytes": 1309,
-      "rows": 12
-    },
-    "examples/tiago/data/calibration/head_camera/camera_2023-10-24-test2_chessboard_in_camera.csv": {
-      "sha256": "c7c05dab860e5e01d5584db2b8c18cf99f82de43d5ce495a713922696da4aaae",
-      "bytes": 556,
-      "rows": 9
-    },
-    "examples/tiago/data/calibration/head_camera/camera_2023-10-24-test2_joints.csv": {
-      "sha256": "5b3a1b8afc2f4f3620723d3a43fb2bda314b064bb220fc19ecf93e222e0bcd14",
-      "bytes": 1022,
-      "rows": 9
-    },
     "examples/tiago/data/calibration/head_camera/camera_2023-10-27-test1_chessboard_in_camera.csv": {
       "sha256": "2a47ddcb147027aa0ccfa1e463bb7cee2b7d02fb5c563ab272931d7c823dc5c0",
       "bytes": 729,
@@ -698,8 +678,8 @@
       "bytes": 1265
     },
     "examples/tiago/data/calibration/head_camera/protocol.yaml": {
-      "sha256": "92ee282358ba2ac1aaf21621d49e17d67c2aca36edab6c70553e39afae86643c",
-      "bytes": 15128
+      "sha256": "e3f3ea344fba16712fb743ccc08c15f701f600c7dcf6f320076728a94da63cdc",
+      "bytes": 15165
     },
     "examples/tiago/data/calibration/mocap/protocol.yaml": {
       "sha256": "e1886b43ab1770b658335bfdc099c7fb4294423997a8d3c9fdb421f48a798022",
