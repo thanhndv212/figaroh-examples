@@ -1,0 +1,81 @@
+# TIAGo head camera, chessboard on the hand (examples#101): the one fixed model
+# every fit of the study uses, whichever sensor recorded the session. Nothing
+# is selected on any session; see docs/development/tiago-head-camera.md.
+#
+# Model: joint_offset level. The measurement is the board pose in the sensor
+# frame, M = (T_cam(q + d) X)^-1 T_hand(q + d) Y (a two-chain relative pose,
+# fitted by examples/tiago/head_camera.py, not by core's single-chain
+# calibration). Gauge-fixed parameters: arm_1 .. arm_6 offsets, X (camera in
+# head_2_link) and Y (board on arm_7_link); head_1, head_2, the torso and the
+# arm_7 offsets are held at 0 (see the note, section 3).
+#
+# source_file is a placeholder: head_camera.py sets the data of each session.
+extends: "tiago_unified_config.yaml"
+
+robot:
+  urdf_file: "tiago_48_hey5.urdf"
+
+tasks:
+  calibration:
+    parameters:
+      calibration_level: "joint_offset"
+    data:
+      validation_data_file: ""
+
+custom:
+  head_camera:
+    robot: tiago-48                # tiago-155c (11-24) is not evaluated
+    min_postures: 6                # a session with fewer paired postures is not scored
+    # Held parameters (nominal, not fitted): the gauge fix of the note, section 3.
+    held_offsets: [torso_lift_joint, head_1_joint, head_2_joint, arm_7_joint]
+    fitted_offsets: [arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint]
+    # Noise stage (registration only, no joint fit): camera sigma from the pair
+    # 11-27 center vs topleft, mocap sigma from the plateau pose_std_mm of the
+    # 11-07 runs. Grid level = the smallest level >= sigma_eff (depth, mm).
+    noise_pair: [2023-11-27-center, 2023-11-27-topleft]
+    pair_tol_rad: 0.020            # postures paired if within on every moving joint
+    registration_rot_m_per_rad: 0.5   # rotation weight of the registration fits
+    mocap_noise_sessions: [2023-11-07-1444, 2023-11-07-1516, 2023-11-07-1528]
+    noise_grid_mm: [0.5, 2.0, 4.0]
+    noise_level_mm: 2.0    # the used level: smallest grid level >= sigma_eff (z), set by the noise stage
+    # Frozen by the noise stage (python examples/tiago/head_camera.py noise):
+    # sigma_xy / sigma_z, and the rotation sigma in mrad per mm of sigma_z.
+    noise_ratios: {xy: 0.973, tilt_mrad_per_mm: 2.400, roll_mrad_per_mm: 1.559}
+    # Mocap rotation sigma = position sigma / lever (an assumption: no rotation
+    # noise is recorded): the board's centre-to-corner distance.
+    mocap_rot_lever_m: 0.1
+    axb_starts: 12                 # multi-start of the C0 sensor-agreement fit
+    # Simulated fixture (head_camera_truth.py), frozen before it was run.
+    fixture:
+      seeds: [0, 1, 2, 3, 4]
+      truth_offset_sd_rad: 0.010        # delta ~ N(0, 10 mrad), torso/head/arm
+      x_perturb: {mm: 10.0, mrad: 20.0} # camera frame X, random direction
+      y_perturb: {mm: 10.0, mrad: 20.0} # board frame Y, per session (re-grasp)
+      pal_head_rad: [0.0111854, 0.0104128]   # F3 truth head_1, head_2 offsets
+      arm5_slip_rad: 0.005              # F6, between test1 and test2/test3
+      depth_scale: [528.73, 536.25]     # F4: fx of 11-27 over fx of 10-27
+      # Synthetic mocap twin frames (no real data): the camera-body frame and the
+      # board body relative to the camera's optical frame and board frame.
+      x_mocap: [0.03, -0.02, 0.01, 0.10, -0.05, 0.08]
+      y_mocap: [-0.02, 0.015, 0.03, 0.08, 0.06, -0.10]
+      # Pass criteria
+      f1:
+        rank: 19                 # of the 22 naive parameters, rtol 1e-8
+        rank_rtol: 1.0e-8
+        null_angle_max: 1.0e-3   # principal angles to the analytic null directions
+        near_null_max: 0.02      # sigma_19 / sigma_1
+        near_null_concentration_min: 0.9   # (v_head_1^2 + v_arm_1^2)
+        near_null_rot_fraction_max: 1.0e-3 # rotation rows / all rows of J v
+        naive_se_ratio_min: 1000.0
+        prediction_tol_ratio: 0.1          # |delta LOO RMSE| / sigma_z level
+      f2:
+        z_rms: [0.75, 1.33]      # pooled over seeds and delta a2..a6, a1 - h1
+        z_mean_max: 0.3
+        validation_error_ratio_max: 1.0    # RMS position error vs truth / level
+      f3:
+        z_rms: [0.75, 1.33]
+        z_mean_max: 0.3
+        prediction_tol_ratio: 0.1
+      f4:
+        bias_se_min: 1.0         # k in only if some bias exceeds this many SE ...
+        cond_ratio_max: 2.0      # ... and k raises cond by less than this factor
