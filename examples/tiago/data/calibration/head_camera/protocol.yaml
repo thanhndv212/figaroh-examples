@@ -1,6 +1,8 @@
 # TIAGo head-camera chessboard sessions, 2023-10 to 2023-11 (examples#108) as a
 # data-contract Protocol (figaroh-plus#55). Roles are frozen: changing a file
-# or a role needs a new version.
+# or a role needs a new version. v2: robot identity per session, 2023-10-24
+# dropped (not usable), roles re-frozen (training 2023-11-27-center,
+# validation 2023-11-23-distortion_original).
 # Sources are original recordings (not distributed), named by file name and
 # sha256. Camera side: the CSV written by PAL's eye-hand calibration tool
 # (chessboard pose in the camera frame and joints per posture); the
@@ -13,7 +15,7 @@
 # flipped samples removed. The sessions repeat one posture plan, so the splits
 # are not independent in posture.
 name: tiago-head-camera-2023
-version: 1
+version: 2
 frame: "camera optical frame of the head camera (camera rows); tiago_camera body frame (mocap rows)"
 units: {length: m, angle: rad, time: s}
 pal_reference:
@@ -25,28 +27,9 @@ pal_reference:
     files:
       pal_reference/offset.xacro: 8f30b0414fad6bb467435b39770dd41b62504a50f957c8686fa1901766b8f9e6
 sessions:
-- id: 2023-10-24-test1
-  role: training  # earliest clean camera session; no mocap
-  usable: true
-  source:
-    camera_csv: {name: eye_hand_calibration_recorded_data_test_1.csv, sha256: 8ad9b5c7416814d878091af68a02ed6474e4699b73ac6033bf1946d9f1f985af}
-  postures: 12
-  torso: assumed 0.30 (not in the CSV, no paired bag)
-  files:
-    camera_2023-10-24-test1_chessboard_in_camera.csv: fdfe14b7df49dc529d7cc29ffdd370bfd44bd0a77ad95450b95c8b54f95a1935
-    camera_2023-10-24-test1_joints.csv: ff340fe0b88ca79be6588edbcb6ed29621d6ad5546c08bfcf3f37b21d5a27447
-- id: 2023-10-24-test2
-  role: diagnostic  # 9 postures, a shorter plan than test_1
-  usable: true
-  source:
-    camera_csv: {name: eye_hand_calibration_recorded_data_test_2.csv, sha256: 065acb65ddeb9f836640a1ac4055f292d240c66e6309370bd8756f2163878ba1}
-  postures: 9
-  torso: assumed 0.30 (not in the CSV, no paired bag)
-  files:
-    camera_2023-10-24-test2_chessboard_in_camera.csv: c7c05dab860e5e01d5584db2b8c18cf99f82de43d5ce495a713922696da4aaae
-    camera_2023-10-24-test2_joints.csv: 5b3a1b8afc2f4f3620723d3a43fb2bda314b064bb220fc19ecf93e222e0bcd14
 - id: 2023-10-27-test1
   role: confirmation  # camera and mocap on the same plan
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_mocap_test1.csv, sha256: b820f8667851a0664de384354668eea16b271632055cd1ab930bf357b7633451}
@@ -60,6 +43,7 @@ sessions:
     mocap_2023-10-27-test1_chessboard_in_camera.csv: a6af3dbbf881fcec55c846362dae665c24a82912e2e2c6789f91196a81ee58c1
 - id: 2023-10-27-test2
   role: confirmation  # camera and mocap on the same plan
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_mocap_test2.csv, sha256: da1cc554aaba90ce608e78b4fe890434246cf68c44b2519ff28299d5695dafa2}
@@ -73,6 +57,7 @@ sessions:
     mocap_2023-10-27-test2_chessboard_in_camera.csv: 51205ac2a5d063db49f7e8d6f6936f990b379d11dde4ee43dfa3a46cc6727a98
 - id: 2023-10-27-test3
   role: confirmation  # camera and mocap on the same plan
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_mocap_test_3.csv, sha256: b26f396236421566eb5d4ac4588f4bdc7a08d8b02c91c57067169406faa5c8e0}
@@ -85,7 +70,8 @@ sessions:
     camera_2023-10-27-test3_joints.csv: 65be6a272085bf9b07fa0f916e58041b9e3bc94adfd868182e44bdb923034f82
     mocap_2023-10-27-test3_chessboard_in_camera.csv: 54f3b33e05981b4612f3aeb10ed003f29942b4b8e23c3a82ec9ff69b055967f9
 - id: 2023-11-07-camera
-  role: diagnostic  # one CSV for the whole 11-07 day, not tied to a run
+  role: diagnostic  # one CSV for the whole 11-07 day, not tied to a run; sits ~45 mm off the 10-27/11-23/11-27 group
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data.csv, sha256: bc3fe75a759a4198906030e05cfa8080b3b2f3aa463f500336c31aa5638936a8}
@@ -96,6 +82,7 @@ sessions:
     camera_2023-11-07-camera_joints.csv: 380090e229fb833a8dba52a914d154b8b4053f45d88438398b0eb96bdd970549
 - id: 2023-11-07-1444
   role: diagnostic  # mocap run of the 2023-11-07 day; flips; diagnostic
+  robot: tiago-48
   usable: true
   source:
     bag: {name: eye_hand_calibration_optitrack_2023-11-07-14-44-01.bag, sha256: 45d014d57f573e3f37f6a4b8f877b071847d8c66dc8bc0b058f3a098d1f621c2, lag_s: 8.5822}
@@ -105,6 +92,7 @@ sessions:
     mocap_2023-11-07-1444_chessboard_in_camera.csv: e0d1930aa6c4275f46c5d490243db8a1e9ac95ccdc68c5dacef229ebe2ff7e3e
 - id: 2023-11-07-1516
   role: diagnostic  # mocap run of the 2023-11-07 day; flips; diagnostic
+  robot: tiago-48
   usable: true
   source:
     bag: {name: eye_hand_calibration_optitrack_2023-11-07-15-16-07.bag, sha256: 1ce023480a4267a4dbd54ac8a4af53137d7ed70f3240a89afde86274a980b24a, lag_s: 8.5902}
@@ -114,6 +102,7 @@ sessions:
     mocap_2023-11-07-1516_chessboard_in_camera.csv: 523f5dc7cda29f9429b0960ebff6845f2694fe832b36c90d43a48b2184af1596
 - id: 2023-11-07-1528
   role: diagnostic  # mocap run of the 2023-11-07 day; flips; diagnostic
+  robot: tiago-48
   usable: true
   source:
     bag: {name: eye_hand_calibration_optitrack_2023-11-07-15-28-46.bag, sha256: b3bd08f843b7ef568bada67d6956d84fe8c1d79a5e71339c8705a3b8204b1414, lag_s: 8.5946}
@@ -123,6 +112,7 @@ sessions:
     mocap_2023-11-07-1528_chessboard_in_camera.csv: cbf54e64d6fd0f34b2a15ef63829194353de52190cb4a9eb4f7a41622b6a620b
 - id: 2023-11-23-distortion_calib
   role: diagnostic  # distortion variant of the tool, which one is applied is not recorded
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_distortion_calib.csv, sha256: 13efdd35e9c91663e4216897b191b0ca56b9ce075b9d36a06724e50d703b02bd}
@@ -132,7 +122,8 @@ sessions:
     camera_2023-11-23-distortion_calib_chessboard_in_camera.csv: 4abfd32d624901985a518b8f4eedc88cea84d145630cd6ffe78dd110d1e85fb2
     camera_2023-11-23-distortion_calib_joints.csv: dc12e1c45068c3015d0f7499fc9a12744dfe78bd54488acaf801d2a108cc6752
 - id: 2023-11-23-distortion_original
-  role: diagnostic  # distortion variant
+  role: validation  # distortion variant "original"; no mocap
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_distortion_original.csv, sha256: 27f5515e77baa24d840e5ef52370f8a9ed594af8b6dac376d67d8d6fb5877cf1}
@@ -143,6 +134,7 @@ sessions:
     camera_2023-11-23-distortion_original_joints.csv: 75c6b03681c56a7ecaf6f7cb259d7d0b59439169aad6c83aa4c5c6af1951f5e3
 - id: 2023-11-23-distortion_zero
   role: diagnostic  # distortion variant
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_distortion_zero.csv, sha256: 0cef93bd5919a39092e116e1df5f599fe98bf252e934cec17805c5c6a1b21999}
@@ -152,7 +144,8 @@ sessions:
     camera_2023-11-23-distortion_zero_chessboard_in_camera.csv: 7ff4be1c2b592fe39d87b95cf7c53d46b32e1608a018bd269b1fc63cf3210c0d
     camera_2023-11-23-distortion_zero_joints.csv: ffa93963fd3fdae9f2a514c202a911a797347f82d1d3b3f3e407797eb09987de
 - id: 2023-11-24-test_optimal
-  role: diagnostic  # optimal-posture plan, 11 postures
+  role: diagnostic  # optimal-posture plan, 11 postures; other robot (tiago-155c)
+  robot: tiago-155c
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_155c_11.csv, sha256: f43ed52facef178ccf3a25f48a951f9103c16a61026aad0a80603bcccb0dafbb}
@@ -162,7 +155,8 @@ sessions:
     camera_2023-11-24-test_optimal_chessboard_in_camera.csv: 3d1acd309fa9afac5c9463b0e501817c62462c74d3c162b9413b3eb4a59580c2
     camera_2023-11-24-test_optimal_joints.csv: a8a1f128667af17e2a40931cfb17d35f4806f77d94b50a5d126b0cef34430d66
 - id: 2023-11-27-center
-  role: validation  # board at the centre; no mocap
+  role: training  # board at the centre; no mocap
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_48c_hey5_cb_center.csv, sha256: 05018a5126dd8a227368b01062031130bdf12c413c0809c83ecf9b2db9afa72d}
@@ -173,6 +167,7 @@ sessions:
     camera_2023-11-27-center_joints.csv: 9b2d7b723919560602efb6ecb926eaf41f406d170ef0eceee2e6677ba221a952
 - id: 2023-11-27-topleft
   role: diagnostic  # board at the top left of the hand
+  robot: tiago-48
   usable: true
   source:
     camera_csv: {name: eye_hand_calibration_recorded_data_48c_hey5_cb_topleft.csv, sha256: be30ec7db67a066b134481c6687a481958c4624dcd198c72dde9b224b589f987}
@@ -183,12 +178,17 @@ sessions:
     camera_2023-11-27-topleft_joints.csv: ed7756ecf2875fa1fb1eee1a06ffeb1d231b7136c8541e5d74a89c4f44928028
 not_usable:
 - id: 2023-10-24-bags
-  reason: joints only (motor-encoder /joint_states), no camera observation and no mocap; the camera data of the day is the two CSVs above
+  reason: joints only (motor-encoder /joint_states), no camera observation and no mocap; the two PAL CSVs of the day are listed separately as 2023-10-24-camera
   sources:
   - {name: eye_hand_calibration_test_1_2023-10-24-15-56-08.bag, sha256: 329c8a53587a4e365862b13d1bc3d588fe8b24b6a29bde8d6c88be3da8e4eb97}
   - {name: eye_hand_calibration_test_1_2023-10-24-15-57-09.bag, sha256: 50d2734c7c64775f286b43ea7141020346a7a62b025e79cc4770c3697817795f}
   - {name: eye_hand_calibration_test_1_2023-10-24-16-09-15.bag, sha256: 34f16a6ed51c9762e8a8942d2869f4250f81841f41f8e17528fc47c4cf7f182c}
   - {name: eye_hand_calibration_test_2_2023-10-24-16-11-44.bag, sha256: 332b4d7bfac70feaca760283d3f5c553e446b47369e083078c0f2a7aeb181a74}
+- id: 2023-10-24-camera
+  reason: "tiago-48, but inconsistent with every other tiago-48 session: chessboard-in-camera positions at matched postures differ by 50-100 mm from 2023-10-27, 2023-11-23 and 2023-11-27, and by 55 mm between test_1 and test_2; the paired 2023-10-24 bags show a motor-minus-absolute arm_5 gap of +207 and +437 mrad. Shipped files removed."
+  sources:
+  - {name: eye_hand_calibration_recorded_data_test_1.csv, sha256: 8ad9b5c7416814d878091af68a02ed6474e4699b73ac6033bf1946d9f1f985af}
+  - {name: eye_hand_calibration_recorded_data_test_2.csv, sha256: 065acb65ddeb9f836640a1ac4055f292d240c66e6309370bd8756f2163878ba1}
 - id: '2023-10-25'
   reason: joints and PAL introspection only, no camera observation, no mocap and no PAL CSV
   sources:

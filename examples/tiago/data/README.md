@@ -450,33 +450,53 @@ were all `confirmation`.
 Chessboard observations by the TIAGo head camera, 2023-10 to 2023-11
 ([#108](https://github.com/thanhndv212/figaroh-examples/issues/108), for the
 camera study [#101](https://github.com/thanhndv212/figaroh-examples/issues/101)).
-Fifteen sessions in one protocol (`calibration/head_camera/protocol.yaml`,
-`tiago-head-camera-2023` v1): 12 sessions of PAL eye-hand tool output
+Thirteen sessions in one protocol (`calibration/head_camera/protocol.yaml`,
+`tiago-head-camera-2023` v2): 10 sessions of PAL eye-hand tool output
 (`camera_*`) and 6 mocap runs (`mocap_*`) of the same boards, three of
 which pair with a PAL CSV of their own and three with the 2023-11-07 CSV.
 
-| Session | Role | Postures | Mocap kept / plateaus (unpaired, lost, flipped, repaired) |
-|---|---|---|---|
-| `2023-10-24-test1` | training | 12 | none |
-| `2023-10-24-test2` | diagnostic | 9 | none |
-| `2023-10-27-test1` | confirmation | 12 | 11 / 12 (0, 1, 0, 1) |
-| `2023-10-27-test2` | confirmation | 12 | 11 / 13 (1, 1, 0, 1) |
-| `2023-10-27-test3` | confirmation | 12 | 8 / 13 (1, 4, 0, 0) |
-| `2023-11-07-camera` | diagnostic | 19 | none |
-| `2023-11-07-1444` | diagnostic | (mocap only) | 12 / 20 (2, 3, 3, 0) |
-| `2023-11-07-1516` | diagnostic | (mocap only) | 14 / 20 (2, 4, 0, 0) |
-| `2023-11-07-1528` | diagnostic | (mocap only) | 14 / 21 (2, 4, 1, 0) |
-| `2023-11-23-distortion_calib` | diagnostic | 18 | none |
-| `2023-11-23-distortion_original`, `_zero` | diagnostic | 17 each | none |
-| `2023-11-24-test_optimal` | diagnostic | 11 | none |
-| `2023-11-27-center` | validation | 17 | none |
-| `2023-11-27-topleft` | diagnostic | 18 | none |
+| Session | Robot | Role | Postures | Mocap kept / plateaus (unpaired, lost, flipped, repaired) |
+|---|---|---|---|---|
+| `2023-10-27-test1` | tiago-48 | confirmation | 12 | 11 / 12 (0, 1, 0, 1) |
+| `2023-10-27-test2` | tiago-48 | confirmation | 12 | 11 / 13 (1, 1, 0, 1) |
+| `2023-10-27-test3` | tiago-48 | confirmation | 12 | 8 / 13 (1, 4, 0, 0) |
+| `2023-11-07-camera` | tiago-48 | diagnostic | 19 | none |
+| `2023-11-07-1444` | tiago-48 | diagnostic | (mocap only) | 12 / 20 (2, 3, 3, 0) |
+| `2023-11-07-1516` | tiago-48 | diagnostic | (mocap only) | 14 / 20 (2, 4, 0, 0) |
+| `2023-11-07-1528` | tiago-48 | diagnostic | (mocap only) | 14 / 21 (2, 4, 1, 0) |
+| `2023-11-23-distortion_calib` | tiago-48 | diagnostic | 18 | none |
+| `2023-11-23-distortion_original` | tiago-48 | validation | 17 | none |
+| `2023-11-23-distortion_zero` | tiago-48 | diagnostic | 17 | none |
+| `2023-11-24-test_optimal` | tiago-155c | diagnostic | 11 | none |
+| `2023-11-27-center` | tiago-48 | training | 17 | none |
+| `2023-11-27-topleft` | tiago-48 | diagnostic | 18 | none |
 
-Not usable, recorded in `protocol.yaml` with the reason: the four 2023-10-24
-bags (motor-encoder joints only, no camera observation) and the eight
+Not usable, recorded in `protocol.yaml` with the reason: the two 2023-10-24
+PAL CSVs (`test_1`, `test_2`; their files are not shipped), the four
+2023-10-24 bags (motor-encoder joints only, no camera observation) and the eight
 2023-10-25 bags (joints and PAL introspection only, no camera observation and
 no PAL CSV).
 
+- **Robot identity:** two robots appear. Sessions 2023-10-27 to 2023-11-27
+  with the Hey5 hand are `tiago-48` (PAL's tool files call it `48c`); the
+  2023-11-24 `test_optimal` session is `tiago-155c`, a different robot. The
+  evidence: the file names (`48c_hey5` / `155c`); the end effector in the PAL
+  tool archives' URDFs (Hey5 hand vs gripper); and the camera projection
+  intrinsics in those archives (2023-10-27 fx 536.246, equal to PAL's
+  reference calibration exactly; 2023-11-27 fx 528.73; 2023-11-24, 155c,
+  fx 502.44). Encoder state is not constant on tiago-48: the median gap
+  position minus absolute encoder on arm_1 is 0.0 mrad on 2023-10-25/10-27
+  and -3.8 mrad on 2023-11-07 and the 2023-09 mocap sessions. Encoders were
+  not re-zeroed (maintainer), so these gaps are robot-state slips.
+- **Roles (frozen in v2):** training = `2023-11-27-center`; validation =
+  `2023-11-23-distortion_original`; confirmation = the three 2023-10-27
+  sessions. Everything else is diagnostic: `2023-11-27-topleft`, the other
+  2023-11-23 variants, 2023-11-07 (camera CSV and the three mocap runs, which
+  sit about 45 mm off the 10-27/11-23/11-27 group) and `2023-11-24-test_optimal`
+  (the other robot). The 2023-10-24 sessions are not usable: chessboard-in-camera
+  positions at matched postures differ by 50-100 mm from 10-27, 11-23 and
+  11-27 and by 55 mm between test_1 and test_2, and the 10-24 bags show a
+  motor-minus-absolute arm_5 gap of +207 / +437 mrad.
 - **Provenance:** original recordings (PAL eye-hand calibration tool CSVs and
   ROS bags, not distributed), named and hashed in `protocol.yaml`. The six PAL
   tool archives that hold the URDF and the image corners are not shipped; the
