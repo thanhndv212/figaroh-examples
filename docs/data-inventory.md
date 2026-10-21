@@ -18,7 +18,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-calibration-nov-30-64` | TIAGo | Calibration | unspecified (unconfirmed) | not used | 1 | 13.5 KB | examples/tiago/data/README.md |
 | `tiago-mocap-qualisys-2021-11` | TIAGo | Mocap calibration (reference) | real | train / validate / confirmation | 8 | 136.4 KB | examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md |
 | `tiago-mocap-optitrack-2023-09-12` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 4 | 16.9 KB | examples/tiago/data/README.md |
-| `tiago-head-camera-2023` | TIAGo | Head-camera calibration (#101) | real | training, validation and confirmation sessions plus diagnostics (#108) | 29 | 62.0 KB | examples/tiago/data/README.md |
+| `tiago-head-camera-2023` | TIAGo | Head-camera calibration (#101) | real | training, validation and confirmation sessions plus diagnostics (#108); pre-registered in #101, not yet fitted | 29 | 62.0 KB | examples/tiago/data/README.md; docs/development/tiago-head-camera.md |
 | `tiago-mocap-vicon-2023-09-20` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 3 | 23.6 KB | examples/tiago/data/README.md |
 | `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 8.4 MB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |

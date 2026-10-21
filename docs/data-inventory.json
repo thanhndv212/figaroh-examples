@@ -112,12 +112,12 @@
       "robot": "TIAGo",
       "study": "Head-camera calibration (#101)",
       "kind": "real",
-      "role": "training, validation and confirmation sessions plus diagnostics (#108)",
+      "role": "training, validation and confirmation sessions plus diagnostics (#108); pre-registered in #101, not yet fitted",
       "description": "Head-camera chessboard sessions of 2023-10 to 2023-11: 12 PAL eye-hand tool tables (chessboard pose in camera, absolute-encoder joints), 6 mocap runs with flip counts, PAL's reference camera calibration and an offset.xacro of unknown origin, and the protocol that freezes roles and hashes.",
       "paths": [
         "examples/tiago/data/calibration/head_camera/"
       ],
-      "provenance": "examples/tiago/data/README.md"
+      "provenance": "examples/tiago/data/README.md; docs/development/tiago-head-camera.md"
     },
     {
       "id": "tiago-mocap-vicon-2023-09-20",
