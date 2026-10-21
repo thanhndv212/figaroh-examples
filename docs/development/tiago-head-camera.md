@@ -269,7 +269,9 @@ data" (the camera-only results are still reported):
 
 1. C0 fails: `X'`, `Y'` of the three 10-27 runs differ from their mean by more
    than 2x the simulated recovery error of section 6.5 (any component), or the
-   residual exceeds 3x the simulated floor on any axis.
+   residual exceeds 3x the simulated floor on any axis. The frame part of this
+   check is loose (about 16-26 mm and mrad at 2x the recovery error): it catches
+   a gross inconsistency only, and the residual part carries most of the weight.
 2. The fixture standard error exceeds 10 mrad, or half the band, for at least
    3 of `d_arm_2 .. d_arm_6` at the 10-27 postures.
 3. A run with fewer than 6 paired postures is not scored (`min_postures`).
