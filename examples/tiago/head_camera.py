@@ -27,7 +27,7 @@ Stages: ``noise`` estimates the camera's effective noise from the 2023-11-27
 ``center`` and ``topleft`` sessions with *registration only* (the board frame
 ``Y`` refitted per session at nominal joints, no joint fit) and the mocap noise
 from the plateau statistics of the 2023-11-07 runs (the pre-registration, PR A
-of #101). The study stages are PR B.
+of #101). The study stages are in ``head_camera_study.py``.
 
     python head_camera.py noise
 """
