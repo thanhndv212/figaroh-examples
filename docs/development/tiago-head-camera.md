@@ -336,3 +336,223 @@ MPLBACKEND=Agg python -m pytest tests/test_tiago_head_camera.py \
     tests/test_tiago_head_camera_truth.py -q                 # fast
 MPLBACKEND=Agg python -m pytest tests/test_tiago_head_camera_truth.py -m slow -q
 ```
+
+---
+
+# Part 2: results
+
+Part 2 runs the study that part 1 pre-registered. Nothing in sections 1 to 10
+was changed: the bands, the levels, the held parameters, the `k` decision (in)
+and the verdict rules are the frozen ones. The script is
+`examples/tiago/head_camera_study.py`; its values are in
+`tests/golden/tiago_head_camera.json` and every number below is quoted from it
+by `tests/test_tiago_head_camera_study.py`.
+
+## 11. Answer
+
+**The camera is not consistent with the motion capture for arm calibration, at
+the pre-registered bands.** The rules did not make the data unusable (rule 1, 2
+and 3 all pass), so this is a valid "no". 9 of 18 parameter comparisons (C1) and
+8 of 24 transfer comparisons (C2, all in rotation) are beyond their band; the
+others are borderline or within.
+
+The result has a caveat that matters more than the verdict: both sensors leave
+about 17 to 19 mm and 50 to 60 mrad of residual in the arm model (section 16).
+The offsets of `d_arm_1 .. d_arm_6` alone do not explain the posture-to-posture
+error. The comparison is between two fits of an incomplete model.
+
+## 12. Training fit and baselines
+
+Training is 2023-11-27 `center` (17 postures), level 2.0 mm, gauge-fixed set
+`G` (18 parameters) and the depth scale `k` (19 for the camera). Primary is the
+6D whitened fit; the 3D position-only fit is secondary.
+
+| key | rmse mm | rmse mrad | LOO mm | LOO mrad | cond | k |
+|---|---|---|---|---|---|---|
+| `train fit6d` | 16.85 | 51.3 | 20.22 | 57.5 | 20.0 | 1.0395 |
+| `train fit3d` | 14.60 | 151.3 | - | - | 33.3 | 1.0245 |
+
+The 3D fit uses positions only, so its rotation RMSE is not minimised and is
+only shown for completeness.
+
+| key | fit (mrad) | SE (mrad) |
+|---|---|---|
+| `train fit6d d_arm_1` | -34.85 | 1.68 |
+| `train fit6d d_arm_2` | -16.08 | 1.65 |
+| `train fit6d d_arm_3` | +1.92 | 1.52 |
+| `train fit6d d_arm_4` | +6.95 | 0.81 |
+| `train fit6d d_arm_5` | -124.49 | 1.81 |
+| `train fit6d d_arm_6` | +44.33 | 1.58 |
+| `train fit3d d_arm_1` | +25.78 | 5.93 |
+| `train fit3d d_arm_2` | +4.84 | 2.58 |
+| `train fit3d d_arm_3` | -11.85 | 2.58 |
+| `train fit3d d_arm_4` | +9.62 | 1.14 |
+| `train fit3d d_arm_5` | -144.49 | 4.54 |
+| `train fit3d d_arm_6` | +24.77 | 3.60 |
+
+`d_arm_1` is arm_1 relative to head_1 (section 3). The standard errors are
+formal, from the whitened fit; they are about 1 to 2 mrad, far below the fitted
+values, so the 6D and 3D fits disagree by more than their SEs (for example
+`d_arm_1` -35 against +26 mrad). That disagreement is another sign of an
+incomplete model.
+
+**PAL sign, decided on training only.** The sign of PAL's offsets (`q + d` or
+`q - d`) was chosen by the lower B1 LOO position RMSE on the training session.
+Sign +1 won:
+
+| key | sign | LOO position RMSE |
+|---|---|---|
+| `PAL sign` | +1 | sign +1: B1 27.14 mm, B1' 27.48 mm; sign -1: B1 38.84 mm, B1' 37.76 mm |
+
+Validation is 2023-11-23 `distortion_original` (17 postures), LOO re-registered RMSE
+(offsets kept, `X`, `Y` and `k` refitted on the other postures):
+
+| key | position mm | rotation mrad |
+|---|---|---|
+| `val B0` | 29.19 | 97.6 |
+| `val B1` | 24.69 | 85.6 |
+| `val B1p` | 27.54 | 86.1 |
+| `val trained` | 20.13 | 63.7 |
+
+The trained model is better than B0 (nominal), B1 (PAL offsets) and B1' (PAL as
+published). It is about 31 % below B0 in position. It is still about 20 mm, ten
+times the 2 mm noise level.
+
+## 13. Confirmation, 2023-10-27 (unlocked after section 12)
+
+Sensor agreement C0 (no kinematics, `M_cam = X' M_mc Y'`, 12 parameters) against
+the simulated floor:
+
+| key | n | rms mm (x, y, z) | rms mrad (x, y, z) |
+|---|---|---|---|
+| `C0 floor` | | 2.32, 2.65, 2.33 | 18.0, 18.6, 20.1 |
+| `C0 2023-10-27-test1` | 11 | 1.98, 6.06, 5.83 | 10.6, 11.4, 4.0 |
+| `C0 2023-10-27-test2` | 11 | 2.04, 5.65, 5.32 | 9.8, 9.7, 4.5 |
+| `C0 2023-10-27-test3` | 8 | 1.99, 6.36, 4.59 | 12.4, 12.4, 4.9 |
+| `C0 rule 1` | pass | worst residual / floor 2.51 (limit 3); worst frame deviation / tolerance 0.76 (limit 1) | |
+
+The measured rms is above the simulated floor on the y and z position axes
+(2 to 2.5 times) but below it in rotation. Rule 1 passes: the residual is under
+3 times the floor and `X'`, `Y'` agree across the three runs. The y and z excess
+means the real sensors disagree more in position than the simulated noise.
+
+**C1, parameters.** Gap = camera minus mocap fit of `d_arm_j` per run (mrad),
+with the band and the class. The last two columns are each sensor's run-to-run
+standard deviation.
+
+| key | band | test1 | test2 | test3 | cam sd | mocap sd |
+|---|---|---|---|---|---|---|
+| `C1 arm_1` | 21.5 | +17.8 (borderline) | +18.1 (borderline) | -67.7 (beyond) | 0.8 | 48.7 |
+| `C1 arm_2` | 10.9 | -25.1 (beyond) | -26.3 (beyond) | -13.9 (borderline) | 0.7 | 7.5 |
+| `C1 arm_3` | 7.3 | +36.5 (beyond) | +38.8 (beyond) | +27.5 (beyond) | 3.2 | 9.2 |
+| `C1 arm_4` | 6.2 | +0.9 (within) | -1.0 (within) | -0.0 (within) | 1.9 | 1.7 |
+| `C1 arm_5` | 9.9 | +3.7 (within) | +1.9 (within) | +6.0 (within) | 6.6 | 4.6 |
+| `C1 arm_6` | 12.2 | +19.8 (beyond) | +19.1 (beyond) | +24.4 (beyond) | 11.3 | 8.4 |
+
+`d_arm_4` and `d_arm_5` agree. `d_arm_2`, `d_arm_3` and `d_arm_6` differ by
+a similar amount in all three runs (about -25, +35 and +20 mrad): this is a
+systematic difference between the sensors, not noise. `d_arm_1` is
+borderline in test1 and test2 and far beyond in test3; the mocap `d_arm_1` of
+test3 (8 postures) is the unstable one (sd 48.7 mrad).
+
+**C2, transfer.** Six ordered pairs (train on run r', evaluate on run r). Gap G
+is the difference of the two LOO re-registered RMSE, camera-trained model minus
+mocap-trained model, on the mocap rows (`cam_to_mc`) and on the camera rows
+(`mc_to_cam`).
+
+| key | band | mean gap | max abs gap | beyond | borderline | within |
+|---|---|---|---|---|---|---|
+| `C2 cam_to_mc pos_mm` | 2.75 | +2.84 | 3.54 | 0 | 6 | 0 |
+| `C2 cam_to_mc rot_mrad` | 4.79 | -8.02 | 10.46 | 4 | 2 | 0 |
+| `C2 mc_to_cam pos_mm` | 2.67 | -1.46 | 2.18 | 0 | 4 | 2 |
+| `C2 mc_to_cam rot_mrad` | 8.04 | +10.43 | 13.88 | 4 | 2 | 0 |
+
+Position gaps are borderline or within; rotation gaps are beyond in 4 of 6
+pairs in both directions. The secondary G uses the frozen 11-27 model: its LOO error on run r minus the
+error of the 10-27 model of run r'. On mocap rows (camera-trained side) the mean
+is +0.66 mm / -6.64 mrad; on camera rows -1.28 mm / +2.21 mrad. It is descriptive.
+
+**Not-usable rules and final verdict.**
+
+| key | result |
+|---|---|
+| `rule 1` | True (C0) |
+| `rule 2` | True (fixture SE) |
+| `rule 3 2023-10-27-test1` | True (11 paired postures) |
+| `rule 3 2023-10-27-test2` | True (11 paired postures) |
+| `rule 3 2023-10-27-test3` | True (8 paired postures) |
+| `final` | camera not consistent with mocap for arm calibration (beyond band) |
+
+Rule 2 holds: no run and sensor has 3 or more of `d_arm_2 .. d_arm_6` with a
+fixture SE above 10 mrad or above half the band. The most is 2, for the mocap
+twin on test3 (8 postures).
+
+## 14. Diagnostics (descriptive, not scored)
+
+LOO re-registered RMSE of the four models on postures that were not used for
+anything else:
+
+| key | n | models |
+|---|---|---|
+| `diag 2023-11-07-camera` | 19 | B0 31.89 mm / 101.4 mrad; B1 27.44 mm / 88.8 mrad; B1p 30.15 mm / 90.7 mrad; trained 19.78 mm / 57.2 mrad |
+| `diag 2023-11-27-topleft` | 18 | B0 31.51 mm / 98.3 mrad; B1 26.77 mm / 87.1 mrad; B1p 27.43 mm / 90.6 mrad; trained 20.21 mm / 56.8 mrad |
+
+The trained model keeps its edge over B0, B1 and B1' on new postures (11-07) and
+on the moved board (11-27 `topleft`). The edge is the same size as on the
+validation session.
+
+## 15. How the frozen rules were applied where they were ambiguous
+
+- **Verdict aggregation.** Section 7 gives the class of each comparison but not
+  how C1 and C2 combine. Any item beyond its band gives "beyond". Otherwise any
+  borderline gives "borderline". Otherwise "consistent". With 17 beyond items of 42,
+  the verdict is "beyond"; a majority rule would not give "consistent" either
+  (only 8 items are within).
+- **Rule 1, frames.** Each of the six components of `X'` and `Y'` was compared
+  with the run mean, against 2x the simulated recovery error of that component
+  (position and rotation separately). The frame mean is the mean translation and
+  the projected mean rotation.
+- **Rule 2.** Evaluated on the fixture of part 1 (seeds 0 to 4, level 2.0 mm) at
+  each run's paired postures, camera with `k` and mocap twin. The mean SE over the
+  seeds is compared with 10 mrad and with half the band, per run and per sensor.
+- **C2 secondary.** The model trained on 11-27 (camera, with `k`) is evaluated
+  on each 10-27 run, on mocap rows and on camera rows, and compared with the
+  10-27 model of the training run, as in the primary.
+- **PAL, mocap.** B1' (PAL's camera pose in place of `X`) has no meaning for the
+  mocap chain. Its mocap rows are 420 to 475 mm and are not used.
+- **Bag joints.** The sensitivity check with the bag's motor-side joints
+  (section 8) was not run: those joints are not part of the shipped data. C1 and
+  C2 use the PAL-CSV joints only.
+
+## 16. Unexpected
+
+1. **A common misfit.** The training fit leaves 16.8 mm and 51 mrad. On 10-27
+   the camera and the mocap both leave 18 to 19 mm and 53 to 64 mrad (trained
+   model), so the error is in the shared arm model, not in one sensor. We checked
+   that the minimum is global (12 random starts on training and ten per run and
+   sensor on 10-27 all end at the same cost) and that it is not a gauge
+   artifact (the 22-parameter fit with `k`, and a fit with the arm base z free,
+   lower the cost by 3 and 5 %). We did not find the cause. Candidates are the joint
+   inputs and their timing, a structural effect (elasticity, sag) and a joint
+   convention. A model with only joint offsets cannot absorb it.
+2. **Depth scale.** `k` is 1.040 on 11-27 and 1.095 to 1.099 on 10-27. Part 1
+   expected about 1.4 % from the intrinsics; on 10-27 it is about 10 %. The
+   `k` decision (in) was frozen, so it stays in. The same-day comparison is
+   immune to a common `k`, but the value says the camera depth is off on this
+   data.
+3. **Large `d_arm_5`.** About -120 mrad on every session, both sensors. It is the
+   arm_5 slip recorded in the data notes plus whatever the misfit absorbs. It is
+   not a PAL-sized offset (PAL: 20 mrad).
+4. **C0 position residual.** The y and z position axes are at 2 to 2.5 times the
+   simulated floor (rule 1 allows 3).
+
+## 17. Reproduction of part 2
+
+```bash
+conda activate figaroh-dev
+cd figaroh-examples
+MPLBACKEND=Agg python examples/tiago/head_camera_study.py --archive --no-plot \
+    --golden tests/golden/tiago_head_camera.json   # about 10 s
+MPLBACKEND=Agg python -m pytest tests/test_tiago_head_camera_study.py -q
+MPLBACKEND=Agg python -m pytest tests/test_tiago_head_camera_study.py -m slow -q
+```

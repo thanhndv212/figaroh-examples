@@ -663,7 +663,9 @@ were all `confirmation`.
 
 Chessboard observations by the TIAGo head camera, 2023-10 to 2023-11
 ([#108](https://github.com/thanhndv212/figaroh-examples/issues/108), for the
-camera study [#101](https://github.com/thanhndv212/figaroh-examples/issues/101)).
+camera study [#101](https://github.com/thanhndv212/figaroh-examples/issues/101);
+the study is `examples/tiago/head_camera_study.py`, results in
+`docs/development/tiago-head-camera.md`).
 Thirteen sessions in one protocol (`calibration/head_camera/protocol.yaml`,
 `tiago-head-camera-2023` v2): 10 sessions of PAL eye-hand tool output
 (`camera_*`) and 6 mocap runs (`mocap_*`) of the same boards, three of
