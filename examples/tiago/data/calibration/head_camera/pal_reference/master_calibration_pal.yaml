@@ -1,0 +1,85 @@
+pal_camera_calibration_extrinsics:
+  xtion:
+    pitch: 0.0
+    roll: 0.0
+    x: 0.0
+    y: 0.0047
+    yaw: 0.0
+    z: 0.0
+pal_camera_calibration_intrinsics:
+   rgb_xtion:
+    camera_matrix:
+      cols: 3
+      data:
+      - 536.8053440553133
+      - 0.0
+      - 310.4497775034432
+      - 0.0
+      - 538.1881626552579
+      - 241.0458362306309
+      - 0.0
+      - 0.0
+      - 1.0
+      rows: 3
+    camera_name: rgb_PS1080_PrimeSense
+    distortion_coefficients:
+      cols: 1
+      data:
+      - 0.03755261746407846
+      - -0.09837075474799625
+      - 0.002528357397567487
+      - -0.003400855880796149
+      - 0.0
+      rows: 5
+    distortion_model: plumb_bob
+    image_height: 480
+    image_width: 640
+    projection_matrix:
+      cols: 4
+      data:
+      - 536.246337890625
+      - 0.0
+      - 307.7145602612291
+      - 0.0
+      - 0.0
+      - 539.6106567382812
+      - 241.4628501786956
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+      rows: 3
+    rectification_matrix:
+      cols: 3
+      data:
+      - 1
+      - 0
+      - 0
+      - 0
+      - 1
+      - 0
+      - 0
+      - 0
+      - 1
+      rows: 3
+pal_eye_hand_calibration_tiago:
+  arm_1_joint_offset: 0.02
+  arm_2_joint_offset: -0.000704814
+  arm_3_joint_offset: -0.0054179
+  arm_4_joint_offset: 0.0105299
+  arm_5_joint_offset: -0.02
+  arm_6_joint_offset: 0.0197129
+  arm_7_joint_offset: -0.02
+  camera_orientation_p: -0.0133185 
+  camera_orientation_r: -1.56268
+  camera_orientation_y: 0.00877391
+  camera_position_x: 0.0470649
+  camera_position_y: 0.0967745
+  camera_position_z: 0.00681609 
+  head_1_joint_offset: 0.0111854 
+  head_2_joint_offset: 0.0104128
+pal_wheel_calibration:
+  left_wheel_radius_multiplier: 0.9866441585
+  right_wheel_radius_multiplier: 0.9856585
+  wheel_separation_multiplier: 1.004

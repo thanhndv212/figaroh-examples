@@ -18,6 +18,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-calibration-nov-30-64` | TIAGo | Calibration | unspecified (unconfirmed) | not used | 1 | 13.5 KB | examples/tiago/data/README.md |
 | `tiago-mocap-qualisys-2021-11` | TIAGo | Mocap calibration (reference) | real | train / validate / confirmation | 8 | 136.4 KB | examples/tiago/data/README.md; docs/development/tiago-mocap-heldout-protocol.md |
 | `tiago-mocap-optitrack-2023-09-12` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 4 | 16.9 KB | examples/tiago/data/README.md |
+| `tiago-head-camera-2023` | TIAGo | Head-camera calibration (#101) | real | training, validation and confirmation sessions plus diagnostics (#108) | 33 | 65.5 KB | examples/tiago/data/README.md |
 | `tiago-mocap-vicon-2023-09-20` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 3 | 23.6 KB | examples/tiago/data/README.md |
 | `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 8.4 MB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
@@ -131,6 +132,46 @@ Three OptiTrack static-posture runs of 2023-09-12 (4, 9 and 13 postures), 6D gri
 | `examples/tiago/data/calibration/optitrack/optitrack_2023-09-12-1552_static_postures.csv` | 9 | 4552 | `9bfb7004b13d8d4d` |
 | `examples/tiago/data/calibration/optitrack/optitrack_2023-09-12-1658_static_postures.csv` | 13 | 6512 | `c46bd5d0f1af89ac` |
 | `examples/tiago/data/calibration/optitrack/protocol.yaml` |  | 4010 | `7d431e3cdac04ae4` |
+
+### `tiago-head-camera-2023`
+
+Head-camera chessboard sessions of 2023-10 to 2023-11: 12 PAL eye-hand tool tables (chessboard pose in camera, absolute-encoder joints), 6 mocap runs with flip counts, PAL's reference camera calibration and an offset.xacro of unknown origin, and the protocol that freezes roles and hashes.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-24-test1_chessboard_in_camera.csv` | 12 | 733 | `fdfe14b7df49dc52` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-24-test1_joints.csv` | 12 | 1309 | `ff340fe0b88ca79b` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-24-test2_chessboard_in_camera.csv` | 9 | 556 | `c7c05dab860e5e01` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-24-test2_joints.csv` | 9 | 1022 | `5b3a1b8afc2f4f36` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test1_chessboard_in_camera.csv` | 12 | 729 | `2a47ddcb147027aa` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test1_joints.csv` | 12 | 1344 | `79be83808992bc3b` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test2_chessboard_in_camera.csv` | 12 | 738 | `0a80b326fc5523a8` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test2_joints.csv` | 12 | 1345 | `92d3d26b71460391` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test3_chessboard_in_camera.csv` | 12 | 740 | `a2ab240806f60fe5` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-10-27-test3_joints.csv` | 12 | 1342 | `65be6a272085bf9b` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-07-camera_chessboard_in_camera.csv` | 19 | 1146 | `6ab3d01a2209d442` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-07-camera_joints.csv` | 19 | 1995 | `380090e229fb833a` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_calib_chessboard_in_camera.csv` | 18 | 1095 | `4abfd32d62490198` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_calib_joints.csv` | 18 | 1895 | `dc12e1c45068c301` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_original_chessboard_in_camera.csv` | 17 | 1037 | `673ab181ac7824a3` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_original_joints.csv` | 17 | 1799 | `75c6b03681c56a7e` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_zero_chessboard_in_camera.csv` | 17 | 1035 | `7ff4be1c2b592fe3` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-23-distortion_zero_joints.csv` | 17 | 1801 | `ffa93963fd3fdae9` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-24-test_optimal_chessboard_in_camera.csv` | 11 | 672 | `3d1acd309fa9afac` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-24-test_optimal_joints.csv` | 11 | 1197 | `a8a1f128667af17e` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-27-center_chessboard_in_camera.csv` | 17 | 1030 | `b2c482d003d505ac` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-27-center_joints.csv` | 17 | 1807 | `9b2d7b7239195606` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-27-topleft_chessboard_in_camera.csv` | 18 | 1096 | `dba5b6e71a5cec35` |
+| `examples/tiago/data/calibration/head_camera/camera_2023-11-27-topleft_joints.csv` | 18 | 1902 | `ed7756ecf2875fa1` |
+| `examples/tiago/data/calibration/head_camera/mocap_2023-10-27-test1_chessboard_in_camera.csv` | 11 | 3101 | `a6af3dbbf881fcec` |
+| `examples/tiago/data/calibration/head_camera/mocap_2023-10-27-test2_chessboard_in_camera.csv` | 11 | 3099 | `51205ac2a5d063db` |
+| `examples/tiago/data/calibration/head_camera/mocap_2023-10-27-test3_chessboard_in_camera.csv` | 8 | 2321 | `54f3b33e05981b46` |
+| `examples/tiago/data/calibration/head_camera/mocap_2023-11-07-1444_chessboard_in_camera.csv` | 12 | 3355 | `e0d1930aa6c4275f` |
+| `examples/tiago/data/calibration/head_camera/mocap_2023-11-07-1516_chessboard_in_camera.csv` | 14 | 3851 | `523f5dc7cda29f94` |
+| `examples/tiago/data/calibration/head_camera/mocap_2023-11-07-1528_chessboard_in_camera.csv` | 14 | 3847 | `cbf54e64d6fd0f34` |
+| `examples/tiago/data/calibration/head_camera/pal_reference/master_calibration_pal.yaml` |  | 1784 | `2edc0b743ee0f86d` |
+| `examples/tiago/data/calibration/head_camera/pal_reference/offset.xacro` |  | 1265 | `8f30b0414fad6bb4` |
+| `examples/tiago/data/calibration/head_camera/protocol.yaml` |  | 15128 | `92ee282358ba2ac1` |
 
 ### `tiago-mocap-vicon-2023-09-20`
 
