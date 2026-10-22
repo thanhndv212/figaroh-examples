@@ -23,7 +23,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 8.4 MB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
 | `tiago-backlash-2023-07-24` | TIAGo | Backlash surface | real | training; no held-out run | 2 | 34.1 MB | examples/tiago/data/README.md |
-| `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
+| `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training (xyz 1640), validation (xyz 1628), confirmation (mirrored xyz 1630, 1642), diagnostic (rotations, folds, postures) (#111) | 12 | 54.0 MB | examples/tiago/data/README.md |
 | `tiago-pro-mocap-samples` | TIAGo Pro | Mocap calibration | real | training (2026-08-05), validation (07-01), confirmation (07-02); frozen in data/protocol.yaml | 3 | 42.4 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
 | `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
 | `tiago-pro-protocol` | TIAGo Pro | Mocap calibration | derived | frozen protocol and k-fold diagnostic plan | 2 | 3.4 KB | docs/development/tiago-pro-mocap.md |
@@ -221,11 +221,22 @@ One sinusoidal run (period 10 s, amplitude 3), 12,092 samples of relative and ab
 
 ### `tiago-suspension-vicon-1640`
 
-One Vicon and force-plate log, 5546 samples. Eight further runs exist outside the repository (figaroh-examples#70).
+Eleven CREPS Vicon and force-plate logs of 2023-09-20 in one layout (no header, 40 columns, host receive time), and the protocol that freezes roles and hashes. The sources are not distributed.
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
+| `examples/tiago/data/suspension/protocol.yaml` |  | 6314 | `c30ffb3421bda363` |
+| `examples/tiago/data/suspension/tiago_around_x_vicon_1634.csv` | 5122 | 3888835 | `a3ae13af801b1dba` |
+| `examples/tiago/data/suspension/tiago_around_y_vicon_1638.csv` | 5304 | 4003329 | `ba5a1b70b19e2aa7` |
+| `examples/tiago/data/suspension/tiago_around_z_vicon_1622.csv` | 6149 | 4641340 | `f966203226484746` |
+| `examples/tiago/data/suspension/tiago_postures_vicon_1720.csv` | 13705 | 10357050 | `84ffbffcc372bd1a` |
+| `examples/tiago/data/suspension/tiago_postures_vicon_1734.csv` | 9917 | 7498642 | `4d345a8fba0c9b14` |
+| `examples/tiago/data/suspension/tiago_x_fold_vicon_1632.csv` | 7360 | 5570972 | `cb77696bed097430` |
+| `examples/tiago/data/suspension/tiago_xyz_mirror_vicon_1630.csv` | 5606 | 4238226 | `ac18bc1986bbdd5e` |
+| `examples/tiago/data/suspension/tiago_xyz_mirror_vicon_1642.csv` | 5415 | 4094455 | `fec9814a0bd5f3fa` |
+| `examples/tiago/data/suspension/tiago_xyz_vicon_1628.csv` | 5336 | 4027370 | `7dbac63e589efe02` |
 | `examples/tiago/data/suspension/tiago_xyz_vicon_1640.csv` | 5546 | 3877388 | `8a0b993304e57b57` |
+| `examples/tiago/data/suspension/tiago_y_fold_vicon_1636.csv` | 5872 | 4441821 | `81323675bb0d9d2e` |
 
 ### `tiago-pro-mocap-samples`
 
