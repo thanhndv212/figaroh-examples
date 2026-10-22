@@ -325,6 +325,20 @@ self-contained HTML report — statistics table, fit-quality comparison
 chart, and per-joint interactive 3D regression plots — to
 `results/backlash/real_all_joints_report.html`, alongside the JSON report.
 
+#### `backlash_study.py` — backlash surface study (#71)
+
+Fits the structural-error plus backlash model on the 2023-07-24 run, scores it
+against the baselines B0 (offset), B1 (direction constant) and B2 (the
+empirical surface above) on the 2023-03-09 run, applies the verdict rules V1 to
+V3 with the flags N1 to N6, and runs descriptive prediction checks on the
+joint-inspection bags. The verdicts are labelled validation-level. Results and
+caveats: `docs/development/tiago-backlash.md`, part 2.
+
+```bash
+MPLBACKEND=Agg python backlash_study.py --no-plot
+MPLBACKEND=Agg python backlash_study.py --archive --no-plot   # run archive
+```
+
 Both examples' fixture datasets are copied verbatim from the reachable
 `figaroh-plus` ref at commit `2218d77638e0148afd3b358fa51702f8b82f4100`;
 see `data/README.md` for provenance and known caveats.
@@ -510,6 +524,7 @@ examples/tiago/
 ├── optimal_trajectory.py              # Optimal trajectory generation
 ├── suspension_identification.py       # [experimental] generalized-base suspension
 ├── backlash_empirical_surface.py      # [experimental] empirical backlash surface
+├── backlash_study.py                  # backlash surface study (#71, validation-level)
 ├── utils/
 │   ├── tiago_tools.py                 # All TIAGo-specific classes
 │   ├── simplified_collision_model.py  # Collision geometry

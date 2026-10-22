@@ -39,6 +39,8 @@ backlash transfer study
 ([#109](https://github.com/thanhndv212/figaroh-examples/issues/109), for
 [#71](https://github.com/thanhndv212/figaroh-examples/issues/71)). Roles are
 frozen in `backlash/protocol.yaml` (`tiago-backlash-sinus-2023` v1).
+The study that uses them is `backlash_study.py`; results are in
+`docs/development/tiago-backlash.md`, part 2.
 
 | Session | Robot | Role | Content |
 |---|---|---|---|
@@ -105,6 +107,9 @@ frozen in `backlash/protocol.yaml` (`tiago-backlash-sinus-2023` v1).
   byte when `TIAGO_RECORDINGS_ROOT` is set.
 
 ## Arm_5/arm_6 joint-inspection recordings (`joint_inspection/`)
+
+`backlash_study.py` reads these bags for descriptive prediction checks
+(`docs/development/tiago-backlash.md`, part 2, section 15).
 
 Bench recordings of the arm_5 and arm_6 joint encoders, for the backlash
 transfer study

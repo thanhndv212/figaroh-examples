@@ -375,3 +375,228 @@ MPLBACKEND=Agg python -m pytest tests/test_tiago_backlash_model.py \
     tests/test_tiago_backlash_truth.py -q                    # fast
 MPLBACKEND=Agg python -m pytest tests/test_tiago_backlash_truth.py -m slow -q
 ```
+
+---
+
+# Part 2: results
+
+Part 2 runs the rules of sections 7 to 9 on the real data. It changes no
+threshold. Every number below is in `tests/golden/tiago_backlash.json`, written
+by `examples/tiago/backlash_study.py`. A test checks that the tables quote the
+golden. All verdicts carry the label **validation-level**: one training run, one
+validation run, no held-out run.
+
+## 11. Answer
+
+- On arm_1 to arm_4 the model beats the direction constant (V1 improves). The
+  gain comes from the structural term `E(q_abs)`. The width `W` there is below
+  1 mrad, under the 1.53 mrad encoder step. The data do not show a backlash on
+  these four joints.
+- On arm_5 and arm_6 there is a real backlash of 13 to 14 mrad in training. V1
+  is not answerable on them (rule N6, the method floor is above the effect).
+  The model still lowers the error on arm_5 from 12.3 to 2.1 mrad.
+- On arm_6 the width is not stable. It is 13.7 mrad on 2023-07-24 and 22.3 mrad
+  on 2023-03-09. The manual probes give 38 to 42 mrad. The driven width is about a
+  third of the probed width.
+- Nothing shows a load dependence. No joint admitted the load group on
+  training.
+- The joint-inspection bags show that the arm_6 width changes with the arm_5
+  angle (10 to 32 mrad). The trained model has a constant `W` and cannot predict
+  this.
+
+## 12. Training fit (2023-07-24)
+
+Model M* is the all-groups model `E + W + L` (primary, decision (b)). The
+standard errors are block-bootstrap errors. F2 failed, so read them as upper
+bounds. `groups` is the selected model (secondary): E, W and L kept by the
+blocked 5-fold CV rule (gain above 5 % and |z| above 3). RMSE is for M*.
+
+| fit | W (mrad) | SE | G (mrad) | SE | kappa (mrad/N m) | SE | RMSE (mrad) | groups |
+|---|---|---|---|---|---|---|---|---|
+| `train arm_1_joint` | -0.16 | 0.11 | +0.00 | 0.00 | +0.00 | 0.00 | 0.59 | E |
+| `train arm_2_joint` | -0.52 | 0.13 | +0.00 | 0.00 | +0.05 | 0.03 | 0.59 | E |
+| `train arm_3_joint` | +0.43 | 0.32 | -0.02 | 9.88 | +0.15 | 0.15 | 0.73 | E |
+| `train arm_4_joint` | -0.75 | 0.22 | +0.88 | 0.55 | -0.27 | 0.17 | 0.72 | E |
+| `train arm_5_joint` | +13.28 | 0.67 | -27.68 | 11.84 | +48.87 | 21.20 | 1.54 | EW |
+| `train arm_6_joint` | +14.23 | 4.41 | +15.76 | 75.00 | +0.76 | 22.13 | 4.26 | EW |
+| `train arm_7_joint` | +6.18 | 2.33 | +0.00 | 0.00 | +0.00 | 0.00 | 3.25 | E |
+
+Remarks.
+
+- arm_1 to arm_4 and arm_7 select `E` only. The `W` group gains less than 5 %
+  in CV on all five (arm_2 has |z| of 4.3 but gains 3 %; arm_7 has |z| of 2.7
+  and gains 2 %). The `W` of M* is small there, and negative on arm_1, arm_2
+  and arm_4. A negative width has no physical meaning. Read it as zero within
+  the noise.
+- arm_5 and arm_6 select `E + W`. The load group has z of 2.34 on arm_5 and
+  0.21 on arm_6, both below 3.
+- arm_6 and arm_7 have few reversals in training (2 and 4). The SE of `G` and
+  `kappa` on arm_6 (75 and 22) show that the load terms are not determined.
+- Session offsets differ by day on arm_5 (-9.5 mrad against +76.1 mrad) and on
+  arm_6 (-29.9 against +3.6). The other joints agree within 0.4 mrad. The
+  offset is re-anchored on each session, so this does not enter the RMSE.
+
+## 13. Validation (2023-03-09, bottom run)
+
+RMSE in mrad on all valid moving samples, offset re-anchored. B0 is the offset
+only. B1 adds a direction constant. B2 is the degree-5 empirical surface of
+`backlash_empirical_surface.py` (arm_2 falls back to degree 4 because degree 5
+is rank deficient). `selected` is the secondary model.
+
+| joint | B0 | B1 | B2 | M* | selected | outside knots |
+|---|---|---|---|---|---|---|
+| `val arm_1_joint` | 3.98 | 3.97 | 1.08 | 1.04 | 1.03 | 0.05 |
+| `val arm_2_joint` | 3.18 | 3.29 | 2.16 | 0.66 | 0.73 | 0.06 |
+| `val arm_3_joint` | 1.80 | 1.84 | 1.48 | 0.85 | 0.82 | 0.00 |
+| `val arm_4_joint` | 9.01 | 8.98 | 4.53 | 1.30 | 1.20 | 0.08 |
+| `val arm_5_joint` | 14.37 | 12.34 | 24.58 | 2.13 | 2.40 | 0.03 |
+| `val arm_6_joint` | 15.48 | 11.21 | 184.34 | 9.97 | 11.64 | 0.14 |
+| `val arm_7_joint` | 6.99 | 6.04 | 185.72 | 4.24 | 5.81 | 0.06 |
+
+Where the gain comes from (descriptive, validation RMSE in mrad):
+
+| joint | offset | + E | + E + W | + E + W + L |
+|---|---|---|---|---|
+| `dec arm_1_joint` | 3.98 | 1.03 | 1.04 | 1.04 |
+| `dec arm_2_joint` | 3.18 | 0.73 | 0.70 | 0.66 |
+| `dec arm_3_joint` | 1.80 | 0.82 | 0.84 | 0.85 |
+| `dec arm_4_joint` | 9.01 | 1.20 | 1.18 | 1.30 |
+| `dec arm_5_joint` | 14.37 | 7.32 | 2.40 | 2.13 |
+| `dec arm_6_joint` | 15.48 | 15.97 | 11.64 | 9.97 |
+| `dec arm_7_joint` | 6.99 | 5.81 | 4.24 | 4.24 |
+
+## 14. Verdicts
+
+`g` is RMSE(M*) minus RMSE(B1) in mrad. `b` is the V1 band from the frozen F4
+table. V2 compares `W` of the E+W fits of the two sessions with the band on `W`.
+V3 needs a load group admitted on training. Flags are the rules N1 to N6 of
+section 7 that fired.
+
+| joint | g | b | V1 | V2 | V3 | flags |
+|---|---|---|---|---|---|---|
+| `V arm_1_joint` | -2.92 | 0.03 | improves | W differs | not answerable | none |
+| `V arm_2_joint` | -2.63 | 0.10 | improves | W stable across sessions | no load dependence detected | none |
+| `V arm_3_joint` | -0.99 | 0.17 | improves | not answerable (W descriptive) | no load dependence detected | N2 |
+| `V arm_4_joint` | -7.67 | 0.02 | improves | W stable across sessions | no load dependence detected | none |
+| `V arm_5_joint` | -10.21 | 0.17 | not answerable | W differs | no load dependence detected | N6 |
+| `V arm_6_joint` | -1.24 | 1.59 | not answerable (borderline) | W differs | no load dependence detected | N6 |
+| `V arm_7_joint` | -1.79 | 0.04 | improves | not answerable (W descriptive) | not answerable | N2, N5 |
+
+Per joint.
+
+- arm_1: V1 improves. V2 says `W` differs, with a difference of 0.17 mrad. That
+  is far below the encoder step, so it is a statistical flag, not a physical
+  one. V3 is not answerable: the joint has no gravity torque.
+- arm_2, arm_4: V1 improves, `W` stable, no load dependence detected.
+- arm_3: V1 improves. N2 fired (direction overlap 0.48 in training), so there
+  is no V2 verdict. `W` is 0.46 mrad in training and 0.19 mrad in validation.
+- arm_5: V1 is not answerable (N6). For information, g is -10.21 mrad against a
+  band of 0.17 mrad. V2 says `W` differs: 13.18 against 12.70 mrad, a change of
+  0.48 mrad, band 0.30 mrad. Both sessions agree to 4 %, so this is a tight band
+  and not a large change.
+- arm_6: V1 is not answerable (N6). For information, g is -1.24 mrad against a
+  band of 1.59 mrad. It would read "no change", and it is borderline. V2 says
+  `W` differs: 13.74 against 22.30 mrad.
+- arm_7: V1 improves. N2 (overlap 0.32) removes V2: `W` is 6.18 mrad in training
+  and 8.15 mrad in validation, descriptive only. N5 fired: the Schunk and Hey5
+  torque signs disagree on all samples, so V3 is not answerable.
+
+Secondary model. The selected model gives about the same g on arm_1 to arm_5. On
+arm_6 it gives +0.43 mrad and on arm_7 -0.23 mrad. It does not change a verdict
+class.
+
+## 15. Joint inspection (prediction checks, descriptive)
+
+No score and no verdict. The 2024-02-02 bags move arm_6 with arm_5 held at
+different angles. Nothing is fitted for a verdict. The gravity uses the Hey5 URDF
+(hand not verified), with Schunk as a sensitivity check. The inspection files
+record only arm_5 and arm_6, so the other joints are set to the training-run
+median. This is an assumption. Hey5 and Schunk predictions differ by at most
+1.7 mrad.
+
+Probes (absolute encoder peak to peak, manual) against the driven width of the
+trained model on arm_6. `W / probe` uses the E+W width of training (13.74 mrad).
+
+| probe | abs p2p (mrad) | rel p2p (mrad) | W / probe | W - probe (mrad) |
+|---|---|---|---|---|
+| `probe arm_6_backlash_abs_inspect_2024-01-26-18-07-23` | 38.3 | 0.44 | 0.36 | -24.6 |
+| `probe arm_6_backlash_abs_inspect_2024-01-26-18-07-54` | 42.2 | 0.41 | 0.33 | -28.4 |
+
+Width of arm_6 per bag (E+W fit on the bag, offset re-anchored) against the
+median arm_5 absolute angle. Sorted by angle. `pred` is the RMSE of the trained
+M* on the bag (Hey5) and `own` the RMSE of the bag's own E+W fit.
+
+| bag | arm_5 angle (rad) | W (mrad) | SE | pred (mrad) | own (mrad) |
+|---|---|---|---|---|---|
+| `bag arm5_minus_1_57_2024-02-02-17-40-08` | -1.68 | 9.6 | 1.7 | 14.8 | 3.4 |
+| `bag arm5_minus_1_2_2024-02-02-17-37-42` | -1.32 | 10.1 | 1.9 | 14.4 | 3.7 |
+| `bag arm5_minus_0_5_2024-02-02-17-30-30` | -0.63 | 15.1 | 4.3 | 11.8 | 7.6 |
+| `bag arm5_minus_0_5_2024-02-02-17-32-19` | -0.63 | 12.2 | 2.3 | 10.2 | 4.2 |
+| `bag arm5_minus_0_8_2024-02-02-17-34-13` | -0.63 | 12.3 | 2.6 | 10.5 | 4.4 |
+| `bag arm5_minus_0_8_2024-02-02-17-35-02` | -0.63 | 12.3 | 2.3 | 10.2 | 4.2 |
+| `bag arm5_minus_0_1_2024-02-02-17-50-54` | -0.24 | 27.3 | 1.9 | 11.7 | 3.4 |
+| `bag arm5_0_2024-02-02-17-25-39` | -0.03 | 29.7 | 1.1 | 12.9 | 2.3 |
+| `bag arm5_0_2_2024-02-02-17-46-17` | +0.06 | 32.1 | 1.2 | 13.7 | 2.5 |
+| `bag arm5_0_4_2024-02-02-17-48-10` | +0.25 | 31.5 | 0.7 | 13.9 | 2.0 |
+| `bag arm5_0_5_2024-02-02-17-28-22` | +0.35 | 29.1 | 1.1 | 14.1 | 2.4 |
+| `bag arm5_0_8_2024-02-02-17-43-00` | +0.64 | 9.6 | 3.2 | 19.6 | 9.5 |
+| `bag arm5_1_2_2024-02-02-17-44-25` | +1.20 | 9.8 | 1.9 | 17.4 | 3.9 |
+
+Summary over 13 bags: mean 18.5, sd 9.6,
+min 9.6, max 32.1 mrad. The Pearson correlation
+with the arm_5 angle is +0.32 (slope +3.9
+mrad/rad). A post-hoc correlation with |angle| is -0.80;
+it was chosen after looking at the table and is not evidence. One bag
+(`arm5minus1_59`) is excluded because arm_6 does not move. The bags at
++0.64 and +1.20 rad (and the bag at +0.64 with arm_5 moving 2.6 rad) are weak:
+the own fit of the first has 9.5 mrad RMSE.
+
+## 16. Ambiguities in the frozen rules and how they were resolved
+
+- V1 is scored on all valid validation samples, the sample used to compute the
+  F4 band. Samples outside the training knots are reported, not removed. With
+  samples inside the knots only, arm_6 would read "improves, borderline" (g -1.61
+  mrad against 1.59). It is N6 anyway, so no verdict changes.
+- B2 uses the existing rank back-off of `EmpiricalBacklashSurface`.
+- V2 uses E+W fits on both sessions. The validation refit builds its own knots.
+- N3 uses the seed-0 `W` SE of the frozen fixture. It never fired.
+- V3: the load group counts as admitted if the selection rule keeps it on
+  training. Then a validation coefficient needs the same sign and |z| above 2.
+  This branch was never reached.
+- N1, N4 and N5 are checked on both runs.
+- Bags in which arm_6 does not move are excluded, and listed in the golden.
+- The arm_5 angle of a bag is the median of its absolute encoder.
+
+## 17. Unexpected
+
+- B2 blows up on validation for arm_5, arm_6 and arm_7 (24.6, 184.3 and
+  185.7 mrad) although its training RMSE is about 1 mrad. B2 is a degree-5
+  polynomial in `q_rel` and the torque. It does not use `q_abs`, and it
+  extrapolates badly between sessions. M* does not suffer from this.
+- The V1 gain on arm_1 to arm_4 is the `E` term. `W` is below 1 mrad there.
+  "The model improves" must not be read as "backlash found".
+- V2 flags a 0.17 mrad change on arm_1 as "W differs". The band is tighter than
+  the encoder step, so the flag has no physical meaning.
+- The driven width of arm_6 (14 to 22 mrad) is about a third of the manual
+  probes (38 to 42 mrad). The two methods do not measure the same thing, or
+  the load during the probe differs.
+- The arm_6 width depends on the arm_5 angle. It is 27 to 32 mrad for arm_5
+  between -0.24 and +0.35 rad, and 10 to 12 mrad elsewhere. This pattern appears
+  only in the bags, and was not in the pre-registration. The trained model has
+  a constant `W` and no load group was admitted, so it cannot predict it.
+- The session offset of arm_5 and arm_6 moves by 86 and 33 mrad between days.
+  That is why the offset is re-anchored on each session.
+- F2 failed. All standard errors are upper bounds.
+- About 23 % of the bag samples are outside the training knots, so the bag
+  predictions extrapolate `E`.
+
+## 18. Reproduction of part 2
+
+```bash
+conda activate figaroh-dev
+cd figaroh-examples
+MPLBACKEND=Agg python examples/tiago/backlash_study.py --no-plot \
+    --golden tests/golden/tiago_backlash.json                # about 10 s
+MPLBACKEND=Agg python examples/tiago/backlash_study.py --archive --no-plot
+MPLBACKEND=Agg python -m pytest tests/test_tiago_backlash_study.py -q
+```
