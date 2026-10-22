@@ -359,7 +359,9 @@ others are borderline or within.
 The result has a caveat that matters more than the verdict: both sensors leave
 about 17 to 19 mm and 50 to 60 mrad of residual in the arm model (section 16).
 The offsets of `d_arm_1 .. d_arm_6` alone do not explain the posture-to-posture
-error. The comparison is between two fits of an incomplete model.
+error. The comparison is between two fits of an incomplete model. A post-hoc
+diagnosis (section 16.1) traces most of the misfit to the arm_5 absolute
+encoder that both sensors share.
 
 ## 12. Training fit and baselines
 
@@ -545,6 +547,50 @@ validation session.
    not a PAL-sized offset (PAL: 20 mrad).
 4. **C0 position residual.** The y and z position axes are at 2 to 2.5 times the
    simulated floor (rule 1 allows 3).
+
+### 16.1 Post-hoc diagnosis of items 1 and 3 (after the verdict)
+
+This was done after the verdict and changes neither the verdict nor any frozen
+rule. It does change how far the verdict can be trusted.
+
+- **Joint source.** The joint columns of the camera tool CSVs are the
+  joint-state positions, which follow the absolute (output-side) encoder: they
+  match the absolute encoder of the 2023-10-27 robot recordings within 0.5 mrad.
+- **arm_5 absolute encoder.** On 10-27, arm_5's relative-minus-absolute
+  encoder gap depends on the angle and has a step: -99 to +72 mrad, stepping
+  between 0.7 and 1.1 rad. arm_6 and arm_4 vary less (-26 to +28 and -12 to
+  +22 mrad).
+- **Most of the misfit is arm_5.** Refitting the same 18-parameter model on
+  10-27 with arm_5 read from the relative encoder lowers the pooled residual of
+  both sensors from 19.6 mm / 57.6 mrad to 10.3 mm / 24.4 mrad, and every run
+  improves. Switching every other arm joint to the relative encoder, with arm_5
+  left on the absolute one, changes nothing (18.6 mm / 59.7 mrad).
+- **What remains.** The remaining floor is 8 to 10 mm / 20 to 26 mrad, against
+  about 2 mm of noise. The likely sources are arm_4 and arm_6 backlash; this is
+  not resolved.
+- **Ruled out:**
+  - the URDF variant (about 3 mm, arm_2 and arm_3 only);
+  - joint axis signs;
+  - the held head and torso;
+  - `k` (the mocap fit has no `k` and shows the same misfit);
+  - local minima (150 random starts reach the same cost).
+- **`d_arm_5` of about -120 mrad (item 3).** This is not a geometric offset. It
+  stays between -120 and -134 mrad with absolute, relative and step-corrected
+  arm_5 inputs. The arm_5 relative-minus-absolute median varies by session
+  (-92 to +156 mrad in the joint-inspection data, #110). That fits a per-session
+  arm_5 zero, so read it as robot state, not as a calibration constant.
+- **Effect on the verdict.** The effect is not tested. The arm_5 error is common
+  to both sensors, so it inflates both fits. The camera-minus-mocap gaps (C1,
+  C2) may move less than the residuals do. Only the 10-27 recordings carry the
+  relative encoder; 11-23 and 11-27 do not, so the training fit cannot be
+  corrected from the shipped data. The maintainer chose not to run a corrected
+  comparison.
+
+**Reading of section 11 after this:** the "no" holds for the model as
+pre-registered, with joint inputs from the absolute encoders. That model is
+dominated by an arm_5 encoder error shared by both sensors. The study does not
+say how the camera would compare with the motion capture on correct arm_5
+inputs.
 
 ## 17. Reproduction of part 2
 
