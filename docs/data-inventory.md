@@ -22,7 +22,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-mocap-vicon-2023-09-20` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 3 | 23.6 KB | examples/tiago/data/README.md |
 | `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 8.4 MB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
-| `tiago-backlash-2023-07-24` | TIAGo | Backlash surface (#71) | real | training (2023-07-24, untraced), held-out (2023-03-09 bottom), diagnostic (2023-03-09 top, pose only) (#109) | 2 | 34.1 MB | examples/tiago/data/README.md |
+| `tiago-backlash-2023-07-24` | TIAGo | Backlash surface (#71) | real | training (2023-07-24, untraced), held-out (2023-03-09 bottom), diagnostic (2023-03-09 top, pose only) (#109) | 6 | 108.6 MB | examples/tiago/data/README.md |
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
 | `tiago-pro-mocap-samples` | TIAGo Pro | Mocap calibration | real | training (2026-08-05), validation (07-01), confirmation (07-02); frozen in data/protocol.yaml | 3 | 42.4 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
 | `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
@@ -216,6 +216,10 @@ Sinusoidal runs (period 10 s, amplitude 3): 2023-07-24 with 12,092 samples of re
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
+| `examples/tiago/data/backlash/protocol.yaml` |  | 3361 | `916508d89580615d` |
+| `examples/tiago/data/backlash/sinus_amp3_period10_2023-03-09-15-28-20_top/tf.csv` | 43529 | 52674559 | `734577b88d775623` |
+| `examples/tiago/data/backlash/sinus_amp3_period10_2023-03-09-16-19-17_bottom/introspection_datanames.csv` | 1 | 1056 | `e2f600b44b4cf59d` |
+| `examples/tiago/data/backlash/sinus_amp3_period10_2023-03-09-16-19-17_bottom/introspection_datavalues.csv` | 41953 | 25530210 | `e33f7610f3be9857` |
 | `examples/tiago/data/backlash/sinus_amp3_period10_2023-07-24-13-28-42/introspection_datanames.csv` | 1 | 6514 | `3f33234c153574ca` |
 | `examples/tiago/data/backlash/sinus_amp3_period10_2023-07-24-13-28-42/introspection_datavalues.csv` | 12092 | 35698619 | `5a0eed92dd000be7` |
 
