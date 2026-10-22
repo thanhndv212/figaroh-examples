@@ -14,15 +14,22 @@
 #       h_e along base z (h_e on the grid below)                 12 + h_e
 #   S3  full symmetric 6x6 stiffness and damping                 21 + 21
 # each with one constant per DOF (static drift, rule: offset below).
+# Constrained fits (maintainer decision O4): S1, S2 k >= 0 and c >= 0; S3 K and
+# C symmetric positive semi-definite; B2 m >= 0.
 # Baselines: B0 static, B1 status-quo loader + S1 (what #70 reported),
-# B2 rigid base: the arm load alone (effective point mass at the gripper
-# cluster, parameters = the mass).
+# B2 rigid base: the arm load alone, a rigid cube at the gripper markers
+# (mass and first moment fitted on training; maintainer decision O2).
 protocol: data/suspension/protocol.yaml      # roles are frozen there
 sessions:
   training: xyz_1640
   validation: xyz_1628
   confirmation: [xyz_mirror_1630, xyz_mirror_1642]   # never read in part 1
   noise_floor: postures_1720                          # base at rest (descriptive)
+  # Diagnostic runs that may be read, with training, for model selection (h_e and
+  # S1/S2/S3) only (maintainer decision O3). Never confirmation; validation stays
+  # held out for the verdict. postures_1720 and postures_1734 (base at rest) carry
+  # no base motion and stay out.
+  selection_diagnostics: [around_x_1634, around_y_1638, around_z_1622, x_fold_1632, y_fold_1636]
 
 # Loader (examples/tiago/utils/suspension_data.py)
 sampling:
@@ -32,20 +39,49 @@ clock:
   guard_frames: 5          # rows within this many frames of an interpolated frame are not fitted
   edge_s: 0.5              # filter edge transient, both ends
 static_window_s: 1.0       # first second: static offset of the wrench and the rest pose
-origin: triad_centroid     # open point O1: no surveyed base_link point exists
-frame: world               # translation, rotation vector and wrench in Vicon world axes
+# Origin and axes (maintainer decision O1): the base_footprint frame (base_link is
+# 0.0985 m above it in the URDF), a point rigidly attached to the base marker
+# triad. Located from shipped data only: the #100 Vicon 1607 fit
+# (tests/golden/tiago_mocap_hardware.json, /fits/V1607|3d: base_px..base_phiz and
+# their std) against the 1607 triad pose xb..phizb of
+# data/calibration/vicon/vicon_2023-09-20-1607_static_postures.csv, expressed in the
+# triad frame (x from base1 to base2, z = x cross (base3 - base1), pointing down).
+# Derived by `python examples/tiago/suspension_model.py footprint` and FROZEN here;
+# the offset is robot-fixed and is mapped to each suspension run through that run's
+# rest triad. Axes: x forward, z up (the footprint frame). Wrench and moments are
+# transported to the footprint origin.
+origin: base_footprint
+footprint:
+  offset_triad_m: [0.010973, -0.077375, 0.313235]     # footprint origin in the triad frame
+  offset_sd_m: [0.00224, 0.0026, 0.00158]             # 1 sd: fit std + triad pose scatter, through the triad rotation
+  rotation_triad_rotvec: [-2.26862, -2.1598, -0.01427]   # triad frame -> footprint axes (rotation vector, rad)
+  rotation_sd_rad: 0.0024                                # mean of the fit's base_phi* std (not perturbed)
+frame: footprint           # translation, rotation vector and wrench in the footprint axes at rest
 plate_centre: [0.900, 0.450, 0.0]   # m, world; M = (COP - c) x F verified on the data
 filter: {type: butterworth, order: 4, cutoff_hz: 10.0}   # zero phase, applied to every channel
 gravity: 9.81
 
+# B2 (maintainer decision O2): a rigid cube at the gripper markers. The gripper triad
+# frame is built like the base one (x from gripper1 to gripper2, z = x cross
+# (gripper3 - gripper1), y = z cross x; centroid origin). Linear parameters: mass m and
+# first moment m*o (o = cube centre in that frame), 4 parameters, m >= 0. The inertia
+# is isotropic, m a^2 / 6, with the edge a ASSUMED from the marker spread (inter-marker
+# distances 94.4, 106.6 and 159.0 mm: 159 mm is a face diagonal of a 0.112 m edge);
+# the fit neglects the quadratic term m (R o) x (R'' o).
+b2: {edge_m: 0.11}
+
 # Parameter standard errors: moving-block bootstrap over the usable rows.
 bootstrap: {resamples: 200, block_s: 5.0, seed: 7}   # block = one oscillation period (peak at 0.2 Hz)
 offset: true               # one constant per DOF in every model (static drift); not reported
-h_e_grid: {min: -0.50, max: 0.30, step: 0.01}        # m along base z, from the origin
+# Along base z (up) from the footprint origin, floor at 0 (an elastic centre below the
+# footprint is not physical). The old grid, -0.50 to 0.30 m from the triad centroid, is
+# -0.19 to +0.61 m from the footprint (the centroid is 0.313 m above it).
+h_e_grid: {min: 0.0, max: 0.60, step: 0.01}
 selection:
   folds: 5
   cv_block_s: 10.0
   tolerance: 0.05          # the simplest of S1 < S2 < S3 within this fraction of the best CV score
+  use_diagnostics: true    # CV over training + sessions.selection_diagnostics (blocks dealt per run)
 
 # Frozen by the noise stage (python examples/tiago/suspension_model.py noise):
 # white noise levels from first differences of the postures_1720 run (base at
@@ -66,7 +102,10 @@ noise:
 rules:
   explained_r2: 0.5        # a DOF is explained if the held-out R2 on validation reaches this
   beat_b2: 0.1             # and the selected model beats B2 by this much on it
-  neg_damping_se: 2.0      # c < -2 SE flags negative damping
+  # An active bound replaces the negative-damping item (maintainer decision O4): a
+  # parameter at its bound (k or c = 0, B2 m = 0) or a PSD matrix with a zero
+  # eigenvalue is reported and the DOF fails "enough".
+  psd_zero_rel: 1.0e-6     # a PSD eigenvalue below this fraction of the largest is "zero"
   band_factor: 2.0         # stiffness repeatability band = factor x RMS train/validation relative difference (fixture)
   answerable_rel_se: 0.5   # a DOF parameter with fixture SE/|truth| above this is not answerable
   nonlinear_corr: 0.2      # |corr(residual, cubic part of x)| above this flags a nonlinear DOF
@@ -82,10 +121,15 @@ fixture:
     k: [1.0e+4, 1.0e+4, 1.0e+5, 3.0e+4, 2.0e+4, 1.0e+3]   # N/m x3, N m/rad x3
     c: [150.0, 150.0, 500.0, 100.0, 80.0, 12.0]
     spread: 0.25           # each parameter ~ U(value (1 -+ spread)) per seed
-    h_e: -0.25             # F4a elastic centre (m along base z)
+    h_e: 0.25              # F4a elastic centre (m along base z, above the footprint); was -0.25 below the centroid
     hardening: 2.0         # F4b: k (1 + (x / (hardening sd))^2) on x, y, z
     deadband: 1.0          # F4b: no spring within +- deadband sd on x, y
-    arm_mass_kg: 25.0      # F4c: effective mass at the gripper cluster (order of Mx span / gripper excursion)
+    # F4c truth: a rigid cube at the gripper markers, its centre at an offset from the marker centroid
+    arm_mass_kg: 25.0      # order of Mx span / gripper excursion
+    cube_offset_m: [0.04, -0.03, 0.05]   # centre in the gripper-triad frame (not the centroid)
+  # Origin sensitivity (descriptive, no pass/fail): S1 refit with the loader's footprint
+  # offset moved by +-factor * sd per axis, and with the triad centroid as origin.
+  origin_sensitivity: {factor: 1.0}
   clock_model: measured    # drop rate, latency mean, sd, lag-1 from the noise stage
   f1:
     cond_max: {s1: 1.0e+3, s2: 1.0e+3, s3: 1.0e+4}   # scaled condition number on the real training motion

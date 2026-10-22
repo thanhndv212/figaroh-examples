@@ -441,6 +441,69 @@ truth (none in the fixture); the DOF is reported but does not enter "enough".
   the origin; `frame: base` (axes of the triad) is implemented and is a
   yaw of -5.4 degrees away.
 
+### Decisions taken (maintainer, 2026-10-23)
+
+Taken after the fixture of the first version of this note was seen and before
+any suspension parameter was fitted to a real session. The thresholds of
+section 7 and the repeatability band are unchanged; the failures of F2, F3 and
+F4a stay reported as results. The sections above and below are revised in the
+commits that implement these decisions; the config
+`tiago_suspension_study_config.yaml` carries the frozen values.
+
+- **O1 origin: the `base_footprint` frame, from shipped data only.** The origin
+  is the `base_footprint` frame origin (`base_link` is 0.0985 m above it in the
+  URDF), a point rigidly attached to the base marker triad. It is located with
+  the #100 Vicon 1607 fit (`tests/golden/tiago_mocap_hardware.json`,
+  `fits/V1607|3d`, `params` and `std`) and the 1607 base-triad pose
+  `xb..phizb` of `data/calibration/vicon/`: the fitted base pose is expressed
+  in the triad frame, which gives a robot-fixed offset, and the offset is
+  mapped to each suspension run through that run's rest triad. The pose axes
+  are the footprint axes (x forward, z up); the displacement, the rotation
+  vector and the wrench are expressed in them, and the moments are transported
+  to the footprint origin. Derived offset in the triad frame (z points down):
+  (0.010973, -0.077375, 0.313235) m with 1 sd (0.0022, 0.0026, 0.0016) m:
+  7.8 cm horizontal and 0.313 m below the triad centroid. Check: mapped
+  through the rest triad of `xyz_1640`, the footprint lies at z = -0.004 m in
+  the Vicon world, that is on the plate surface, and the footprint z axis is
+  up (the triad z sign is handled by the rotation to the footprint axes). The
+  offset and its uncertainty are frozen in the config. The fixture adds a
+  descriptive sensitivity check: the offset moved by +-1 sd per axis and the
+  triad centroid as an ablation origin. The footprint rotation uncertainty
+  (0.0024 rad) is not perturbed. The S2 grid `h_e` is re-expressed from the
+  footprint, 0 to 0.60 m (floor at 0), where it was -0.50 to 0.30 m from the
+  triad centroid (that is -0.19 to +0.61 m from the footprint). The F4a truth
+  `h_e` becomes +0.25 m above the footprint (the old -0.25 m below the centroid
+  would be +0.06 m above the footprint; the lever magnitude of 25 cm is kept
+  instead, a deliberate change of the truth, reported).
+- **O2 B2 is a rigid cube at the gripper markers.** Its pose follows the
+  gripper triad (frame built like the base one: x from `gripper1` to
+  `gripper2`, z = x cross (`gripper3` - `gripper1`)); inter-marker distances
+  94.4, 106.6 and 159.0 mm, so the centre is not the marker centroid. Linear fit
+  of the mass `m` and the first moment `m o` (`o` the centre in the gripper
+  frame): 4 parameters, `m` >= 0. Isotropic inertia `m a^2 / 6`, the edge
+  `a` = 0.11 m is an assumption frozen from the marker spread (159 mm is a face
+  diagonal of a 0.112 m cube); its effect is reported. The arm itself is not
+  modelled. F4c uses this B2 as truth (a cube whose centre is offset from the
+  marker centroid).
+- **O3 diagnostic runs may serve model selection.** `around_x_1634`,
+  `around_y_1638`, `around_z_1622`, `x_fold_1632` and `y_fold_1636` are used,
+  with training, for the choice of `h_e` and of S1/S2/S3 (blocked CV over all
+  of them, blocks dealt per run). The two posture runs (base at rest) stay
+  out. Never confirmation; validation stays held out for the verdict, and the
+  final fit stays on training. The CV and F5 are updated.
+- **O4 constrained fits.** S1 and S2: `k` >= 0 and `c` >= 0 (bounded least
+  squares). S3: `K` and `C` symmetric positive semi-definite (a semidefinite
+  program; no new dependency). The bootstrap uses the same constraints. The
+  verdict item "negative damping `c < -2 SE`" is replaced by "active bound": a
+  parameter at its bound (or a PSD matrix with a zero eigenvalue, then all six
+  DOF) is reported and the DOF fails "enough"; B2 `m` >= 0 likewise (an active
+  `m` makes the comparison with B2 vacuous, so it fails "enough"). The
+  repeatability band is unchanged and stays flagged (O4 below). The existing
+  F2, F3 and F4a failures stay reported as results, with the thresholds
+  unchanged.
+- **O5 closed, out of scope.** The OptiTrack sessions of the plan (#112) have no
+  force-plate data and cannot serve this study. No code change.
+
 ## 11. Reproduction
 
 ```bash
