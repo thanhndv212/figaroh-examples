@@ -88,6 +88,7 @@ EXAMPLE_SCRIPTS = {
         ("optimal_config.py", 120, False),
         ("mocap_hardware.py", 300, False, ["real", "--archive", "--no-plot"]),
         ("head_camera_study.py", 300, False, ["--archive", "--no-plot"]),
+        ("backlash_study.py", 300, False, ["--archive", "--no-plot"]),
         ("optimal_trajectory.py", 600, True),
     ],
     "talos": [
@@ -447,9 +448,7 @@ def print_selection(base, paths, sel):
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     log = directory / f"changed-selection-{stamp}.json"
     log.write_text(
-        json.dumps(
-            {"base": base, "changed_paths": paths, **sel.to_dict()}, indent=2
-        )
+        json.dumps({"base": base, "changed_paths": paths, **sel.to_dict()}, indent=2)
     )
     print(f"  Selection log: {log}")
 

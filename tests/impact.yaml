@@ -47,11 +47,13 @@ robots:
       - tests/golden/tiago_mocap_hardware_truth.json
       - tests/golden/tiago_head_camera.json
       - tests/golden/tiago_head_camera_truth.json
+      - tests/golden/tiago_backlash.json
       - tests/golden/tiago_backlash_truth.json
     tests:
       - tests/test_calibration_harness_tiago.py
       - tests/test_tiago_backlash_model.py
       - tests/test_tiago_backlash_sessions.py
+      - tests/test_tiago_backlash_study.py
       - tests/test_tiago_backlash_truth.py
       - tests/test_tiago_joint_inspection.py
       - tests/test_tiago_calibration_truth.py
