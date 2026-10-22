@@ -1,0 +1,109 @@
+# TIAGo base suspension (examples#70): the loader rules, the model ladder and
+# every threshold of the study. Pre-registration (part 1 of
+# docs/development/tiago-suspension.md): the values below were written before
+# the fixture was first run; nothing is selected on the validation run, and
+# no suspension parameter has been fitted on any real session.
+#
+# Question: is a linear spring-damper at the base enough to explain the plate
+# wrench of the TIAGo xyz oscillation runs of 2023-09-20, and does it explain
+# more than "the arm moved" (baseline B2)?
+#
+# Models (all linear in the parameters for a fixed geometry):
+#   S1  diagonal 6-DoF spring-damper at the base origin          12 parameters
+#   S2  diagonal spring-damper about an elastic centre at height
+#       h_e along base z (h_e on the grid below)                 12 + h_e
+#   S3  full symmetric 6x6 stiffness and damping                 21 + 21
+# each with one constant per DOF (static drift, rule: offset below).
+# Baselines: B0 static, B1 status-quo loader + S1 (what #70 reported),
+# B2 rigid base: the arm load alone (effective point mass at the gripper
+# cluster, parameters = the mass).
+protocol: data/suspension/protocol.yaml      # roles are frozen there
+sessions:
+  training: xyz_1640
+  validation: xyz_1628
+  confirmation: [xyz_mirror_1630, xyz_mirror_1642]   # never read in part 1
+  noise_floor: postures_1720                          # base at rest (descriptive)
+
+# Loader (examples/tiago/utils/suspension_data.py)
+sampling:
+  rate_hz: 100.0           # Vicon frame rate; time = frame number / rate
+clock:
+  duplicate_rule: identical_rows   # all 39 values equal to the previous row
+  guard_frames: 5          # rows within this many frames of an interpolated frame are not fitted
+  edge_s: 0.5              # filter edge transient, both ends
+static_window_s: 1.0       # first second: static offset of the wrench and the rest pose
+origin: triad_centroid     # open point O1: no surveyed base_link point exists
+frame: world               # translation, rotation vector and wrench in Vicon world axes
+plate_centre: [0.900, 0.450, 0.0]   # m, world; M = (COP - c) x F verified on the data
+filter: {type: butterworth, order: 4, cutoff_hz: 10.0}   # zero phase, applied to every channel
+gravity: 9.81
+
+# Parameter standard errors: moving-block bootstrap over the usable rows.
+bootstrap: {resamples: 200, block_s: 5.0, seed: 7}   # block = one oscillation period (peak at 0.2 Hz)
+offset: true               # one constant per DOF in every model (static drift); not reported
+h_e_grid: {min: -0.50, max: 0.30, step: 0.01}        # m along base z, from the origin
+selection:
+  folds: 5
+  cv_block_s: 10.0
+  tolerance: 0.05          # the simplest of S1 < S2 < S3 within this fraction of the best CV score
+
+# Frozen by the noise stage (python examples/tiago/suspension_model.py noise):
+# white noise levels from first differences of the postures_1720 run (base at
+# rest), the same levels pushed through the loader for the displacement and
+# velocity columns, and the receive-clock statistics of the three runs read
+# here (xyz_1640, xyz_1628, postures_1720). Grid levels multiply the white
+# levels; level 0 is the noise-free check.
+noise:
+  levels: [0.0, 0.5, 1.0, 2.0]
+  used_level: 1.0
+  marker_sd_mm: 0.01107      # per coordinate of one marker
+  plate_sd: [0.3234, 0.2824, 0.9264, 0.2223, 0.272, 0.1203]   # Fx, Fy, Fz (N), Mx, My, Mz (N m), unfiltered
+  x_sd: [2.718e-06, 2.696e-06, 2.738e-06, 2.222e-05, 1.631e-05, 1.32e-05]   # filtered displacement column noise (m; rad)
+  v_sd: [8.829e-05, 8.937e-05, 8.876e-05, 0.0007162, 0.00054, 0.0004286]   # filtered velocity column noise
+  clock: {drop_rate: 0.01054, duplicate_rate: 0, latency_mean_ms: 8.127, latency_sd_ms: 3.812, latency_lag1: 0.727}
+
+# Verdict rules (applied in part 2, fixed here; see the note, section 8).
+rules:
+  explained_r2: 0.5        # a DOF is explained if the held-out R2 on validation reaches this
+  beat_b2: 0.1             # and the selected model beats B2 by this much on it
+  neg_damping_se: 2.0      # c < -2 SE flags negative damping
+  band_factor: 2.0         # stiffness repeatability band = factor x RMS train/validation relative difference (fixture)
+  answerable_rel_se: 0.5   # a DOF parameter with fixture SE/|truth| above this is not answerable
+  nonlinear_corr: 0.2      # |corr(residual, cubic part of x)| above this flags a nonlinear DOF
+
+# Simulated fixture (suspension_truth.py), criteria frozen before any run.
+fixture:
+  seeds: [0, 1, 2, 3, 4]
+  # Plausible truth, order of magnitude from the ratio of the standard
+  # deviations of the filtered plate wrench and base displacement of the
+  # training run (descriptive, not a fit); damping at a damping ratio of 0.1
+  # with a base mass of 70 kg and inertias 8, 8, 4 kg m2.
+  truth:
+    k: [1.0e4, 1.0e4, 1.0e5, 3.0e4, 2.0e4, 1.0e3]   # N/m x3, N m/rad x3
+    c: [150.0, 150.0, 500.0, 100.0, 80.0, 12.0]
+    spread: 0.25           # each parameter ~ U(value (1 -+ spread)) per seed
+    h_e: -0.25             # F4a elastic centre (m along base z)
+    hardening: 2.0         # F4b: k (1 + (x / (hardening sd))^2) on x, y, z
+    deadband: 1.0          # F4b: no spring within +- deadband sd on x, y
+    arm_mass_kg: 25.0      # F4c: effective mass at the gripper cluster (order of Mx span / gripper excursion)
+  clock_model: measured    # drop rate, latency mean, sd, lag-1 from the noise stage
+  f1:
+    cond_max: {s1: 1.0e3, s2: 1.0e3, s3: 1.0e4}   # scaled condition number on the real training motion
+    snr_min: 3.0           # per column, reported; columns below are listed (not a pass/fail gate)
+  f2:
+    z_rms: [0.75, 1.33]
+    z_mean_max: 0.3
+    exact_tol: 1.0e-6      # level 0: relative parameter error
+    r2_gap_max: 0.05       # held-out R2 within this of the noise ceiling, answerable DOF
+  f3:
+    signature: {forces_r2_max: 0.2, my_r2_min: 0.75, neg_damping_min: 3, seeds_min: 4}
+    attribution_gain_min: 0.2   # fixing one error raises the mean force R2 (held-out) by this much: responsible
+    full_r2_gap_max: 0.05       # all four fixes + filter: held-out R2 within this of the ceiling, answerable DOF
+  f4:
+    s2_gain_min: 0.1       # a: mean held-out R2 of S2 over S1 under the elastic-centre truth
+    s2_gap_max: 0.05       # a: S2 within this of the ceiling
+    flag_seeds_min: 4      # b: nonlinear DOF flagged in this many of 5 seeds; none flagged under a linear truth
+    enough_false_seeds_min: 4   # c: "enough" is False under the arm-load truth in this many seeds
+  f5:
+    correct_seeds_min: 4   # of 5, per truth (S1 under F2, S2 under F4a)
+    h_e_tol: 0.05          # m
