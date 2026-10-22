@@ -222,9 +222,10 @@ def read_target(
 
 @lru_cache(maxsize=None)
 def _model(urdf: str):
-    from figaroh.tools.robot import load_robot
+    import pinocchio as pin
 
-    return load_robot(str(URDF_DIR / urdf), load_by_urdf=True).model
+    # kinematic model only: geometry (meshes) is not needed for gravity
+    return pin.buildModelFromUrdf(str(URDF_DIR / urdf))
 
 
 def gravity_torque(run: Run, urdf: str) -> np.ndarray:
