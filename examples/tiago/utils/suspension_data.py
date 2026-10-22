@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import csv
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Optional
 
 import numpy as np
+from scipy.signal import butter, filtfilt
+from scipy.spatial.transform import Rotation
+
+from examples.tiago.utils.suspension_extraction import full_header, COLUMNS
 
 
 @dataclass(frozen=True)
@@ -69,6 +74,11 @@ def load_vicon_forceplate_trajectory(path: str | Path) -> SuspensionTrajectory:
     ten marker triplets, force, moment, and center of pressure. The fitted model
     uses base marker 1 as the translational origin and the base 1/2/3 marker triad
     for relative roll-pitch-yaw displacement.
+
+    This is the status-quo loader of examples#70 (baseline B1 of the study): it
+    keeps the four errors the issue lists (corner-marker origin, plate-centre
+    moments, mixed frames, receive-time stamps). Use :func:`load_run` for the
+    corrected pipeline.
     """
     path = Path(path)
     if not path.is_file():
@@ -89,10 +99,20 @@ def load_vicon_forceplate_trajectory(path: str | Path) -> SuspensionTrajectory:
         [datetime.fromisoformat(row[0]).timestamp() for row in rows], dtype=float
     )
     values = np.asarray([[float(value) for value in row[1:]] for row in rows])
+    return status_quo_from_arrays(time, values, source=str(path))
+
+
+load_status_quo = load_vicon_forceplate_trajectory
+
+
+def status_quo_from_arrays(
+    time: np.ndarray, values: np.ndarray, source: str = "array"
+) -> SuspensionTrajectory:
+    """The status-quo pipeline on ``time`` (receive stamps) and the 39 values."""
     if np.any(np.diff(time) <= 0.0):
-        raise ValueError(f"Vicon timestamps must be strictly increasing: {path}")
+        raise ValueError(f"Vicon timestamps must be strictly increasing: {source}")
     if not np.all(np.isfinite(values)):
-        raise ValueError(f"Vicon log contains non-finite measurements: {path}")
+        raise ValueError(f"Vicon log contains non-finite measurements: {source}")
 
     base_1 = values[:, 0:3]
     base_2 = values[:, 3:6]
@@ -135,3 +155,377 @@ def _rotation_to_rpy(rotation: np.ndarray) -> np.ndarray:
     roll = np.arctan2(rotation[:, 2, 1], rotation[:, 2, 2])
     yaw = np.arctan2(rotation[:, 1, 0], rotation[:, 0, 0])
     return np.column_stack((roll, pitch, yaw))
+
+
+# ---------------------------------------------------------------------------
+# Corrected pipeline (examples#70, study part 1)
+#
+# Every default below is the value frozen in
+# examples/tiago/config/tiago_suspension_study_config.yaml; the study module
+# passes the config values explicitly.
+# ---------------------------------------------------------------------------
+
+RATE_HZ = 100.0
+PLATE_CENTRE = (0.900, 0.450, 0.0)  # m, Vicon world; M = (COP - c) x F (measured)
+STATIC_WINDOW_S = 1.0
+GUARD_FRAMES = 5
+EDGE_S = 0.5
+CUTOFF_HZ = 10.0
+FILTER_ORDER = 4
+
+
+def read_raw(path: str | Path) -> tuple[np.ndarray, np.ndarray]:
+    """``(t_receive, values)``: host receive time (s) and the 39 numeric columns.
+
+    Accepts the shipped layout (no header) and the raw layout (a header line of
+    20 or 40 names); columns are selected by name, so a header in any of the
+    two forms gives the same arrays. Strictly 40 columns per row.
+    """
+    path = Path(path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Vicon force-plate log not found: {path}")
+    with path.open(newline="") as f:
+        rows = [r for r in csv.reader(f) if r]
+    header = None
+    if rows and rows[0][0] == "time":
+        header, rows = rows[0], rows[1:]
+    names = full_header(header)
+    if sorted(names) != sorted(COLUMNS) or len(set(names)) != 40:
+        raise ValueError(f"{path}: columns are not the CREPS layout")
+    index = [names.index(c) for c in COLUMNS]
+    for row in rows:
+        if len(row) != 40:
+            raise ValueError(f"expected 40 Vicon columns in {path}, got {len(row)}")
+    if len(rows) < 3:
+        raise ValueError(f"Vicon force-plate log requires at least three rows: {path}")
+    t = np.array(
+        [datetime.fromisoformat(r[index[0]]).timestamp() for r in rows], dtype=float
+    )
+    values = np.asarray([[float(r[i]) for i in index[1:]] for r in rows])
+    return t, values
+
+
+@dataclass(frozen=True)
+class Clock:
+    """Frame numbers on the Vicon grid for the receive-stamped rows."""
+
+    frame: np.ndarray  # int, strictly increasing, one per kept row
+    keep: np.ndarray  # bool over the input rows (False: duplicate dropped)
+    latency: np.ndarray  # s, >= 0, per kept row
+    rate: float
+
+    @property
+    def n_frames(self) -> int:
+        return int(self.frame[-1]) + 1
+
+    @property
+    def duplicates(self) -> int:
+        return int((~self.keep).sum())
+
+    @property
+    def drops(self) -> int:
+        return int(np.sum(np.diff(self.frame) - 1))
+
+    def stats(self) -> Dict[str, float]:
+        lat = self.latency
+        gaps = np.diff(self.frame)
+        return {
+            "rows": int(self.keep.size),
+            "duplicates": self.duplicates,
+            "duplicate_pct": 100.0 * self.duplicates / self.keep.size,
+            "frames": self.n_frames,
+            "drops": self.drops,
+            "drop_pct": 100.0 * self.drops / self.n_frames,
+            "max_gap_frames": int(gaps.max() - 1) if gaps.size else 0,
+            "latency_mean_ms": 1e3 * float(lat.mean()),
+            "latency_sd_ms": 1e3 * float(lat.std()),
+            "latency_p95_ms": 1e3 * float(np.percentile(lat, 95)),
+            "latency_max_ms": 1e3 * float(lat.max()),
+        }
+
+
+def rebuild_clock(
+    t: np.ndarray, values: Optional[np.ndarray] = None, rate: float = RATE_HZ
+) -> Clock:
+    """Rebuild integer frame numbers on the ``rate`` grid from receive stamps.
+
+    Duplicates are rows whose values are identical to the previous row (only
+    when ``values`` is given): dropped and counted. For the kept rows the
+    receive time is ``t_k = t_0 + (n_k + l_k) / rate`` with a latency ``l_k``
+    >= 0 (a frame cannot arrive before it was made). ``n_k`` is the largest
+    non-decreasing integer sequence compatible with that: with
+    ``d_k = (t_k - t_0) rate - k`` the cumulative drop count is
+    ``D_k = floor(min_{j >= k} d_j)`` and ``n_k = k + D_k - D_0``. The latency
+    is then the minimum-spread one (lower envelope), ``(d_k - D_k) / rate``,
+    defined up to the lowest latency of the run. A drop is seen where the
+    envelope of ``d`` rises through an integer: its row can be off by the few
+    rows the local latency needs to show a minimum, hence the guard rows
+    around every gap in :func:`load_run`.
+    """
+    t = np.asarray(t, dtype=float)
+    keep = np.ones(t.size, dtype=bool)
+    if values is not None:
+        values = np.asarray(values)
+        keep[1:] = ~np.all(values[1:] == values[:-1], axis=1)
+    tk = t[keep]
+    if tk.size < 2 or np.any(np.diff(tk) <= 0.0):
+        raise ValueError("receive times must be strictly increasing")
+    d = (tk - tk[0]) * rate - np.arange(tk.size)
+    envelope = np.minimum.accumulate(d[::-1])[::-1]
+    drops = np.floor(envelope + 1e-9).astype(int)
+    frame = np.arange(tk.size) + drops - drops[0]
+    latency = (d - drops) / rate
+    return Clock(frame=frame, keep=keep, latency=latency, rate=rate)
+
+
+def to_grid(clock: Clock, arrays: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Arrays of the kept rows on the integer frame grid.
+
+    ``(grid_arrays, interpolated)``: dropped frames are linearly interpolated
+    and flagged. ``arrays`` has the length of the *input* rows.
+    """
+    arrays = np.asarray(arrays, dtype=float)[clock.keep]
+    n = np.arange(clock.n_frames)
+    out = np.column_stack(
+        [np.interp(n, clock.frame, arrays[:, i]) for i in range(arrays.shape[1])]
+    )
+    seen = np.zeros(clock.n_frames, dtype=bool)
+    seen[clock.frame] = True
+    return out, ~seen
+
+
+def lowpass(x: np.ndarray, rate: float, cutoff: float, order: int = FILTER_ORDER):
+    """Zero-phase Butterworth low-pass along axis 0 (identity if cutoff is None)."""
+    if cutoff is None:
+        return np.asarray(x, dtype=float)
+    b, a = butter(order, cutoff / (0.5 * rate))
+    return filtfilt(b, a, np.asarray(x, dtype=float), axis=0)
+
+
+def base_frame(ref: np.ndarray) -> np.ndarray:
+    """Right-handed, z-up base frame of the rest triad ``ref`` (3, 3).
+
+    Columns are the frame axes in world coordinates: x along base1 to base2
+    (made horizontal), z up (the marker-plane normal, sign-fixed: the normal
+    ``(b2-b1) x (b3-b1)`` of the status-quo loader points down), y = z x x.
+    """
+    ref = np.asarray(ref, dtype=float)
+    normal = np.cross(ref[1] - ref[0], ref[2] - ref[0])
+    if normal[2] < 0.0:
+        normal = -normal
+    z = normal / np.linalg.norm(normal)
+    x = (ref[1] - ref[0]) - np.dot(ref[1] - ref[0], z) * z
+    x = x / np.linalg.norm(x)
+    return np.column_stack((x, np.cross(z, x), z))
+
+
+def frame_yaw_deg(ref: np.ndarray) -> float:
+    """Yaw of :func:`base_frame` about world z, degrees."""
+    r = base_frame(ref)
+    return float(np.degrees(np.arctan2(r[1, 0], r[0, 0])))
+
+
+def triad_pose(markers: np.ndarray, ref: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """``(translation, rotvec)`` of a marker triad relative to the rest pose.
+
+    ``markers`` (n, 3, 3) and ``ref`` (3, 3). The origin is the triad centroid
+    (a rotation about any axis through it gives zero translation); the rotation
+    is the Kabsch fit of all three markers, as a world-frame rotation vector.
+    """
+    markers = np.asarray(markers, dtype=float)
+    ref = np.asarray(ref, dtype=float)
+    p0 = ref - ref.mean(axis=0)
+    centroid = markers.mean(axis=1)
+    p = markers - centroid[:, None, :]
+    h = np.einsum("ia,nib->nab", p0, p)  # sum_i p0_i p_i^T
+    u, _, vt = np.linalg.svd(h)
+    v = np.swapaxes(vt, 1, 2)
+    sign = np.sign(np.linalg.det(np.einsum("nab,ncb->nac", v, u)))
+    d = np.zeros((markers.shape[0], 3, 3))
+    d[:, 0, 0] = d[:, 1, 1] = 1.0
+    d[:, 2, 2] = sign
+    rot = np.einsum("nab,nbc,ndc->nad", v, d, u)  # V D U^T maps p0 -> p
+    return centroid - ref.mean(axis=0), Rotation.from_matrix(rot).as_rotvec()
+
+
+def transport_moment(
+    moment: np.ndarray, force: np.ndarray, centre, point
+) -> np.ndarray:
+    """Moment about ``point`` from the moment about ``centre``: ``M + (c - p) x F``."""
+    lever = np.asarray(centre, dtype=float) - np.asarray(point, dtype=float)
+    return np.asarray(moment, dtype=float) + np.cross(lever, force)
+
+
+def plate_centre_fit(
+    force: np.ndarray, moment: np.ndarray, cop: np.ndarray
+) -> tuple[np.ndarray, float]:
+    """Plate centre ``c`` (and Mx, My residual rms) from ``M = (COP - c) x F``.
+
+    The relation holds for Mx and My only (Mz is the free moment). A check of
+    the plate convention, not a fit of the suspension.
+    """
+    f = np.asarray(force, dtype=float)
+    rhs = np.asarray(moment, dtype=float) - np.cross(cop, f)
+    skew = np.zeros((f.shape[0], 3, 3))
+    skew[:, 0, 1], skew[:, 0, 2] = -f[:, 2], f[:, 1]
+    skew[:, 1, 0], skew[:, 1, 2] = f[:, 2], -f[:, 0]
+    a = skew[:, :2, :].reshape(-1, 3)  # F x c, rows x and y
+    sol = np.linalg.lstsq(a, rhs[:, :2].reshape(-1), rcond=None)[0]
+    res = rhs[:, :2].reshape(-1) - a @ sol
+    return sol, float(np.sqrt(np.mean(res**2)))
+
+
+@dataclass
+class SuspensionRun:
+    """One run on the 100 Hz frame grid, in one frame, about one origin.
+
+    ``x`` (displacement: translation of the origin m, rotation vector rad),
+    ``v`` its derivative, ``w`` the measured wrench of the force plate
+    (action on the plate, about the origin) minus its static offset. ``valid``
+    marks the rows a fit may use (not edge, not within ``guard`` frames of an
+    interpolated frame). ``grip`` and ``shoulder`` are the marker-cluster
+    centroids (world, filtered like ``x``) the arm baseline uses.
+    """
+
+    t: np.ndarray
+    x: np.ndarray
+    v: np.ndarray
+    w: np.ndarray
+    valid: np.ndarray
+    interpolated: np.ndarray
+    grip: np.ndarray
+    shoulder: np.ndarray
+    origin: np.ndarray
+    ref: np.ndarray
+    frame: str
+    stats: Dict[str, float] = field(default_factory=dict)
+
+    @property
+    def n(self) -> int:
+        return self.t.size
+
+
+def process_raw(
+    t: np.ndarray,
+    values: np.ndarray,
+    *,
+    rate: float = RATE_HZ,
+    static_window_s: float = STATIC_WINDOW_S,
+    guard_frames: int = GUARD_FRAMES,
+    edge_s: float = EDGE_S,
+    cutoff_hz: Optional[float] = CUTOFF_HZ,
+    plate_centre=PLATE_CENTRE,
+    frame: str = "world",
+    origin: str = "centroid",
+    transport: bool = True,
+    clock: str = "grid",
+) -> SuspensionRun:
+    """Corrected features of raw receive-stamped rows (``t``, 39 ``values``).
+
+    Switches (``origin``, ``transport``, ``frame``, ``clock``) restore one
+    status-quo error each for the ablation of the study; the defaults are the
+    corrected pipeline. ``origin``: ``centroid`` or ``corner`` (marker base1).
+    ``frame``: ``world`` or ``base`` (axes of :func:`base_frame`) for the
+    corrected one, ``legacy`` for the status-quo relative RPY in the
+    down-pointing marker frame (translation and wrench stay in world axes).
+    ``clock``: ``grid`` (rebuilt frame numbers) or ``receive`` (rows as
+    recorded, differentiated on the receive stamps).
+    """
+    if origin not in ("centroid", "corner"):
+        raise ValueError(origin)
+    if frame not in ("world", "base", "legacy"):
+        raise ValueError(frame)
+    if clock not in ("grid", "receive"):
+        raise ValueError(clock)
+    t = np.asarray(t, dtype=float)
+    values = np.asarray(values, dtype=float)
+    if clock == "grid":
+        clk = rebuild_clock(t, values, rate)
+        data, interp = to_grid(clk, values)
+        tt = np.arange(clk.n_frames) / rate
+        stats = clk.stats()
+    else:
+        clk = None
+        data, interp = values, np.zeros(values.shape[0], dtype=bool)
+        tt = t - t[0]
+        stats = {"rows": int(values.shape[0])}
+    n = data.shape[0]
+    nw = max(2, int(round(static_window_s * rate)))
+
+    markers = data[:, 0:9].reshape(n, 3, 3)
+    ref = markers[:nw].mean(axis=0)
+    p_b = ref.mean(axis=0) if origin == "centroid" else ref[0]
+    if origin == "centroid":
+        trans, rotvec = triad_pose(markers, ref)
+    else:
+        trans = markers[:, 0, :] - ref[0]
+        _, rotvec = triad_pose(markers, ref)
+
+    r_wb = base_frame(ref)
+    if frame == "legacy":
+        rot = _base_marker_rotation(markers[:, 0], markers[:, 1], markers[:, 2])
+        rel = np.einsum("ji,njk->nik", rot[0], rot)
+        angle = np.unwrap(_rotation_to_rpy(rel), axis=0)
+    elif frame == "base":
+        trans, angle = trans @ r_wb, rotvec @ r_wb
+    else:
+        angle = rotvec
+
+    force = data[:, 30:33]
+    moment = data[:, 33:36]
+    if transport:
+        moment = transport_moment(moment, force, plate_centre, p_b)
+    wrench = np.column_stack((force, moment))
+    if frame == "base":
+        wrench = np.column_stack((force @ r_wb, moment @ r_wb))
+
+    grip = data[:, 21:30].reshape(n, 3, 3).mean(axis=1)
+    shoulder = data[:, 9:21].reshape(n, 4, 3).mean(axis=1)
+    x = np.column_stack((trans, angle))
+    if clock == "grid":
+        x, wrench = lowpass(x, rate, cutoff_hz), lowpass(wrench, rate, cutoff_hz)
+        grip, shoulder = lowpass(grip, rate, cutoff_hz), lowpass(
+            shoulder, rate, cutoff_hz
+        )
+        v = np.gradient(x, 1.0 / rate, axis=0)
+    else:
+        v = np.gradient(x, t, axis=0, edge_order=2)
+    wrench = wrench - wrench[:nw].mean(axis=0)
+
+    valid = np.ones(n, dtype=bool)
+    edge = int(round(edge_s * rate)) if clock == "grid" else 0
+    if edge:
+        valid[:edge] = valid[-edge:] = False
+    if interp.any():
+        near = np.flatnonzero(interp)
+        for k in range(-guard_frames, guard_frames + 1):
+            valid[np.clip(near + k, 0, n - 1)] = False
+    stats.update(
+        {
+            "origin": origin,
+            "frame": frame,
+            "clock": clock,
+            "frame_yaw_deg": frame_yaw_deg(ref),
+            "valid_rows": int(valid.sum()),
+        }
+    )
+    return SuspensionRun(
+        t=tt,
+        x=x,
+        v=v,
+        w=wrench,
+        valid=valid,
+        interpolated=interp,
+        grip=grip,
+        shoulder=shoulder,
+        origin=p_b,
+        ref=ref,
+        frame=frame,
+        stats=stats,
+    )
+
+
+def load_run(path: str | Path, **kwargs) -> SuspensionRun:
+    """Corrected :class:`SuspensionRun` of one CREPS log (see :func:`process_raw`)."""
+    t, values = read_raw(path)
+    return process_raw(t, values, **kwargs)
