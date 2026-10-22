@@ -1,0 +1,111 @@
+# TIAGo backlash surface (examples#71): the one fixed model and every
+# threshold of the study. Pre-registration (part 1 of
+# docs/development/tiago-backlash.md): the values below were written before the
+# fixture was first run. Nothing is selected on the validation run.
+#
+# Measured quantity: d = q_rel - q_abs (motor-side encoder over gear ratio minus
+# the output absolute encoder), per arm joint. Model ladder (per joint):
+#   M0  d = c
+#   M1  M0 + E(q_abs)                       E: piecewise-linear, direction-free
+#   M2  M1 + (W/2) h                         h: motion-direction state
+#   M3  M2 + G tanh(tau_g / tau0) + kappa tau_g
+# c is one constant per session and per encoder-jump segment; E is frozen from
+# training; tau_g is the pinocchio gravity torque at the logged configuration.
+robot: tiago-48
+hand: schunk              # both backlash days (single gripper_finger_joint)
+urdf:
+  backlash_days: tiago_48_schunk.urdf
+  joint_inspection: tiago_48_hey5.urdf   # hand not verified for the 2024 bags
+  sensitivity: tiago_48_hey5.urdf        # gravity-sign check (rule N5)
+sessions:
+  training: 2023-07-24-13-28-42
+  validation: 2023-03-09-16-19-17-bottom
+  unused: 2023-03-09-15-28-20-top        # tf.csv, pose only (D6)
+joints: [arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
+configuration_joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
+torso_joint: torso_lift_joint  # steps only; excluded (rule N2)
+
+# Direction state h: sign of the 50 ms moving mean of the q_rel velocity, held
+# through |v| < v_min; samples within mask_s after a reversal are masked.
+direction:
+  v_min: 0.02              # rad/s
+  smooth_s: 0.05
+  mask_s: 0.6              # 0.3 left a W bias on arm_6 (play traversal ~ W / v); fixture F2
+# Encoder jumps: a new segment (and a new offset) where d jumps with q_rel still.
+jumps:
+  delta_d: 0.020           # rad
+  delta_q: 0.002           # rad
+  min_segment_s: 60.0
+  max_per_run: 3
+surface:
+  knot_spacing: 0.1        # rad, over the visited q_abs range
+  tau0: 0.5                # N m, soft sign of the gravity torque
+  smooth: 1.0              # second-difference penalty on E, in sample equivalents (interpolates unvisited knots)
+selection:
+  structural: [E]          # always in the model (blocked folds cannot validate E)
+  folds: 5
+  cv_block_s: 10.0         # one period
+  cv_gain_min: 0.05        # a term group enters if CV RMSE drops by more than this ...
+  z_min: 3.0               # ... and its coefficient |z| exceeds this
+  bootstrap: {resamples: 200, block_s: 5.0, seed: 7}
+
+# Frozen by the noise stage (python examples/tiago/backlash_model.py noise):
+# sigma_d from second differences of the training d on moving samples, rho from
+# the residual of a 1 s moving median, quantization = smallest non-zero step of
+# the training q_abs. Grid levels multiply sigma_d.
+noise:
+  levels: [0.5, 1.0, 2.0]
+  used_level: 1.0
+  sigma_d_mrad: {arm_1_joint: 0.529, arm_2_joint: 0.511, arm_3_joint: 0.516, arm_4_joint: 0.528, arm_5_joint: 0.936, arm_6_joint: 0.251, arm_7_joint: 0.257}
+  rho: {arm_1_joint: 0.1, arm_2_joint: 0.152, arm_3_joint: 0.078, arm_4_joint: 0.09, arm_5_joint: 0.06, arm_6_joint: 0.526, arm_7_joint: 0.558}
+  quantization_mrad: {arm_1_joint: 1.5337, arm_2_joint: 1.5337, arm_3_joint: 1.5337, arm_4_joint: 1.5337, arm_5_joint: 1.5337, arm_6_joint: 0.7669, arm_7_joint: 0.7669}
+
+# Verdict and not-answerable rules (applied in part 2, fixed here).
+rules:
+  n1_max_jumps: 3          # more jumps in a run for a joint, or a segment < jumps.min_segment_s
+  n2_min_reversals: 10     # torso (excluded: steps only)
+  n2_min_overlap: 0.5      # arm joints: fraction of visited 0.1 rad bins seen in both directions (>= 0.5 s each)
+  n3_se_floor_mrad: 5.0    # fixture SE of W above max(floor, W/2): not answerable
+  n4_corr_max: 0.95        # |corr(h, tanh(tau_g/tau0))| above: load not separable
+  n5_sign_fraction: 0.10   # tau_g sign differs between Schunk and Hey5 on more samples
+  v1_borderline: 0.35      # borderline = within this fraction of the band from the edge
+  v3_z_validation_min: 2.0
+
+# Simulated fixture (backlash_truth.py), criteria frozen before any run.
+fixture:
+  seeds: [0, 1, 2, 3, 4]
+  w_center_mrad: {arm_1_joint: 2.5, arm_2_joint: 2.5, arm_3_joint: 2.5, arm_4_joint: 2.5, arm_5_joint: 12.0, arm_6_joint: 40.0, arm_7_joint: 6.0}
+  w_spread: 0.25           # W ~ U(centre (1 -+ spread))
+  g_sd_mrad: 3.0           # G ~ N(0, .)
+  kappa_sd_mrad_per_nm: 2.0
+  e_scale: 0.02            # E = scale * q_abs + smooth + (arm_5) step
+  e_smooth_sd_mrad: 4.0    # coefficients of q_abs^2 and q_abs^3
+  e_step: {joint: arm_5_joint, amplitude: 0.170, centre: [0.7, 1.1], width: 0.020}
+  c_sd_mrad: 50.0          # session offset
+  jump_count: [1, 3]
+  jump_size_mrad: [30.0, 100.0]
+  f1:
+    cond_max: 1000          # scaled condition number of the M3 design, per joint and run
+    min_gravity_sd: 0.05   # N m; kappa column dropped below this sd (vertical axis: arm_1)
+    min_sg_sd: 0.05        # tanh(tau_g/tau0) with a smaller sd is saturated: G is the offset
+  f2:
+    z_rms: [0.75, 1.33]
+    z_mean_max: 0.3
+  f3:
+    w_zero_se: 2.0         # |W_hat| < 2 SE ...
+    w_zero_mrad: 2.0       # ... and < 2 mrad, in all seeds
+    w_nonzero_mrad: 12.0
+    w_width_se: 3.0        # W = 12 mrad: |W_hat - W| < 3 SE ...
+    w_width_rel: 0.25      # ... and within 25 % of W, in all seeds
+  f4:
+    rmse_ratio_max: 1.2    # RMSE vs noise-free truth / (level sigma_d)
+    band_w_factor: 2.0     # band_W = 2 RMS(W_train - W_val)
+    band_v1_sd_factor: 2.0 # b_V1 = |mean g| + 2 sd g
+  f5:
+    false_admit_max: 1     # of 5 seeds, G = kappa = 0
+    true_admit_min: 4      # of 5 seeds, G = 10 mrad on arm_6
+    true_g_mrad: 10.0
+    true_joint: arm_6_joint
+  f6:
+    detect_all: true
+    false_max: 0           # at the top level
