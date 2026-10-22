@@ -149,11 +149,29 @@ def read_regressors(session: Session) -> Regressors:
         raise PermissionError(
             f"{session.id}: confirmation runs are not read (hash check only)"
         )
-    r = _run(session.id)
+    return _regressors(session, _run(session.id))
+
+
+def _regressors(session: Session, r: sd.SuspensionRun) -> Regressors:
     return Regressors(
         session, r.t, r.x, r.v, r.valid, r.interpolated, r.grip, r.shoulder,
         r.origin, r.ref, dict(r.stats),
     )  # fmt: skip
+
+
+SYNTHETIC = Session("synthetic", "synthetic", Path("."))
+
+
+def regressors_from_raw(t, values, **overrides) -> Tuple[Regressors, np.ndarray]:
+    """``(Regressors, wrench)`` of simulated raw rows through the corrected loader.
+
+    ``overrides`` replace the frozen loader settings (the ablation switches
+    ``origin``, ``transport``, ``frame``, ``clock``). Simulated rows only.
+    """
+    kw = dict(LOADER)
+    kw.update(overrides)
+    r = sd.process_raw(t, values, **kw)
+    return _regressors(SYNTHETIC, r), r.w
 
 
 def read_target(
@@ -391,6 +409,30 @@ def fit_model(
             draws.append(_solve(full[idx], y[idx], weights, scale)[0][: len(names)])
         fit.se = np.std(draws, axis=0, ddof=1)
     return fit
+
+
+def design_condition(model: str, run: Regressors, h_e: float = 0.0) -> float:
+    """Scaled condition number of the weighted design (offset included)."""
+    x3 = _full_design(design(model, run, h_e)[run.valid], SETTINGS["offset"])
+    a = x3.reshape(-1, x3.shape[2])
+    a = a / np.sqrt(np.mean(a**2, axis=0))
+    sv = np.linalg.svd(a, compute_uv=False)
+    return float(sv[0] / sv[-1])
+
+
+def fit_status_quo(x: np.ndarray, v: np.ndarray, w: np.ndarray):
+    """B1: the status-quo S1 fit (plain LS, no offset, no weights) on any (x, v, w)."""
+    from examples.tiago.utils.suspension_model import fit_generalized_base_suspension
+
+    return fit_generalized_base_suspension(x, v, w.reshape(-1, order="F"))
+
+
+def predict_status_quo(theta: np.ndarray, x: np.ndarray, v: np.ndarray) -> np.ndarray:
+    """(n, 6) wrench of the 12-parameter status-quo model."""
+    from examples.tiago.utils.suspension_model import build_generalized_base_regressor
+
+    n = x.shape[0]
+    return (build_generalized_base_regressor(x, v) @ theta).reshape(6, n).T
 
 
 def predict(fit: Fit, run: Regressors) -> np.ndarray:

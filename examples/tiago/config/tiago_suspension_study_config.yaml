@@ -79,7 +79,7 @@ fixture:
   # training run (descriptive, not a fit); damping at a damping ratio of 0.1
   # with a base mass of 70 kg and inertias 8, 8, 4 kg m2.
   truth:
-    k: [1.0e4, 1.0e4, 1.0e5, 3.0e4, 2.0e4, 1.0e3]   # N/m x3, N m/rad x3
+    k: [1.0e+4, 1.0e+4, 1.0e+5, 3.0e+4, 2.0e+4, 1.0e+3]   # N/m x3, N m/rad x3
     c: [150.0, 150.0, 500.0, 100.0, 80.0, 12.0]
     spread: 0.25           # each parameter ~ U(value (1 -+ spread)) per seed
     h_e: -0.25             # F4a elastic centre (m along base z)
@@ -88,7 +88,7 @@ fixture:
     arm_mass_kg: 25.0      # F4c: effective mass at the gripper cluster (order of Mx span / gripper excursion)
   clock_model: measured    # drop rate, latency mean, sd, lag-1 from the noise stage
   f1:
-    cond_max: {s1: 1.0e3, s2: 1.0e3, s3: 1.0e4}   # scaled condition number on the real training motion
+    cond_max: {s1: 1.0e+3, s2: 1.0e+3, s3: 1.0e+4}   # scaled condition number on the real training motion
     snr_min: 3.0           # per column, reported; columns below are listed (not a pass/fail gate)
   f2:
     z_rms: [0.75, 1.33]
