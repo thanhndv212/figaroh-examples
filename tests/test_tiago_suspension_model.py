@@ -20,6 +20,9 @@ from examples.tiago.utils import suspension_data as sd  # noqa: E402
 
 RATE = 100.0
 TRIAD = np.array([[0.90, 0.45, 0.31], [1.00, 0.46, 0.31], [0.93, 0.52, 0.31]])
+GRIP_TRIAD = np.array([[0.0, 0.0, 0.0], [0.1, 0.0, 0.0], [0.0, 0.08, 0.0]])
+# the real base triad is labelled so that its z axis points down
+TRIAD_DOWN = TRIAD[[0, 2, 1]]
 
 
 def _raw(n, markers, force=None, moment=None, cop=None, seed=0):
@@ -27,7 +30,7 @@ def _raw(n, markers, force=None, moment=None, cop=None, seed=0):
     v = np.zeros((n, 39))
     v[:, 0:9] = markers.reshape(n, 9)
     v[:, 9:21] = np.tile([0.8, 0.4, 0.9], 4)
-    v[:, 21:30] = np.tile([1.3, 0.4, 1.0], 3)
+    v[:, 21:30] = (np.array([1.3, 0.4, 1.0]) + GRIP_TRIAD).reshape(9)
     v[:, 30:33] = [0.0, 0.0, -730.0] if force is None else force
     v[:, 33:36] = 0.0 if moment is None else moment
     v[:, 36:39] = [0.9, 0.45, 0.0] if cop is None else cop
@@ -153,9 +156,9 @@ def _synthetic_run(seconds=40, seed=0):
             2e-2 * np.sin(2 * np.pi * 0.17 * s + 2),
         )
     )
-    c = TRIAD.mean(axis=0)
+    c = TRIAD_DOWN.mean(axis=0)
     rots = Rotation.from_rotvec(ang).as_matrix()
-    markers = np.einsum("nij,kj->nki", rots, TRIAD - c) + c + shift[:, None, :]
+    markers = np.einsum("nij,kj->nki", rots, TRIAD_DOWN - c) + c + shift[:, None, :]
     t = s + 0.003
     return n, t, markers, shift, ang, rng
 
@@ -169,8 +172,9 @@ def test_regressor_shapes_and_noise_free_ls_recovery():
     c = np.array([150.0, 150.0, 500.0, 100.0, 80.0, 12.0])
     w = reg.x * k + reg.v * c + np.array([1.0, -2.0, 3.0, 0.5, 0.1, 0.0])
     assert sm.design("S1", reg).shape == (reg.n, 6, 12)
-    assert sm.design("S2", reg, h_e=-0.2).shape == (reg.n, 6, 12)
+    assert sm.design("S2", reg, h_e=0.2).shape == (reg.n, 6, 12)
     assert sm.design("S3", reg).shape == (reg.n, 6, 42)
+    assert sm.design("B2", reg).shape == (reg.n, 6, 4)
     fit = sm.fit_model("S1", reg, w)
     assert np.allclose(fit.k(), k, rtol=1e-6) and np.allclose(fit.c(), c, rtol=1e-6)
     pred = sm.predict(fit, reg)
@@ -184,7 +188,7 @@ def test_elastic_s2_equals_s1_at_zero_height():
     n, t, markers, *_ = _synthetic_run(seconds=20)
     reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
     assert np.allclose(sm.design("S2", reg, 0.0), sm.design("S1", reg))
-    assert not np.allclose(sm.design("S2", reg, -0.25), sm.design("S1", reg))
+    assert not np.allclose(sm.design("S2", reg, 0.25), sm.design("S1", reg))
 
 
 def test_transport_and_origin_switches_change_only_what_they_name():
@@ -202,9 +206,10 @@ def test_corner_origin_gives_translation_for_a_pure_rotation():
     n = 400
     ang = np.zeros((n, 3))
     ang[:, 2] = 0.02 * np.clip(np.arange(n) / RATE - 1.0, 0, 1)
-    c = TRIAD.mean(axis=0)
+    c = TRIAD_DOWN.mean(axis=0)
     markers = (
-        np.einsum("nij,kj->nki", Rotation.from_rotvec(ang).as_matrix(), TRIAD - c) + c
+        np.einsum("nij,kj->nki", Rotation.from_rotvec(ang).as_matrix(), TRIAD_DOWN - c)
+        + c
     )
     t = np.arange(n) / RATE + 0.003
     raw = _raw(n, markers)
@@ -212,6 +217,186 @@ def test_corner_origin_gives_translation_for_a_pure_rotation():
     bad = sd.process_raw(t, raw, origin="corner", cutoff_hz=None)
     assert np.abs(good.x[:, :3]).max() < 1e-9
     assert np.abs(bad.x[:, :3]).max() > 1e-4
+
+
+# ------------------------------------------------- footprint origin (O1)
+
+
+def _footprint():
+    fp = sm.LOADER["footprint"]
+    return dict(offset=fp["offset"], rotvec=fp["rotvec"])
+
+
+def test_footprint_derivation_reproduces_the_frozen_config():
+    got = sm.footprint_derivation()
+    cfg = sm.SETTINGS["footprint"]
+    assert np.allclose(got["offset_triad_m"], cfg["offset_triad_m"], atol=1e-6)
+    assert np.allclose(got["offset_sd_m"], cfg["offset_sd_m"], atol=1e-5)
+    assert np.allclose(
+        got["rotation_triad_rotvec"], cfg["rotation_triad_rotvec"], atol=1e-5
+    )
+    assert got["rotation_sd_rad"] == pytest.approx(cfg["rotation_sd_rad"], abs=1e-4)
+    # about 7-8 cm horizontal, 0.31 m below the (down-pointing) triad: the triad z is down
+    assert 0.07 < got["horizontal_m"] < 0.085
+    assert got["triad_z_world"][2] < -0.99 and 0.30 < got["offset_triad_m"][2] < 0.33
+
+
+def test_footprint_rest_is_below_the_triad_with_z_up_and_rejects_a_flipped_triad():
+    point, axes = sd.footprint_rest(TRIAD_DOWN, **_footprint())
+    assert axes[2, 2] > 0.99 and np.linalg.det(axes) == pytest.approx(1.0)
+    assert point[2] == pytest.approx(TRIAD_DOWN.mean(axis=0)[2] - 0.313235, abs=1e-3)
+    with pytest.raises(
+        ValueError
+    ):  # a triad labelled z up would put the footprint above
+        sd.footprint_rest(TRIAD, **_footprint())
+
+
+def test_rotation_about_the_footprint_vertical_leaves_the_footprint_fixed():
+    n = 300
+    point, axes = sd.footprint_rest(TRIAD_DOWN, **_footprint())
+    ang = np.zeros((n, 3))
+    ang[:, 2] = 0.03 * np.clip(np.arange(n) / RATE - 1.0, 0, 1)
+    rot = Rotation.from_rotvec(ang).as_matrix()
+    markers = np.einsum("nij,kj->nki", rot, TRIAD_DOWN - point) + point
+    trans, angle, p_b, ax = sd.base_pose(
+        markers,
+        TRIAD_DOWN,
+        origin="footprint",
+        frame="footprint",
+        footprint=_footprint(),
+    )
+    assert np.allclose(p_b, point) and np.allclose(ax, axes)
+    assert np.abs(trans).max() < 1e-12  # the footprint does not move
+    assert np.allclose(angle[-1], np.array([0.0, 0.0, 0.03]) @ axes, atol=1e-6)
+    centroid = sd.base_pose(markers, TRIAD_DOWN, origin="centroid", frame="world")[0]
+    assert np.abs(centroid).max() > 1e-3  # the centroid does
+
+
+def test_wrench_is_transported_to_the_footprint_and_rotated_to_its_axes():
+    n, t, markers, *_ = _synthetic_run(seconds=20)
+    raw = _raw(n, markers, force=[5.0, -3.0, -730.0])
+    reg = sd.process_raw(
+        t, raw, origin="footprint", frame="footprint", footprint=_footprint()
+    )
+    world = sd.process_raw(
+        t, raw, origin="footprint", frame="world", footprint=_footprint()
+    )
+    assert np.allclose(reg.w[:, :3], world.w[:, :3] @ reg.axes)
+    assert np.allclose(reg.w[:, 3:], world.w[:, 3:] @ reg.axes)
+    assert reg.origin[2] < TRIAD_DOWN.mean(axis=0)[2] - 0.3 and reg.axes[2, 2] > 0.99
+
+
+# ------------------------------------------- constrained fits (O4) and B2 (O2)
+
+
+def test_s1_fit_is_bounded_and_flags_the_active_bound():
+    n, t, markers, *_ = _synthetic_run()
+    reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
+    k = np.array([1e4, 1e4, 1e5, 3e4, 2e4, 1e3])
+    c = np.array([150.0, 150.0, -500.0, 100.0, 80.0, 12.0])  # a negative damping
+    w = reg.x * k + reg.v * c
+    free = sm.fit_model("S1", reg, w, constrained=False)
+    fit = sm.fit_model("S1", reg, w)
+    assert free.c()[2] == pytest.approx(-500.0, rel=1e-6)
+    assert fit.c()[2] == 0.0 and np.all(fit.theta >= 0.0)
+    assert fit.bound_dofs().tolist() == [False, False, True, False, False, False]
+    ok = sm.fit_model("S1", reg, reg.x * k + reg.v * np.abs(c))
+    assert not ok.bound_dofs().any()
+
+
+def test_s3_fit_is_positive_semidefinite():
+    n, t, markers, *_ = _synthetic_run()
+    reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
+    k = np.diag([1e4, 1e4, 1e5, 3e4, 2e4, 1e3])
+    c = np.diag([150.0, 150.0, 500.0, 100.0, 80.0, 12.0])
+    c[0, 1] = c[1, 0] = 300.0  # indefinite: det(c[:2, :2]) < 0
+    w = reg.x @ k + reg.v @ c
+    fit = sm.fit_model("S3", reg, w)
+    for m in fit.matrices():
+        ev = np.linalg.eigvalsh(m)
+        assert ev[0] > -1e-6 * ev[-1]
+    assert fit.bound_dofs().all()  # a zero eigenvalue flags every DOF
+    pd = sm.fit_model("S3", reg, reg.x @ k + reg.v @ np.diag(np.diag(c)))
+    assert not pd.bound_dofs().any()
+
+
+def _cube_run(seconds=40):
+    n, t, markers, *_ = _synthetic_run(seconds)
+    reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
+    s = np.arange(reg.n) / RATE
+    ang = np.column_stack(
+        (
+            0.1 * np.sin(2 * np.pi * 0.3 * s),
+            0.08 * np.sin(2 * np.pi * 0.2 * s + 1),
+            0.15 * np.sin(2 * np.pi * 0.25 * s),
+        )
+    )
+    reg.grip = np.array([1.3, 0.4, 1.0]) + 0.1 * np.column_stack(
+        (
+            np.sin(2 * np.pi * 0.2 * s),
+            np.sin(2 * np.pi * 0.3 * s + 1),
+            np.sin(2 * np.pi * 0.25 * s + 2),
+        )
+    )
+    reg.grip_rot = Rotation.from_rotvec(ang).as_matrix()
+    return reg
+
+
+def test_b2_cube_is_linear_in_mass_and_first_moment_and_bounded():
+    reg = _cube_run()
+    theta = np.array([25.0, 25.0 * 0.04, 25.0 * -0.03, 25.0 * 0.05])
+    w = sm.arm_design(reg) @ theta + np.array([1.0, 2.0, 3.0, 0.1, 0.2, 0.3])
+    fit = sm.fit_model("B2", reg, w)
+    assert np.allclose(fit.theta, theta, rtol=1e-6) and not fit.b2_at_bound()
+    neg = sm.fit_model("B2", reg, sm.arm_design(reg) @ -theta)
+    assert neg.theta[0] == 0.0 and neg.b2_at_bound()
+    # a point mass at the centroid (o = 0): force m (g - a), moment about the origin
+    d = sm.arm_design(reg)
+    cdd = sm.cube_kinematics(reg.grip, reg.grip_rot)["cdd"]
+    f = np.array([0.0, 0.0, -sm.G]) - cdd
+    assert np.allclose(d[:, :3, 0] @ reg.axes.T, f)
+
+
+def test_b2_cube_inertia_is_the_isotropic_term():
+    reg = _cube_run()
+    d0, d1 = sm.arm_design(reg, edge=0.0), sm.arm_design(reg, edge=0.11)
+    kin = sm.cube_kinematics(reg.grip, reg.grip_rot)
+    diff = (d1[:, 3:, 0] - d0[:, 3:, 0]) @ reg.axes.T
+    assert np.allclose(diff, -(0.11**2 / 6.0) * kin["omega_dot"])
+    assert np.allclose(d1[:, :3], d0[:, :3]) and np.allclose(d1[:, :, 1:], d0[:, :, 1:])
+
+
+def test_verdict_fails_on_an_active_bound_or_a_vacuous_b2():
+    ones, zero = np.ones(6), np.zeros(6)
+    good = dict(
+        r2_model=0.9 * ones,
+        r2_b2=0.1 * ones,
+        repeatable=np.ones(6, bool),
+        nonlinear=np.zeros(6, bool),
+    )
+    assert sm.verdict(at_bound=np.zeros(6, bool), **good)["enough"]
+    bound = np.zeros(6, bool)
+    bound[2] = True
+    assert not sm.verdict(at_bound=bound, **good)["enough"]
+    assert not sm.verdict(at_bound=np.zeros(6, bool), b2_at_bound=True, **good)[
+        "enough"
+    ]
+    assert zero.sum() == 0
+
+
+def test_selection_pools_runs_and_picks_s1_for_an_s1_truth():
+    runs = []
+    for seed in (0, 1):
+        n, t, markers, *_ = _synthetic_run(seconds=40, seed=seed)
+        reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
+        k = np.array([1e4, 1e4, 1e5, 3e4, 2e4, 1e3])
+        c = np.array([150.0, 150.0, 500.0, 100.0, 80.0, 12.0])
+        w = reg.x * k + reg.v * c
+        w = w + 1e-3 * w.std(axis=0) * np.random.default_rng(seed).normal(size=w.shape)
+        runs.append((reg, w))
+    sel = sm.select_model(runs)
+    assert sel["model"] == "S1" and set(sel["cv"]) == {"S1", "S2", "S3"}
+    assert sm.h_e_grid()[0] == 0.0 and sm.h_e_grid()[-1] == pytest.approx(0.6)
 
 
 # --------------------------------------------------------------- guards
@@ -231,12 +416,25 @@ def test_confirmation_runs_are_never_read():
             sm.read_target(sess[sid])
 
 
-def test_validation_wrench_needs_the_unlock_and_diagnostics_are_no_targets():
+def test_validation_wrench_needs_the_unlock_and_the_postures_are_no_targets():
     sess = sm.load_sessions(verify=False)
     with pytest.raises(PermissionError):
         sm.read_target(sess["xyz_1628"])
     with pytest.raises(PermissionError):
         sm.read_target(sess["postures_1720"])
+
+
+def test_selection_diagnostics_are_targets_but_never_confirmation(monkeypatch):
+    sess = sm.load_sessions(verify=False)
+    selection = sm.SETTINGS["sessions"]["selection_diagnostics"]
+    assert selection and all(sess[i].role == "diagnostic" for i in selection)
+    assert not set(selection) & {"postures_1720", "postures_1734"}
+    monkeypatch.setattr(
+        sm, "_run", lambda sid: type("R", (), {"w": np.zeros((3, 6))})()
+    )
+    assert sm.read_target(sess[selection[0]]).shape == (3, 6)  # no real wrench read
+    with pytest.raises(PermissionError):
+        sm.read_target(sess["xyz_mirror_1630"])
 
 
 def test_frozen_config_is_complete():
@@ -248,3 +446,9 @@ def test_frozen_config_is_complete():
     assert 0 <= n["clock"]["drop_rate"] < 0.1
     assert s["sessions"]["confirmation"] == ["xyz_mirror_1630", "xyz_mirror_1642"]
     assert s["sampling"]["rate_hz"] == 100.0
+    fp = s["footprint"]
+    assert s["origin"] == "base_footprint" and s["frame"] == "footprint"
+    assert len(fp["offset_triad_m"]) == len(fp["offset_sd_m"]) == 3
+    assert len(fp["rotation_triad_rotvec"]) == 3 and fp["rotation_sd_rad"] > 0
+    assert s["h_e_grid"]["min"] == 0.0 and s["b2"]["edge_m"] > 0
+    assert "neg_damping_se" not in s["rules"] and s["rules"]["psd_zero_rel"] > 0

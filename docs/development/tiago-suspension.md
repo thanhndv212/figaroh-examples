@@ -53,6 +53,11 @@ Disclosure of every real read ("Real reads"), in order:
 - the displacement and velocity columns of `xyz_1640` and `xyz_1628`
   (regressors, no wrench): condition numbers and signal-to-noise (section 6),
   and the real base motion and gripper markers the fixture replays (section 7);
+- the base and gripper marker columns of the five selection diagnostics
+  (`around_*`, `*_fold`): regressors and fixture replay, no wrench (decision
+  O3); no wrench of a selection diagnostic was read in part 1;
+- the #100 Vicon 1607 fit and triad pose shipped in the repository, to locate
+  the `base_footprint` point (section 3, decision O1; not suspension data);
 - the plate channels of `xyz_1640` and `xyz_1628` are present in the loader
   output but no fit, score or statistic of them was computed.
   `suspension_model.read_target` raises `PermissionError` for the validation run
@@ -71,7 +76,11 @@ no stage of part 1 can read them. The validation run is **not blind** for its
 motion (its base motion and gripper markers are replayed by the fixture), but
 its wrench is unread.
 
-Diagnostic runs are used for description only (open point O3).
+Diagnostic runs: `around_x_1634`, `around_y_1638`, `around_z_1622`,
+`x_fold_1632` and `y_fold_1636` serve model selection (`h_e`, S1/S2/S3) together
+with training; they are never confirmation, and the final fit and the verdict
+stay on training and validation (maintainer decision O3). `postures_1720` and
+`postures_1734` (base at rest) stay description only (noise floor, clock).
 
 ## 3. Measurement and loader
 
@@ -107,30 +116,45 @@ The pooled statistics of the three runs the fixture uses are in the
 configuration: drop rate 0.0105, latency mean 8.1 ms, sd 3.8 ms, lag-1
 correlation 0.73.
 
-**Base pose.** Origin: the centroid of the three base markers at rest (the
-mean of the first second), the one point a pure rotation of the triad leaves
-fixed (O1: no surveyed `base_link` point exists). Rotation: Kabsch fit of all
-three markers to the rest triad, as a world-frame rotation vector. Translation
-and rotation are expressed in Vicon **world** axes. The status-quo loader
-takes marker `base1` (a corner) as the origin, builds the frame
-`x = b2 - b1`, `z = x x (b3 - b1)` and reports RPY relative to the first row.
-Measured on the nine runs: the rest centroid is at (0.905, 0.453, 0.310) m
-(between runs: 0.4 mm in x, 7 mm in y, 0.3 mm in z); the triad frame, taken z-up, is yawed
--5.3 to -6.0 degrees from world about z (-5.54 on `xyz_1640`, -5.33 on
+**Base pose.** Origin: the `base_footprint` point (O1 of the decisions below),
+a point rigidly attached to the base marker triad: `point = c0 + R_rest
+offset`, with `c0` the rest centroid (mean of the first second) and `R_rest`
+the rest frame of the triad. Axes: the footprint axes (x forward, z up),
+`R_rest` times the fixed rotation of the footprint in the triad frame.
+Rotation: Kabsch fit of all three markers to the rest triad, as a rotation
+vector; translation of the footprint point, rotation vector and wrench are
+expressed in the footprint axes. The footprint is **not** a point a pure
+rotation of the triad leaves fixed: its motion contains `theta x r` of the 0.31
+m lever. The status-quo loader takes marker `base1` (a corner) as the origin,
+builds the frame `x = b2 - b1`, `z = x x (b3 - b1)` and reports RPY relative to
+the first row. Measured on the nine runs: the triad frame, taken z-up, is
+yawed -5.3 to -6.0 degrees from world about z (-5.54 on `xyz_1640`, -5.33 on
 `xyz_1628`) and its normal `(b2 - b1) x (b3 - b1)` **points down** (confirming
 the issue): the status quo mixes world translations with a down-pointing
-frame's angles.
+frame's angles. The footprint point lies at z = -0.0038 to -0.0040 m in the
+Vicon world in all nine runs (the plate surface; the rest centroid of the
+triad is at (0.905, 0.453, 0.310) m, between runs 0.4 mm in x, 7 mm in y, 0.3
+mm in z).
 
-Peak-to-peak motion of the origin (mm) and rotation vector (mrad), usable
-rows:
+Derivation of the offset (`python examples/tiago/suspension_model.py
+footprint`): the #100 Vicon 1607 fit gives the base pose `xb..phizb` and the
+triad pose of 1607 gives the triad frame; the offset of the footprint in the
+triad frame is (0.010973, -0.077375, 0.313235) m with sd (0.0022, 0.0026,
+0.0016) m, the rotation (rotation vector in the triad frame) (-2.2686,
+-2.1598, -0.0143) rad with sd 0.0024 rad. It is frozen in the configuration.
+
+Peak-to-peak motion of the origin (mm) and rotation vector (mrad) at the
+footprint, usable rows:
 
 | run | x | y | z | rx | ry | rz |
 |---|---|---|---|---|---|---|
-| `xyz_1640` | 5.06 | 3.48 | 0.31 | 1.98 | 5.62 | 46.79 |
-| `xyz_1628` | 4.37 | 3.75 | 0.35 | 1.65 | 5.26 | 39.49 |
+| `xyz_1640` | 2.65 | 0.79 | 0.31 | 5.80 | 2.04 | 46.76 |
+| `xyz_1628` | 3.03 | 0.80 | 0.30 | 5.41 | 1.65 | 39.47 |
 
-Base motion is at the oscillation frequency, 0.2 Hz, with power below about
-3.5 Hz in x and y.
+(At the triad centroid in world axes the first version of this note had x 5.06,
+y 3.48, z 0.31 mm for `xyz_1640`: the footprint is nearer the centre of the
+base rotation about z.) Base motion is at the oscillation frequency, 0.2 Hz,
+with power below about 3.5 Hz in x and y.
 
 **Plate convention** (checked on `xyz_1640` and `postures_1720`). The wrench
 is the action of the robot on the plate (static `Fz` about -730 N, the 74 kg of
@@ -145,7 +169,8 @@ residual shown:
 
 `Mz` is the free moment: its reference (about `c` or the COP) cannot be
 verified from the data (O7). Moment transport to the origin `p_b` (rest
-centroid): `M_b = M_c + (c - p_b) x F`. The status quo skips this and fits the
+footprint point): `M_b = M_c + (c - p_b) x F`, then rotated to the footprint
+axes. The status quo skips this and fits the
 moments about the plate centre as if they were about the base.
 
 **Filter and static offset.** Every channel is filtered with a zero-phase
@@ -160,29 +185,42 @@ run) and is removed from the wrench; the models carry one constant per DOF.
 Mz), minus its static value; `x` the 6-vector displacement (translation,
 rotation vector) and `v` its derivative.
 
-- **S1** `w = K x + C v`, `K`, `C` diagonal: 12 parameters.
+- **S1** `w = K x + C v`, `K`, `C` diagonal: 12 parameters, `k >= 0`, `c >= 0`
+  (bounded least squares).
 - **S2** the same about an **elastic centre** at `(0, 0, h_e)` in the base
   frame: `w = A diag(k) B x + A diag(c) B v`, `B` maps the displacement to the
-  centre (`x + theta x r`), `A = B^T` maps back to the origin. `h_e` on the
-  grid -0.50 to 0.30 m, step 0.01, by blocked CV on training only. 12 + `h_e`.
-- **S3** full symmetric `K` and `C`: 21 + 21 parameters.
+  centre (`x + theta x r`), `A = B^T` maps back to the origin, the origin being
+  the `base_footprint` point. `h_e` (above the footprint) on the grid 0 to 0.60
+  m, step 0.01, by blocked CV on training and the selection diagnostics.
+  12 + `h_e`, same bounds as S1.
+- **S3** full symmetric `K` and `C`, both positive semi-definite: 21 + 21
+  parameters (a semidefinite program solved with picos/cvxopt, on the
+  diagonally scaled matrices; no new dependency).
 - Each with one constant per DOF (static drift), not reported.
 - **B0** static: predicts the static wrench (R2 = 0 by construction).
 - **B1** the status quo: `status_quo_from_arrays` and the plain 12-parameter
   least squares of `utils/suspension_model.py` (no offset, no weights).
-- **B2** rigid base: the arm load alone. Gravity and inertial wrench of one
-  effective point mass at the gripper-marker centroid moving with the measured
-  arm motion (`m (g - a)`, moment about the origin); the parameter is the mass.
-  The competitor that tests whether the suspension explains more than "the arm
+- **B2** rigid base: the arm load alone, a rigid cube whose pose follows the
+  gripper-marker triad (position and frame from `gripper1..3`). The wrench on
+  the plate is linear in the mass `m` and the first moment `m o` (`o` the
+  cube centre in the gripper frame): `F = m (g - a_c) - R'' (m o)`, `M = (c - p)
+  x F + R (m o) x (g - a_c) - I w'` with the isotropic inertia `I = m a^2 / 6`,
+  edge `a` = 0.11 m (an assumption: 159 mm, the largest marker distance, is a
+  face diagonal of a 0.112 m cube). 4 parameters, `m >= 0`. The term
+  quadratic in `o` is neglected. The arm itself is not modelled. The
+  competitor that tests whether the suspension explains more than "the arm
   moved" (O2).
 
-Fit: linear least squares on unit-RMS columns, rows weighted by the inverse
-standard deviation of each DOF's target. Standard errors: moving-block
-bootstrap over the usable rows, 200 resamples, 5 s blocks (one oscillation),
-seed 7. Selection (training only): the simplest of S1 < S2 < S3 within 5 % of
-the best 5-fold blocked CV score (10 s blocks). The metrics are held-out R2 and
+Fit: constrained least squares (bounds for S1/S2/B2, PSD for S3) on unit-RMS
+columns, rows weighted by the inverse standard deviation of each DOF's target.
+Standard errors: moving-block bootstrap over the usable rows, 200 resamples,
+5 s blocks (one oscillation), seed 7, same constraints. Selection: the simplest
+of S1 < S2 < S3 within 5 % of the best 5-fold blocked CV score (10 s blocks),
+pooled over training and the five selection diagnostics (blocks dealt to folds
+per run); the final fit is on training only. The metrics are held-out R2 and
 NRMSE per DOF, **with the mean of target and prediction removed** (a constant
-is not a suspension quantity), negative-damping flags (`c < -2 SE`) and the
+is not a suspension quantity), the active-bound report (a parameter at its
+bound; a PSD matrix with a zero eigenvalue flags all six DOF) and the
 repeatability of the stiffnesses between a training and a validation refit
 (refit on validation: part 2 only).
 
@@ -215,24 +253,26 @@ S2 and 1e4 for S3. Passed.
 
 | | training | validation |
 |---|---|---|
-| `condition s1` | 2.22 | 2.34 |
-| `condition s2` | 2.35 | 2.34 |
-| `condition s3` | 35.26 | 47.22 |
+| `condition s1` | 2.29 | 2.34 |
+| `condition s2` | 2.69 | 2.43 |
+| `condition s3` | 14.66 | 10.53 |
 
 Signal-to-noise per DOF (x, y, z, rx, ry, rz), training:
 
 | columns | x | y | z | rx | ry | rz |
 |---|---|---|---|---|---|---|
-| displacement | 145 | 184 | 13 | 17 | 45 | 304 |
-| velocity | 25.8 | 22.7 | 3.9 | 3.1 | 7.8 | 56.1 |
+| displacement | 130 | 61 | 16 | 34 | 23 | 304 |
+| velocity | 18.1 | 14.1 | 4.4 | 6.1 | 4.0 | 56.1 |
 
-Validation: displacement 210, 186, 16, 10, 42, 497; velocity 30.0, 25.0, 4.4,
-3.2, 8.5, 60.2. No column is below the reported limit of 3 (the z-translation
-columns, the issue's worry, have 13 and 3.9). These are the SNR of the
+Validation: displacement 137, 54, 17, 32, 14, 497; velocity 23.3, 13.4, 4.7,
+6.5, 4.2, 60.2. No column is below the reported limit of 3 (the z-translation
+columns, the issue's worry, have 16 and 4.4). The values are those of the
+footprint origin and axes (the first version had the triad centroid in world
+axes). These are the SNR of the
 **regressors** against measurement noise; the fixture uses the measured noise
 only. Damping is weaker than stiffness in every column: the velocity column is
 `2 pi 0.2 = 1.26` times the displacement, so `c` contributes a few percent of
-the wrench (section 7, F2: its SE is 1 to 9 % of the truth here, but a real
+the wrench (section 7, F2: its SE is 1 to 7 % of the truth here, but a real
 suspension need not behave like the fixture truth, O9).
 
 ## 7. Pre-registered thresholds (simulated)
@@ -243,117 +283,176 @@ Fixture `suspension_truth.py`, seeds 0 to 4. The truth: `k` = (1e4, 1e4, 1e5,
 order of magnitude of the ratio of the standard deviations of the plate wrench
 and the base displacement, descriptive and not a fit. The base motion is the
 **real** corrected pose of `xyz_1640` (fit) and `xyz_1628` (held out), held at
-rest in the first second; the arm marker columns are the real ones; the three
-base markers, the plate (static -730 N, moments about the plate centre) and the
-receive clock (measured drops and latency) are simulated from the truth, with
-noise at the used level. Truth streams: `default_rng(seed)`; noise
+rest in the first second, about the footprint point and in the footprint axes;
+the arm marker columns are the real ones; the three base markers (the footprint
+motion mapped back through the rest triad), the plate (static -730 N, moments
+about the plate centre) and the receive clock (measured drops and latency) are
+simulated from the truth, with noise at the used level. The same motion
+replay serves the selection diagnostics (`around_*`, `*_fold`), whose real
+base and gripper markers are replayed in the same way (section 1, "Real
+reads"). Truth streams: `default_rng(seed)`; noise
 `default_rng(10000 + 100 k + seed)`, `k` = 0 white, 1 clock. The criteria
 were written in the configuration before the first run.
 
 The ceiling of a DOF is the held-out R2 of the true parameters on the same
 noisy regressors. A DOF is **answerable** if the mean fixture SE of its
 stiffness over the truth is at most 50 %. All six are answerable (stiffness SE
-0.04 to 0.4 % of the truth; damping SE 0.8 to 9 %: `context`).
+0.04 to 0.3 % of the truth; damping SE 0.8 to 7 %: `context`).
 
 ### 7.1 F2 to F3: recovery and the status-quo signature
 
-| criterion | pass rule | result |
+Results of the revised fixture (footprint origin, bounded fits, selection
+diagnostics) next to the first version ("before"; same thresholds):
+
+| criterion | pass rule | result (before) |
 |---|---|---|
-| F2 exact | level 0: relative parameter error below 1e-6 | pass (8.4e-10) |
-| F2 recovery | pooled z-RMS of the 12 parameters in [0.75, 1.33] and abs(mean z) below 0.3 at every level | **fail** |
-| F2 ceiling | held-out R2 within 0.05 of the ceiling, answerable DOF, every level | pass |
-| F3 signature | status quo + S1 reproduces forces R2 < 0.2, My R2 >= 0.75, >= 3 negative dampings, in >= 4 of 5 seeds | **fail** |
-| F3 attribution | fixing one error raises the mean force R2 by 0.2 or more | pass (origin only) |
-| F3 full fix | all four fixes + filter within 0.05 of the ceiling, answerable DOF | pass |
+| F2 exact | level 0: relative parameter error below 1e-6 | pass, 5.8e-10 (8.4e-10) |
+| F2 recovery | pooled z-RMS of the 12 parameters in [0.75, 1.33] and abs(mean z) below 0.3 at every level | **fail** (fail) |
+| F2 ceiling | held-out R2 within 0.05 of the ceiling, answerable DOF, every level | pass (pass) |
+| F3 signature | status quo + S1 reproduces forces R2 < 0.2, My R2 >= 0.75, >= 3 negative dampings, in >= 4 of 5 seeds | **fail** (fail) |
+| F3 attribution | fixing one error raises the mean force R2 by 0.2 or more | pass, origin only (pass, origin only) |
+| F3 full fix | all four fixes + filter within 0.05 of the ceiling, answerable DOF | pass (pass) |
 
 | | 0.5 x noise | 1.0 x noise | 2.0 x noise |
 |---|---|---|---|
-| `recovery z rms` | 1.33 | 1.54 | 1.95 |
-| `recovery z mean` | -0.58 | -0.82 | -1.19 |
-| `recovery rel err` | 0.14 | 0.30 | 0.62 |
+| `recovery z rms` | 1.24 | 1.53 | 2.07 |
+| `recovery z mean` | -0.66 | -1.01 | -1.55 |
+| `recovery rel err` | 0.11 | 0.26 | 0.55 |
 | `recovery gap` | 0.00 | 0.00 | 0.00 |
 
-F2 fails at every level: the bootstrap SE is smaller than the error and the
-errors have a common sign (negative mean z), growing with the noise. The
-largest relative parameter error is on a damping (14, 30 and 62 % of the
-truth); the stiffnesses are recovered to 0.1 to 0.4 %. The held-out R2 is at
-the ceiling at every level, and exact when noiseless: the error comes from the
-interaction of the clock reconstruction (interpolated frames, the guard rows
-and the drop position off by a few rows) with the noise, not from the model.
-It is reported as it is; the limits are not moved, and part 2 reads the
-bootstrap SE as a lower bound (O4).
+Before: z rms 1.33, 1.54, 1.95; z mean -0.58, -0.82, -1.19; rel err 0.14, 0.30,
+0.62. F2 fails at every level, as before: the bootstrap SE is smaller than the
+error and the errors have a common sign (negative mean z), growing with the
+noise. The largest relative parameter error is 11, 26 and 55 % of the truth.
+The held-out R2
+is at the ceiling at every level (gap 0 to -3e-4), and exact when noiseless:
+the error comes from the interaction of the clock reconstruction (interpolated
+frames, the guard rows and the drop position off by a few rows) with the noise,
+not from the model. No parameter is at a bound on the recovery fits (seed 0:
+none on seed 0), so the constraints do not explain the z. It is reported as it is; the
+limits are not moved, and part 2 reads the bootstrap SE as a lower bound (O4).
 
-F3 at level 1, status quo (B1) on the S1 truth, held out on the simulated
-`xyz_1628`:
+F3 at level 1, status quo (B1, unconstrained, unchanged) on the S1 truth, held
+out on the simulated `xyz_1628`:
 
 | quantity | value |
 |---|---|
-| `status quo forces r2` | 0.58 (seed 0: Fx 0.30, Fy 0.70, Fz 0.73) |
-| `status quo my r2` | 0.97 (seed 0: Mx 0.87) |
-| `status quo negative damping` | 2.8 of 6 DOF on average (2 to 3) |
+| `status quo forces r2` | 0.44 (seed 0: Fx 0.04, Fy 0.55, Fz 0.74) |
+| `status quo my r2` | 0.98 (seed 0: Mx 0.87) |
+| `status quo negative damping` | 2.8 of 6 DOF on average (2 to 4) |
 | `signature seeds` | 0 of 5 |
-| `ablation origin` | +0.39 |
+| `ablation origin` | +0.50 |
 | `ablation transport` | +0.00 |
-| `ablation frame` | +0.00 |
-| `ablation clock` | +0.01 |
+| `ablation frame` | +0.02 |
+| `ablation clock` | +0.03 |
 
-The status quo does **not** reproduce the "only My" signature under an
-S1-diagonal truth: forces R2 stay at 0.58 (limit 0.2) and only 2.8 dampings are
-negative (limit 3). The corner-marker origin is the one error that moves the
-force fit (+0.39 of mean force R2, from 0.58 to 0.97); the moment transport and
-the frame do not change the **force** R2 (they change the moment rows, which
-this metric does not see) and the clock error costs 0.01. After all four fixes
-the S1 fit is at the ceiling (F3 full gap -3e-06). So a spring-damper truth
-makes the status quo look good on the forces; the reported "only My" is not
-explained by the four loader errors alone, see F4c below.
+Before: forces R2 0.58, My 0.97, negative dampings 2.8, ablations origin +0.39,
+transport +0.00, frame +0.00, clock +0.01. The status quo is now nearer the
+"only My" signature (forces R2 0.44 instead of 0.58, My 0.98) but still does
+**not** reproduce it under an S1-diagonal truth: forces R2 stay at 0.44
+(limit 0.2) and 2.8 dampings are negative (limit 3); 0 of 5 seeds pass.
+The corner-marker origin is the one error that moves the force fit (+0.50 of
+mean force R2, from 0.44 to 0.95); the moment transport and the frame change
+the **moment** rows (frame +0.02 of force R2), which this metric hardly sees,
+and the clock error costs 0.03. After all four fixes the S1 fit is at the
+ceiling (F3 full gap -2e-05). So a spring-damper truth makes the status quo
+look good on the forces; the reported "only My" is not explained by the four
+loader errors alone, see F4c below.
 
 ### 7.2 F4: misspecified truths
 
-| criterion | pass rule | result |
+| criterion | pass rule | result (before) |
 |---|---|---|
-| F4a elastic centre | S2 beats S1 by 0.1 of mean held-out R2 and is within 0.05 of the ceiling | **fail** (gain 0.03, gap 0.00) |
-| F4b nonlinear | hardening and deadband flagged in >= 4 of 5 seeds, 0 flags under the linear truth | pass (5 of 5 and 5 of 5, 0) |
-| F4c arm load | "enough" false in >= 4 of 5 seeds under the arm-only truth | pass (5 of 5) |
+| F4a elastic centre | S2 beats S1 by 0.1 of mean held-out R2 and is within 0.05 of the ceiling | **pass**, gain 0.17, gap 0.00 (fail, gain 0.03) |
+| F4b nonlinear | hardening and deadband flagged in >= 4 of 5 seeds, 0 flags under the linear truth | pass (5 of 5 and 5 of 5, 0) (same) |
+| F4c arm load | "enough" false in >= 4 of 5 seeds under the arm-only truth | pass (5 of 5) (same) |
 
-F4a: truth with an elastic centre at `h_e = -0.25` m. Mean held-out R2 over the
-six DOF: S1 0.97, S2 and S3 0.99 to 1.00 (seed 0). The gain of S2 over S1 is
-**0.03** (`elastic gain`, limit 0.1): the 25 cm lever of the fixture moves the S1 fit by little
-(the worst DOF, Fx, has 0.90 against 1.00), not because the elastic centre is
-invisible: S2 reaches the ceiling and recovers `h_e` (F5).
+F4a: truth with an elastic centre at `h_e` = +0.25 m **above the footprint**.
+Mean held-out R2 over the six DOF: S1 0.82, S2 and S3 0.99 to 1.00 (seed 0:
+S1 0.82, S2 0.99). The gain of S2 over S1 is **0.17** (`elastic gain`, limit
+0.1), and S2 reaches the ceiling and recovers `h_e` (F5). **This pass comes
+from the change of truth, not of the fit:** the first version put the elastic
+centre 0.25 m below the triad centroid, which is 0.06 m above the footprint,
+a lever too short for S1 to miss (gain 0.03). The maintainer's origin moves
+the reference to the footprint, and the lever of 25 cm is kept. Rerun with the
+old position (0.06 m above the footprint) the gain is 0.010 (0.009 to 0.011 over
+the five seeds), a fail; the fixture's F4a verdict therefore depends on how far
+the true elastic centre is from the chosen origin, and the pass is not a
+property of the estimator alone. The worst DOF of S1 is Fy (R2 0.006 against
+0.98), the lever of the `theta x r` coupling.
 
 F4b: the nonlinearity flag (|correlation| of the S1 residual with the cubic
 part of the displacement, above 0.2) fires on the hardening truth (x, y, z) and
-the deadband truth (x, y) in every seed (corr up to 1.0 on x and 0.7 to 0.86 on
-the deadband DOF) and never on the linear truth (largest |corr| 0.12, on a
-moment DOF).
+the deadband truth (x, y) in every seed (corr 0.92 to 1.0 on the hardening DOF,
+0.70 to 0.83 on the deadband DOF) and never on the linear truth (largest |corr|
+0.11, on a moment DOF).
 
-F4c: the truth has **no suspension**: the real base motion and a wrench of an
-effective 25 kg point mass at the gripper cluster (the wrench path the
-spring-damper cannot see). Mean held-out R2 over seeds (x, y, z, rx, ry, rz):
+F4c: the truth has **no suspension**: the real base motion and a wrench of the
+B2 rigid cube of 25 kg, its centre offset from the gripper-marker frame by
+(0.04, -0.03, 0.05) m (the wrench path the spring-damper cannot see). Mean
+held-out R2 over seeds (x, y, z, rx, ry, rz):
 
 | model | Fx | Fy | Fz | Mx | My | Mz |
 |---|---|---|---|---|---|---|
-| S1 `arm only s1` | 0.22 | 0.08 | 0.08 | 0.54 | 0.88 | 0.25 |
-| B2 `arm only b2` | 0.91 | 0.92 | 0.96 | 0.99 | 0.99 | 0.89 |
+| S1 `arm only s1` | 0.07 | 0.00 | 0.02 | 0.86 | 0.60 | 0.25 |
+| B2 `arm only b2` | 0.92 | 0.90 | 0.95 | 0.98 | 0.99 | 0.88 |
 
-B2 recovers a mass of 23.5 kg (truth 25). The rule of section 8 says "not
-enough" in 5 of 5 seeds (S1 cannot beat B2 by 0.1, nor reach 0.5 on the forces).
-This is the "only My" signature of #70: forces R2 below 0.25, `My` 0.88. A
-truth that is **arm load and no suspension** reproduces what the status quo
-reported on the real run, the four loader errors do not (F3); that does not say
-that the real wrench is an arm load (O5 of the plan is not imported), only that
-B2 is a necessary baseline.
+Before (point mass at the marker centroid): S1 0.22, 0.08, 0.08, 0.54, 0.88,
+0.25; B2 0.91, 0.92, 0.96, 0.99, 0.99, 0.89. B2 recovers a mass of 23.5 kg
+(truth 25) and a first-moment offset (0.053, -0.037, 0.037) m (truth (0.04,
+-0.03, 0.05); the term quadratic in the offset, neglected by the linear fit,
+and the marker noise account for the difference). The rule of section 8 says
+"not enough" in 5 of 5 seeds. In every seed one DOF of the S1 fit has a
+parameter at its bound (the active-bound item; seed 0: Fy); B2's `m` is never
+at its bound. The "only My" signature of #70 (forces R2 below 0.25, `My` 0.88)
+is reproduced less sharply than before: forces R2 0.00 to 0.07 and `My` 0.60,
+with `Mx` 0.86. A truth that is **arm load and no suspension** still gives low
+force R2 for a spring-damper, the four loader errors do not (F3); that does not
+say that the real wrench is an arm load, only that B2 is a necessary baseline.
+Effect of the assumed inertia (B2 refitted with the edge 0 and doubled): the
+held-out R2 of any DOF changes by at most 0.003 (`inertia_max_dr2`) over the
+five seeds, so the assumed edge does not matter at the fixture's
+accelerations.
 
 ### 7.3 F5: selection
 
-| criterion | pass rule | result |
+| criterion | pass rule | result (before) |
 |---|---|---|
-| F5 selection | S1 chosen under the S1 truth and S2 with `abs(h_e - truth) <= 0.05` under the elastic truth, each in >= 4 of 5 seeds | pass |
+| F5 selection | S1 chosen under the S1 truth and S2 with `abs(h_e - truth) <= 0.05` under the elastic truth, each in >= 4 of 5 seeds | pass (pass) |
 
 | | result |
 |---|---|
 | `selection s1` | 5 of 5 |
-| `selection s2` | 5 of 5 (`h_e` = -0.25 m in every seed, from the CV grid minimum) |
+| `selection s2` | 5 of 5 (`h_e` = 0.25 m above the footprint in every seed, on the grid 0 to 0.60) |
+
+The CV is now pooled over training and the five selection diagnostics, and
+the S1-truth CV picks `h_e` = 0 (the grid floor, S2 reduces to S1) with S1
+within 5 % of the best (seed 0: CV score 0.084 for S1 and S2, 0.261 and 0.073
+for S1 and S2 under the elastic truth).
+
+### 7.4 Origin sensitivity and B2 edge (descriptive, no threshold)
+
+`origin sensitivity` (the S1 truth, level 1, five seeds): the truth is
+measured about the nominal footprint, and the loader is given a moved origin;
+the table is the mean over seeds of the largest relative change of the 12 S1
+parameters and the change of mean held-out R2, against the nominal loader
+(nominal R2 0.994).
+
+| origin | max relative change of a parameter | change of mean R2 (worst seed) |
+|---|---|---|
+| footprint +1 sd x | 3.2 % | -0.0003 (-0.0003) |
+| footprint -1 sd x | 3.1 % | -0.0002 (-0.0002) |
+| footprint +1 sd y | 1.6 % | -0.0022 (-0.0023) |
+| footprint -1 sd y | 1.6 % | -0.0023 (-0.0025) |
+| footprint +1 sd z | 0.6 % | -0.0000 (-0.0000) |
+| footprint -1 sd z | 0.6 % | -0.0000 (-0.0000) |
+| triad centroid (ablation) | 100 % (a damping; mean 32 %) | -0.193 (-0.197) |
+
+The footprint offset uncertainty (2 mm, 3 mm, 2 mm) moves a stiffness or
+damping by up to 3 % and the R2 by less than 0.003; the triad centroid, 31 cm
+above the footprint, moves a damping by 100 % and the R2 by 0.19. The origin
+matters at the lever of the base, not at the survey's uncertainty. The
+rotation uncertainty (0.0024 rad) is not perturbed.
 
 ## 8. Verdict rules (written before the real fit)
 
@@ -365,14 +464,16 @@ Applied to the validation run (part 2), with the model frozen on training
 - **repeatable** if its stiffness differs by at most `band` between the
   training fit and the validation refit. `band` is 2 times the RMS relative
   difference of the stiffnesses between the fixture's training and validation
-  fits (`k_rel_diff_rms` 0.0036, `band` 0.0072) -- so tight that any real
+  fits (`k_rel_diff_rms` 0.0039, `band` 0.0077) -- so tight that any real
   session-to-session change will exceed it, which is read as "not repeatable
   to the noise" (O4);
-- free of **negative damping**: `c < -2 SE`;
+- free of an **active bound**: no parameter of the DOF (`k`, `c`) at its bound
+  of 0, no zero eigenvalue of the S3 `K`, `C` (all six DOF then), and B2's `m`
+  not at 0 (the comparison with B2 would be vacuous);
 - free of the **nonlinearity flag** (correlation above 0.2).
 
 The **spring-damper is enough** iff on every answerable DOF the DOF is
-explained, beats B2, is repeatable, has no negative damping and no flag. Then
+explained, beats B2, is repeatable, has no active bound and no flag. Then
 the confirmation runs must pass the same rule with the frozen model.
 Meanings of a failure:
 
@@ -380,8 +481,9 @@ Meanings of a failure:
   gravity load, not a suspension estimate;
 - explained but not beating B2: the suspension adds nothing the arm motion does
   not;
-- negative damping: the model absorbs a non-dissipative effect (the arm's
-  inertial coupling, a wrong origin);
+- active bound: the unconstrained fit wants a non-dissipative or negative
+  stiffness (the arm's inertial coupling, a wrong origin); the constrained fit
+  sits on the bound and the DOF is not a spring-damper estimate;
 - not repeatable: parameters are session properties, not constants;
 - flag: the spring is nonlinear on that DOF.
 
@@ -393,33 +495,42 @@ truth (none in the fixture); the DOF is reported but does not enter "enough".
 1. Load `xyz_1640` and `xyz_1628` through `suspension_model.read_regressors`;
    read the wrenches with `read_target` (training; validation with
    `unlock_validation` in the study script only).
-2. B0, B1, B2 and S1/S2/S3 on training; selection by blocked CV; bootstrap SE.
+2. B0, B1, B2 (cube) and the constrained S1/S2/S3 on training; selection by
+   blocked CV over training and the selection diagnostics; bootstrap SE.
 3. Score the frozen model on validation; refit on validation for repeatability.
 4. Apply section 8; confirmation runs only if validation says "enough", read
    once, with the frozen model.
-5. Diagnostics (O3) as description only.
+5. Selection diagnostics (O3) join training in the CV of step 2 (wrench read
+   with `read_target`, which allows them and never the confirmation runs); the
+   posture runs stay description only. An active bound (O4) is reported and
+   fails the DOF.
 
 ## 10. Open points for the maintainer
 
-- **O1 base origin.** The triad centroid is the origin (the only point a
-  rotation of the triad leaves fixed). No survey of `base_link` against the
-  markers exists. A surveyed point changes the translation columns by
-  `theta x r` (S2 absorbs part of it through `h_e`).
-- **O2 B2 definition.** One point mass at the gripper-marker centroid (the
-  shoulder cluster is available, `B2gs`). It is the minimal arm-load
-  competitor; a link-by-link model needs robot channels that are not recorded.
-- **O3 diagnostics.** The `around_*`, `*_fold` and `postures` runs are used for
-  description only (noise floor, clock). Using them for selection would add
-  excitation (rotation about each axis) and is not done without a decision.
-- **O4 fixture failures** (not relaxed): F2 recovery (z-RMS 1.33 to 1.95, mean
-  z -0.58 to -1.19: the bootstrap SE is an underestimate, mostly for the
-  dampings), F3 signature (the status quo does not reproduce "only My" under a
-  spring truth), F4a (S2 gains 0.03, not 0.1, under a 25 cm elastic centre).
-  Consequences: part 2 reads the bootstrap SE as a lower bound, the
-  negative-damping rule is read with that in mind, and the S1/S2 gain of the
-  real run has no fixture band.
-- **O5 "with and without weight".** The OptiTrack sessions of the plan (#112)
-  are not imported; this study uses only the Vicon day.
+- **O1 base origin** (resolved by the decisions below). The origin is the
+  `base_footprint` point, derived from the shipped #100 Vicon data (offset
+  (0.0110, -0.0774, 0.3132) m in the triad frame, sd 2 to 3 mm); a point not
+  fixed under a rotation of the triad, so the translation columns carry
+  `theta x r` of a 0.31 m lever. Section 7.4 gives the sensitivity.
+- **O2 B2 definition** (resolved). A rigid cube at the gripper markers, linear in
+  `m` and `m o`, isotropic inertia from an assumed edge; the arm itself is not
+  modelled and a link-by-link model needs robot channels that are not
+  recorded.
+- **O3 diagnostics** (resolved). The `around_*` and `*_fold` runs serve model
+  selection with training; they are not confirmation. The posture runs stay
+  description only.
+- **O4 fixture failures** (not relaxed): F2 recovery (z-RMS 1.24 to 2.07, mean
+  z -0.66 to -1.55: the bootstrap SE is an underestimate), F3 signature (the
+  status quo does not reproduce "only My" under a spring truth). F4a now passes
+  (gain 0.17) but only because the truth lever was kept at 25 cm above the
+  footprint; at 6 cm above it (the old truth position) the gain is 0.010
+  (section 7.2). Consequences: part 2 reads the bootstrap SE as a lower bound,
+  the repeatability band (0.0077) stays so tight that any real session-to-
+  session change exceeds it, and the S1/S2 gain of the real run has no
+  fixture band.
+- **O5 "with and without weight"** (closed, out of scope). The OptiTrack
+  sessions of the plan (#112) have no force-plate data; this study uses only
+  the Vicon day.
 - **O6 clock.** The data README reports 1.5 to 2.5 % dropped and 0.5 to 0.8 %
   duplicated frames. The rebuild finds 0.9 to 1.6 % dropped and no exact
   duplicate. A near-duplicate rule (rows equal within the marker noise) was not
@@ -437,18 +548,19 @@ truth (none in the fixture); the DOF is reported but does not enter "enough".
 - **O10 F4c definition.** "Arm load" is taken as the **only** wrench path
   (no suspension), the purest case of a path the spring-damper cannot see. A
   mixed truth (suspension plus arm load) may be judged "enough" by the rule.
-- **O11 plate-frame convention.** The wrench is expressed in world axes about
-  the origin; `frame: base` (axes of the triad) is implemented and is a
-  yaw of -5.4 degrees away.
+- **O11 plate-frame convention** (resolved). The wrench is expressed in the
+  footprint axes about the footprint origin; the status-quo and triad-world
+  conventions stay reachable (`frame: world`, `base`, `legacy`).
 
 ### Decisions taken (maintainer, 2026-10-23)
 
 Taken after the fixture of the first version of this note was seen and before
 any suspension parameter was fitted to a real session. The thresholds of
-section 7 and the repeatability band are unchanged; the failures of F2, F3 and
-F4a stay reported as results. The sections above and below are revised in the
-commits that implement these decisions; the config
-`tiago_suspension_study_config.yaml` carries the frozen values.
+section 7 and the repeatability band are unchanged; the failures of F2 and F3
+stay reported as results (F4a: see below). Sections 2 to 10 are revised for
+these decisions and carry the rerun fixture, with the first version's numbers
+beside the new ones; the config `tiago_suspension_study_config.yaml` carries
+the frozen values.
 
 - **O1 origin: the `base_footprint` frame, from shipped data only.** The origin
   is the `base_footprint` frame origin (`base_link` is 0.0985 m above it in the
@@ -504,6 +616,28 @@ commits that implement these decisions; the config
 - **O5 closed, out of scope.** The OptiTrack sessions of the plan (#112) have no
   force-plate data and cannot serve this study. No code change.
 
+Fixture result of these decisions (sections 7.1 to 7.4): F1, F2 exact, F2 gap,
+F3 attribution, F3 full, F4b, F4c and F5 pass as before; F2 recovery (z-RMS
+1.24, 1.53, 2.07) and the F3 signature (0 of 5 seeds; forces R2 0.44) still
+fail; F4a moves from fail (gain 0.03) to pass (gain 0.17), which is caused by
+the F4a truth, not by the estimator (7.2). Deviations and assumptions to read
+with it:
+
+- the F4a truth `h_e` is +0.25 m above the footprint, the lever magnitude of
+  the first version, not its position (0.06 m above the footprint);
+- the cube edge 0.11 m is an assumption; its effect on the F4c fits is at most
+  0.003 of R2;
+- the term of the cube wrench quadratic in the offset `o` is neglected (so the
+  recovered `o` differs by about 1.3 cm from the truth);
+- the S3 bound flag marks all six DOF when either matrix has a zero
+  eigenvalue (a PSD constraint couples the DOF);
+- the final fit stays on training only; the selection diagnostics enter the CV
+  alone;
+- the rotation uncertainty of the footprint (0.0024 rad) is not perturbed in
+  the sensitivity check;
+- the posture runs are excluded from the selection (base at rest, no
+  excitation).
+
 ## 11. Reproduction
 
 ```bash
@@ -512,8 +646,9 @@ cd figaroh-examples
 export MPLBACKEND=Agg
 python examples/tiago/suspension_model.py noise      # section 5 (frozen in the config)
 python examples/tiago/suspension_model.py describe   # section 3, "Real reads"
+python examples/tiago/suspension_model.py footprint  # section 3, base_footprint offset
 python examples/tiago/suspension_truth.py --golden tests/golden/tiago_suspension_truth.json
 python -m pytest tests/test_tiago_suspension_model.py tests/test_tiago_suspension_truth.py -q
 ```
 
-The full fixture takes about 1.5 minutes.
+The full fixture takes about 4.5 minutes.

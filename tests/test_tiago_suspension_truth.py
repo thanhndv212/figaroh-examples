@@ -93,12 +93,47 @@ def test_f4a_seed_0_matches_the_golden(fx, gold):
 
 
 def test_criteria_are_recorded_honestly(gold):
-    """The three failed checks stay failed: thresholds are not relaxed."""
+    """The two failed checks stay failed: thresholds are not relaxed."""
     c = gold["criteria"]
     assert c["F1"] and c["F2_exact"] and c["F2_gap"]
     assert c["F3_attribution"] and c["F3_full"]
-    assert c["F4b"] and c["F4c"] and c["F5"]
-    assert not c["F2_z"] and not c["F3_signature"] and not c["F4a"]
+    assert c["F4a"] and c["F4b"] and c["F4c"] and c["F5"]
+    assert not c["F2_z"] and not c["F3_signature"]
+    assert gold["f3"]["signature_seeds"] == 0
+
+
+def test_f4a_pass_comes_from_the_truth_lever(fx, gold, monkeypatch):
+    """The truth h_e is above the footprint; the old, short lever (0.06 m) fails."""
+    assert st.FX["truth"]["h_e"] == pytest.approx(0.25)
+    monkeypatch.setitem(st.FX["truth"], "h_e", 0.06)
+    cell = st.f4a_cell(fx, 0, st.USED, gold["context"])
+    assert cell["gain"] < st.FX["f4"]["s2_gain_min"] and cell[
+        "h_e_cv"
+    ] == pytest.approx(0.06)
+
+
+def test_f4c_truth_is_a_cube_and_s1_sits_on_a_bound(gold):
+    c = gold["f4"]["c"]
+    assert c["not_enough_seeds"] == 5 and c["pass"]
+    assert c["mass_hat"] == pytest.approx(25.0, rel=0.1)
+    assert len(c["o_hat"]) == 3 and c["s1_at_bound_dofs"] >= 1.0
+    assert c["inertia_max_dr2"] < 0.01  # the assumed edge hardly matters
+    assert min(c["r2_b2"]) > 0.85 and max(c["r2_s1"]) < 0.9
+
+
+def test_f5_selects_the_footprint_elastic_centre(gold):
+    f5 = gold["f5"]
+    assert f5["s1_correct"] == 5 and f5["s2_correct"] == 5
+    assert all(h == pytest.approx(0.25) for h in f5["h_e_elastic"])
+
+
+def test_origin_sensitivity_is_descriptive_and_small_at_the_survey_scale(gold):
+    o = gold["origin"]
+    for ax in ("x", "y", "z"):
+        for sign in "+-":
+            assert o[f"{ax}{sign}"]["max_rel"] < 0.05
+            assert abs(o[f"{ax}{sign}"]["dr2"]) < 0.01
+    assert o["centroid"]["dr2"] < -0.1 and o["centroid"]["max_rel"] > 0.5
 
 
 def test_note_quotes_the_golden_values(gold):
@@ -122,6 +157,10 @@ def test_note_quotes_the_golden_values(gold):
     assert f"`ablation origin` | +{f3['gain']['origin']:.2f}" in note
     assert f"**{gold['f4']['a']['gain']:.2f}** (`elastic gain`" in note
     assert f"`band` {gold['context']['band']:.4f}" in note
+    for name in ("x+", "y+", "z+"):
+        pct = 100 * gold["origin"][name]["max_rel"]
+        assert f"| footprint +1 sd {name[0]} | {pct:.1f} %" in note
+    assert "Decisions taken (maintainer, 2026-10-23)" in note
     for m, v in gold["f1"]["training"]["cond"].items():
         assert f"`condition {m}` | {v:.2f}" in note
 
@@ -139,3 +178,7 @@ def test_full_grid_matches_golden(gold):
     assert res["f3"]["signature_seeds"] == gold["f3"]["signature_seeds"]
     assert res["f4"]["a"]["gain"] == pytest.approx(gold["f4"]["a"]["gain"], abs=2e-3)
     assert res["f5"]["pass"] == gold["f5"]["pass"]
+    for name in ("x+", "y-", "z+", "centroid"):
+        assert res["origin"][name]["dr2"] == pytest.approx(
+            gold["origin"][name]["dr2"], abs=2e-3
+        )
