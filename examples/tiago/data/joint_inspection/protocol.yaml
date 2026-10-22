@@ -1,0 +1,413 @@
+# TIAGo arm_5/arm_6 joint-inspection recordings, 2023-12 to 2024-02
+# (examples#110), for the backlash transfer study (#71) as a data-contract
+# Protocol (figaroh-plus#55). All sessions are diagnostic: they test whether
+# the backlash surface explains the encoder differences, they are not used to
+# fit or score a calibration. Roles are frozen: changing a file or a role
+# needs a new version.
+# Sources are original recordings (not distributed), named by file name and
+# sha256. Every shipped CSV is `examples/tiago/utils/introspection_extraction.py`
+# `inspection` of its bag (arm_5 and arm_6 position, absolute encoder and
+# commanded position, native 100 Hz, values unchanged), re-created byte for
+# byte by `tests/test_tiago_introspection_extraction.py`.
+# Dates are the bag stamps (UTC). Folder and file names carry the recording
+# PC's local time (UTC+1 in winter), so a name's hour is the bag hour plus
+# one. The two `arm_6_backlash_abs_inspect` bags are stamped 2024-01-26 but
+# sit in the 2024-01-25 folder. `arm5_minus1_59` was recorded an hour before
+# the other 2024-02-02 bags (stamp 15:17Z, the rest 16:25Z to 16:51Z); the
+# stamp agrees with its name.
+# The 2023-10-25 joint-encoder inspection is not usable (below). The audit of
+# the recordings counts 15 arm_5 bags; 14 exist.
+name: tiago-joint-inspection-2023-2024
+version: 1
+units: {angle: rad, time: s}
+columns: "t (s from the first sample, header stamp, rounded to 1 microsecond), then arm_5 and arm_6 as <joint>_position (relative, motor-side encoder divided by the gear ratio), <joint>_absolute (output-side absolute encoder) and <joint>_command (commanded position)"
+clock: "introspection header stamp (secs, nsecs), robot clock, one clock for all columns of a file; rosbagTimestamp is the recording PC and runs 10 to 16 s behind the header stamp in every session, a per-session offset that changes with the recording"
+sessions:
+- id: arm_inspect_1_2023-12-05-16-20-45
+  role: diagnostic
+  robot: unknown
+  robot_note: "Hey5 hand channels (423) as on tiago-48, but the median position minus absolute-encoder gap of arm_1 (-17.6 to -2.2 mrad) and arm_2 (-1.7 to +2.1) does not match the tiago-48 values of 2023-11 to 2024-02 (-3 to -5 and -4 to -7)"
+  usable: true
+  traced: true
+  folder: 2023-12_arm6_inspection
+  bag_start_utc: "2023-12-05T15:20:45Z"
+  header_start_utc: "2023-12-05T15:20:55Z"
+  motion: "arm_6 sweeps 2.73 rad, all other joints still"
+  source:
+    bag: {name: arm_inspect_1_2023-12-05-16-20-45.bag, sha256: 1dd275867e742afa909908d78e415bbb25dbe546393e00494f203f8c5b387dfa}
+  samples: 37111
+  duration_s: 371.1
+  files:
+    2023-12_arm6_inspection/arm_inspect_1_2023-12-05-16-20-45.csv: fe2d9abcd3bf0519103d3b10957d8c7316892be71beb53d4f756c383f22b79bf
+- id: arm_inspect_2_2023-12-05-16-28-14
+  role: diagnostic
+  robot: unknown
+  robot_note: "Hey5 hand channels (423) as on tiago-48, but the median position minus absolute-encoder gap of arm_1 (-17.6 to -2.2 mrad) and arm_2 (-1.7 to +2.1) does not match the tiago-48 values of 2023-11 to 2024-02 (-3 to -5 and -4 to -7)"
+  usable: true
+  traced: true
+  folder: 2023-12_arm6_inspection
+  bag_start_utc: "2023-12-05T15:28:14Z"
+  header_start_utc: "2023-12-05T15:28:24Z"
+  motion: "arm_6 sweeps 2.73 rad, all other joints still"
+  source:
+    bag: {name: arm_inspect_2_2023-12-05-16-28-14.bag, sha256: 42cb5d89c14d156a2ba6f29df837b6877b3d4675b09fda78e2a7fc7256bbd81c}
+  samples: 43227
+  duration_s: 432.26
+  files:
+    2023-12_arm6_inspection/arm_inspect_2_2023-12-05-16-28-14.csv: dacfd34c5cd1472a0b99a45a6835a02919345d5812d683ea316f99c1b5015286
+- id: arm_inspect_2_2023-12-05-17-40-45
+  role: diagnostic
+  robot: unknown
+  robot_note: "Hey5 hand channels (423) as on tiago-48, but the median position minus absolute-encoder gap of arm_1 (-17.6 to -2.2 mrad) and arm_2 (-1.7 to +2.1) does not match the tiago-48 values of 2023-11 to 2024-02 (-3 to -5 and -4 to -7)"
+  usable: true
+  traced: true
+  folder: 2023-12_arm6_inspection
+  bag_start_utc: "2023-12-05T16:40:45Z"
+  header_start_utc: "2023-12-05T16:40:55Z"
+  motion: "arm_6 sweeps 2.73 rad, arm_5 drifts 5 mrad, others still"
+  source:
+    bag: {name: arm_inspect_2_2023-12-05-17-40-45.bag, sha256: c9ebace2c699c4cf050f9778a7983f0f6bec03e71df1ff5bda00923fcbf5e16e}
+  samples: 33503
+  duration_s: 335.02
+  files:
+    2023-12_arm6_inspection/arm_inspect_2_2023-12-05-17-40-45.csv: 75e1be9e05326cb1c801347c99a9fe456b4178373846ff13824b12e3cac76c07
+- id: inspect_arm6_2023-12-06-17-19-42
+  role: diagnostic
+  robot: unknown
+  robot_note: "Hey5 hand channels (423) as on tiago-48, but the median position minus absolute-encoder gap of arm_1 (-17.6 to -2.2 mrad) and arm_2 (-1.7 to +2.1) does not match the tiago-48 values of 2023-11 to 2024-02 (-3 to -5 and -4 to -7)"
+  usable: true
+  traced: true
+  folder: 2023-12_arm6_inspection
+  bag_start_utc: "2023-12-06T16:19:42Z"
+  header_start_utc: "2023-12-06T16:19:53Z"
+  motion: "arm_6 sweeps 2.79 rad, all other joints still"
+  source:
+    bag: {name: inspect_arm6_2023-12-06-17-19-42.bag, sha256: 6728995a69ec13fcd8a398fe2a7698e9fd3742490d96e796c188e45e39a24338}
+  samples: 5159
+  duration_s: 51.58
+  files:
+    2023-12_arm6_inspection/inspect_arm6_2023-12-06-17-19-42.csv: 7a9451cd6d0cbac53f6ddd20ecd3084c8a8eb02e49900ba53f1972a3ce161711
+- id: arm_6_backlash_abs_inspect_2024-01-26-18-07-23
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-01-25_arm6_backlash
+  bag_start_utc: "2024-01-26T17:07:23Z"
+  header_start_utc: "2024-01-26T17:07:38Z"
+  motion: "manual backlash probe: arm_6 motor still (relative encoder 0.4 mrad peak to peak) while the output encoder moves 38.3 mrad"
+  source:
+    bag: {name: arm_6_backlash_abs_inspect_2024-01-26-18-07-23.bag, sha256: 6ca5b04b40390b411883dd177a36c08f404700b90a31fa2806657e3e700b6f0f}
+  samples: 2585
+  duration_s: 25.84
+  files:
+    2024-01-25_arm6_backlash/arm_6_backlash_abs_inspect_2024-01-26-18-07-23.csv: 0c6cd42b3c796815ea967de48fa2ffe6cba12d67abd709e6dd7ef41d00cdfc0d
+- id: arm_6_backlash_abs_inspect_2024-01-26-18-07-54
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-01-25_arm6_backlash
+  bag_start_utc: "2024-01-26T17:07:54Z"
+  header_start_utc: "2024-01-26T17:08:09Z"
+  motion: "manual backlash probe: arm_6 motor still (relative encoder 0.4 mrad peak to peak) while the output encoder moves 42.2 mrad"
+  source:
+    bag: {name: arm_6_backlash_abs_inspect_2024-01-26-18-07-54.bag, sha256: ba9241d6297ad979935c1d66eae02d3a9d7e2d516591d7f3ea8e826538b18a5a}
+  samples: 3504
+  duration_s: 35.03
+  files:
+    2024-01-25_arm6_backlash/arm_6_backlash_abs_inspect_2024-01-26-18-07-54.csv: 007efd120a79d094eccce264cd8f9bd4bce4d4fbac25b1f3783bb15cfa7f8603
+- id: arm_6_horizontal_2024-01-25-18-02-16
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-01-25_arm6_backlash
+  bag_start_utc: "2024-01-25T17:02:16Z"
+  header_start_utc: "2024-01-25T17:02:30Z"
+  motion: "arm_6 moves 2.40 rad, arm horizontal"
+  source:
+    bag: {name: arm_6_horizontal_2024-01-25-18-02-16.bag, sha256: b374db0fef225f8db9aed523f049dbb5900650c1caf808c60b630846c8cdea34}
+  samples: 70284
+  duration_s: 702.83
+  files:
+    2024-01-25_arm6_backlash/arm_6_horizontal_2024-01-25-18-02-16.csv: 01aaa316ebc2c6cd3863c66408019bee0acda2c6c2b0d268008a2830647e2f11
+- id: arm_6_step_2024-01-25-18-14-40
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-01-25_arm6_backlash
+  bag_start_utc: "2024-01-25T17:14:40Z"
+  header_start_utc: "2024-01-25T17:14:54Z"
+  motion: "arm_6 steps over 1.39 rad"
+  source:
+    bag: {name: arm_6_step_2024-01-25-18-14-40.bag, sha256: 26b1412d5402f209f3f5d30d808cdd1fa952487751b39074739b05901068e182}
+  samples: 21734
+  duration_s: 217.33
+  files:
+    2024-01-25_arm6_backlash/arm_6_step_2024-01-25-18-14-40.csv: 5f5a5039ce6ea94f1f8d196e1b9ca7e5831d69595b63173e9d7d3b7312428fdb
+- id: arm_6_vertical_2024-01-25-17-44-38
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-01-25_arm6_backlash
+  bag_start_utc: "2024-01-25T16:44:38Z"
+  header_start_utc: "2024-01-25T16:44:52Z"
+  motion: "arm_6 moves 2.40 rad, arm vertical"
+  source:
+    bag: {name: arm_6_vertical_2024-01-25-17-44-38.bag, sha256: 9791d8b29a95fcb1c5d87ba10bc51b96f341501c444838f2472e9f179d6febf2}
+  samples: 4204
+  duration_s: 42.03
+  files:
+    2024-01-25_arm6_backlash/arm_6_vertical_2024-01-25-17-44-38.csv: 56bbec65ad5231846d7dee58a50dcd029041a54f07c5568c57dbb1544a4c71ee
+- id: arm_6_vertical_2024-01-25-17-46-57
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-01-25_arm6_backlash
+  bag_start_utc: "2024-01-25T16:46:57Z"
+  header_start_utc: "2024-01-25T16:47:11Z"
+  motion: "arm_6 moves 2.40 rad, arm vertical"
+  source:
+    bag: {name: arm_6_vertical_2024-01-25-17-46-57.bag, sha256: d1a55131cdb0f27ea10ac0514400105f42eb7cd5fd99a0f29a23fec089afd206}
+  samples: 65261
+  duration_s: 652.6
+  files:
+    2024-01-25_arm6_backlash/arm_6_vertical_2024-01-25-17-46-57.csv: 4ad3dd8bb70d5ace675bd70ca4d52c0465f64652bec78ab6d2aea7f324564fad
+- id: arm5_0_2024-02-02-17-25-39
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:25:39Z"
+  header_start_utc: "2024-02-02T16:25:55Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_0_2024-02-02-17-25-39.bag, sha256: f6795f4bcd7807151597b57898dded397c0542e1494bb765999f43876d1fb415}
+  samples: 4516
+  duration_s: 45.15
+  files:
+    2024-02-02_arm5_positions/arm5_0_2024-02-02-17-25-39.csv: 16320fcacda2cb9af5561092ff9cf163ba50c584791c4d109b80d657e0e1b01a
+- id: arm5_0_2_2024-02-02-17-46-17
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:46:17Z"
+  header_start_utc: "2024-02-02T16:46:33Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_0_2_2024-02-02-17-46-17.bag, sha256: ca6e303bb56a25e4bf5e4d119a32e88d012ea8258aeacd55d94acf192d193b3c}
+  samples: 4760
+  duration_s: 47.59
+  files:
+    2024-02-02_arm5_positions/arm5_0_2_2024-02-02-17-46-17.csv: c448536ed37dd57b608ab23b97e793726596067148f96129f5788f589e744596
+- id: arm5_0_4_2024-02-02-17-48-10
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:48:10Z"
+  header_start_utc: "2024-02-02T16:48:26Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_0_4_2024-02-02-17-48-10.bag, sha256: c4386335bcc298472b8791d81e478132bebd74dbd5bf2c602308f0f755d9e533}
+  samples: 5394
+  duration_s: 53.93
+  files:
+    2024-02-02_arm5_positions/arm5_0_4_2024-02-02-17-48-10.csv: 6fbc62efdf7b031491b560c51f40b79c4101b1ccfae639a45ff0006bf5154219
+- id: arm5_0_5_2024-02-02-17-28-22
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:28:22Z"
+  header_start_utc: "2024-02-02T16:28:38Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_0_5_2024-02-02-17-28-22.bag, sha256: aa3a3a1d8c334b1c8f913b651d99e4134fc1fec3c1cc73ea466b45a7062faecb}
+  samples: 5232
+  duration_s: 52.31
+  files:
+    2024-02-02_arm5_positions/arm5_0_5_2024-02-02-17-28-22.csv: a1550b9d25909ee044321c6fa774e31757b731ac2fb57be9840e8600012eef0f
+- id: arm5_0_8_2024-02-02-17-43-00
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:43:00Z"
+  header_start_utc: "2024-02-02T16:43:15Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_0_8_2024-02-02-17-43-00.bag, sha256: dfb89dfd8e3753541b76bf37efe12b6cd0df251ad6fde2709c5cad40532f0cf0}
+  samples: 5098
+  duration_s: 50.97
+  files:
+    2024-02-02_arm5_positions/arm5_0_8_2024-02-02-17-43-00.csv: 4d6d3bd9f30a4aa025afd0414eb115087d7acecaf193158d52035d6c461c121c
+- id: arm5_1_2_2024-02-02-17-44-25
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:44:26Z"
+  header_start_utc: "2024-02-02T16:44:41Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_1_2_2024-02-02-17-44-25.bag, sha256: ef5a76378f2ecde8f88347a189730ae59fa080a001429f0505c03f845a4e39f6}
+  samples: 4872
+  duration_s: 48.71
+  files:
+    2024-02-02_arm5_positions/arm5_1_2_2024-02-02-17-44-25.csv: 917b5f188b6c61b0b9f5fb7f39f56d70eab77bd356e4d30f4855073c28081dc6
+- id: arm5_minus1_59_2024-02-02-16-17-50
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T15:17:50Z"
+  header_start_utc: "2024-02-02T15:18:06Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_minus1_59_2024-02-02-16-17-50.bag, sha256: 756d026f57a050f843c5fdadcdc12c04f882c61b6973d4f2390ca09fc8a12233}
+  samples: 1900
+  duration_s: 18.99
+  files:
+    2024-02-02_arm5_positions/arm5_minus1_59_2024-02-02-16-17-50.csv: fbf0c5bfb60a7d34fbaad36012d699e83d34bbc1a30c7a356a67a0bfb7de03f8
+- id: arm5_minus_0_1_2024-02-02-17-50-54
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:50:54Z"
+  header_start_utc: "2024-02-02T16:51:10Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_minus_0_1_2024-02-02-17-50-54.bag, sha256: 7b6c3ed4f6cdb4f7b43d0f6bb65189b7dd7cec58ed182728487ff78a301e8108}
+  samples: 4871
+  duration_s: 48.7
+  files:
+    2024-02-02_arm5_positions/arm5_minus_0_1_2024-02-02-17-50-54.csv: a50ff0094867fe80a3664614f5c6a18b4f6ef1ca8f1aeee7167d0397498f4274
+- id: arm5_minus_0_5_2024-02-02-17-30-30
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:30:30Z"
+  header_start_utc: "2024-02-02T16:30:46Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_minus_0_5_2024-02-02-17-30-30.bag, sha256: 280194366e0d09d139bfc45caad165fe2de1d6398e8451a0ec02bad3a292e251}
+  samples: 9053
+  duration_s: 90.52
+  files:
+    2024-02-02_arm5_positions/arm5_minus_0_5_2024-02-02-17-30-30.csv: 39a3d3895631f8396ed6ec7d8aafb7c453464f03bbc0a30698b71daa283edabb
+- id: arm5_minus_0_5_2024-02-02-17-32-19
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:32:19Z"
+  header_start_utc: "2024-02-02T16:32:35Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_minus_0_5_2024-02-02-17-32-19.bag, sha256: 62f4fc084415e1c5b4e8c51287be3dceb49ca3ccfe5d6109d6a20d755494cbbe}
+  samples: 4973
+  duration_s: 49.72
+  files:
+    2024-02-02_arm5_positions/arm5_minus_0_5_2024-02-02-17-32-19.csv: 4c5f5ead0a97f35feae2dc1b8bea9aff111e001cd1220f04ffa21c65b81b8ac4
+- id: arm5_minus_0_8_2024-02-02-17-34-13
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:34:14Z"
+  header_start_utc: "2024-02-02T16:34:29Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_minus_0_8_2024-02-02-17-34-13.bag, sha256: cdb8a02cb8c6f8476f645b2f46f6fbca62c6c00552d75fddb994dc0ca2aac2e4}
+  samples: 4318
+  duration_s: 43.17
+  files:
+    2024-02-02_arm5_positions/arm5_minus_0_8_2024-02-02-17-34-13.csv: 29a1203bfdf2c01d47de3e5d0d6b256b771aca09ba9504616f8ac2ec01cf7842
+- id: arm5_minus_0_8_2024-02-02-17-35-02
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:35:02Z"
+  header_start_utc: "2024-02-02T16:35:18Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_minus_0_8_2024-02-02-17-35-02.bag, sha256: 7d39fac95aeaeb321c9398cfeaade54c8c7c3e4347c955d8eb3a482ee875106b}
+  samples: 4823
+  duration_s: 48.22
+  files:
+    2024-02-02_arm5_positions/arm5_minus_0_8_2024-02-02-17-35-02.csv: 2370f7fba41b1364007c7205e42d699614b6b598cb4416f3bc3c5cb37175c437
+- id: arm5_minus_1_2_2024-02-02-17-37-42
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:37:42Z"
+  header_start_utc: "2024-02-02T16:37:58Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_minus_1_2_2024-02-02-17-37-42.bag, sha256: 7f80b50e39290fd75a9f9aed2923ece6172d1a2c995ba0a90d6723442dd2d391}
+  samples: 4516
+  duration_s: 45.15
+  files:
+    2024-02-02_arm5_positions/arm5_minus_1_2_2024-02-02-17-37-42.csv: 966f934267f58b8df7b33a3f64e05bb67ebab4568718e009585399e4b4478618
+- id: arm5_minus_1_57_2024-02-02-17-40-08
+  role: diagnostic
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad) matches the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7); 423 channels, Hey5 hand"
+  usable: true
+  traced: true
+  folder: 2024-02-02_arm5_positions
+  bag_start_utc: "2024-02-02T16:40:08Z"
+  header_start_utc: "2024-02-02T16:40:24Z"
+  motion: "arm_5 held near the angle in the name (rad), arm_6 position peak to peak 2.774 rad; the arm_5 range is in the CSV"
+  source:
+    bag: {name: arm5_minus_1_57_2024-02-02-17-40-08.bag, sha256: 5c667de3018e03b6564e58dc531621a4396deee7ee9d53ead9b0b72dbdd44bb7}
+  samples: 4838
+  duration_s: 48.37
+  files:
+    2024-02-02_arm5_positions/arm5_minus_1_57_2024-02-02-17-40-08.csv: 920f8987aaf7c62b5a81cb697a26b41f38ccafc99bc51212e713c5ee49b96d19
+not_usable:
+- id: '2023-10-25'
+  reason: "joint-encoder inspection kept only as photos and screenshots; no bag, no CSV, no recording of any kind survives, so there is nothing to ship"
+  sources: []

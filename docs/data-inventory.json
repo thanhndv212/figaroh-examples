@@ -168,6 +168,18 @@
       "provenance": "examples/tiago/data/README.md"
     },
     {
+      "id": "tiago-joint-inspection-2023-2024",
+      "robot": "TIAGo",
+      "study": "Backlash surface (#71)",
+      "kind": "real",
+      "role": "diagnostic (all 24 sessions) (#110)",
+      "description": "arm_5 and arm_6 relative encoder, absolute encoder and commanded position at 100 Hz from the bench bags of 2023-12 (arm_6 inspection), 2024-01 (arm_6 backlash) and 2024-02 (arm_5 positions), one CSV per bag, and the protocol that freezes roles and hashes. The 2023-10-25 inspection has no recording and is not shipped.",
+      "paths": [
+        "examples/tiago/data/joint_inspection/"
+      ],
+      "provenance": "examples/tiago/data/README.md"
+    },
+    {
       "id": "tiago-suspension-vicon-1640",
       "robot": "TIAGo",
       "study": "Suspension base",
@@ -896,6 +908,130 @@
     "examples/tiago/data/identification/protocol.yaml": {
       "sha256": "c0e509e89555e549802831864a7d2f2fa03729cebdefb40ccdfe841f2aff57eb",
       "bytes": 2459
+    },
+    "examples/tiago/data/joint_inspection/2023-12_arm6_inspection/arm_inspect_1_2023-12-05-16-20-45.csv": {
+      "sha256": "fe2d9abcd3bf0519103d3b10957d8c7316892be71beb53d4f756c383f22b79bf",
+      "bytes": 4521027,
+      "rows": 37111
+    },
+    "examples/tiago/data/joint_inspection/2023-12_arm6_inspection/arm_inspect_2_2023-12-05-16-28-14.csv": {
+      "sha256": "dacfd34c5cd1472a0b99a45a6835a02919345d5812d683ea316f99c1b5015286",
+      "bytes": 5226613,
+      "rows": 43227
+    },
+    "examples/tiago/data/joint_inspection/2023-12_arm6_inspection/arm_inspect_2_2023-12-05-17-40-45.csv": {
+      "sha256": "75e1be9e05326cb1c801347c99a9fe456b4178373846ff13824b12e3cac76c07",
+      "bytes": 4149092,
+      "rows": 33503
+    },
+    "examples/tiago/data/joint_inspection/2023-12_arm6_inspection/inspect_arm6_2023-12-06-17-19-42.csv": {
+      "sha256": "7a9451cd6d0cbac53f6ddd20ecd3084c8a8eb02e49900ba53f1972a3ce161711",
+      "bytes": 578696,
+      "rows": 5159
+    },
+    "examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_backlash_abs_inspect_2024-01-26-18-07-23.csv": {
+      "sha256": "0c6cd42b3c796815ea967de48fa2ffe6cba12d67abd709e6dd7ef41d00cdfc0d",
+      "bytes": 301153,
+      "rows": 2585
+    },
+    "examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_backlash_abs_inspect_2024-01-26-18-07-54.csv": {
+      "sha256": "007efd120a79d094eccce264cd8f9bd4bce4d4fbac25b1f3783bb15cfa7f8603",
+      "bytes": 409043,
+      "rows": 3504
+    },
+    "examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_horizontal_2024-01-25-18-02-16.csv": {
+      "sha256": "01aaa316ebc2c6cd3863c66408019bee0acda2c6c2b0d268008a2830647e2f11",
+      "bytes": 8980092,
+      "rows": 70284
+    },
+    "examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_step_2024-01-25-18-14-40.csv": {
+      "sha256": "5f5a5039ce6ea94f1f8d196e1b9ca7e5831d69595b63173e9d7d3b7312428fdb",
+      "bytes": 2701903,
+      "rows": 21734
+    },
+    "examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_vertical_2024-01-25-17-44-38.csv": {
+      "sha256": "56bbec65ad5231846d7dee58a50dcd029041a54f07c5568c57dbb1544a4c71ee",
+      "bytes": 489333,
+      "rows": 4204
+    },
+    "examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_vertical_2024-01-25-17-46-57.csv": {
+      "sha256": "4ad3dd8bb70d5ace675bd70ca4d52c0465f64652bec78ab6d2aea7f324564fad",
+      "bytes": 8419112,
+      "rows": 65261
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_2024-02-02-17-25-39.csv": {
+      "sha256": "16320fcacda2cb9af5561092ff9cf163ba50c584791c4d109b80d657e0e1b01a",
+      "bytes": 551497,
+      "rows": 4516
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_2_2024-02-02-17-46-17.csv": {
+      "sha256": "c448536ed37dd57b608ab23b97e793726596067148f96129f5788f589e744596",
+      "bytes": 555584,
+      "rows": 4760
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_4_2024-02-02-17-48-10.csv": {
+      "sha256": "6fbc62efdf7b031491b560c51f40b79c4101b1ccfae639a45ff0006bf5154219",
+      "bytes": 628210,
+      "rows": 5394
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_5_2024-02-02-17-28-22.csv": {
+      "sha256": "a1550b9d25909ee044321c6fa774e31757b731ac2fb57be9840e8600012eef0f",
+      "bytes": 608546,
+      "rows": 5232
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_8_2024-02-02-17-43-00.csv": {
+      "sha256": "4d6d3bd9f30a4aa025afd0414eb115087d7acecaf193158d52035d6c461c121c",
+      "bytes": 587804,
+      "rows": 5098
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_1_2_2024-02-02-17-44-25.csv": {
+      "sha256": "917b5f188b6c61b0b9f5fb7f39f56d70eab77bd356e4d30f4855073c28081dc6",
+      "bytes": 558312,
+      "rows": 4872
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus1_59_2024-02-02-16-17-50.csv": {
+      "sha256": "fbf0c5bfb60a7d34fbaad36012d699e83d34bbc1a30c7a356a67a0bfb7de03f8",
+      "bytes": 195755,
+      "rows": 1900
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_1_2024-02-02-17-50-54.csv": {
+      "sha256": "a50ff0094867fe80a3664614f5c6a18b4f6ef1ca8f1aeee7167d0397498f4274",
+      "bytes": 582052,
+      "rows": 4871
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_5_2024-02-02-17-30-30.csv": {
+      "sha256": "39a3d3895631f8396ed6ec7d8aafb7c453464f03bbc0a30698b71daa283edabb",
+      "bytes": 1089354,
+      "rows": 9053
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_5_2024-02-02-17-32-19.csv": {
+      "sha256": "4c5f5ead0a97f35feae2dc1b8bea9aff111e001cd1220f04ffa21c65b81b8ac4",
+      "bytes": 585554,
+      "rows": 4973
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_8_2024-02-02-17-34-13.csv": {
+      "sha256": "29a1203bfdf2c01d47de3e5d0d6b256b771aca09ba9504616f8ac2ec01cf7842",
+      "bytes": 502080,
+      "rows": 4318
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_8_2024-02-02-17-35-02.csv": {
+      "sha256": "2370f7fba41b1364007c7205e42d699614b6b598cb4416f3bc3c5cb37175c437",
+      "bytes": 565019,
+      "rows": 4823
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_1_2_2024-02-02-17-37-42.csv": {
+      "sha256": "966f934267f58b8df7b33a3f64e05bb67ebab4568718e009585399e4b4478618",
+      "bytes": 531677,
+      "rows": 4516
+    },
+    "examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_1_57_2024-02-02-17-40-08.csv": {
+      "sha256": "920f8987aaf7c62b5a81cb697a26b41f38ccafc99bc51212e713c5ee49b96d19",
+      "bytes": 569144,
+      "rows": 4838
+    },
+    "examples/tiago/data/joint_inspection/protocol.yaml": {
+      "sha256": "b24f8d108434d8c7f3363ad71791a52e9ec24b3d4d0a1aa1e640b61627abbd1e",
+      "bytes": 23563
     },
     "examples/tiago/data/suspension/tiago_xyz_vicon_1640.csv": {
       "sha256": "8a0b993304e57b57e8d8a6e905dbaf6ef41cae13b7c035a5f7c6dbefbaef08f4",
