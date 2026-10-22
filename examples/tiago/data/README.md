@@ -103,6 +103,75 @@ frozen in `backlash/protocol.yaml` (`tiago-backlash-sinus-2023` v1).
   `tests/test_tiago_introspection_extraction.py` re-creates them byte for
   byte when `TIAGO_RECORDINGS_ROOT` is set.
 
+## Arm_5/arm_6 joint-inspection recordings (`joint_inspection/`)
+
+Bench recordings of the arm_5 and arm_6 joint encoders, for the backlash
+transfer study
+([#110](https://github.com/thanhndv212/figaroh-examples/issues/110), for
+[#71](https://github.com/thanhndv212/figaroh-examples/issues/71)). They bear
+on a joint offset that changes by session, absolute-encoder jumps, backlash
+and a scale error between the two encoders. Every session is **diagnostic**,
+frozen in `joint_inspection/protocol.yaml`
+(`tiago-joint-inspection-2023-2024` v1): they test whether the backlash
+surface explains the encoder differences, and nothing is fitted or scored on
+them.
+
+| Folder | Bag dates (UTC) | Bags | Motion |
+|---|---|---|---|
+| `2023-12_arm6_inspection/` | 2023-12-05, 2023-12-06 | 4 | arm_6 sweeps 2.73 to 2.79 rad, all else still |
+| `2024-01-25_arm6_backlash/` | 2024-01-25, 2024-01-26 | 6 | arm_6 vertical (2), horizontal, step; 2 manual backlash probes |
+| `2024-02-02_arm5_positions/` | 2024-02-02 | 14 | arm_5 held near fixed angles (the angle is in the file name) |
+
+- **Not usable:** the **2023-10-25** joint-encoder inspection survives as
+  photos and screenshots only. No bag, CSV or other recording exists, so
+  nothing ships for it. Photos and videos of the other sessions are not
+  shipped either.
+- **Files:** one CSV per bag, named after the bag, native 100 Hz, all rows
+  (about 44 MB in all). Columns: `t`, then for `arm_5` and `arm_6`:
+  `*_position` (relative: motor-side encoder divided by the gear ratio, what
+  control and calibration use), `*_absolute` (output-side absolute encoder)
+  and `*_command` (commanded position, recorded in every bag). Radians.
+  Relative minus absolute is the transmission error: backlash, compliance,
+  offset and scale.
+- **Clock:** `t` is seconds from the first sample on the introspection
+  **header stamp**, the robot clock, one clock for every column. The bag
+  receive time (`rosbagTimestamp`) runs 10 to 16 s behind it and is not used.
+  `protocol.yaml` records both start times per bag.
+- **Dates and names:** dates are the bag stamps (UTC). Folder and file names
+  carry the recording PC's local time (UTC+1 in winter), so a name's hour is
+  one more than the bag's. The two `arm_6_backlash_abs_inspect` bags are
+  stamped 2024-01-26 but sit in the 2024-01-25 folder. `arm5_minus1_59` was
+  recorded an hour before the other 2024-02-02 bags; its stamp agrees with
+  its name.
+- **Counts:** the raw-data audit counts 15 arm_5 bags; 14 exist. All 24 bags
+  are shipped.
+- **Setup, in words:** the robot stood on the bench with the arm free, in
+  position control (`motor_mode` 0). In the arm_6 sessions arm_6 was driven
+  over the range given above (vertical and horizontal arm orientations, one
+  step profile) with the other joints holding their pose. In the two manual
+  backlash probes the arm_6 motor is held still (relative encoder moves 0.4
+  mrad peak to peak) while the output is moved by hand and the absolute
+  encoder moves 38.3 and 42.2 mrad: the free play, measured directly. In the
+  arm_5 sessions arm_5 was brought to fixed angles; in these bags arm_6 also
+  travels 2.77 rad (peak to peak) and arm_5 itself moves in some bags (up to
+  2.65 rad in `arm5_0_8`).
+- **Known limits:** the median relative minus absolute gap of arm_5 changes
+  with the session, from -92 mrad (`arm5_minus1_59`) through +25 to +35 mrad
+  (2023-12, 2024-01) to +111 to +156 mrad (2024-02, arm_5 moving). The
+  absolute encoder jumps in places. These recordings are single runs
+  without repeats, so a gap difference between two of them is an observation,
+  not a measured spread.
+- **Robot identity:** the 2024-01 and 2024-02 bags are `tiago-48` by the
+  encoder-gap fingerprint (median position minus absolute encoder on arm_1,
+  arm_2, arm_7: -3.1 to -4.6, -5.7 to -6.9, +0.8 to +7 mrad), the same as the
+  Hey5 bags of 2023-11 to 2024-02, and all carry the 423 Hey5 channels. The
+  four 2023-12 bags carry the same channels, but their arm_1 (-17.6 to -2.2
+  mrad) and arm_2 (-1.7 to +2.1) gaps do not match, so they are `unknown`.
+- **Re-creating the files:**
+  `python -m examples.tiago.utils.introspection_extraction inspection <bag> <out.csv>`;
+  `tests/test_tiago_introspection_extraction.py` re-creates all 24 byte for
+  byte when `TIAGO_RECORDINGS_ROOT` is set.
+
 ## Dynamic identification data (`identification/dynamic/`)
 
 Audited in [#20](https://github.com/thanhndv212/figaroh-examples/issues/20);

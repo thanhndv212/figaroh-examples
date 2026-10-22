@@ -23,6 +23,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 8.4 MB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
 | `tiago-backlash-2023-07-24` | TIAGo | Backlash surface (#71) | real | training (2023-07-24, untraced), validation (2023-03-09 bottom), diagnostic (2023-03-09 top, pose only) (#109) | 6 | 108.6 MB | examples/tiago/data/README.md |
+| `tiago-joint-inspection-2023-2024` | TIAGo | Backlash surface (#71) | real | diagnostic (all 24 sessions) (#110) | 25 | 41.9 MB | examples/tiago/data/README.md |
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
 | `tiago-pro-mocap-samples` | TIAGo Pro | Mocap calibration | real | training (2026-08-05), validation (07-01), confirmation (07-02); frozen in data/protocol.yaml | 3 | 42.4 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
 | `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
@@ -222,6 +223,38 @@ Sinusoidal runs (period 10 s, amplitude 3): 2023-07-24 with 12,092 samples of re
 | `examples/tiago/data/backlash/sinus_amp3_period10_2023-03-09-16-19-17_bottom/introspection_datavalues.csv` | 41953 | 25530210 | `e33f7610f3be9857` |
 | `examples/tiago/data/backlash/sinus_amp3_period10_2023-07-24-13-28-42/introspection_datanames.csv` | 1 | 6514 | `3f33234c153574ca` |
 | `examples/tiago/data/backlash/sinus_amp3_period10_2023-07-24-13-28-42/introspection_datavalues.csv` | 12092 | 35698619 | `5a0eed92dd000be7` |
+
+### `tiago-joint-inspection-2023-2024`
+
+arm_5 and arm_6 relative encoder, absolute encoder and commanded position at 100 Hz from the bench bags of 2023-12 (arm_6 inspection), 2024-01 (arm_6 backlash) and 2024-02 (arm_5 positions), one CSV per bag, and the protocol that freezes roles and hashes. The 2023-10-25 inspection has no recording and is not shipped.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/tiago/data/joint_inspection/2023-12_arm6_inspection/arm_inspect_1_2023-12-05-16-20-45.csv` | 37111 | 4521027 | `fe2d9abcd3bf0519` |
+| `examples/tiago/data/joint_inspection/2023-12_arm6_inspection/arm_inspect_2_2023-12-05-16-28-14.csv` | 43227 | 5226613 | `dacfd34c5cd1472a` |
+| `examples/tiago/data/joint_inspection/2023-12_arm6_inspection/arm_inspect_2_2023-12-05-17-40-45.csv` | 33503 | 4149092 | `75e1be9e05326cb1` |
+| `examples/tiago/data/joint_inspection/2023-12_arm6_inspection/inspect_arm6_2023-12-06-17-19-42.csv` | 5159 | 578696 | `7a9451cd6d0cbac5` |
+| `examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_backlash_abs_inspect_2024-01-26-18-07-23.csv` | 2585 | 301153 | `0c6cd42b3c796815` |
+| `examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_backlash_abs_inspect_2024-01-26-18-07-54.csv` | 3504 | 409043 | `007efd120a79d094` |
+| `examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_horizontal_2024-01-25-18-02-16.csv` | 70284 | 8980092 | `01aaa316ebc2c6cd` |
+| `examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_step_2024-01-25-18-14-40.csv` | 21734 | 2701903 | `5f5a5039ce6ea94f` |
+| `examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_vertical_2024-01-25-17-44-38.csv` | 4204 | 489333 | `56bbec65ad523184` |
+| `examples/tiago/data/joint_inspection/2024-01-25_arm6_backlash/arm_6_vertical_2024-01-25-17-46-57.csv` | 65261 | 8419112 | `4ad3dd8bb70d5ace` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_2024-02-02-17-25-39.csv` | 4516 | 551497 | `16320fcacda2cb9a` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_2_2024-02-02-17-46-17.csv` | 4760 | 555584 | `c448536ed37dd57b` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_4_2024-02-02-17-48-10.csv` | 5394 | 628210 | `6fbc62efdf7b0314` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_5_2024-02-02-17-28-22.csv` | 5232 | 608546 | `a1550b9d25909ee0` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_0_8_2024-02-02-17-43-00.csv` | 5098 | 587804 | `4d6d3bd9f30a4aa0` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_1_2_2024-02-02-17-44-25.csv` | 4872 | 558312 | `917b5f188b6c61b0` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus1_59_2024-02-02-16-17-50.csv` | 1900 | 195755 | `fbf0c5bfb60a7d34` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_1_2024-02-02-17-50-54.csv` | 4871 | 582052 | `a50ff0094867fe80` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_5_2024-02-02-17-30-30.csv` | 9053 | 1089354 | `39a3d3895631f839` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_5_2024-02-02-17-32-19.csv` | 4973 | 585554 | `4c5f5ead0a97f35f` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_8_2024-02-02-17-34-13.csv` | 4318 | 502080 | `29a1203bfdf2c01d` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_0_8_2024-02-02-17-35-02.csv` | 4823 | 565019 | `2370f7fba41b1364` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_1_2_2024-02-02-17-37-42.csv` | 4516 | 531677 | `966f934267f58b8d` |
+| `examples/tiago/data/joint_inspection/2024-02-02_arm5_positions/arm5_minus_1_57_2024-02-02-17-40-08.csv` | 4838 | 569144 | `920f8987aaf7c62b` |
+| `examples/tiago/data/joint_inspection/protocol.yaml` |  | 23563 | `b24f8d108434d8c7` |
 
 ### `tiago-suspension-vicon-1640`
 

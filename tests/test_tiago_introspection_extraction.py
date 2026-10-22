@@ -15,6 +15,7 @@ import yaml
 from examples.tiago.utils.introspection_extraction import (
     backlash_channels,
     channel_table,
+    inspection_channels,
     names_csv,
     read_introspection,
     read_tf_csv,
@@ -77,6 +78,21 @@ def test_channel_table_puts_the_selected_channels_on_the_header_clock():
     assert lines[2].endswith(",-0.5,2.0")
     with pytest.raises(KeyError):
         channel_table(NAMES, ROWS, [("x", "zzz")])
+
+
+def test_inspection_columns_are_arm_5_and_arm_6_position_absolute_and_command():
+    cols = inspection_channels()
+    assert [c for c, _ in cols] == [
+        f"arm_{j}_{k}" for j in (5, 6) for k in ("position", "absolute", "command")
+    ]
+    assert dict(cols)["arm_6_absolute"] == "arm_6_joint_absolute_encoder_position"
+    assert dict(cols)["arm_5_command"] == "arm_5_joint_position_command"
+
+
+def test_channel_table_rounds_the_clock_to_microseconds():
+    rows = [(0, 1, 5, 100, 1, [0.0]), (0, 2, 5, 10_000_100, 1, [1.0])]
+    text = channel_table(NAMES, rows, [("x", "a")])
+    assert text.split("\n")[2] == "0.01,1.0"
 
 
 def test_tf_csv_reader_follows_the_shifted_17_field_blocks(tmp_path):
@@ -143,3 +159,20 @@ def test_backlash_files_are_re_created_byte_for_byte():
         elif "tf_csv" in src:
             (path,) = s["files"]
             assert file_sha256(_find(root, src["tf_csv"])) == s["files"][path]
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not os.environ.get("TIAGO_RECORDINGS_ROOT"),
+    reason="needs the original recordings: set TIAGO_RECORDINGS_ROOT",
+)
+def test_joint_inspection_files_are_re_created_byte_for_byte():
+    data = Path(__file__).resolve().parents[1] / "examples/tiago/data/joint_inspection"
+    manifest = yaml.safe_load((data / "protocol.yaml").read_text())
+    root = Path(os.environ["TIAGO_RECORDINGS_ROOT"])
+    for s in manifest["sessions"]:
+        names_msg, rows = read_introspection(str(_find(root, s["source"]["bag"])))
+        assert len(rows) == s["samples"]
+        (path,) = s["files"]
+        text = channel_table(names_msg, rows, inspection_channels())
+        assert (data / path).read_bytes() == text.encode(), path
