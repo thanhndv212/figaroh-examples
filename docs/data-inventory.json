@@ -158,10 +158,10 @@
     {
       "id": "tiago-backlash-2023-07-24",
       "robot": "TIAGo",
-      "study": "Backlash surface",
+      "study": "Backlash surface (#71)",
       "kind": "real",
-      "role": "training; no held-out run",
-      "description": "One sinusoidal run (period 10 s, amplitude 3), 12,092 samples of relative and absolute encoders. A second run exists outside the repository (figaroh-examples#71).",
+      "role": "training (2023-07-24, untraced), held-out (2023-03-09 bottom), diagnostic (2023-03-09 top, pose only) (#109)",
+      "description": "Sinusoidal runs (period 10 s, amplitude 3): 2023-07-24 with 12,092 samples of relative and absolute encoders (no raw bag exists), 2023-03-09 bottom with 41,953 samples of the 33 loader channels, 2023-03-09 top with only the tf export (no joint values), and the protocol that freezes roles and hashes.",
       "paths": [
         "examples/tiago/data/backlash/"
       ],
