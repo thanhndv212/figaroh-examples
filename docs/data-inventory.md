@@ -22,7 +22,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-mocap-vicon-2023-09-20` | TIAGo | Mocap calibration (cross-system, #100) | real | confirmation (not evaluated until #100) | 3 | 23.6 KB | examples/tiago/data/README.md |
 | `tiago-square-motion-validation` | TIAGo | Mocap calibration (end-effector validation, C5 Phase 2, #107) | real | validation (never used to fit) | 15 | 8.4 MB | examples/tiago/data/README.md |
 | `tiago-optimal-configurations` | TIAGo | Experiment design | generated | calibration postures | 2 | 91.8 KB | examples/tiago/data/README.md |
-| `tiago-backlash-2023-07-24` | TIAGo | Backlash surface | real | training; no held-out run | 2 | 34.1 MB | examples/tiago/data/README.md |
+| `tiago-backlash-2023-07-24` | TIAGo | Backlash surface (#71) | real | training (2023-07-24, untraced), held-out (2023-03-09 bottom), diagnostic (2023-03-09 top, pose only) (#109) | 2 | 34.1 MB | examples/tiago/data/README.md |
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training; no held-out run | 1 | 3.7 MB | examples/tiago/data/README.md |
 | `tiago-pro-mocap-samples` | TIAGo Pro | Mocap calibration | real | training (2026-08-05), validation (07-01), confirmation (07-02); frozen in data/protocol.yaml | 3 | 42.4 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
 | `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
@@ -212,7 +212,7 @@ Optimal calibration configurations computed for the model, not measurements.
 
 ### `tiago-backlash-2023-07-24`
 
-One sinusoidal run (period 10 s, amplitude 3), 12,092 samples of relative and absolute encoders. A second run exists outside the repository (figaroh-examples#71).
+Sinusoidal runs (period 10 s, amplitude 3): 2023-07-24 with 12,092 samples of relative and absolute encoders (no raw bag exists), 2023-03-09 bottom with 41,953 samples of the 33 loader channels, 2023-03-09 top with only the tf export (no joint values), and the protocol that freezes roles and hashes.
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|

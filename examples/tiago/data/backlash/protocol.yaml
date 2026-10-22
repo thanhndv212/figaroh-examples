@@ -1,0 +1,54 @@
+# TIAGo backlash sinusoid sessions, 2023-03-09 and 2023-07-24 (examples#109),
+# for the backlash transfer study (#71) as a data-contract Protocol
+# (figaroh-plus#55). Roles are frozen: changing a file or a role needs a new
+# version.
+# Sources are original recordings (not distributed), named by file name and
+# sha256. Bottom run: the introspection bag; the shipped names and values CSV
+# are `examples/tiago/utils/introspection_extraction.py` `export` of it (the 33
+# channels `backlash_channels` lists: the leading statistics channel and the position, velocity, effort and absolute
+# encoder of torso_lift and arm_1..arm_7, values unchanged), re-created byte for
+# byte by `tests/test_tiago_introspection_extraction.py`. Top run: only the
+# exporter's tf.csv survives (no bag, no joint values); it is shipped as found.
+# 2023-07-24: the shipped CSV pair predates this protocol and has no raw bag.
+name: tiago-backlash-sinus-2023
+version: 1
+units: {angle: rad, velocity: rad/s, effort: "N m (arm), N (torso_lift)", length: m, time: s}
+clock: "introspection header stamp (secs, nsecs), robot clock; rosbagTimestamp is the recording PC and differs from it by a per-session offset (64 s on 2023-03-09 bottom, 2454 s on 2023-07-24)"
+sessions:
+- id: 2023-07-24-13-28-42
+  role: training
+  robot: tiago-48
+  usable: true
+  traced: false  # no raw bag exists; the CSV pair was shipped before this protocol and cannot be matched to a recording by hash or value
+  source: {name: untraced}
+  samples: 12092
+  duration_s: 120.91
+  channels: 209
+  files:
+    sinus_amp3_period10_2023-07-24-13-28-42/introspection_datanames.csv: 3f33234c153574ca67174bfe2542a2f2c1e9fa26cd9950983ad9d57440e70c42
+    sinus_amp3_period10_2023-07-24-13-28-42/introspection_datavalues.csv: 5a0eed92dd000be7ee58157eb40090683e9b3d991a40de3dd15254bdbb201a51
+- id: 2023-03-09-16-19-17-bottom
+  role: held-out
+  robot: tiago-48
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.7, -5.3, +2.3 mrad) equals that of the 2023-07-24 run (-3.6, -5.2, +2.7) and of the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7). The run has gripper channels, not Hey5 hand channels, so the end effector differs from those bags and the hardware alone does not exclude another robot"
+  usable: true
+  traced: true
+  source:
+    bag: {name: sinus_amp3_period10_2023-03-09-16-19-17_bottom.bag, sha256: b5efa9b99ed66fb9e53c8cfe218f0bd661c9283d99e93f9fa431f4bdea0f8275}
+  samples: 41953
+  duration_s: 419.52
+  channels: 33
+  files:
+    sinus_amp3_period10_2023-03-09-16-19-17_bottom/introspection_datanames.csv: e2f600b44b4cf59dff603fae5f60de1aaa5c2b115647336ad0c6e86396d336a5
+    sinus_amp3_period10_2023-03-09-16-19-17_bottom/introspection_datavalues.csv: e33f7610f3be98576101c05a5fadb9d9337b2f396e2c26c3a1b20bda7971a13d
+- id: 2023-03-09-15-28-20-top
+  role: diagnostic  # pose only: tf.csv, no joint values
+  robot: unknown
+  robot_note: "same day and protocol as the bottom run (tiago-48 by the same reasoning), but no encoder channel survives to fingerprint it"
+  usable: true
+  traced: true
+  source:
+    tf_csv: {name: tf.csv, sha256: 734577b88d7756231f5a8f3509c7e98a6452841dc8342cbe664a6c8c00f36aa6}
+  rows: 43529
+  files:
+    sinus_amp3_period10_2023-03-09-15-28-20_top/tf.csv: 734577b88d7756231f5a8f3509c7e98a6452841dc8342cbe664a6c8c00f36aa6

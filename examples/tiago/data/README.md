@@ -31,6 +31,78 @@ copied verbatim from the reachable `figaroh-plus` Git ref at commit
 Both artifacts are research data. Do not use them as a model-parameter source
 without checking hardware identity, sensor calibration, coordinate conventions,
 and the intended use approval.
+## Backlash sinusoid sessions (`backlash/`)
+
+Two days of the same sinusoidal protocol (period 10 s, amplitude 3), for the
+backlash transfer study
+([#109](https://github.com/thanhndv212/figaroh-examples/issues/109), for
+[#71](https://github.com/thanhndv212/figaroh-examples/issues/71)). Roles are
+frozen in `backlash/protocol.yaml` (`tiago-backlash-sinus-2023` v1).
+
+| Session | Robot | Role | Content |
+|---|---|---|---|
+| `2023-07-24-13-28-42` | tiago-48 | training | 12,092 samples, 121 s, all 209 channels |
+| `2023-03-09-16-19-17-bottom` | tiago-48 | held-out | 41,953 samples, 420 s, 33 channels |
+| `2023-03-09-15-28-20-top` | unknown | diagnostic | `tf.csv` only, no joint values |
+
+- **Provenance:** the 2023-03-09 recordings are original ROS bags and an
+  exporter `tf.csv` (not distributed), named and hashed in `protocol.yaml`.
+  The **2023-07-24 CSV pair is untraced**: it was shipped before this protocol
+  and no raw bag exists to match it by hash or value, so its provenance is the
+  historical export only. Its role (training) is a choice, not a trace.
+- **Layout:** `introspection_datanames.csv` and `introspection_datavalues.csv`
+  as in the 2023-07-24 export: the names file holds the first channel name in
+  the `names` cell and the rest in the header with a `- ` prefix; the values
+  file has one row per message with the channel list as text and the
+  `names_version` column. The loader
+  (`load_backlash_joint_trajectory`) reads both runs unchanged: it skips the
+  first value, which has no name in the header. The 2023-03-09 bottom run
+  keeps only 33 of the 209 channels (the leading statistics channel and
+  position, velocity, effort and absolute encoder of `torso_lift` and
+  `arm_1..arm_7`), values unchanged, because all 209 would make a 123 MB file.
+  The other 176 channels (motor-side, temperatures, controller
+  state, head, hand) are not shipped.
+- **Units and clock:** radians, rad/s and N m for the arm, metres for
+  `torso_lift`. The clock is the **header stamp** (`secs`, `nsecs`), the robot
+  clock. `rosbagTimestamp` is the recording PC's clock and differs from it by a
+  per-session offset (64 s on 2023-03-09, 2454 s on 2023-07-24); do not use it.
+  Samples arrive at about 100 Hz.
+- **What moves in `imu_test` (raw name for 2023-03-09):** the raw README calls
+  it a "sinusoidal torso test". The bottom bag shows otherwise. All seven arm
+  joints move sinusoidally from about 10 s to 408 s (ranges 1.4 to 3.0 rad,
+  peak speeds 0.19 to 0.43 rad/s). The torso does **not** oscillate: it steps
+  between plateaus (0.04 to 0.35 m, 0.31 m span, about 0.03 m/s) at roughly 80, 160, 220,
+  280 and 360 s. The head and the gripper stay still. The top run's `tf` agrees:
+  every arm frame rotates, `torso_lift_link` translates by 0.31 m, head frames
+  stay put.
+- **Top run (`tf.csv`, pose only):** the exporter's `/tf` dump, 43,529 messages
+  over 453 s, shipped as found (52.7 MB, one row per message, 17 fields per
+  transform). The exporter dropped the YAML list markers, so the header names
+  are shifted and unusable; `read_tf_csv` in
+  `examples/tiago/utils/introspection_extraction.py` reads it by position.
+  There are no joint values or encoder channels: arm joint angles can only be
+  recovered from the transform rotations.
+- **Robot identity:** the bottom run is `tiago-48` by the encoder-gap
+  fingerprint: median position minus absolute-encoder gap on arm_1, arm_2 and
+  arm_7 is -3.7, -5.3 and +2.3 mrad, equal to the 2023-07-24 run (-3.6, -5.2,
+  +2.7) and inside the range of the tiago-48 Hey5 bags of 2023-11 to 2024-02
+  (-3.8 to -4.6, -4.1 to -6.9, +3 to +7). Caveats: both backlash days carry
+  gripper channels, not the Hey5 hand channels of the later bags, so the end
+  effector was different; and no bag of the other robot (155c) is available to
+  contrast, so the fingerprint supports but does not prove the identity. The
+  top run has no encoder channel and is `unknown`. 2023-07-24 is listed as
+  tiago-48 on the same evidence.
+- **Limits:** arm_5 relative minus absolute differs by about +111 mrad on
+  2023-03-09 and +24 mrad on 2023-07-24 (a session offset, not backlash), so
+  a surface fitted on one day does not transfer to the other for arm_5 and
+  arm_6 without removing it. The two runs differ in length (420 s against
+  121 s) and in torso height history.
+- **Re-creating the files:**
+  `python -m examples.tiago.utils.introspection_extraction export <bag> <out_dir>`
+  writes the two CSVs;
+  `tests/test_tiago_introspection_extraction.py` re-creates them byte for
+  byte when `TIAGO_RECORDINGS_ROOT` is set.
+
 ## Dynamic identification data (`identification/dynamic/`)
 
 Audited in [#20](https://github.com/thanhndv212/figaroh-examples/issues/20);
