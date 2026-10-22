@@ -68,6 +68,7 @@ rules:
   n3_se_floor_mrad: 5.0    # fixture SE of W above max(floor, W/2): not answerable
   n4_corr_max: 0.95        # |corr(h, tanh(tau_g/tau0))| above: load not separable
   n5_sign_fraction: 0.10   # tau_g sign differs between Schunk and Hey5 on more samples
+  n6_ratio_min: 1.2        # F4 ratio of the primary model (all groups) at or above: V1 not answerable
   v1_borderline: 0.35      # borderline = within this fraction of the band from the edge
   v3_z_validation_min: 2.0
 
@@ -98,6 +99,7 @@ fixture:
     w_width_se: 3.0        # W = 12 mrad: |W_hat - W| < 3 SE ...
     w_width_rel: 0.25      # ... and within 25 % of W, in all seeds
   f4:
+    primary_model: all_groups   # M* = E + W + L; the selected-groups model is secondary (descriptive)
     rmse_ratio_max: 1.2    # RMSE vs noise-free truth / (level sigma_d)
     band_w_factor: 2.0     # band_W = 2 RMS(W_train - W_val)
     band_v1_sd_factor: 2.0 # b_V1 = |mean g| + 2 sd g

@@ -114,6 +114,7 @@ def test_note_quotes_the_golden_values():
         assert f"{v['band_v1_mrad']:.2f}" in row(f"band {j}"), j
         assert f"{v['band_w_mrad']:.2f}" in row(f"band {j}"), j
         assert f"{v['ratio']:.1f}" in row(f"transfer {j}"), j
+        assert f"{v['ratio_m3']:.2f}" in row(f"transfer {j}"), j
     assert str(used["f5"]["true_admit"]) in row("selection true admit")
     assert str(used["f6"]["found"]) in row("jumps found")
 
@@ -132,6 +133,9 @@ def test_full_grid_matches_golden():
         assert r["f6"] == c["f6"]
         for j, v in c["f4"]["joints"].items():
             assert r["f4"]["joints"][j]["ratio"] == pytest.approx(v["ratio"], rel=1e-3)
+            assert r["f4"]["joints"][j]["ratio_m3"] == pytest.approx(
+                v["ratio_m3"], rel=1e-3
+            )
             assert r["f4"]["joints"][j]["band_v1_mrad"] == pytest.approx(
                 v["band_v1_mrad"], rel=1e-3, abs=1e-4
             )
