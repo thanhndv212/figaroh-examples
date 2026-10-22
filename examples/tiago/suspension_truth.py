@@ -4,7 +4,9 @@ A simulated fixture. One truth per seed (diagonal stiffness and damping drawn
 around plausible TIAGo values) is measured on the *real* base motion of the
 training (xyz_1640) and validation (xyz_1628) runs: the corrected pose of the
 base triad and the arm marker columns of the two runs are taken as the motion;
-the plate columns of the real runs are never used. From that motion and a
+the plate columns of the real runs are never used. The diagnostic runs of
+``sessions.selection_diagnostics`` are replayed the same way for the selection
+(F4a, F5; maintainer decision O3). From that motion and a
 truth the fixture writes the raw rows a Vicon + force-plate log would hold
 (three base markers, the plate wrench about the plate centre with a static
 -730 N load, white noise at the levels of the noise stage, a receive clock with
@@ -24,7 +26,10 @@ before any run.
   checked against the ceiling.
 - F4 misspecified truths: (a) elastic centre away from the origin, S1/S2/S3;
   (b) hardening and deadband springs, the nonlinearity flag; (c) arm load
-  only (no suspension), B2 and the "enough" rule.
+  only (no suspension): a rigid cube at an offset from the gripper markers,
+  B2 (cube, mass and first moment) and the "enough" rule.
+- Origin sensitivity (descriptive, no threshold): S1 refit with the footprint
+  offset moved by +-1 sd per axis, and with the triad centroid as origin.
 - F5 selection: the blocked-CV choice recovers S1 (S1 truth) and S2 with its
   h_e (elastic truth).
 
@@ -44,10 +49,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -73,9 +77,9 @@ STATIC_FZ = -730.0  # N, static plate load of the real runs (descriptive)
 C = np.asarray(SETTINGS["plate_centre"], dtype=float)
 # loader errors put back one at a time (status quo value, fixed value)
 ERRORS = {
-    "origin": ("corner", "centroid"),
+    "origin": ("corner", "footprint"),
     "transport": (False, True),
-    "frame": ("legacy", "world"),
+    "frame": ("legacy", "footprint"),
     "clock": ("receive", "grid"),
 }
 
@@ -96,6 +100,7 @@ class Truth:
     c: np.ndarray  # (6,)
     h_e: float
     mass: float
+    cube_offset: np.ndarray = field(default_factory=lambda: np.zeros(3))
 
     @property
     def theta(self) -> np.ndarray:
@@ -114,20 +119,31 @@ def draw_truth(seed: int, kind: str = "spring") -> Truth:
     c = np.asarray(t["c"]) * (1.0 + s * rng.uniform(-1.0, 1.0, 6))
     h_e = t["h_e"] if kind == "elastic" else 0.0
     mass = t["arm_mass_kg"] if kind == "arm" else 0.0
+    cube_offset = np.asarray(t["cube_offset_m"], dtype=float)
     if kind == "arm":
         k, c = np.zeros(6), np.zeros(6)
-    return Truth(seed, kind, k, c, h_e, mass)
+    return Truth(seed, kind, k, c, h_e, mass, cube_offset)
 
 
 # ----------------------------------------------------------------- motion
 
 
 class Motion:
-    """Real corrected base pose and arm markers of one run (no plate channel)."""
+    """Real corrected base pose and arm markers of one run (no plate channel).
+
+    ``x`` is the pose of the footprint origin in the footprint axes (the loader's
+    ``frame``), at rest in the static window; ``origin`` and ``axes`` the world
+    point and axes of that frame; ``grip``, ``grip_rot`` the gripper-triad
+    centroid and frame (filtered like the loader's).
+    """
 
     def __init__(self, session_id: str):
         session = sm.load_sessions(verify=False)[session_id]
-        if session.role not in ("training", "validation"):
+        selection = SETTINGS["sessions"]["selection_diagnostics"]
+        if (
+            session.role not in ("training", "validation")
+            and session_id not in selection
+        ):
             raise PermissionError(f"{session_id}: not a fixture motion")
         t, v = sd.read_raw(session.path)
         clock = sd.rebuild_clock(t, v, RATE)
@@ -137,18 +153,25 @@ class Motion:
         nw = int(round(sm.LOADER["static_window_s"] * RATE))
         markers = grid[:, 0:9].reshape(self.n, 3, 3)
         self.ref = markers[:nw].mean(axis=0)
-        self.origin = self.ref.mean(axis=0)
-        trans, rot = sd.triad_pose(markers, self.ref)
-        self.x = sd.lowpass(np.column_stack((trans, rot)), RATE, sm.LOADER["cutoff_hz"])
+        trans, angle, self.origin, self.axes = sd.base_pose(
+            markers,
+            self.ref,
+            origin=sm.LOADER["origin"],
+            frame=sm.LOADER["frame"],
+            footprint=sm.LOADER["footprint"],
+        )
+        self.x = sd.lowpass(
+            np.column_stack((trans, angle)), RATE, sm.LOADER["cutoff_hz"]
+        )
         # at rest in the static window, so that the loader's rest pose is the truth's
         self.x[:nw] = 0.0
         self.v = np.gradient(self.x, 1.0 / RATE, axis=0)
         self.arm = grid[:, 9:30].copy()  # shoulder (4) then gripper (3) markers
-        self.grip = sd.lowpass(
-            grid[:, 21:30].reshape(self.n, 3, 3).mean(axis=1),
-            RATE,
-            sm.LOADER["cutoff_hz"],
-        )
+        grip = grid[:, 21:30].reshape(self.n, 3, 3)
+        self.grip = sd.lowpass(grip.mean(axis=1), RATE, sm.LOADER["cutoff_hz"])
+        self.grip_rot = sd.lowpass(
+            sd.marker_frames(grip).reshape(self.n, 9), RATE, sm.LOADER["cutoff_hz"]
+        ).reshape(self.n, 3, 3)
         self.sd = self.x[nw:].std(axis=0)
 
 
@@ -174,9 +197,23 @@ def true_wrench(truth: Truth, m: Motion, sd_ref: np.ndarray) -> np.ndarray:
         eff[:, :2] = np.sign(x[:, :2]) * np.maximum(np.abs(x[:, :2]) - lim, 0.0)
         return eff * truth.k + v * truth.c
     if truth.kind == "arm":
-        run = SimpleNamespace(grip=m.grip, origin=m.origin)
-        return sm.arm_design(run, "B2g")[:, :, 0] * truth.mass
+        return cube_wrench(truth, m)
     raise ValueError(truth.kind)
+
+
+def cube_wrench(truth: Truth, m: "Motion") -> np.ndarray:
+    """(n, 6) exact wrench of a rigid cube (mass, centre ``c + R o``) on the plate.
+
+    ``F = m (g - p'')``, ``M = (p - origin) x F - (m a^2 / 6) w'`` with ``p`` the
+    cube centre; the fit (B2) neglects the quadratic term in ``o``.
+    """
+    kin = sm.cube_kinematics(m.grip, m.grip_rot)
+    p = m.grip + m.grip_rot @ truth.cube_offset
+    pdd = kin["cdd"] + kin["rdd"] @ truth.cube_offset
+    f = truth.mass * (np.array([0.0, 0.0, -sm.G]) - pdd)
+    edge = SETTINGS["b2"]["edge_m"]
+    mom = np.cross(p - m.origin, f) - (truth.mass * edge**2 / 6.0) * kin["omega_dot"]
+    return np.column_stack((f @ m.axes, mom @ m.axes))
 
 
 def simulate_clock(n: int, level: float, rng: np.random.Generator):
@@ -200,11 +237,12 @@ def raw_rows(truth: Truth, m: Motion, sd_ref, level, rng_white, rng_clock):
     """Raw receive-stamped rows ``(t, values)`` of the truth measured on a motion."""
     n = m.n
     w = true_wrench(truth, m, sd_ref)
-    rot = sd.Rotation.from_rotvec(m.x[:, 3:]).as_matrix()
-    p0 = m.ref - m.ref.mean(axis=0)
+    w = np.column_stack((w[:, :3] @ m.axes.T, w[:, 3:] @ m.axes.T))  # to world axes
+    rot = sd.Rotation.from_rotvec(m.x[:, 3:] @ m.axes.T).as_matrix()
+    p0 = m.ref - m.origin
     markers = (
         m.origin
-        + m.x[:, None, :3]
+        + (m.x[:, :3] @ m.axes.T)[:, None, :]
         + np.einsum("nab,ib->nia", rot, p0)
         + level * 1e-3 * NOISE["marker_sd_mm"] * rng_white.normal(size=(n, 3, 3))
     )
@@ -226,27 +264,46 @@ def raw_rows(truth: Truth, m: Motion, sd_ref, level, rng_white, rng_clock):
 
 
 class Fixture:
-    """Real motions of the training and validation runs, and the measuring chain."""
+    """Real motions of the training, validation and selection runs, and the measuring chain."""
 
     def __init__(self):
         sess = SETTINGS["sessions"]
         self.train = motion(sess["training"])
         self.valid = motion(sess["validation"])
+        self.diag = (
+            {sid: motion(sid) for sid in sess["selection_diagnostics"]}
+            if SETTINGS["selection"]["use_diagnostics"]
+            else {}
+        )
         self.sd_ref = self.train.sd
 
-    def measure(self, truth: Truth, level: float):
-        """``{"training": (t, values), "validation": (t, values)}`` for a truth."""
+    def measure(self, truth: Truth, level: float, diagnostics: bool = False):
+        """``{"training": (t, values), "validation": ..., <diagnostic id>: ...}`` for a truth.
+
+        The diagnostic runs are measured after the two others from the same
+        streams, so the training and validation measurements do not depend on
+        ``diagnostics``.
+        """
         white = stream("white", truth.seed)
         clock = stream("clock", truth.seed)
-        return {
+        out = {
             "training": raw_rows(truth, self.train, self.sd_ref, level, white, clock),
             "validation": raw_rows(truth, self.valid, self.sd_ref, level, white, clock),
         }
+        if diagnostics:
+            for sid, m in self.diag.items():
+                out[sid] = raw_rows(truth, m, self.sd_ref, level, white, clock)
+        return out
 
-    def load(self, truth: Truth, level: float, **overrides):
-        """Corrected-loader ``(Regressors, wrench)`` of both runs."""
-        raw = self.measure(truth, level)
+    def load(self, truth: Truth, level: float, diagnostics: bool = False, **overrides):
+        """Corrected-loader ``(Regressors, wrench)`` of the runs."""
+        raw = self.measure(truth, level, diagnostics)
         return {k: sm.regressors_from_raw(*v, **overrides) for k, v in raw.items()}
+
+    def selection_data(self, truth: Truth, level: float):
+        """``[(run, wrench)]`` of training and the selection diagnostics (O3)."""
+        d = self.load(truth, level, diagnostics=True)
+        return [d["training"]] + [d[sid] for sid in self.diag]
 
 
 # ------------------------------------------------------------------- F1
@@ -306,6 +363,7 @@ def s1_cell(fx: Fixture, truth: Truth, level: float, bootstrap: bool) -> dict:
         "ceiling": ceiling.tolist(),
         "gap": (ceiling - r2).tolist(),
         "k_rel_diff": (np.abs(fit.k() - fit_v.k()) / np.abs(fit_v.k())).tolist(),
+        "n_active": int(fit.active.sum()),
     }
     if bootstrap:
         z = (fit.theta - th) / fit.se
@@ -458,7 +516,7 @@ def f4a_cell(fx: Fixture, seed: int, level: float, ctx: dict) -> dict:
     truth = draw_truth(seed, "elastic")
     d = fx.load(truth, level)
     (rt, wt), (rv, wv) = d["training"], d["validation"]
-    sel = sm.select_model(rt, wt)
+    sel = sm.select_model(fx.selection_data(truth, level))
     f1 = sm.fit_model("S1", rt, wt)
     f2 = sm.fit_model("S2", rt, wt, h_e=sel["h_e_cv"])
     f3 = sm.fit_model("S3", rt, wt)
@@ -505,21 +563,37 @@ def f4c_cell(fx: Fixture, seed: int, level: float, ctx: dict) -> dict:
     (rt, wt), (rv, wv) = d["training"], d["validation"]
     s1 = sm.fit_model("S1", rt, wt, bootstrap=True)
     s1v = sm.fit_model("S1", rv, wv)
-    b2 = sm.fit_model("B2g", rt, wt)
+    b2 = sm.fit_model("B2", rt, wt)
     r2_s1 = _r2(wv, sm.predict(s1, rv), rv.valid)
     r2_b2 = _r2(wv, sm.predict(b2, rv), rv.valid)
-    neg = sm.negative_damping(s1)
-    rep = np.abs(s1.k() - s1v.k()) / np.abs(s1v.k()) <= ctx["band"]
+    at_bound = s1.bound_dofs()
+    kv = np.abs(s1v.k())
+    rep = np.abs(s1.k() - s1v.k()) <= ctx["band"] * np.where(kv > 0, kv, np.nan)
     nonlin = np.abs(flags(s1, rt, wt)) > RULES["nonlinear_corr"]
-    v = sm.verdict(r2_s1, r2_b2, neg, rep, nonlin, ctx["answerable"])
+    v = sm.verdict(
+        r2_s1, r2_b2, at_bound, rep, nonlin, ctx["answerable"], b2.b2_at_bound()
+    )
+    mass = float(b2.theta[0])
+    # the isotropic inertia a^2 m / 6: B2 refitted with the edge at 0 and doubled
+    inertia = {}
+    for name, edge in (
+        ("none", 0.0),
+        ("assumed", None),
+        ("double", 2 * SETTINGS["b2"]["edge_m"]),
+    ):
+        f = sm.fit_model("B2", rt, wt, edge=edge)
+        inertia[name] = _r2(wv, sm.predict(f, rv), rv.valid).tolist()
     return {
         "seed": seed,
         "r2_s1": r2_s1.tolist(),
         "r2_b2": r2_b2.tolist(),
-        "mass_hat": float(b2.theta[0]),
-        "neg_damping": neg.tolist(),
+        "mass_hat": mass,
+        "o_hat": (b2.theta[1:] / mass).tolist() if mass > 0 else [float("nan")] * 3,
+        "b2_at_bound": b2.b2_at_bound(),
+        "at_bound": at_bound.tolist(),
         "repeatable": rep.tolist(),
         "nonlinear": nonlin.tolist(),
+        "inertia_r2": inertia,
         "verdict": v,
     }
 
@@ -548,6 +622,19 @@ def summarize_f4(a, b, c) -> dict:
         "c": {
             "not_enough_seeds": int(not_enough),
             "mass_hat": float(np.mean([x["mass_hat"] for x in c])),
+            "o_hat": np.mean([x["o_hat"] for x in c], axis=0).tolist(),
+            "s1_at_bound_dofs": float(np.mean([np.sum(x["at_bound"]) for x in c])),
+            "inertia_max_dr2": float(
+                max(
+                    np.max(
+                        np.abs(
+                            np.asarray(x["inertia_r2"][k]) - x["inertia_r2"]["assumed"]
+                        )
+                    )
+                    for x in c
+                    for k in ("none", "double")
+                )
+            ),
             "r2_s1": np.mean([x["r2_s1"] for x in c], axis=0).tolist(),
             "r2_b2": np.mean([x["r2_b2"] for x in c], axis=0).tolist(),
             "pass": bool(not_enough >= t["enough_false_seeds_min"]),
@@ -562,8 +649,7 @@ def f5_cell(fx: Fixture, seed: int, level: float) -> dict:
     out = {"seed": seed}
     for kind in ("spring", "elastic"):
         truth = draw_truth(seed, kind)
-        (rt, wt), _ = fx.load(truth, level).values()
-        sel = sm.select_model(rt, wt)
+        sel = sm.select_model(fx.selection_data(truth, level))
         out[kind] = {
             "model": sel["model"],
             "h_e": sel["h_e"],
@@ -589,6 +675,72 @@ def summarize_f5(cells) -> dict:
         "h_e_cv_elastic": [c["elastic"]["h_e_cv"] for c in cells],
         "pass": bool(s1 >= t["correct_seeds_min"] and s2 >= t["correct_seeds_min"]),
     }
+
+
+# ------------------------------------------------------- origin sensitivity
+
+
+def origin_variants() -> dict:
+    """Loader overrides: the footprint offset moved by +-factor sd per axis, and the centroid."""
+    fp = SETTINGS["footprint"]
+    base = np.asarray(fp["offset_triad_m"], dtype=float)
+    sd_off = np.asarray(fp["offset_sd_m"], dtype=float)
+    factor = FX["origin_sensitivity"]["factor"]
+    out = {}
+    for j, axis in enumerate("xyz"):
+        for sign, tag in ((1.0, "+"), (-1.0, "-")):
+            off = base.copy()
+            off[j] += sign * factor * sd_off[j]
+            out[f"{axis}{tag}"] = {
+                "footprint": dict(offset=off, rotvec=sm.LOADER["footprint"]["rotvec"])
+            }
+    out["centroid"] = {"origin": "centroid"}
+    return out
+
+
+def origin_cell(fx: Fixture, seed: int, level: float) -> dict:
+    """S1 refit on the S1 truth measured about the footprint, loaded about a moved origin.
+
+    Descriptive: the change of the 12 parameters and of the held-out R2 with
+    respect to the nominal (correct) loader.
+    """
+    truth = draw_truth(seed)
+    raw = fx.measure(truth, level)
+
+    def fit_with(**ov):
+        d = {k: sm.regressors_from_raw(*v, **ov) for k, v in raw.items()}
+        (rt, wt), (rv, wv) = d["training"], d["validation"]
+        f = sm.fit_model("S1", rt, wt)
+        return f.theta, _r2(wv, sm.predict(f, rv), rv.valid)
+
+    th0, r20 = fit_with()
+    out = {"seed": seed, "nominal_r2": float(np.mean(r20))}
+    for name, ov in origin_variants().items():
+        th, r2 = fit_with(**ov)
+        rel = np.abs(th - th0) / np.abs(th0)
+        out[name] = {
+            "max_rel": float(rel.max()),
+            "mean_rel": float(rel.mean()),
+            "k_rel": rel[0::2].tolist(),
+            "c_rel": rel[1::2].tolist(),
+            "dr2": float(np.mean(r2) - np.mean(r20)),
+            "r2": float(np.mean(r2)),
+        }
+    return out
+
+
+def summarize_origin(cells) -> dict:
+    out = {"nominal_r2": float(np.mean([c["nominal_r2"] for c in cells]))}
+    for name in origin_variants():
+        out[name] = {
+            "max_rel": float(np.mean([c[name]["max_rel"] for c in cells])),
+            "mean_rel": float(np.mean([c[name]["mean_rel"] for c in cells])),
+            "k_rel": np.mean([c[name]["k_rel"] for c in cells], axis=0).tolist(),
+            "c_rel": np.mean([c[name]["c_rel"] for c in cells], axis=0).tolist(),
+            "dr2": float(np.mean([c[name]["dr2"] for c in cells])),
+            "dr2_worst": float(min(c[name]["dr2"] for c in cells)),
+        }
+    return out
 
 
 # ----------------------------------------------------------------- driver
@@ -628,6 +780,10 @@ def run(seeds=SEEDS, levels=LEVELS, verbose=True) -> dict:
         print("F5", flush=True)
     f5 = [f5_cell(fx, s, USED) for s in seeds]
     out["f5"] = {"cells": f5, **summarize_f5(f5)}
+    if verbose:
+        print("origin sensitivity", flush=True)
+    org = [origin_cell(fx, s, USED) for s in seeds]
+    out["origin"] = {"cells": org, **summarize_origin(org)}
     return out
 
 
@@ -683,6 +839,7 @@ def golden(res: dict) -> dict:
     f3 = {k: v for k, v in res["f3"].items() if k != "cells"}
     f4 = {k: v for k, v in res["f4"].items() if k != "cells"}
     f5 = {k: v for k, v in res["f5"].items() if k != "cells"}
+    origin = {k: v for k, v in res["origin"].items() if k != "cells"}
     return _round(
         {
             "used": res["used"],
@@ -698,6 +855,7 @@ def golden(res: dict) -> dict:
             "f3": f3,
             "f4": f4,
             "f5": f5,
+            "origin": origin,
             "seed0": {
                 "f2": res["f2"][str(res["used"])]["cells"][0],
                 "f3": res["f3"]["cells"][0],
