@@ -1,0 +1,154 @@
+# TIAGo CREPS Vicon and force-plate runs, 2023-09-20 (examples#111), for the
+# base-suspension study (#70) as a data-contract Protocol (figaroh-plus#55).
+# Roles are frozen: changing a file or a role needs a new version.
+# Sources are original recordings (not distributed), named by file name and
+# sha256. Each shipped file is `examples/tiago/utils/suspension_extraction.py`
+# of its source: header line dropped, the 40 columns selected by name in the
+# order of the first shipped run, CRLF line ends written as LF, every field
+# copied as text (values unchanged). `xyz_1640` was shipped before this
+# protocol and is byte-identical to its source and to the extractor output.
+# Columns: time (host receive time, local, `YYYY-MM-DD_HH:MM:SS.ffffff`), the
+# x, y, z of base1..3, shoulder1..4 and gripper1..3 markers (m, Vicon world),
+# then force plate 4: Fx, Fy, Fz (N), Mx, My, Mz (N m), COPx, COPy, COPz (m).
+# There is no frame-index column in any source: row order is frame order.
+# Robot identity is unknown for all runs: a Vicon and force-plate log carries
+# no robot channel, and the encoder-gap fingerprint of the robot bags of the
+# day does not settle it (see the README).
+name: tiago-creps-vicon-2023
+version: 1
+units: {length: m, force: N, moment: N m}
+clock: "host receive time of each frame, not the Vicon frame time; spacing 7 to 65 ms around a 10 ms median; robot bags are not synchronised with it"
+columns: 40
+sessions:
+- id: xyz_1640
+  role: training
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "xyz oscillation (all three base directions); shipped before this protocol, byte-identical to its source"
+  source: {name: tiago_xyz_vicon_1640.csv, sha256: 8a0b993304e57b57e8d8a6e905dbaf6ef41cae13b7c035a5f7c6dbefbaef08f4}
+  start_local: "2023-09-20_16:40:52.540797"
+  samples: 5547
+  duration_s: 56.0
+  files:
+    tiago_xyz_vicon_1640.csv: 8a0b993304e57b57e8d8a6e905dbaf6ef41cae13b7c035a5f7c6dbefbaef08f4
+- id: xyz_1628
+  role: validation  # first held-out repeat of xyz_1640, 12 min earlier
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "xyz oscillation, repeat of 1640"
+  source: {name: tiago_xyz_vicon_1628.csv, sha256: 9690963a780b8b0a92cb8d6fca2a48f372b5760b003388baae71ccf614e2e177}
+  start_local: "2023-09-20_16:28:26.436591"
+  samples: 5337
+  duration_s: 54.1
+  files:
+    tiago_xyz_vicon_1628.csv: 7dbac63e589efe020173f841f7a60f03100091c411a98ad9af0f466a8b120720
+- id: xyz_mirror_1630
+  role: confirmation
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "xyz oscillation, mirrored"
+  source: {name: tiago_xyz_mirror_vicon_1630.csv, sha256: ee51eda6c4ae5341d8ffd774e4d876edecf6a37b5d27c59a1ce45acbc3a355cf}
+  start_local: "2023-09-20_16:30:51.438587"
+  samples: 5607
+  duration_s: 56.9
+  files:
+    tiago_xyz_mirror_vicon_1630.csv: ac18bc1986bbdd5e416973a883e9ad572e3ef7c2d1756ba2d870fdd5456f7293
+- id: xyz_mirror_1642
+  role: confirmation
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "xyz oscillation, mirrored"
+  source: {name: tiago_xyz_mirror_vicon_1642.csv, sha256: 0a90b14ace2fadc859e72002fc6e12990fde568682b904a12636a24e5b17aae7}
+  start_local: "2023-09-20_16:42:30.897088"
+  samples: 5416
+  duration_s: 54.7
+  files:
+    tiago_xyz_mirror_vicon_1642.csv: fec9814a0bd5f3faa9590a75cae87ef166669008d108332ba457e7d712927dc8
+- id: around_x_1634
+  role: diagnostic
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "rotation about x"
+  source: {name: tiago_around_x_vicon_1634.csv, sha256: d7a27b645ab740164ad8bd3b57ee82896e09ef264a33a0c3a17c69be1ecadb98}
+  start_local: "2023-09-20_16:35:09.468919"
+  samples: 5123
+  duration_s: 52.0
+  files:
+    tiago_around_x_vicon_1634.csv: a3ae13af801b1dba39aa6bb1afc94121ca652db9e75358906bdf3391e8349bd8
+- id: around_y_1638
+  role: diagnostic
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "rotation about y"
+  source: {name: tiago_around_y_vicon_1638.csv, sha256: 72067c0ef778d405744fda17eb955865770fdc8fe265d03b07247d5f41faded0}
+  start_local: "2023-09-20_16:39:06.391669"
+  samples: 5305
+  duration_s: 53.6
+  files:
+    tiago_around_y_vicon_1638.csv: ba5a1b70b19e2aa74aa2160350cac34e54c47ef13c8dbc0a17b1c415d685aa65
+- id: around_z_1622
+  role: diagnostic
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "rotation about z"
+  source: {name: tiago_around_z_vicon_1622.csv, sha256: a2abb0316b822ff4da59b99ab3dcecaac299b70ae72d307a11044a04f295f395}
+  start_local: "2023-09-20_16:26:27.562297"
+  samples: 6150
+  duration_s: 62.2
+  files:
+    tiago_around_z_vicon_1622.csv: f9662032264847466abbe0c5bba1ac331034857a5f0fcf5b999cae5d929093c5
+- id: x_fold_1632
+  role: diagnostic
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "fold about x"
+  source: {name: tiago_x_fold_vicon_1632.csv, sha256: b02ba4223d75f49355a091a050679d57c5492456855548c4dec15fbc1684ea11}
+  start_local: "2023-09-20_16:33:05.127981"
+  samples: 7361
+  duration_s: 74.7
+  files:
+    tiago_x_fold_vicon_1632.csv: cb77696bed09743077400e5ac4905629257b71e25498035e1a6e4ec6bee4b27f
+- id: y_fold_1636
+  role: diagnostic
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "fold about y"
+  source: {name: tiago_y_fold_vicon_1636.csv, sha256: 0f63482f94aece323c27357938c3931c35470e42d43112aa884123feb2ab710e}
+  start_local: "2023-09-20_16:37:04.209875"
+  samples: 5873
+  duration_s: 59.3
+  files:
+    tiago_y_fold_vicon_1636.csv: 81323675bb0d9d2eaaf3ba424799b8f806c5697675e395ffa04d3f1da5e43206
+- id: postures_1720
+  role: diagnostic
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "posture sequence, base at rest (no oscillation)"
+  source: {name: tiago_postures_vicon_1720.csv, sha256: 8d2c4ef29a9c7dbe549a1c460d8a11b94d0614348795eb2a302241dc104d78ca}
+  start_local: "2023-09-20_17:22:01.242306"
+  samples: 13706
+  duration_s: 138.4
+  files:
+    tiago_postures_vicon_1720.csv: 84ffbffcc372bd1a2f5f3497c3865d9f3960d138bc986ba4eaf6737914a0301e
+- id: postures_1734
+  role: diagnostic
+  robot: unknown
+  usable: true
+  traced: true
+  motion: "posture sequence, base at rest (no oscillation)"
+  source: {name: tiago_postures_vicon_1734.csv, sha256: da7357c5504f45a7f74014db44e91ac92291449a220a6e14bea8f3050fde29f9}
+  start_local: "2023-09-20_17:34:35.932084"
+  samples: 9918
+  duration_s: 100.0
+  files:
+    tiago_postures_vicon_1734.csv: 4d345a8fba0c9b14315958e157740d5d19431b96a09334b02be24965173cb603
