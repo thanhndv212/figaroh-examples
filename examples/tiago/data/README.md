@@ -10,7 +10,14 @@ copied verbatim from the reachable `figaroh-plus` Git ref at commit
   and `base3`, subtracts the initial base pose and initial 100-sample wrench
   mean, then fits the fixed-transform generalized-base model. Its reported
   result is an experimental data fit, not a validated deployable suspension
-  parameter set.
+  parameter set. With `--data real` it explains the moment `My` only (forces
+  R-squared below 0.2) and is **not a suspension estimate**: the loader
+  mixes frames, uses a corner marker as origin, takes the moments about the
+  plate centre and the receive clock as time
+  ([#70](https://github.com/thanhndv212/figaroh-examples/issues/70)). The
+  corrected loader, the models and the pre-registered thresholds are in
+  `docs/development/tiago-suspension.md`; no suspension parameter has been
+  fitted to a real run yet.
 - `backlash/sinus_amp3_period10_2023-07-24-13-28-42/` contains the PAL
   introspection name/value exports. By default the example fits
   relative-minus-absolute encoder difference using relative position,
@@ -220,7 +227,11 @@ transfer to.
   any source (the issue asks for indices: none were recorded); the row order
   is the frame order, so `n x 10 ms` is the rebuilt clock. Frames the
   recorder dropped or duplicated are not marked. The audit counts 1.5 to 2.5 %
-  dropped and 0.5 to 0.8 % duplicated, judged from position continuity.
+  dropped and 0.5 to 0.8 % duplicated, judged from position continuity. The
+  corrected loader (`utils/suspension_data.rebuild_clock`) rebuilds the 100 Hz
+  frame grid from the receive stamps and finds 0.9 to 1.6 % dropped frames
+  (gaps up to 4 frames) and no exactly repeated row in any run; the
+  duplicates of the audit are not reproduced (see the note, open point O6).
 - **Frames and points:** markers are in the Vicon world frame; the plate
   moments are about the plate centre (0.900, 0.450, 0) m, not the base. The
   base-marker triad frame is yawed about -5.6 degrees from world and its z axis
@@ -243,7 +254,10 @@ transfer to.
 - **Known limits:** base motion is small (marker `base1` moves 0.2 to 2 mm in
   x and z; y up to 16.6 mm in `around_z`, 8 to 13 mm in the xyz runs). The
   audit's fits of the example model on these runs explain the forces poorly
-  (Fx, Fy, Fz R-squared below 0.2 in most runs), which is a model limit.
+  (Fx, Fy, Fz R-squared below 0.2 in most runs). This was read as a model
+  limit; it is not established: a simulated arm load with no suspension
+  reproduces the same signature (note, section 7.2), so the status-quo fit
+  does not separate a suspension from the arm's own load.
 - **Re-creating the files:**
   `python -m examples.tiago.utils.suspension_extraction <raw.csv> <out.csv>`;
   `tests/test_tiago_suspension_runs.py` re-creates all eleven byte for byte
