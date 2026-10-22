@@ -16,7 +16,7 @@ MANIFEST = yaml.safe_load((BL / "protocol.yaml").read_text())
 SESSIONS = {s["id"]: s for s in MANIFEST["sessions"]}
 ROLES = {
     "2023-07-24-13-28-42": "training",
-    "2023-03-09-16-19-17-bottom": "held-out",
+    "2023-03-09-16-19-17-bottom": "validation",
     "2023-03-09-15-28-20-top": "diagnostic",
 }
 ARM = [f"arm_{i}_joint" for i in range(1, 8)]

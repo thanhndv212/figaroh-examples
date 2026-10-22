@@ -28,7 +28,7 @@ sessions:
     sinus_amp3_period10_2023-07-24-13-28-42/introspection_datanames.csv: 3f33234c153574ca67174bfe2542a2f2c1e9fa26cd9950983ad9d57440e70c42
     sinus_amp3_period10_2023-07-24-13-28-42/introspection_datavalues.csv: 5a0eed92dd000be7ee58157eb40090683e9b3d991a40de3dd15254bdbb201a51
 - id: 2023-03-09-16-19-17-bottom
-  role: held-out
+  role: validation
   robot: tiago-48
   robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.7, -5.3, +2.3 mrad) equals that of the 2023-07-24 run (-3.6, -5.2, +2.7) and of the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7). The run has gripper channels, not Hey5 hand channels, so the end effector differs from those bags and the hardware alone does not exclude another robot"
   usable: true
