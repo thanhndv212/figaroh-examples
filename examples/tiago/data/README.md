@@ -42,7 +42,7 @@ frozen in `backlash/protocol.yaml` (`tiago-backlash-sinus-2023` v1).
 | Session | Robot | Role | Content |
 |---|---|---|---|
 | `2023-07-24-13-28-42` | tiago-48 | training | 12,092 samples, 121 s, all 209 channels |
-| `2023-03-09-16-19-17-bottom` | tiago-48 | held-out | 41,953 samples, 420 s, 33 channels |
+| `2023-03-09-16-19-17-bottom` | tiago-48 | validation | 41,953 samples, 420 s, 33 channels |
 | `2023-03-09-15-28-20-top` | unknown | diagnostic | `tf.csv` only, no joint values |
 
 - **Provenance:** the 2023-03-09 recordings are original ROS bags and an

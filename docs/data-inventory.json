@@ -160,7 +160,7 @@
       "robot": "TIAGo",
       "study": "Backlash surface (#71)",
       "kind": "real",
-      "role": "training (2023-07-24, untraced), held-out (2023-03-09 bottom), diagnostic (2023-03-09 top, pose only) (#109)",
+      "role": "training (2023-07-24, untraced), validation (2023-03-09 bottom), diagnostic (2023-03-09 top, pose only) (#109)",
       "description": "Sinusoidal runs (period 10 s, amplitude 3): 2023-07-24 with 12,092 samples of relative and absolute encoders (no raw bag exists), 2023-03-09 bottom with 41,953 samples of the 33 loader channels, 2023-03-09 top with only the tf export (no joint values), and the protocol that freezes roles and hashes.",
       "paths": [
         "examples/tiago/data/backlash/"
@@ -530,8 +530,8 @@
       "rows": 15
     },
     "examples/tiago/data/backlash/protocol.yaml": {
-      "sha256": "916508d89580615d37309b1ae0cd5d2fcac419bc838a9fa2c8ec9fb8c88ef0df",
-      "bytes": 3361
+      "sha256": "6c12f67fad6b60994e51d9285eff3db80eb3c1b8cabe1a0ca904f674f1e7053c",
+      "bytes": 3363
     },
     "examples/tiago/data/backlash/sinus_amp3_period10_2023-03-09-15-28-20_top/tf.csv": {
       "sha256": "734577b88d7756231f5a8f3509c7e98a6452841dc8342cbe664a6c8c00f36aa6",
