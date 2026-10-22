@@ -17,7 +17,8 @@ model:
   degree: 5
   transition_steepness: 100.0
   reject_extrapolation: true
-  target: absolute_encoder_minus_relative_encoder
+  # d = q_rel - q_abs, as BacklashJointTrajectory.encoder_difference computes it
+  target: relative_encoder_minus_absolute_encoder
   # Pinocchio generalized gravity torque, reconstructed from every logged
   # arm/torso/head joint position (see backlash_empirical_surface.py
   # --load-feature). Matches the historical tau_g feature; the logged
