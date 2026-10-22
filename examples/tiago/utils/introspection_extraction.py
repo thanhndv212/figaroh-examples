@@ -118,8 +118,8 @@ def channel_table(
     """CSV of selected channels on one clock.
 
     ``channels`` is ``[(column, channel_name), ...]``. The first column is
-    ``t`` in seconds from the first values message (header stamp), followed by
-    ``stamp_ns`` of the bag receive time. Values are ``repr`` of the float.
+    ``t`` in seconds from the first values message (header stamp, rounded to
+    microseconds), followed by the channels. Values are ``repr`` of the float.
     """
     names = names_msg[5]
     index: Dict[str, int] = {n: i for i, n in enumerate(names)}
@@ -131,9 +131,27 @@ def channel_table(
     out = io.StringIO()
     out.write("t," + ",".join(c for c, _ in channels) + "\n")
     for t, seq, secs, nsecs, version, values in rows:
-        out.write(repr(secs + nsecs * 1e-9 - t0) + ",")
+        out.write(repr(round(secs + nsecs * 1e-9 - t0, 6)) + ",")
         out.write(",".join(repr(values[i]) for i in cols) + "\n")
     return out.getvalue()
+
+
+#: Columns of the joint inspection files (#110): arm_5 and arm_6, relative
+#: (motor side) and absolute (output side) encoder and the commanded position.
+INSPECTION_KINDS = (
+    ("position", "position"),
+    ("absolute_encoder_position", "absolute"),
+    ("position_command", "command"),
+)
+
+
+def inspection_channels() -> List[Tuple[str, str]]:
+    """``(column, channel)`` pairs for :func:`channel_table`."""
+    return [
+        (f"arm_{j}_{col}", f"arm_{j}_joint_{kind}")
+        for j in (5, 6)
+        for kind, col in INSPECTION_KINDS
+    ]
 
 
 def read_tf_csv(path: str):
@@ -183,8 +201,19 @@ if __name__ == "__main__":
     )
     exp.add_argument("bag")
     exp.add_argument("out_dir")
+    insp = sub.add_parser(
+        "inspection", help="bag to the arm_5/arm_6 encoder and command table"
+    )
+    insp.add_argument("bag")
+    insp.add_argument("out_csv")
     args = parser.parse_args()
     names_msg, rows = read_introspection(args.bag)
+    if args.cmd == "inspection":
+        Path(args.out_csv).parent.mkdir(parents=True, exist_ok=True)
+        with open(args.out_csv, "w", newline="") as f:
+            f.write(channel_table(names_msg, rows, inspection_channels()))
+        print(f"{len(rows)} rows")
+        raise SystemExit(0)
     names_msg, rows = trim(names_msg, rows, backlash_channels())
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)

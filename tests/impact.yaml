@@ -49,6 +49,7 @@ robots:
     tests:
       - tests/test_calibration_harness_tiago.py
       - tests/test_tiago_backlash_sessions.py
+      - tests/test_tiago_joint_inspection.py
       - tests/test_tiago_calibration_truth.py
       - tests/test_tiago_export_check.py
       - tests/test_tiago_head_camera_2023.py
