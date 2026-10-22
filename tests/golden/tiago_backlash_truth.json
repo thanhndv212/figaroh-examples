@@ -4,9 +4,14 @@
   "F2": false,
   "F2q": false,
   "F3": true,
-  "F4": false,
+  "F4": true,
+  "F4_selected": false,
   "F5": true,
-  "F6": true
+  "F6": true,
+  "N6": [
+   "arm_5_joint",
+   "arm_6_joint"
+  ]
  },
  "f1": {
   "training": {
@@ -489,6 +494,7 @@
     "joints": {
      "arm_1_joint": {
       "band_v1_mrad": 0.018578318824878162,
+      "band_v1_selected_mrad": 0.018578318824878162,
       "band_w_mrad": 0.09725945558091596,
       "groups": [
        "EW",
@@ -502,7 +508,8 @@
       "ratio_m3": 0.5238798842079595
      },
      "arm_2_joint": {
-      "band_v1_mrad": 0.026804285746241288,
+      "band_v1_mrad": 0.032982882579818754,
+      "band_v1_selected_mrad": 0.026804285746241288,
       "band_w_mrad": 5.89518268079893,
       "groups": [
        "EL",
@@ -516,7 +523,8 @@
       "ratio_m3": 0.32316410056730366
      },
      "arm_3_joint": {
-      "band_v1_mrad": 0.01063271586800614,
+      "band_v1_mrad": 0.0765084910447641,
+      "band_v1_selected_mrad": 0.01063271586800614,
       "band_w_mrad": 1.8512624952455936,
       "groups": [
        "EL",
@@ -530,7 +538,8 @@
       "ratio_m3": 0.1724682172089841
      },
      "arm_4_joint": {
-      "band_v1_mrad": 0.005642565905795898,
+      "band_v1_mrad": 0.006274419677623376,
+      "band_v1_selected_mrad": 0.005642565905795898,
       "band_w_mrad": 3.495427525966758,
       "groups": [
        "EL",
@@ -544,7 +553,8 @@
       "ratio_m3": 0.3929232584749167
      },
      "arm_5_joint": {
-      "band_v1_mrad": 0.054036170125075375,
+      "band_v1_mrad": 0.05455005849491828,
+      "band_v1_selected_mrad": 0.054036170125075375,
       "band_w_mrad": 0.3090465053487999,
       "groups": [
        "EW",
@@ -558,7 +568,8 @@
       "ratio_m3": 3.5262476012454322
      },
      "arm_6_joint": {
-      "band_v1_mrad": 1.6049949169002915,
+      "band_v1_mrad": 1.594161390319294,
+      "band_v1_selected_mrad": 1.6049949169002915,
       "band_w_mrad": 0.2635391053279843,
       "groups": [
        "EWL",
@@ -573,6 +584,7 @@
      },
      "arm_7_joint": {
       "band_v1_mrad": 0.013681333136145672,
+      "band_v1_selected_mrad": 0.013681333136145672,
       "band_w_mrad": 0.017859031793198053,
       "groups": [
        "EW",
@@ -766,6 +778,7 @@
     "joints": {
      "arm_1_joint": {
       "band_v1_mrad": 0.03081150899511391,
+      "band_v1_selected_mrad": 0.03081150899511391,
       "band_w_mrad": 0.10974224425016489,
       "groups": [
        "EW",
@@ -779,7 +792,8 @@
       "ratio_m3": 0.2704157269703432
      },
      "arm_2_joint": {
-      "band_v1_mrad": 0.09075914221425159,
+      "band_v1_mrad": 0.0974048245387682,
+      "band_v1_selected_mrad": 0.09075914221425159,
       "band_w_mrad": 5.88008332438461,
       "groups": [
        "EL",
@@ -793,7 +807,8 @@
       "ratio_m3": 0.19783017580708104
      },
      "arm_3_joint": {
-      "band_v1_mrad": 0.028629936824899102,
+      "band_v1_mrad": 0.166219655812337,
+      "band_v1_selected_mrad": 0.028629936824899102,
       "band_w_mrad": 1.8489979782000872,
       "groups": [
        "EL",
@@ -807,7 +822,8 @@
       "ratio_m3": 0.16073402727498637
      },
      "arm_4_joint": {
-      "band_v1_mrad": 0.014405406016739328,
+      "band_v1_mrad": 0.017632619521115087,
+      "band_v1_selected_mrad": 0.014405406016739328,
       "band_w_mrad": 3.4986945825277607,
       "groups": [
        "EL",
@@ -821,7 +837,8 @@
       "ratio_m3": 0.20698159731545435
      },
      "arm_5_joint": {
-      "band_v1_mrad": 0.16689385069122015,
+      "band_v1_mrad": 0.16946415603722903,
+      "band_v1_selected_mrad": 0.16689385069122015,
       "band_w_mrad": 0.2976116697530564,
       "groups": [
        "EW",
@@ -835,7 +852,8 @@
       "ratio_m3": 1.7889870810774273
      },
      "arm_6_joint": {
-      "band_v1_mrad": 1.6053809519651798,
+      "band_v1_mrad": 1.5925247456886118,
+      "band_v1_selected_mrad": 1.6053809519651798,
       "band_w_mrad": 0.2785342573024708,
       "groups": [
        "EWL",
@@ -850,6 +868,7 @@
      },
      "arm_7_joint": {
       "band_v1_mrad": 0.04022915574246294,
+      "band_v1_selected_mrad": 0.04022915574246294,
       "band_w_mrad": 0.028906821905412168,
       "groups": [
        "EW",
@@ -1032,6 +1051,7 @@
     "joints": {
      "arm_1_joint": {
       "band_v1_mrad": 0.12049942687595669,
+      "band_v1_selected_mrad": 0.12049942687595669,
       "band_w_mrad": 0.13778104939208208,
       "groups": [
        "EW",
@@ -1045,7 +1065,8 @@
       "ratio_m3": 0.1549606057235057
      },
      "arm_2_joint": {
-      "band_v1_mrad": 0.3049066881181708,
+      "band_v1_mrad": 0.3252739615995349,
+      "band_v1_selected_mrad": 0.3049066881181708,
       "band_w_mrad": 5.850699217409632,
       "groups": [
        "EL",
@@ -1059,7 +1080,8 @@
       "ratio_m3": 0.1504771478917624
      },
      "arm_3_joint": {
-      "band_v1_mrad": 0.06803894642629532,
+      "band_v1_mrad": 0.3415345982790383,
+      "band_v1_selected_mrad": 0.06803894642629532,
       "band_w_mrad": 1.844548935116473,
       "groups": [
        "E",
@@ -1073,7 +1095,8 @@
       "ratio_m3": 0.1581156002137122
      },
      "arm_4_joint": {
-      "band_v1_mrad": 0.05175037365237585,
+      "band_v1_mrad": 0.05977557110212653,
+      "band_v1_selected_mrad": 0.05175037365237585,
       "band_w_mrad": 3.5055692951453894,
       "groups": [
        "EL",
@@ -1087,7 +1110,8 @@
       "ratio_m3": 0.12594338054664883
      },
      "arm_5_joint": {
-      "band_v1_mrad": 0.4930287115548154,
+      "band_v1_mrad": 0.5020936855362059,
+      "band_v1_selected_mrad": 0.4930287115548154,
       "band_w_mrad": 0.29074579105476095,
       "groups": [
        "EW",
@@ -1101,7 +1125,8 @@
       "ratio_m3": 0.9203862547247228
      },
      "arm_6_joint": {
-      "band_v1_mrad": 1.5981045702509626,
+      "band_v1_mrad": 1.5817749019396348,
+      "band_v1_selected_mrad": 1.5981045702509626,
       "band_w_mrad": 0.3097297522468626,
       "groups": [
        "EW",
@@ -1116,6 +1141,7 @@
      },
      "arm_7_joint": {
       "band_v1_mrad": 0.0994855293814684,
+      "band_v1_selected_mrad": 0.0994855293814684,
       "band_w_mrad": 0.06624717053702979,
       "groups": [
        "EW",
@@ -1276,6 +1302,7 @@
      "W_true_mrad": 2.671202109151818,
      "W_val_mrad": 2.656810524377694,
      "g_mrad": 0.013380843138234262,
+     "g_selected_mrad": 0.013380843138234262,
      "groups": "EW",
      "null_groups": "EW",
      "outside_fraction": 0.07265232974910393,
@@ -1287,7 +1314,8 @@
      "W_train_mrad": 5.1402912097982965,
      "W_true_mrad": 2.2122333922048383,
      "W_val_mrad": 3.06170072774743,
-     "g_mrad": 0.05767197309135744,
+     "g_mrad": 0.0586154384770094,
+     "g_selected_mrad": 0.05767197309135744,
      "groups": "EL",
      "null_groups": "EW",
      "outside_fraction": 0.11338967136150234,
@@ -1299,7 +1327,8 @@
      "W_train_mrad": 1.7497442838058193,
      "W_true_mrad": 1.9262169049202433,
      "W_val_mrad": 2.4294058452828606,
-     "g_mrad": 0.0230199032689044,
+     "g_mrad": 0.04241181108147735,
+     "g_selected_mrad": 0.0230199032689044,
      "groups": "EL",
      "null_groups": "EW",
      "outside_fraction": 0.0,
@@ -1311,7 +1340,8 @@
      "W_train_mrad": 0.5069524530809154,
      "W_true_mrad": 1.8956595444106614,
      "W_val_mrad": 2.3418718343402527,
-     "g_mrad": 0.012853487487520384,
+     "g_mrad": 0.015032074837324043,
+     "g_selected_mrad": 0.012853487487520384,
      "groups": "EL",
      "null_groups": "EW",
      "outside_fraction": 0.08481541596159822,
@@ -1323,7 +1353,8 @@
      "W_train_mrad": 13.923162284412145,
      "W_true_mrad": 13.879621435201633,
      "W_val_mrad": 14.005717822281259,
-     "g_mrad": 0.15472758812073018,
+     "g_mrad": 0.15759943481041513,
+     "g_selected_mrad": 0.15472758812073018,
      "groups": "EW",
      "null_groups": "EW",
      "outside_fraction": 0.06673379396548731,
@@ -1335,7 +1366,8 @@
      "W_train_mrad": 48.229141889365884,
      "W_true_mrad": 48.255111545554435,
      "W_val_mrad": 47.94180419163337,
-     "g_mrad": 1.4678223730683793,
+     "g_mrad": 1.456000332226521,
+     "g_selected_mrad": 1.4678223730683793,
      "groups": "EWL",
      "null_groups": "EW",
      "outside_fraction": 0.1341446158200085,
@@ -1348,6 +1380,7 @@
      "W_true_mrad": 6.31990732730154,
      "W_val_mrad": 6.3123764934819055,
      "g_mrad": 0.03625099413058831,
+     "g_selected_mrad": 0.03625099413058831,
      "groups": "EW",
      "null_groups": "EW",
      "outside_fraction": 0.0713146581611427,

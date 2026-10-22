@@ -465,7 +465,11 @@ def f4_cell(fx: Fixture, seed: int, level: float) -> dict:
         b1 = bm.fit_b1(jt0)
         e_m = _rmse_reanch(bm.predict(f0, jv0), nv["d_true"], jv0.valid)
         e_b = _rmse_reanch(bm.predict(b1, jv0), nv["d_true"], jv0.valid)
-        row["g_mrad"] = (e_m - e_b) * 1e3
+        row["g_selected_mrad"] = (e_m - e_b) * 1e3
+        # primary M* = all groups (maintainer decision 2026-10-22, before any real fit)
+        f0a = bm.fit_groups(jt0, kn0, ("E", "W", "L"))
+        e_a = _rmse_reanch(bm.predict(f0a, jv0), nv["d_true"], jv0.valid)
+        row["g_mrad"] = (e_a - e_b) * 1e3
         row["null_groups"] = "".join(sel0["groups"])
         # V2 width band: W from E+W fits on both simulated sessions (truth with E)
         ft = bm.fit_groups(jt, knots, ("E", "W"))
@@ -489,6 +493,7 @@ def summarize_f4(cells) -> dict:
     for j in JOINTS:
         rows = [x["joints"][j] for x in cells]
         g = np.array([r["g_mrad"] for r in rows])
+        gs = np.array([r["g_selected_mrad"] for r in rows])
         dw = np.array([r["W_train_mrad"] - r["W_val_mrad"] for r in rows])
         out["joints"][j] = {
             "ratio": float(np.mean([r["ratio"] for r in rows])),
@@ -496,6 +501,9 @@ def summarize_f4(cells) -> dict:
             "outside_fraction": float(np.mean([r["outside_fraction"] for r in rows])),
             "band_v1_mrad": float(
                 abs(g.mean()) + c["band_v1_sd_factor"] * g.std(ddof=1)
+            ),
+            "band_v1_selected_mrad": float(
+                abs(gs.mean()) + c["band_v1_sd_factor"] * gs.std(ddof=1)
             ),
             "band_w_mrad": float(c["band_w_factor"] * np.sqrt(np.mean(dw**2))),
             "groups": [r["groups"] for r in rows],
@@ -639,12 +647,22 @@ def grade(res: dict) -> dict:
     used = res["grid"][str(res["used"])]
     top = res["grid"][str(max(res["levels"]))]
     ratio_max = FX["f4"]["rmse_ratio_max"]
+    n6 = [j for j, v in used["f4"]["joints"].items() if v["ratio_m3"] >= ratio_max]
     return {
         "F1": bool(f1),
         "F2": all(f2_ok(c["f2"]) for c in res["grid"].values()),
         "F2q": bool(f2_ok(used["f2q"])),
         "F3": all(used["f3"]["pass"].values()),
-        "F4": all(v["ratio"] < ratio_max for v in used["f4"]["joints"].values()),
+        # primary M* = all groups; N6 joints (ratio >= limit) are not answerable
+        "F4": all(
+            v["ratio_m3"] < ratio_max
+            for j, v in used["f4"]["joints"].items()
+            if j not in n6
+        ),
+        "F4_selected": all(
+            v["ratio"] < ratio_max for v in used["f4"]["joints"].values()
+        ),
+        "N6": n6,
         "F5": used["f5"]["pass"],
         "F6": bool(
             all(c["f6"]["found"] == c["f6"]["injected"] for c in res["grid"].values())

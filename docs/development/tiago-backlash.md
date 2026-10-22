@@ -229,7 +229,10 @@ that a step at one abscissa in both directions is what the data shows.
 
 ### 6.2 F4: transfer and the V1 band
 
-Training model (selected groups) fitted on the simulated 2023-07-24, offset
+The primary part-2 model M* is the **all-groups model** (E, W and the load
+group). The selected-groups model is reported as secondary and descriptive
+only. This choice was made after seeing the fixture results and before any
+real backlash fit. Training model fitted on the simulated 2023-07-24, offset
 re-anchored on the simulated 2023-03-09, compared with the noise-free truth on
 the samples inside the training knots (the last column is the fraction of
 validation samples outside, not scored). Criterion: RMSE below 1.2 times the
@@ -237,26 +240,30 @@ noise level.
 
 | criterion | pass rule | result |
 |---|---|---|
-| F4 transfer | RMSE / (level x sigma_d) < 1.2 on every joint (level 1) | **fail** |
+| F4 transfer, primary (all groups) | RMSE / (level x sigma_d) < 1.2 (level 1) | pass on arm_1 to arm_4 and arm_7; arm_5_joint, arm_6_joint not answerable (N6) |
+| F4 transfer, secondary (selected groups) | the same, every joint | **fail** (visible below, descriptive only) |
 
 | joint | RMSE / noise | outside |
 |---|---|---|
-| `transfer arm_1_joint` | 0.3 (selected), 0.27 (all groups) | 5 % |
-| `transfer arm_2_joint` | 2.2 (selected), 0.20 (all groups) | 10 % |
-| `transfer arm_3_joint` | 1.9 (selected), 0.16 (all groups) | 0 % |
-| `transfer arm_4_joint` | 1.3 (selected), 0.21 (all groups) | 9 % |
-| `transfer arm_5_joint` | 1.8 (selected), 1.79 (all groups) | 5 % |
-| `transfer arm_6_joint` | 2.9 (selected), 2.58 (all groups) | 14 % |
-| `transfer arm_7_joint` | 0.4 (selected), 0.36 (all groups) | 6 % |
+| `transfer arm_1_joint` | 0.27 (all groups, primary); 0.3 (selected, secondary) | 5 % |
+| `transfer arm_2_joint` | 0.20 (all groups, primary); 2.2 (selected, secondary) | 10 % |
+| `transfer arm_3_joint` | 0.16 (all groups, primary); 1.9 (selected, secondary) | 0 % |
+| `transfer arm_4_joint` | 0.21 (all groups, primary); 1.3 (selected, secondary) | 9 % |
+| `transfer arm_5_joint` | 1.79 (all groups, primary) **N6**; 1.8 (selected, secondary) | 5 % |
+| `transfer arm_6_joint` | 2.58 (all groups, primary) **N6**; 2.9 (selected, secondary) | 14 % |
+| `transfer arm_7_joint` | 0.36 (all groups, primary); 0.4 (selected, secondary) | 6 % |
 
-F4 fails: the selected model is within 1.2 on arm_1 (0.27) and arm_7 (0.36)
-only. The all-groups model passes on arm_1 to arm_4 and arm_7 (0.16 to 0.36)
-and fails on arm_5 (1.79) and arm_6 (2.58). Two causes. On arm_2 to arm_4 the
+F4 for the primary model: pass on arm_1 to arm_4 and arm_7 (0.16 to 0.36);
+arm_5 (1.79) and arm_6 (2.58) are at or above 1.2 and become not answerable for
+V1 by rule N6. The selected-groups model is within 1.2 on arm_1 (0.27) and
+arm_7 (0.36) only; that failure is kept visible in the table. Two causes. On arm_2 to arm_4 the
 failure is the **selection rule not admitting terms it cannot see** (a width of
 2.5 mrad, a few mrad of `G`), which costs 1 to 2 mrad of RMSE. On arm_5 the
 20 mrad wide step cannot be represented by knots 0.1 rad apart, and on arm_6 a
 40 mrad width and `G` are not separable from `E` with 2 reversals. The V1 band
-below is therefore a **floor of the method**, not of the noise.
+below is therefore a **floor of the method**, not of the noise. The bands are
+computed for the primary (all-groups) model; the selected-model values are
+given in brackets.
 
 Bands for part 2 (level 1): `b_V1 = abs(mean g) + 2 sd g` with
 `g = RMSE(M*) - RMSE(B1)` under a direction-only truth, and
@@ -264,13 +271,13 @@ Bands for part 2 (level 1): `b_V1 = abs(mean g) + 2 sd g` with
 
 | band | value |
 |---|---|
-| `band arm_1_joint` | b_V1 0.03 mrad, band_W 0.11 mrad |
-| `band arm_2_joint` | b_V1 0.09 mrad, band_W 5.88 mrad |
-| `band arm_3_joint` | b_V1 0.03 mrad, band_W 1.85 mrad |
-| `band arm_4_joint` | b_V1 0.01 mrad, band_W 3.50 mrad |
-| `band arm_5_joint` | b_V1 0.17 mrad, band_W 0.30 mrad |
-| `band arm_6_joint` | b_V1 1.61 mrad, band_W 0.28 mrad |
-| `band arm_7_joint` | b_V1 0.04 mrad, band_W 0.03 mrad |
+| `band arm_1_joint` | b_V1 0.03 mrad (selected model: 0.03), band_W 0.11 mrad |
+| `band arm_2_joint` | b_V1 0.10 mrad (selected model: 0.09), band_W 5.88 mrad |
+| `band arm_3_joint` | b_V1 0.17 mrad (selected model: 0.03), band_W 1.85 mrad |
+| `band arm_4_joint` | b_V1 0.02 mrad (selected model: 0.01), band_W 3.50 mrad |
+| `band arm_5_joint` | b_V1 0.17 mrad (selected model: 0.17), band_W 0.30 mrad |
+| `band arm_6_joint` | b_V1 1.59 mrad (selected model: 1.61), band_W 0.28 mrad |
+| `band arm_7_joint` | b_V1 0.04 mrad (selected model: 0.04), band_W 0.03 mrad |
 
 ### 6.3 F5 and F6: selection and jumps
 
@@ -291,7 +298,8 @@ Bands for part 2 (level 1): `b_V1 = abs(mean g) + 2 sd g` with
 Baselines on validation, re-anchored the same way: B0, B1 (the comparator of
 #71), B2.
 
-- **V1 transfer**: `g = RMSE(M*) - RMSE(B1)` per joint; "improves" if
+- **V1 transfer** (M* is the all-groups model; the selected-groups model is
+  secondary and descriptive): `g = RMSE(M*) - RMSE(B1)` per joint; "improves" if
   `g < -b_V1`, "worse" if `g > b_V1`, "no change" within; borderline within 35 %
   of `b_V1` of an edge. `b_V1` is the table above. The fixture says the
   method reaches 1 to 2 mrad of residual error on the joints where it cannot
@@ -311,9 +319,12 @@ Not answerable (the rule is applied per joint and verdict):
 - N2: the torso (excluded): fewer than 10 reversals. **Extended for the arm**:
   a joint whose direction overlap in training is below 0.5 has no `W` verdict
   (arm_3 at 0.45 and arm_7 at 0.32); this is conservative, F2 recovers `W`
-  there in the fixture. The maintainer may relax it.
+  there in the fixture. Decided: no V2 verdict on arm_3 or arm_7; their `W` is
+  reported descriptively.
 - N3: the fixture SE of `W` above `max(5 mrad, W/2)`.
 - N4: `abs(corr(h, tanh(tau_g/tau0)))` above 0.95: load not separable (no joint).
+- N6: the F4 transfer ratio of the primary model (all groups) is 1.2 or more at
+  level 1 (arm_5 and arm_6): V1 not answerable, the method floor.
 - N5: `tau_g` sign differs between the Schunk and Hey5 URDFs on more than 10 %
   of the samples: V3 not answerable (arm_7). V3 is also not answerable on arm_1
   (no gravity torque), and on arm_2 only `kappa` is usable.
@@ -322,7 +333,7 @@ Not answerable (the rule is applied per joint and verdict):
 
 `backlash_study.py` with `--archive --no-plot`: fit M0 to M3 on training with
 the frozen selection; print train and validation RMSE next to B0, B1, B2 per
-joint; apply V1 to V3 and N1 to N5; the joint-inspection bags as **prediction
+joint; apply V1 to V3 and N1 to N6; the joint-inspection bags as **prediction
 checks only** (D3), the arm_6 width against the 38 to 42 mrad probes and
 against the arm_5 angle, with `c_s` re-anchored per bag and no score, using the
 Hey5 URDF (hand not verified) with Schunk as the sensitivity check. The
@@ -337,10 +348,19 @@ item 2 of #71.
 - No hysteresis, backlash or block-bootstrap utility in core: local code, no
   core issue proposed.
 
-Decisions for the maintainer: (a) the N2 coverage extension (arm_3, arm_7);
-(b) whether the F2 and F4 failures stand as pre-registered (limits unchanged)
-or the F4 criterion is replaced by the all-groups floor; (c) the knot spacing
-of 0.1 rad on arm_5 (the 20 mrad step cannot be resolved); (d) the D2 label.
+### Decisions taken (maintainer, 2026-10-22)
+
+- (a) N2 coverage extension: kept, conservative. No V2 verdict on arm_3 or
+  arm_7; their `W` is reported descriptively.
+- (b) F2 stands as failed, limits unchanged; part 2 reads the bootstrap SE as
+  an upper bound. For F4 the primary part-2 model M* is the all-groups model,
+  which the fixture supports on arm_1 to arm_4 and arm_7; the selected-groups
+  model is secondary and descriptive. V1 on arm_5 and arm_6 is pre-registered
+  not answerable as the method floor (rule N6). This choice was made after
+  seeing the fixture and before any real backlash fit.
+- (c) Knot spacing of 0.1 rad on arm_5: kept (the 20 mrad step is not resolved;
+  see N6).
+- (d) D2: the label "validation-level" is confirmed.
 
 ## 10. Reproduction
 
