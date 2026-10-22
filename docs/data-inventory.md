@@ -217,7 +217,7 @@ Sinusoidal runs (period 10 s, amplitude 3): 2023-07-24 with 12,092 samples of re
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/tiago/data/backlash/protocol.yaml` |  | 3363 | `6c12f67fad6b6099` |
+| `examples/tiago/data/backlash/protocol.yaml` |  | 3630 | `eca2d156ebf0ca4f` |
 | `examples/tiago/data/backlash/sinus_amp3_period10_2023-03-09-15-28-20_top/tf.csv` | 43529 | 52674559 | `734577b88d775623` |
 | `examples/tiago/data/backlash/sinus_amp3_period10_2023-03-09-16-19-17_bottom/introspection_datanames.csv` | 1 | 1056 | `e2f600b44b4cf59d` |
 | `examples/tiago/data/backlash/sinus_amp3_period10_2023-03-09-16-19-17_bottom/introspection_datavalues.csv` | 41953 | 25530210 | `e33f7610f3be9857` |

@@ -30,7 +30,7 @@ sessions:
 - id: 2023-03-09-16-19-17-bottom
   role: validation
   robot: tiago-48
-  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.7, -5.3, +2.3 mrad) equals that of the 2023-07-24 run (-3.6, -5.2, +2.7) and of the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7). The run has gripper channels, not Hey5 hand channels, so the end effector differs from those bags and the hardware alone does not exclude another robot"
+  robot_evidence: "median position minus absolute-encoder gap on arm_1, arm_2, arm_7 (-3.7, -5.3, +2.3 mrad) equals that of the 2023-07-24 run (-3.6, -5.2, +2.7) and of the tiago-48 Hey5 bags of 2023-11 to 2024-02 (-3.8 to -4.6, -4.1 to -6.9, +3 to +7). The hand channels are the Schunk hand's (a single gripper_finger_joint plus fingertip force channels, as in the 2023-07-24 run), not Hey5 hand channels. This fits tiago-48, which carried the Schunk hand in 2023-03 and 2023-07 and the Hey5 hand in 2023-10 and 2023-11; the other robot (tiago-155c) has a PAL gripper. The URDF for gravity torque is tiago_48_schunk.urdf"
   usable: true
   traced: true
   source:
@@ -44,7 +44,7 @@ sessions:
 - id: 2023-03-09-15-28-20-top
   role: diagnostic  # pose only: tf.csv, no joint values
   robot: unknown
-  robot_note: "same day and protocol as the bottom run (tiago-48 by the same reasoning), but no encoder channel survives to fingerprint it"
+  robot_note: "same day and protocol as the bottom run (tiago-48 by the same reasoning), but no encoder channel survives to fingerprint it; it carried the same Schunk hand as the bottom run"
   usable: true
   traced: true
   source:
