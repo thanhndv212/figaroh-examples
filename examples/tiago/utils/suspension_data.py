@@ -348,6 +348,80 @@ def triad_pose(markers: np.ndarray, ref: np.ndarray) -> tuple[np.ndarray, np.nda
     return centroid - ref.mean(axis=0), Rotation.from_matrix(rot).as_rotvec()
 
 
+def marker_frames(markers: np.ndarray) -> np.ndarray:
+    """(n, 3, 3) frames of marker triads ``(n, 3, 3)``: columns x, y, z in world.
+
+    x from marker 1 to marker 2, z = x cross (marker 3 - marker 1), y = z cross
+    x, as in the data README (for the base triad z points down).
+    """
+    markers = np.asarray(markers, dtype=float)
+    return _base_marker_rotation(markers[:, 0], markers[:, 1], markers[:, 2])
+
+
+def footprint_rest(
+    ref: np.ndarray, offset, rotvec, min_up: float = 0.8
+) -> tuple[np.ndarray, np.ndarray]:
+    """``(point, axes)`` of the base_footprint frame at the rest triad ``ref`` (3, 3).
+
+    ``offset`` is the footprint origin in the triad frame (robot-fixed) and
+    ``rotvec`` the rotation from the triad frame to the footprint axes (both
+    from the config, derived by ``suspension_model.footprint_derivation``);
+    ``point`` and ``axes`` (columns x, y, z) are in world. The footprint z must
+    point up (``axes[2, 2] >= min_up``): the triad z points down and the
+    rotation to the footprint axes turns it up.
+    """
+    ref = np.asarray(ref, dtype=float)
+    r_tri = marker_frames(ref[None])[0]
+    point = ref.mean(axis=0) + r_tri @ np.asarray(offset, dtype=float)
+    axes = r_tri @ Rotation.from_rotvec(np.asarray(rotvec, dtype=float)).as_matrix()
+    if axes[2, 2] < min_up:
+        raise ValueError(f"footprint z axis is not up (z.z = {axes[2, 2]:.3f})")
+    return point, axes
+
+
+def base_pose(
+    markers: np.ndarray,
+    ref: np.ndarray,
+    *,
+    origin: str = "centroid",
+    frame: str = "world",
+    footprint: Optional[dict] = None,
+):
+    """``(trans, angle, point, axes)`` of the base triad on its rest pose ``ref``.
+
+    ``origin``: ``footprint`` (rigid with the triad, ``footprint['offset']`` and
+    ``['rotvec']``), ``centroid`` or ``corner`` (marker base1). ``frame``:
+    ``footprint`` (axes of the rest footprint frame), ``base`` (:func:`base_frame`),
+    ``world`` (also ``legacy``, whose angle the caller replaces). ``trans`` is
+    the translation of ``point`` and ``angle`` the rotation vector, both in the
+    axes ``axes`` (world components times ``axes``).
+    """
+    if origin not in ("footprint", "centroid", "corner"):
+        raise ValueError(origin)
+    if frame not in ("footprint", "base", "world", "legacy"):
+        raise ValueError(frame)
+    if "footprint" in (origin, frame) and footprint is None:
+        raise ValueError("the footprint offset and rotation are required")
+    markers = np.asarray(markers, dtype=float)
+    ref = np.asarray(ref, dtype=float)
+    centre = ref.mean(axis=0)
+    trans, rotvec = triad_pose(markers, ref)
+    if origin == "footprint":
+        point = footprint_rest(ref, **footprint)[0]
+        rot = Rotation.from_rotvec(rotvec).as_matrix() - np.eye(3)
+        trans = trans + rot @ (point - centre)
+    elif origin == "corner":
+        point, trans = ref[0], markers[:, 0, :] - ref[0]
+    else:
+        point = centre
+    axes = np.eye(3)
+    if frame == "footprint":
+        axes = footprint_rest(ref, **footprint)[1]
+    elif frame == "base":
+        axes = base_frame(ref)
+    return trans @ axes, rotvec @ axes, point, axes
+
+
 def transport_moment(
     moment: np.ndarray, force: np.ndarray, centre, point
 ) -> np.ndarray:
@@ -383,8 +457,11 @@ class SuspensionRun:
     ``v`` its derivative, ``w`` the measured wrench of the force plate
     (action on the plate, about the origin) minus its static offset. ``valid``
     marks the rows a fit may use (not edge, not within ``guard`` frames of an
-    interpolated frame). ``grip`` and ``shoulder`` are the marker-cluster
-    centroids (world, filtered like ``x``) the arm baseline uses.
+    interpolated frame). ``grip`` and ``grip_rot`` are the centroid and the
+    frame (:func:`marker_frames`) of the gripper-marker triad, ``shoulder`` the
+    shoulder-cluster centroid (world, filtered like ``x``); the arm baseline B2
+    uses the gripper pair. ``origin`` is the world point the wrench is about
+    and ``axes`` (columns) the axes of ``x``, ``v`` and ``w`` in world.
     """
 
     t: np.ndarray
@@ -394,9 +471,11 @@ class SuspensionRun:
     valid: np.ndarray
     interpolated: np.ndarray
     grip: np.ndarray
+    grip_rot: np.ndarray
     shoulder: np.ndarray
     origin: np.ndarray
     ref: np.ndarray
+    axes: np.ndarray
     frame: str
     stats: Dict[str, float] = field(default_factory=dict)
 
@@ -417,6 +496,7 @@ def process_raw(
     plate_centre=PLATE_CENTRE,
     frame: str = "world",
     origin: str = "centroid",
+    footprint: Optional[dict] = None,
     transport: bool = True,
     clock: str = "grid",
 ) -> SuspensionRun:
@@ -424,17 +504,17 @@ def process_raw(
 
     Switches (``origin``, ``transport``, ``frame``, ``clock``) restore one
     status-quo error each for the ablation of the study; the defaults are the
-    corrected pipeline. ``origin``: ``centroid`` or ``corner`` (marker base1).
-    ``frame``: ``world`` or ``base`` (axes of :func:`base_frame`) for the
-    corrected one, ``legacy`` for the status-quo relative RPY in the
-    down-pointing marker frame (translation and wrench stay in world axes).
+    corrected pipeline of the study (``footprint`` origin and frame, from the
+    config); the plain defaults are the triad centroid in world axes.
+    ``origin``: ``footprint`` (needs ``footprint`` = ``{offset, rotvec}``, see
+    :func:`footprint_rest`), ``centroid`` or ``corner`` (marker base1).
+    ``frame``: ``footprint`` (axes of the rest footprint frame), ``world`` or
+    ``base`` (axes of :func:`base_frame`), ``legacy`` for the status-quo
+    relative RPY in the down-pointing marker frame (translation and wrench stay
+    in world axes).
     ``clock``: ``grid`` (rebuilt frame numbers) or ``receive`` (rows as
     recorded, differentiated on the receive stamps).
     """
-    if origin not in ("centroid", "corner"):
-        raise ValueError(origin)
-    if frame not in ("world", "base", "legacy"):
-        raise ValueError(frame)
     if clock not in ("grid", "receive"):
         raise ValueError(clock)
     t = np.asarray(t, dtype=float)
@@ -454,32 +534,23 @@ def process_raw(
 
     markers = data[:, 0:9].reshape(n, 3, 3)
     ref = markers[:nw].mean(axis=0)
-    p_b = ref.mean(axis=0) if origin == "centroid" else ref[0]
-    if origin == "centroid":
-        trans, rotvec = triad_pose(markers, ref)
-    else:
-        trans = markers[:, 0, :] - ref[0]
-        _, rotvec = triad_pose(markers, ref)
-
-    r_wb = base_frame(ref)
+    trans, angle, p_b, axes = base_pose(
+        markers, ref, origin=origin, frame=frame, footprint=footprint
+    )
     if frame == "legacy":
-        rot = _base_marker_rotation(markers[:, 0], markers[:, 1], markers[:, 2])
+        rot = marker_frames(markers)
         rel = np.einsum("ji,njk->nik", rot[0], rot)
         angle = np.unwrap(_rotation_to_rpy(rel), axis=0)
-    elif frame == "base":
-        trans, angle = trans @ r_wb, rotvec @ r_wb
-    else:
-        angle = rotvec
 
     force = data[:, 30:33]
     moment = data[:, 33:36]
     if transport:
         moment = transport_moment(moment, force, plate_centre, p_b)
-    wrench = np.column_stack((force, moment))
-    if frame == "base":
-        wrench = np.column_stack((force @ r_wb, moment @ r_wb))
+    wrench = np.column_stack((force @ axes, moment @ axes))
 
-    grip = data[:, 21:30].reshape(n, 3, 3).mean(axis=1)
+    grip_markers = data[:, 21:30].reshape(n, 3, 3)
+    grip = grip_markers.mean(axis=1)
+    grip_rot = marker_frames(grip_markers).reshape(n, 9)
     shoulder = data[:, 9:21].reshape(n, 4, 3).mean(axis=1)
     x = np.column_stack((trans, angle))
     if clock == "grid":
@@ -487,6 +558,7 @@ def process_raw(
         grip, shoulder = lowpass(grip, rate, cutoff_hz), lowpass(
             shoulder, rate, cutoff_hz
         )
+        grip_rot = lowpass(grip_rot, rate, cutoff_hz)
         v = np.gradient(x, 1.0 / rate, axis=0)
     else:
         v = np.gradient(x, t, axis=0, edge_order=2)
@@ -504,6 +576,7 @@ def process_raw(
         {
             "origin": origin,
             "frame": frame,
+            "origin_world_z": float(p_b[2]),
             "clock": clock,
             "frame_yaw_deg": frame_yaw_deg(ref),
             "valid_rows": int(valid.sum()),
@@ -517,9 +590,11 @@ def process_raw(
         valid=valid,
         interpolated=interp,
         grip=grip,
+        grip_rot=grip_rot.reshape(n, 3, 3),
         shoulder=shoulder,
         origin=p_b,
         ref=ref,
+        axes=axes,
         frame=frame,
         stats=stats,
     )

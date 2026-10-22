@@ -16,11 +16,16 @@ with one constant per DOF (static drift). Linear least squares on unit-RMS
 columns and unit-variance rows (each DOF scaled by the standard deviation of
 its target); standard errors from a moving-block bootstrap over time.
 
+The fits are constrained (maintainer decision O4): S1/S2 k >= 0 and c >= 0
+(bounded least squares), S3 K and C symmetric positive semi-definite (an SDP),
+B2 m >= 0. The origin is the base_footprint frame (O1), located from shipped
+data (:func:`footprint_derivation`).
+
 Baselines: B0 static (predicts the static wrench), B1 the status-quo loader +
-S1 (what #70 reported), B2 rigid base: the wrench of an effective point mass
-at the gripper cluster moving with the measured arm motion (parameter: the
-mass), the competitor that asks whether the suspension explains anything
-beyond "the arm moved".
+S1 (what #70 reported), B2 rigid base: the wrench of a rigid cube at the
+gripper markers moving with the measured arm motion (parameters: the mass and
+the first moment; O2), the competitor that asks whether the suspension
+explains anything beyond "the arm moved".
 
 Part 1 reads no wrench to fit anything. :func:`read_target` refuses the
 validation run until a study stage sets ``unlock_validation`` (part 2),
@@ -30,6 +35,7 @@ docs/development/tiago-suspension.md.
 
     python suspension_model.py noise      # freezes the noise of the fixture
     python suspension_model.py describe   # the descriptive reads of the note
+    python suspension_model.py footprint  # the frozen base_footprint offset
 """
 
 from __future__ import annotations
@@ -45,6 +51,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 import yaml
 from figaroh.data.protocol import Protocol
+from scipy.optimize import lsq_linear
 
 project_root = Path(__file__).parents[2]
 if str(project_root) not in sys.path:
@@ -54,6 +61,8 @@ from examples.tiago.utils import suspension_data as sd  # noqa: E402
 
 TIAGO = Path(__file__).resolve().parent
 SUS = TIAGO / "data/suspension"
+VICON_1607 = TIAGO / "data/calibration/vicon/vicon_2023-09-20-1607_static_postures.csv"
+MOCAP_GOLDEN = project_root / "tests/golden/tiago_mocap_hardware.json"
 PROTOCOL = SUS / "protocol.yaml"
 CONFIG = TIAGO / "config/tiago_suspension_study_config.yaml"
 
@@ -79,7 +88,11 @@ LOADER = dict(
     cutoff_hz=float(SETTINGS["filter"]["cutoff_hz"]),
     plate_centre=tuple(SETTINGS["plate_centre"]),
     frame=SETTINGS["frame"],
-    origin={"triad_centroid": "centroid"}[SETTINGS["origin"]],
+    origin={"base_footprint": "footprint"}[SETTINGS["origin"]],
+    footprint=dict(
+        offset=np.asarray(SETTINGS["footprint"]["offset_triad_m"], dtype=float),
+        rotvec=np.asarray(SETTINGS["footprint"]["rotation_triad_rotvec"], dtype=float),
+    ),
 )
 
 
@@ -133,9 +146,11 @@ class Regressors:
     valid: np.ndarray
     interpolated: np.ndarray
     grip: np.ndarray
+    grip_rot: np.ndarray
     shoulder: np.ndarray
     origin: np.ndarray
     ref: np.ndarray
+    axes: np.ndarray
     stats: dict
 
     @property
@@ -154,8 +169,8 @@ def read_regressors(session: Session) -> Regressors:
 
 def _regressors(session: Session, r: sd.SuspensionRun) -> Regressors:
     return Regressors(
-        session, r.t, r.x, r.v, r.valid, r.interpolated, r.grip, r.shoulder,
-        r.origin, r.ref, dict(r.stats),
+        session, r.t, r.x, r.v, r.valid, r.interpolated, r.grip, r.grip_rot,
+        r.shoulder, r.origin, r.ref, r.axes, dict(r.stats),
     )  # fmt: skip
 
 
@@ -166,7 +181,8 @@ def regressors_from_raw(t, values, **overrides) -> Tuple[Regressors, np.ndarray]
     """``(Regressors, wrench)`` of simulated raw rows through the corrected loader.
 
     ``overrides`` replace the frozen loader settings (the ablation switches
-    ``origin``, ``transport``, ``frame``, ``clock``). Simulated rows only.
+    ``origin``, ``transport``, ``frame``, ``clock``, or another ``footprint``).
+    Simulated rows only.
     """
     kw = dict(LOADER)
     kw.update(overrides)
@@ -179,10 +195,11 @@ def read_target(
 ) -> np.ndarray:
     """(n, 6) plate wrench about the origin, on the rows of :func:`read_regressors`.
 
-    Training only. The validation wrench is read by the study stage of part 2
-    (``unlock_validation``); the confirmation wrench by the confirmation stage
-    (``unlock_confirmation``), which does not exist in part 1. Diagnostic runs
-    are not targets.
+    Training, and the diagnostic runs listed in ``sessions.selection_diagnostics``
+    (model selection only, O3). The validation wrench is read by the study stage
+    of part 2 (``unlock_validation``); the confirmation wrench by the
+    confirmation stage (``unlock_confirmation``), which does not exist in part 1.
+    Other diagnostic runs (the postures) are not targets.
     """
     if session.role == "confirmation" and not unlock_confirmation:
         raise PermissionError(
@@ -193,7 +210,10 @@ def read_target(
             f"{session.id}: the validation wrench is read only by the study stage "
             "(unlock_validation)"
         )
-    if session.role not in ("training", "validation", "confirmation"):
+    selection = SETTINGS["sessions"]["selection_diagnostics"]
+    if session.role == "diagnostic" and session.id not in selection:
+        raise PermissionError(f"{session.id}: not a selection run, not a target")
+    if session.role not in ("training", "validation", "confirmation", "diagnostic"):
         raise PermissionError(f"{session.id}: {session.role} runs are not targets")
     return _run(session.id).w
 
@@ -258,33 +278,71 @@ def spring_design(
     raise ValueError(model)
 
 
-CLUSTERS = {"B2g": ("grip",), "B2gs": ("grip", "shoulder")}
+B2_NAMES = ["m", "mo_x", "mo_y", "mo_z"]
 
 
-def arm_design(run: Regressors, model: str = "B2g") -> np.ndarray:
-    """(n, 6, m) wrench of unit point masses at the marker clusters, rigid base.
+def cube_kinematics(grip, grip_rot) -> dict:
+    """Accelerations of the gripper triad: ``c''`` (n, 3), ``R''`` (n, 3, 3), ``w'`` (n, 3).
 
-    Mass at position ``p`` with acceleration ``a``: force on the plate
-    ``m (g - a)`` (action), moment about the base origin ``(p - o) x m (g - a)``,
-    ``g = (0, 0, -9.81)``. The static part is absorbed by the offset.
+    ``grip`` and ``grip_rot`` are the filtered centroid and frame of the gripper
+    markers (world); ``w'`` is the angular acceleration (``w`` from ``R' R^T``).
     """
     dt = 1.0 / RATE
-    grav = np.array([0.0, 0.0, -G])
-    cols = []
-    for name in CLUSTERS[model]:
-        p = getattr(run, name)
-        a = np.gradient(np.gradient(p, dt, axis=0), dt, axis=0)
-        f = grav - a
-        cols.append(np.column_stack((f, np.cross(p - run.origin, f))))
-    return np.stack(cols, axis=2)
+    rd = np.gradient(grip_rot, dt, axis=0)
+    spin = np.einsum("nab,ncb->nac", rd, grip_rot)  # R' R^T = [w]x
+    omega = np.column_stack((spin[:, 2, 1], spin[:, 0, 2], spin[:, 1, 0]))
+    return {
+        "cdd": np.gradient(np.gradient(grip, dt, axis=0), dt, axis=0),
+        "rdd": np.gradient(rd, dt, axis=0),
+        "omega_dot": np.gradient(omega, dt, axis=0),
+    }
 
 
-def design(model: str, run: Regressors, h_e: float = 0.0) -> np.ndarray:
-    return (
-        arm_design(run, model)
-        if model in CLUSTERS
-        else spring_design(model, run.x, run.v, h_e)
+def arm_design(run, edge: Optional[float] = None) -> np.ndarray:
+    """(n, 6, 4) wrench per unit ``[m, m o_x, m o_y, m o_z]`` of the B2 cube, rigid base.
+
+    A rigid cube at the gripper markers, centre ``c + R o`` (``c``, ``R`` the
+    centroid and frame of the gripper triad, ``o`` the centre in that frame),
+    mass ``m``, isotropic inertia ``m a^2 / 6``. The wrench the plate receives
+    (action), about the base origin and in the run's axes:
+
+        F = m (g - c'') - R'' (m o)
+        M = (c - p) x F + R (m o) x (g - c'') - (m a^2 / 6) w'
+
+    linear in ``m`` and ``m o``; the quadratic term ``(R o) x R'' (m o)`` is
+    neglected, ``g = (0, 0, -9.81)``. The static part is absorbed by the offset.
+    ``edge`` is ``a`` (default ``b2.edge_m`` of the config).
+    """
+    a = SETTINGS["b2"]["edge_m"] if edge is None else edge
+    kin = cube_kinematics(run.grip, run.grip_rot)
+    f0 = np.array([0.0, 0.0, -G]) - kin["cdd"]
+    lever = run.grip - run.origin
+    n = f0.shape[0]
+    out = np.zeros((n, 6, 4))
+    out[:, :3, 0] = f0
+    out[:, 3:, 0] = np.cross(lever, f0) - (a**2 / 6.0) * kin["omega_dot"]
+    for j in range(3):
+        rdd_j = kin["rdd"][:, :, j]
+        out[:, :3, 1 + j] = -rdd_j
+        out[:, 3:, 1 + j] = -np.cross(lever, rdd_j) + np.cross(
+            run.grip_rot[:, :, j], f0
+        )
+    return np.concatenate(
+        (
+            np.einsum("ka,nkc->nac", run.axes, out[:, :3]),
+            np.einsum("ka,nkc->nac", run.axes, out[:, 3:]),
+        ),
+        axis=1,
     )
+
+
+def design(
+    model: str, run: Regressors, h_e: float = 0.0, edge: Optional[float] = None
+) -> np.ndarray:
+    """(n, 6, p) regressor of S1, S2 (at ``h_e``), S3 or B2 (cube ``edge``; offset excluded)."""
+    if model == "B2":
+        return arm_design(run, edge)
+    return spring_design(model, run.x, run.v, h_e)
 
 
 # -------------------------------------------------------------------- fit
@@ -301,6 +359,11 @@ class Fit:
     rank: int
     cond: float  # scaled condition number of the weighted design
     se: Optional[np.ndarray] = None
+    active: Optional[np.ndarray] = (
+        None  # (p,) bool: parameter at its bound (box models)
+    )
+    constrained: bool = True
+    edge: Optional[float] = None  # B2 cube edge used (None: the config's)
 
     @property
     def p(self) -> int:
@@ -341,6 +404,40 @@ class Fit:
         pairs = _pair_index()
         return np.array([self.se[pairs.index((d, d))] for d in range(6)])
 
+    def matrices(self) -> Tuple[np.ndarray, np.ndarray]:
+        """``(K, C)`` 6x6 (S3 full, S1 and S2 diagonal)."""
+        if self.model == "S3":
+            out = []
+            for off in (0, len(_pair_index())):
+                m = np.zeros((6, 6))
+                for q, (a, b) in enumerate(_pair_index()):
+                    m[a, b] = m[b, a] = self.theta[off + q]
+                out.append(m)
+            return out[0], out[1]
+        return np.diag(self.k()), np.diag(self.c())
+
+    def bound_dofs(self) -> np.ndarray:
+        """(6,) bool, the DOF with a parameter at its bound (verdict item "active bound").
+
+        S1, S2: ``k`` or ``c`` of the DOF at 0. S3: ``K`` or ``C`` with an
+        eigenvalue below ``rules.psd_zero_rel`` of the largest flags all six DOF.
+        """
+        if self.model in ("S1", "S2"):
+            a = np.asarray(self.active, bool)
+            return a[0::2] | a[1::2]
+        if self.model == "S3":
+            tol = RULES["psd_zero_rel"]
+            zero = False
+            for m in self.matrices():
+                ev = np.linalg.eigvalsh(m)
+                zero = zero or bool(ev[0] <= tol * max(ev[-1], 1e-300))
+            return np.full(6, zero)
+        raise ValueError(self.model)
+
+    def b2_at_bound(self) -> bool:
+        """B2 only: the mass is at its bound ``m >= 0``."""
+        return bool(np.asarray(self.active, bool)[0])
+
 
 def _full_design(x3: np.ndarray, offset: bool) -> np.ndarray:
     if not offset:
@@ -357,15 +454,92 @@ def block_indices(n: int, block: int, rng: np.random.Generator) -> np.ndarray:
     return (starts[:, None] + np.arange(block)[None, :]).reshape(-1)[:n]
 
 
-def _solve(x3: np.ndarray, y: np.ndarray, weights: np.ndarray, scale=None):
+def _psd_basis(unit: np.ndarray, diag_scale: np.ndarray, off: int, n_par: int):
+    """(36, n_par) map from the scaled parameters to the normalised matrix, column-major.
+
+    ``unit`` converts a scaled parameter to its physical value; ``diag_scale``
+    (6,) is the positive diagonal ``d`` of the similarity ``D^-1 M D^-1`` that
+    keeps the semidefinite constraint well conditioned.
+    """
+    basis = np.zeros((36, n_par))
+    for q, (a, b) in enumerate(_pair_index()):
+        val = unit[off + q] / (diag_scale[a] * diag_scale[b])
+        basis[a + 6 * b, off + q] = val
+        basis[b + 6 * a, off + q] = val
+    return basis
+
+
+def _solve_psd(r: np.ndarray, z: np.ndarray, scale: np.ndarray, p: int) -> np.ndarray:
+    """Scaled S3 parameters: ``min |R th - z|^2`` with ``K`` and ``C`` PSD (SDP)."""
+    import picos  # core dependency of figaroh; lazy, the box fits do not need it
+
+    n_par = r.shape[1]
+    unit = np.where(np.isfinite(scale), 1.0 / scale, 0.0)
+    free = np.linalg.lstsq(r, z, rcond=None)[0]
+    pairs = _pair_index()
+    n_pair = len(pairs)
+    prob = picos.Problem()
+    th = picos.RealVariable("th", n_par)
+    r_c, z_c = picos.Constant("R", r), picos.Constant("z", z)
+    prob.set_objective("min", abs(r_c * th - z_c) ** 2)
+    for off in (0, n_pair):
+        diag = np.array(
+            [
+                free[off + pairs.index((d, d))] * unit[off + pairs.index((d, d))]
+                for d in range(6)
+            ]
+        )
+        floor = 1e-3 * max(float(np.abs(diag).max()), 1e-300)
+        d = np.sqrt(np.maximum(np.abs(diag), floor))
+        mat = (picos.Constant("M", _psd_basis(unit, d, off, n_par)) * th).reshaped(
+            (6, 6)
+        )
+        prob.add_constraint(mat >> 0)
+    prob.solve(solver="cvxopt", verbosity=0)
+    if prob.status != "optimal":
+        raise RuntimeError(f"S3 PSD fit failed: {prob.status}")
+    return np.asarray(th.value, dtype=float).reshape(-1)
+
+
+def _solve(
+    x3: np.ndarray,
+    y: np.ndarray,
+    weights: np.ndarray,
+    model: str,
+    p: int,
+    scale=None,
+    constrained: bool = True,
+):
+    """``(params, scale, R, active)``: weighted least squares of ``y`` on ``x3``.
+
+    The weighted design is reduced to its triangular factor ``R`` (rows
+    stacked, columns scaled to unit RMS), so a bounded or semidefinite fit costs
+    the same however many rows. ``p`` leading columns are the model parameters
+    (the rest are the offsets, free). Constraints (``constrained``): S1/S2 all
+    ``p`` parameters >= 0, B2 ``m`` >= 0 (bounded least squares); S3 ``K`` and
+    ``C`` PSD (semidefinite program). ``active`` flags the box parameters at
+    their bound.
+    """
     xw = x3 * weights[None, :, None]
     yw = y * weights[None, :]
     a = xw.reshape(-1, x3.shape[2])
     if scale is None:
         scale = np.sqrt(np.mean(a**2, axis=0))
         scale = np.where(scale > 1e-12 * max(float(scale.max()), 1e-30), scale, np.inf)
-    sol = np.linalg.lstsq(a / scale, yw.reshape(-1), rcond=None)[0]
-    return sol / scale, scale, a
+    n_par = a.shape[1]
+    tri = np.linalg.qr(np.column_stack((a / scale, yw.reshape(-1))), mode="r")
+    r, z = tri[:n_par, :n_par], tri[:n_par, n_par]
+    active = np.zeros(p, bool)
+    if constrained and model == "S3":
+        sol = _solve_psd(r, z, scale, p)
+    elif constrained and model in ("S1", "S2", "B2"):
+        lower = np.full(n_par, -np.inf)
+        lower[: 1 if model == "B2" else p] = 0.0
+        res = lsq_linear(r, z, bounds=(lower, np.inf), method="bvls")
+        sol, active = res.x, res.active_mask[:p] < 0
+    else:
+        sol = np.linalg.lstsq(r, z, rcond=None)[0]
+    return sol / scale, scale, r, active
 
 
 def fit_model(
@@ -378,35 +552,41 @@ def fit_model(
     bootstrap: bool = False,
     rows: Optional[np.ndarray] = None,
     resamples: Optional[int] = None,
+    constrained: bool = True,
+    edge: Optional[float] = None,
 ) -> Fit:
-    """Fit ``model`` (S1, S2 at ``h_e``, S3, B2g, B2gs) to the target ``w`` (n, 6).
+    """Fit ``model`` (S1, S2 at ``h_e``, S3, B2) to the target ``w`` (n, 6).
 
     Rows: ``run.valid`` (or ``rows``). ``weights`` default to one over the
-    standard deviation of the target on those rows.
+    standard deviation of the target on those rows. ``constrained=False`` is the
+    unconstrained least squares (the ablation of decision O4); the bootstrap uses
+    the same constraints as the fit. ``edge``: the B2 cube edge (default ``b2.edge_m``).
     """
     offset = SETTINGS["offset"] if offset is None else offset
     use = run.valid if rows is None else rows
-    x3 = design(model, run, h_e)[use]
+    x3 = design(model, run, h_e, edge)[use]
     y = np.asarray(w)[use]
     if weights is None:
         weights = 1.0 / np.maximum(y.std(axis=0), 1e-12)
-    names = (
-        parameter_names(model)
-        if model in MODELS
-        else [f"m_{c}" for c in CLUSTERS[model]]
-    )
+    names = parameter_names(model) if model in MODELS else list(B2_NAMES)
+    p = len(names)
     full = _full_design(x3, offset)
-    sol, scale, a = _solve(full, y, weights)
-    sv = np.linalg.svd(a / scale, compute_uv=False)
-    rank = int(np.sum(sv > sv[0] * max(a.shape) * np.finfo(float).eps))
-    fit = Fit(model, names, sol, h_e, offset, weights, rank, float(sv[0] / sv[-1]))
+    sol, scale, r, active = _solve(full, y, weights, model, p, constrained=constrained)
+    sv = np.linalg.svd(r, compute_uv=False)
+    rank = int(np.sum(sv > sv[0] * max(r.shape) * np.finfo(float).eps))
+    fit = Fit(
+        model, names, sol, h_e, offset, weights, rank, float(sv[0] / sv[-1]),
+        active=active, constrained=constrained, edge=edge,
+    )  # fmt: skip
     if bootstrap:
         rng = np.random.default_rng(BOOT["seed"])
         block = int(round(BOOT["block_s"] * RATE))
         draws = []
         for _ in range(resamples or BOOT["resamples"]):
             idx = block_indices(full.shape[0], block, rng)
-            draws.append(_solve(full[idx], y[idx], weights, scale)[0][: len(names)])
+            draws.append(
+                _solve(full[idx], y[idx], weights, model, p, scale, constrained)[0][:p]
+            )
         fit.se = np.std(draws, axis=0, ddof=1)
     return fit
 
@@ -437,7 +617,7 @@ def predict_status_quo(theta: np.ndarray, x: np.ndarray, v: np.ndarray) -> np.nd
 
 def predict(fit: Fit, run: Regressors) -> np.ndarray:
     """(n, 6) dynamic wrench of the fit on a run (the offset is not part of it)."""
-    return design(fit.model, run, fit.h_e) @ fit.theta
+    return design(fit.model, run, fit.h_e, fit.edge) @ fit.theta
 
 
 def score(w: np.ndarray, pred: np.ndarray, valid: np.ndarray) -> Dict[str, np.ndarray]:
@@ -455,12 +635,6 @@ def score(w: np.ndarray, pred: np.ndarray, valid: np.ndarray) -> Dict[str, np.nd
         "r2": 1.0 - sse / sst,
         "nrmse": np.sqrt(sse / y.shape[0]) / np.sqrt(sst / y.shape[0]),
     }
-
-
-def negative_damping(fit: Fit, n_se: Optional[float] = None) -> np.ndarray:
-    """(6,) bool: damping below ``-n_se`` SE (needs a bootstrap)."""
-    n_se = RULES["neg_damping_se"] if n_se is None else n_se
-    return fit.c() < -n_se * fit.c_se()
 
 
 def nonlinear_flag(x_d: np.ndarray, resid: np.ndarray, valid: np.ndarray) -> float:
@@ -492,41 +666,49 @@ def cv_folds(run: Regressors) -> np.ndarray:
 
 def cv_score(
     model: str,
-    run: Regressors,
-    w: np.ndarray,
+    data: Sequence[Tuple[Regressors, np.ndarray]],
     h_e: float = 0.0,
     offset: Optional[bool] = None,
+    constrained: bool = True,
 ) -> float:
-    """Blocked CV score: pooled held-out RMSE over the target sd, mean over DOF."""
-    folds = cv_folds(run)
-    x3 = design(model, run, h_e)[run.valid]
-    y = np.asarray(w)[run.valid]
-    weights = 1.0 / np.maximum(y.std(axis=0), 1e-12)
+    """Blocked CV score: pooled held-out RMSE over the target sd, mean over DOF.
+
+    ``data`` is a list of ``(run, wrench)`` (training, and the selection
+    diagnostics, O3); the blocks of every run are dealt to the folds, the fit
+    pools all runs (one offset per DOF).
+    """
     offset = SETTINGS["offset"] if offset is None else offset
+    xs = [design(model, run, h_e)[run.valid] for run, _ in data]
+    ys = [np.asarray(w)[run.valid] for run, w in data]
+    folds = np.concatenate([cv_folds(run) for run, _ in data])
+    x3, y = np.concatenate(xs), np.concatenate(ys)
+    weights = 1.0 / np.maximum(y.std(axis=0), 1e-12)
     full = _full_design(x3, offset)
     p = x3.shape[2]
     sse = np.zeros(6)
     for f in np.unique(folds):
         tr, te = folds != f, folds == f
-        sol = _solve(full[tr], y[tr], weights)[0]
+        sol = _solve(full[tr], y[tr], weights, model, p, constrained=constrained)[0]
         res = y[te] - full[te] @ sol
         res = res - res.mean(axis=0)  # a constant is not a suspension quantity
         sse += np.sum(res**2, axis=0)
     return float(np.mean(np.sqrt(sse / y.shape[0]) / y.std(axis=0)))
 
 
-def select_model(run: Regressors, w: np.ndarray) -> dict:
+def select_model(data: Sequence[Tuple[Regressors, np.ndarray]]) -> dict:
     """The simplest of S1 < S2 < S3 within ``tolerance`` of the best CV score.
 
-    S2 takes the ``h_e`` of the grid with the lowest CV score. Training data
-    only: the validation run is never an argument here.
+    ``data``: ``(run, wrench)`` of the training run and, with
+    ``selection.use_diagnostics``, of the selection diagnostics (O3). S2 takes
+    the ``h_e`` of the grid with the lowest CV score. The validation run is never
+    an argument here.
     """
     tol = SETTINGS["selection"]["tolerance"]
-    s1 = cv_score("S1", run, w)
+    s1 = cv_score("S1", data)
     grid = h_e_grid()
-    s2_all = np.array([cv_score("S2", run, w, h) for h in grid])
+    s2_all = np.array([cv_score("S2", data, h) for h in grid])
     i = int(np.argmin(s2_all))
-    s3 = cv_score("S3", run, w)
+    s3 = cv_score("S3", data)
     best = min(s1, float(s2_all[i]), s3)
     if s1 <= (1 + tol) * best:
         model = "S1"
@@ -542,29 +724,45 @@ def select_model(run: Regressors, w: np.ndarray) -> dict:
     }
 
 
+def selection_sessions() -> List[Session]:
+    """Training session then the selection diagnostics (part 2 reads their targets)."""
+    sessions = load_sessions(verify=False)
+    ids = [SETTINGS["sessions"]["training"]]
+    if SETTINGS["selection"]["use_diagnostics"]:
+        ids += list(SETTINGS["sessions"]["selection_diagnostics"])
+    return [sessions[i] for i in ids]
+
+
 # --------------------------------------------------------------- verdicts
 
 
 def verdict(
     r2_model: np.ndarray,
     r2_b2: np.ndarray,
-    neg_damping: np.ndarray,
+    at_bound: np.ndarray,
     repeatable: np.ndarray,
     nonlinear: np.ndarray,
     answerable: Optional[np.ndarray] = None,
+    b2_at_bound: bool = False,
 ) -> dict:
-    """The "spring-damper is enough" rule (note, section 8), per DOF arrays of 6."""
+    """The "spring-damper is enough" rule (note, section 8), per DOF arrays of 6.
+
+    ``at_bound``: the DOF has a parameter at its bound (:meth:`Fit.bound_dofs`).
+    ``b2_at_bound``: the B2 mass is at its bound, so the comparison with B2 is
+    vacuous and "enough" fails.
+    """
     answerable = (
         np.ones(6, bool) if answerable is None else np.asarray(answerable, bool)
     )
     explained = r2_model >= RULES["explained_r2"]
     beats = (r2_model - r2_b2) >= RULES["beat_b2"]
-    ok = explained & beats & ~neg_damping & repeatable & ~nonlinear
+    ok = explained & beats & ~at_bound & repeatable & ~nonlinear
     return {
         "explained": explained.tolist(),
         "beats_b2": beats.tolist(),
         "dof_ok": ok.tolist(),
-        "enough": bool(answerable.any() and np.all(ok[answerable])),
+        "b2_at_bound": bool(b2_at_bound),
+        "enough": bool(answerable.any() and np.all(ok[answerable]) and not b2_at_bound),
     }
 
 
@@ -645,6 +843,49 @@ def noise_levels() -> dict:
     return n
 
 
+# ----------------------------------------------------------- footprint
+
+
+def footprint_derivation(
+    csv_path=VICON_1607, golden_path=MOCAP_GOLDEN, fit: str = "V1607|3d"
+) -> dict:
+    """The base_footprint origin and axes in the base-triad frame, from shipped data.
+
+    Expresses the base pose of the #100 Vicon 1607 fit (``golden_path``, the
+    fit's ``params`` and ``std``) in the frame of the 1607 base-triad pose
+    (``xb..phizb`` of ``csv_path``: mean and std over the postures, pinocchio
+    RPY). Returns ``offset`` (m, triad frame) with ``offset_sd`` (the fit std
+    and the triad scatter through the triad rotation; the rotation uncertainty
+    is neglected), ``rotvec`` (triad frame to footprint axes) and ``rotation_sd``
+    (mean of the fit's base_phi* std). The values are frozen in the config.
+    """
+    import pandas as pd
+    from scipy.spatial.transform import Rotation
+
+    cols = ["xb", "yb", "zb", "phixb", "phiyb", "phizb"]
+    pose = pd.read_csv(csv_path)[cols].to_numpy(dtype=float)
+    pose = pose[~np.isnan(pose).any(axis=1)]
+    mean, scatter = pose.mean(axis=0), pose.std(axis=0)
+    r_tri = Rotation.from_euler("xyz", mean[3:]).as_matrix()
+    names = ["base_px", "base_py", "base_pz", "base_phix", "base_phiy", "base_phiz"]
+    entry = json.loads(Path(golden_path).read_text())["fits"][fit]
+    params = np.array([entry["params"][k] for k in names])
+    std = np.array([entry["std"][k] for k in names])
+    r_fp = Rotation.from_euler("xyz", params[3:]).as_matrix()
+    offset = r_tri.T @ (params[:3] - mean[:3])
+    offset_sd = np.sqrt((r_tri.T**2) @ (std[:3] ** 2 + scatter[:3] ** 2))
+    rotvec = Rotation.from_matrix(r_tri.T @ r_fp).as_rotvec()
+    return {
+        "offset_triad_m": offset.tolist(),
+        "offset_sd_m": offset_sd.tolist(),
+        "rotation_triad_rotvec": rotvec.tolist(),
+        "rotation_sd_rad": float(std[3:].mean()),
+        "horizontal_m": float(np.hypot(*offset[:2])),
+        "triad_z_world": r_tri[:, 2].tolist(),
+        "fit": fit,
+    }
+
+
 # ----------------------------------------------------------- descriptives
 
 
@@ -677,9 +918,13 @@ def describe() -> dict:
 
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("stage", choices=("noise", "describe"))
+    parser.add_argument("stage", choices=("noise", "describe", "footprint"))
     args = parser.parse_args(argv)
-    res = noise_stage() if args.stage == "noise" else describe()
+    res = {
+        "noise": noise_stage,
+        "describe": describe,
+        "footprint": footprint_derivation,
+    }[args.stage]()
     print(json.dumps(res, indent=1, default=float))
 
 
