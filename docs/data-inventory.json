@@ -184,8 +184,8 @@
       "robot": "TIAGo",
       "study": "Suspension base",
       "kind": "real",
-      "role": "training; no held-out run",
-      "description": "One Vicon and force-plate log, 5546 samples. Eight further runs exist outside the repository (figaroh-examples#70).",
+      "role": "training (xyz 1640), validation (xyz 1628), confirmation (mirrored xyz 1630, 1642), diagnostic (rotations, folds, postures) (#111)",
+      "description": "Eleven CREPS Vicon and force-plate logs of 2023-09-20 in one layout (no header, 40 columns, host receive time), and the protocol that freezes roles and hashes. The sources are not distributed.",
       "paths": [
         "examples/tiago/data/suspension/"
       ],
@@ -1033,10 +1033,64 @@
       "sha256": "b24f8d108434d8c7f3363ad71791a52e9ec24b3d4d0a1aa1e640b61627abbd1e",
       "bytes": 23563
     },
+    "examples/tiago/data/suspension/protocol.yaml": {
+      "sha256": "c30ffb3421bda363525e7783c74b7c132237266b05e62ae021709b97e73a1c8b",
+      "bytes": 6314
+    },
+    "examples/tiago/data/suspension/tiago_around_x_vicon_1634.csv": {
+      "sha256": "a3ae13af801b1dba39aa6bb1afc94121ca652db9e75358906bdf3391e8349bd8",
+      "bytes": 3888835,
+      "rows": 5122
+    },
+    "examples/tiago/data/suspension/tiago_around_y_vicon_1638.csv": {
+      "sha256": "ba5a1b70b19e2aa74aa2160350cac34e54c47ef13c8dbc0a17b1c415d685aa65",
+      "bytes": 4003329,
+      "rows": 5304
+    },
+    "examples/tiago/data/suspension/tiago_around_z_vicon_1622.csv": {
+      "sha256": "f9662032264847466abbe0c5bba1ac331034857a5f0fcf5b999cae5d929093c5",
+      "bytes": 4641340,
+      "rows": 6149
+    },
+    "examples/tiago/data/suspension/tiago_postures_vicon_1720.csv": {
+      "sha256": "84ffbffcc372bd1a2f5f3497c3865d9f3960d138bc986ba4eaf6737914a0301e",
+      "bytes": 10357050,
+      "rows": 13705
+    },
+    "examples/tiago/data/suspension/tiago_postures_vicon_1734.csv": {
+      "sha256": "4d345a8fba0c9b14315958e157740d5d19431b96a09334b02be24965173cb603",
+      "bytes": 7498642,
+      "rows": 9917
+    },
+    "examples/tiago/data/suspension/tiago_x_fold_vicon_1632.csv": {
+      "sha256": "cb77696bed09743077400e5ac4905629257b71e25498035e1a6e4ec6bee4b27f",
+      "bytes": 5570972,
+      "rows": 7360
+    },
+    "examples/tiago/data/suspension/tiago_xyz_mirror_vicon_1630.csv": {
+      "sha256": "ac18bc1986bbdd5e416973a883e9ad572e3ef7c2d1756ba2d870fdd5456f7293",
+      "bytes": 4238226,
+      "rows": 5606
+    },
+    "examples/tiago/data/suspension/tiago_xyz_mirror_vicon_1642.csv": {
+      "sha256": "fec9814a0bd5f3faa9590a75cae87ef166669008d108332ba457e7d712927dc8",
+      "bytes": 4094455,
+      "rows": 5415
+    },
+    "examples/tiago/data/suspension/tiago_xyz_vicon_1628.csv": {
+      "sha256": "7dbac63e589efe020173f841f7a60f03100091c411a98ad9af0f466a8b120720",
+      "bytes": 4027370,
+      "rows": 5336
+    },
     "examples/tiago/data/suspension/tiago_xyz_vicon_1640.csv": {
       "sha256": "8a0b993304e57b57e8d8a6e905dbaf6ef41cae13b7c035a5f7c6dbefbaef08f4",
       "bytes": 3877388,
       "rows": 5546
+    },
+    "examples/tiago/data/suspension/tiago_y_fold_vicon_1636.csv": {
+      "sha256": "81323675bb0d9d2eaaf3ba424799b8f806c5697675e395ffa04d3f1da5e43206",
+      "bytes": 4441821,
+      "rows": 5872
     },
     "examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_joints.csv": {
       "sha256": "ede5e54fca93a6fc93d0f796984dd825592b7a5f98c464b9b7abe04cc009d2c5",

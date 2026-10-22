@@ -4,7 +4,8 @@ The `suspension/` and `backlash/` directories contain historical offline logs
 copied verbatim from the reachable `figaroh-plus` Git ref at commit
 `2218d77638e0148afd3b358fa51702f8b82f4100`.
 
-- `suspension/tiago_xyz_vicon_1640.csv` is a Vicon and force-plate recording.
+- `suspension/tiago_xyz_vicon_1640.csv` is a Vicon and force-plate recording
+  (the other ten runs of the day are described in the next section).
   The example reconstructs the base-marker frame from markers `base1`, `base2`,
   and `base3`, subtracts the initial base pose and initial 100-sample wrench
   mean, then fits the fixed-transform generalized-base model. Its reported
@@ -171,6 +172,78 @@ them.
   `python -m examples.tiago.utils.introspection_extraction inspection <bag> <out.csv>`;
   `tests/test_tiago_introspection_extraction.py` re-creates all 24 byte for
   byte when `TIAGO_RECORDINGS_ROOT` is set.
+
+## CREPS Vicon and force-plate runs (`suspension/`)
+
+Eleven runs recorded on 2023-09-20 at the CREPS Vicon room with a force plate
+under the robot, for the base-suspension study
+([#111](https://github.com/thanhndv212/figaroh-examples/issues/111), for
+[#70](https://github.com/thanhndv212/figaroh-examples/issues/70)). Roles are
+frozen in `suspension/protocol.yaml` (`tiago-creps-vicon-2023` v1). Ten of
+the files are new; `tiago_xyz_vicon_1640.csv` was already shipped.
+
+| Run (`tiago_<name>_vicon_<hhmm>.csv`) | Local start | Rows | Role | Motion |
+|---|---|---|---|---|
+| `xyz_1640` | 16:40 | 5,547 | training | xyz oscillation |
+| `xyz_1628` | 16:28 | 5,337 | validation (first held-out repeat) | xyz oscillation, repeat |
+| `xyz_mirror_1630`, `xyz_mirror_1642` | 16:30, 16:42 | 5,607, 5,416 | confirmation | xyz oscillation, mirrored |
+| `around_x_1634`, `around_y_1638`, `around_z_1622` | 16:35, 16:39, 16:26 | 5,123, 5,305, 6,150 | diagnostic | rotation about x, y, z |
+| `x_fold_1632`, `y_fold_1636` | 16:33, 16:37 | 7,361, 5,873 | diagnostic | fold about x, y |
+| `postures_1720`, `postures_1734` | 17:22, 17:34 | 13,706, 9,918 | diagnostic | posture sequences, base at rest |
+
+The roles beyond the two fixed by the issue (1640 training, 1628 first
+held-out) are a proposal by motion type, open to the maintainer: the mirrored
+repeats are the same motion family, the single-axis rotations and folds and
+the static postures are different motions, useful to see what a fit does not
+transfer to.
+
+- **Layout:** all eleven files have no header, LF line ends and 40 columns:
+  `time`, the x, y, z (m, Vicon world) of `base1..3`, `shoulder1..4` and
+  `gripper1..3`, then force plate 4: `Fx4, Fy4, Fz4` (N), `Mx4, My4, Mz4`
+  (N m) and `COPx4, COPy4, COPz4` (m). Ten of the sources had a header, of two
+  kinds (20 names, one per marker triple; 40 names in the two
+  postures runs) and CRLF line ends. The extractor selects the columns by
+  name; every field is copied as text, so no value is changed. The example
+  loader `load_vicon_forceplate_trajectory` reads all eleven.
+- **Text precision:** `xyz_1640` was written with 15 significant digits, the
+  others with 16 or 17. The text is kept as found, so the files differ in
+  length for the same data.
+- **Clock:** `time` is the **host receive time** of each frame
+  (`YYYY-MM-DD_HH:MM:SS.ffffff`, recording PC local time), not the Vicon frame
+  time. Spacing is about 10 ms with gaps up to 65 ms and jitter, so a time
+  rebuilt from receive stamps is noisy. There is **no frame-index column** in
+  any source (the issue asks for indices: none were recorded); the row order
+  is the frame order, so `n x 10 ms` is the rebuilt clock. Frames the
+  recorder dropped or duplicated are not marked. The audit counts 1.5 to 2.5 %
+  dropped and 0.5 to 0.8 % duplicated, judged from position continuity.
+- **Frames and points:** markers are in the Vicon world frame; the plate
+  moments are about the plate centre (0.900, 0.450, 0) m, not the base. The
+  base-marker triad frame is yawed about -5.6 degrees from world and its z axis
+  points down (the audit's reading of the example's frame definition). The
+  example's model treats these points loosely; fixing that is #70, not this
+  data.
+- **Static load:** Fz is about -730 N at rest in every run (74 kg on the
+  plate); the first 100 samples are the example's zero.
+- **Robot side:** the nine oscillation runs each have a robot introspection
+  bag recorded the same day (bag stamp UTC 14:xx, two hours behind the local
+  16:xx of the Vicon log), and the two postures runs have joints-only bags
+  stamped 15:22:11 and 15:34:35 UTC beside the geometric-calibration
+  recordings (they match 17:22 and 17:34 local). None is aligned to the Vicon
+  clock, and none is shipped here.
+- **Robot identity: unknown** for all eleven. A Vicon and force-plate log has
+  no robot channel, and the encoder-gap fingerprint of the day's robot bags
+  does not settle it: arm_7 reads -13 to -16 mrad in the oscillation bags and
+  +4 mrad in the 14:08 calibration bag of the same day, so the gap follows the
+  posture, not only the robot.
+- **Known limits:** base motion is small (marker `base1` moves 0.2 to 2 mm in
+  x and z; y up to 16.6 mm in `around_z`, 8 to 13 mm in the xyz runs). The
+  audit's fits of the example model on these runs explain the forces poorly
+  (Fx, Fy, Fz R-squared below 0.2 in most runs), which is a model limit.
+- **Re-creating the files:**
+  `python -m examples.tiago.utils.suspension_extraction <raw.csv> <out.csv>`;
+  `tests/test_tiago_suspension_runs.py` re-creates all eleven byte for byte
+  when `TIAGO_RECORDINGS_ROOT` is set (`xyz_1640` is byte-identical to its
+  source).
 
 ## Dynamic identification data (`identification/dynamic/`)
 
