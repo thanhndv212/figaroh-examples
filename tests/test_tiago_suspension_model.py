@@ -202,6 +202,51 @@ def test_transport_and_origin_switches_change_only_what_they_name():
     assert np.allclose(co.x[:, 3:], base.x[:, 3:])
 
 
+def test_plate_fy_sign_flips_fy_only_and_is_frozen_for_the_real_runs():
+    n, t, markers, *_ = _synthetic_run(seconds=20)
+    fy = 3.0 * np.sin(np.arange(n) / 40.0)
+    f = np.column_stack((np.full(n, 5.0), fy, np.full(n, -730.0)))
+    raw = _raw(n, markers, force=f, moment=[1.0, 2.0, 0.5])
+    a = sd.process_raw(t, raw, frame="world", transport=False)
+    b = sd.process_raw(t, raw, frame="world", transport=False, plate_fy_sign=-1)
+    assert np.allclose(a.w[:, [0, 2, 3, 4, 5]], b.w[:, [0, 2, 3, 4, 5]])
+    assert np.allclose(a.w[:, 1], -b.w[:, 1]) and np.abs(a.w[a.valid, 1]).max() > 1.0
+    with pytest.raises(ValueError):
+        sd.process_raw(t, raw, plate_fy_sign=0.5)
+    # the fixture writes world Fy and goes through the frozen LOADER: no flip there
+    assert sm.PLATE_FY_SIGN == -1 and "plate_fy_sign" not in sm.LOADER
+
+
+def _plate_vs_gripper(sid, cutoff=2.0):
+    """``(B, A)`` of a real run: plate force (world, Fy corrected) regressed on the
+    gripper acceleration, ``B`` (3, 3) in kg; COP shift on the gripper shift, ``A``."""
+    t, v = sd.read_raw(sm.load_sessions(verify=False)[sid].path)
+    v = v.copy()
+    v[:, 31] *= sm.PLATE_FY_SIGN
+    g, _ = sd.to_grid(sd.rebuild_clock(t, v, RATE), v)
+    g = sd.lowpass(g, RATE, cutoff)
+    grip = g[:, 21:30].reshape(-1, 3, 3).mean(axis=1)
+    acc = np.gradient(np.gradient(grip, 1 / RATE, axis=0), 1 / RATE, axis=0)
+    cut = slice(100, -100)
+    x = np.column_stack((acc, np.ones(len(acc))))[cut]
+    f = (g[:, 30:33] - g[:100, 30:33].mean(axis=0))[cut]
+    b = np.linalg.lstsq(x, f, rcond=None)[0][:3].T
+    dg = np.column_stack((grip[:, :2] - grip[:100, :2].mean(axis=0), np.ones(len(g))))
+    dcop = g[:, 36:38] - g[:100, 36:38].mean(axis=0)
+    a = np.linalg.lstsq(dg, dcop, rcond=None)[0][:2].T
+    return b, a
+
+
+@pytest.mark.real_config
+@pytest.mark.parametrize("sid", ["xyz_1640", "around_z_1622", "postures_1734"])
+def test_corrected_plate_force_is_minus_the_arm_mass_times_the_gripper_acceleration(sid):
+    """Action on the plate: horizontal F = -m a. Before the Fy revision the y
+    coefficient was +m (the flip found in part 2); the COP follows the gripper."""
+    b, a = _plate_vs_gripper(sid)
+    assert -9.0 < b[0, 0] < -3.0 and -9.0 < b[1, 1] < -3.0, b
+    assert a[0, 0] > 0.03 and a[1, 1] > 0.03 and abs(a[0, 1]) < 0.5 * a[0, 0], a
+
+
 def test_mz_about_cop_adds_the_cop_lever_term_to_mz_only():
     n, t, markers, *_ = _synthetic_run(seconds=20)
     f = np.array([5.0, -3.0, -730.0])

@@ -65,6 +65,12 @@ footprint:
   rotation_sd_rad: 0.0024                                # mean of the fit's base_phi* std (not perturbed)
 frame: footprint           # translation, rotation vector and wrench in the footprint axes at rest
 plate_centre: [0.900, 0.450, 0.0]   # m, world; M = (COP - c) x F verified on the data
+# Revision (#70 part 2, after the first real read): the recorded plate Fy has the
+# opposite sign of Vicon world y. Fx and Fz against -m a of the gripper have the
+# expected sign and Fy the opposite one, on every run checked; the COP and the moments
+# agree with world. The plate-centre check could not see it (COPz = c_z = 0, so Mx and
+# My do not depend on Fy). Applied to the real runs only; the fixture writes world Fy.
+plate_fy_sign: -1
 # Revision (F2, O8): 5 Hz, was 10 Hz. The base motion power lies below 3.5 Hz; the
 # lower cutoff halves the velocity-regressor noise (errors-in-variables bias of F2) and
 # keeps the 24 Hz vertical mode of the wrench out of the fit.

@@ -4,7 +4,8 @@
 ``examples/tiago/suspension_study.py`` on the real runs. The fast tests check
 that the stored verdict follows from the stored numbers under the frozen rules
 of part 1, that the fixture context is the frozen one, and that the note quotes
-the result; the slow test reruns the study.
+the result; the slow test reruns the study. The golden is the read after the
+plate ``Fy`` revision (note, 12.2).
 """
 
 import json
@@ -61,10 +62,15 @@ def test_the_verdict_is_not_enough_and_the_confirmation_runs_stay_unread(gold):
     assert f["enough"] is False and f["q2_present"] is False
     assert f["mz_same_verdict"] is True and all(f["answerable"])
     assert isinstance(gold["confirmation"], str) and "not read" in gold["confirmation"]
-    # section 8, first meaning: the explained moments are matched by B2
+    # corrected read (Fy revision, note 12.2): S3, only rx explained, B2 not beaten
     r = gold["centre"]
-    assert f["explained_dofs"] == ["rx", "ry"]
-    assert all(not r["verdict"]["beats_b2"][sm.DOFS.index(d)] for d in f["explained_dofs"])
+    assert r["model"] == "S3" and f["explained_dofs"] == ["rx"]
+    assert not any(r["verdict"]["beats_b2"])
+
+
+def test_corrected_b2_mass_matches_the_plate_force_regressions(gold):
+    """Note 12.2: the B2 cube mass falls in the -m of Fx, Fy on the gripper acceleration."""
+    assert 5.6 <= gold["centre"]["b2"]["mass"] <= 6.7
 
 
 def test_b1_reproduces_the_status_quo_signature_on_the_real_runs(gold):
@@ -92,8 +98,10 @@ def test_note_quotes_the_part_2_result(gold):
     assert "## 12. Part 2: the real fits" in note
     r = gold["centre"]
     sel = r["selection"]
-    assert f"S2 at `h_e` = {sel['h_e_cv']:.2f} m" in note
-    for name in ("S2", "B2", "S1B2"):
+    assert f"the selected model is {r['model']}" in note
+    assert f"`h_e` = {sel['h_e_cv']:.2f} m" in note
+    assert "### 12.2 Revision: the plate `Fy` sign" in note
+    for name in ("S1", "S2", "S3", "B2", "S1B2"):
         cells = " | ".join(f"{x:.2f}" for x in r["r2_validation"][name])
         assert f"| {name} | {cells} |" in note, name
     b1 = " | ".join(f"{x:.2f}" for x in gold["b1"]["r2"])

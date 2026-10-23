@@ -500,6 +500,7 @@ def process_raw(
     transport: bool = True,
     clock: str = "grid",
     mz_about: str = "centre",
+    plate_fy_sign: float = 1.0,
 ) -> SuspensionRun:
     """Corrected features of raw receive-stamped rows (``t``, 39 ``values``).
 
@@ -519,11 +520,16 @@ def process_raw(
     moment about the plate centre ``c`` (the convention of every other stage);
     ``cop`` reads it as the free moment about the COP, so ``(COP - c) x F``
     (z component) is added to bring it to ``c``. ``Mx`` and ``My`` are unchanged.
+    ``plate_fy_sign`` (#70 part 2 revision) multiplies the recorded ``Fy`` before
+    any other use; ``-1`` on the real runs, whose plate ``Fy`` is flipped against
+    world y.
     """
     if clock not in ("grid", "receive"):
         raise ValueError(clock)
     if mz_about not in ("centre", "cop"):
         raise ValueError(mz_about)
+    if plate_fy_sign not in (1, -1):
+        raise ValueError(plate_fy_sign)
     t = np.asarray(t, dtype=float)
     values = np.asarray(values, dtype=float)
     if clock == "grid":
@@ -549,7 +555,7 @@ def process_raw(
         rel = np.einsum("ji,njk->nik", rot[0], rot)
         angle = np.unwrap(_rotation_to_rpy(rel), axis=0)
 
-    force = data[:, 30:33]
+    force = data[:, 30:33] * np.array([1.0, plate_fy_sign, 1.0])
     moment = data[:, 33:36]
     if mz_about == "cop":
         c = np.asarray(plate_centre, dtype=float)
@@ -591,6 +597,7 @@ def process_raw(
             "origin_world_z": float(p_b[2]),
             "clock": clock,
             "mz_about": mz_about,
+            "plate_fy_sign": plate_fy_sign,
             "frame_yaw_deg": frame_yaw_deg(ref),
             "valid_rows": int(valid.sum()),
         }

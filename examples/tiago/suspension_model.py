@@ -97,6 +97,10 @@ LOADER = dict(
 )
 
 
+# Real runs only (part 2 revision); simulated rows carry world Fy.
+PLATE_FY_SIGN = float(SETTINGS["plate_fy_sign"])
+
+
 def h_e_grid() -> np.ndarray:
     g = SETTINGS["h_e_grid"]
     n = int(round((g["max"] - g["min"]) / g["step"])) + 1
@@ -133,7 +137,9 @@ def verify_hashes() -> List[str]:
 @lru_cache(maxsize=None)
 def _run(session_id: str, mz_about: str = "centre") -> sd.SuspensionRun:
     session = load_sessions(verify=False)[session_id]
-    return sd.load_run(session.path, mz_about=mz_about, **LOADER)
+    return sd.load_run(
+        session.path, mz_about=mz_about, plate_fy_sign=PLATE_FY_SIGN, **LOADER
+    )
 
 
 @dataclass
@@ -1011,7 +1017,7 @@ def mz_convention(values: np.ndarray) -> dict:
     """
     c = np.asarray(SETTINGS["plate_centre"], float)
     f, m, cop = values[:, 30:33], values[:, 33:36], values[:, 36:39]
-    dz = (cop[:, 0] - c[0]) * f[:, 1] - (cop[:, 1] - c[1]) * f[:, 0]
+    dz = (cop[:, 0] - c[0]) * PLATE_FY_SIGN * f[:, 1] - (cop[:, 1] - c[1]) * f[:, 0]
     return {"term_rms": float(np.std(dz)), "mz_sd": float(np.std(m[:, 2]))}
 
 
