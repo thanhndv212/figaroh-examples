@@ -67,7 +67,9 @@ class SuspensionTrajectory:
         return self.wrench.reshape(-1, order="F")
 
 
-def load_vicon_forceplate_trajectory(path: str | Path) -> SuspensionTrajectory:
+def load_vicon_forceplate_trajectory(
+    path: str | Path, fy_sign: float = 1.0
+) -> SuspensionTrajectory:
     """Load the historical TIAGo Vicon and force-plate CSV export.
 
     The source file has no header and uses the historical column order: timestamp,
@@ -79,6 +81,11 @@ def load_vicon_forceplate_trajectory(path: str | Path) -> SuspensionTrajectory:
     keeps the four errors the issue lists (corner-marker origin, plate-centre
     moments, mixed frames, receive-time stamps). Use :func:`load_run` for the
     corrected pipeline.
+
+    ``fy_sign`` multiplies the recorded plate ``Fy``. The 2023-09-20 runs need
+    ``-1`` (their ``Fy`` is flipped against world y; #70 part 2, the study config
+    ``plate_fy_sign``). The default ``+1`` reads the file as recorded, which is
+    the status quo (baseline B1).
     """
     path = Path(path)
     if not path.is_file():
@@ -99,16 +106,18 @@ def load_vicon_forceplate_trajectory(path: str | Path) -> SuspensionTrajectory:
         [datetime.fromisoformat(row[0]).timestamp() for row in rows], dtype=float
     )
     values = np.asarray([[float(value) for value in row[1:]] for row in rows])
-    return status_quo_from_arrays(time, values, source=str(path))
+    return status_quo_from_arrays(time, values, source=str(path), fy_sign=fy_sign)
 
 
 load_status_quo = load_vicon_forceplate_trajectory
 
 
 def status_quo_from_arrays(
-    time: np.ndarray, values: np.ndarray, source: str = "array"
+    time: np.ndarray, values: np.ndarray, source: str = "array", fy_sign: float = 1.0
 ) -> SuspensionTrajectory:
     """The status-quo pipeline on ``time`` (receive stamps) and the 39 values."""
+    if fy_sign not in (1, -1):
+        raise ValueError(fy_sign)
     if np.any(np.diff(time) <= 0.0):
         raise ValueError(f"Vicon timestamps must be strictly increasing: {source}")
     if not np.all(np.isfinite(values)):
@@ -122,7 +131,7 @@ def status_quo_from_arrays(
     orientation = np.unwrap(_rotation_to_rpy(relative_rotation), axis=0)
     displacement = np.column_stack((base_1 - base_1[0], orientation))
     velocity = np.gradient(displacement, time, axis=0, edge_order=2)
-    wrench = values[:, 30:36]
+    wrench = values[:, 30:36] * np.array([1.0, fy_sign, 1.0, 1.0, 1.0, 1.0])
     wrench = wrench - np.mean(wrench[: min(100, len(wrench))], axis=0)
 
     return SuspensionTrajectory(

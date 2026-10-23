@@ -10,11 +10,13 @@ copied verbatim from the reachable `figaroh-plus` Git ref at commit
   and `base3`, subtracts the initial base pose and initial 100-sample wrench
   mean, then fits the fixed-transform generalized-base model. Its reported
   result is an experimental data fit, not a validated deployable suspension
-  parameter set. With `--data real` it explains the moment `My` only (forces
-  R-squared below 0.2) and is **not a suspension estimate**: the loader
-  mixes frames, uses a corner marker as origin, takes the moments about the
-  plate centre and the receive clock as time
-  ([#70](https://github.com/thanhndv212/figaroh-examples/issues/70)). The
+  parameter set. With `--data real` it is **not a suspension estimate**
+  ([#70](https://github.com/thanhndv212/figaroh-examples/issues/70)). It
+  reads the plate `Fy` with the corrected sign (`plate_fy_sign`), and it keeps
+  the other status-quo loader errors: mixed frames, a corner marker as origin,
+  moments about the plate centre and the receive clock as time. On these runs
+  the plate wrench is the arm load of a rigid base, and it prints a warning
+  saying so. The
   corrected loader, the models and the pre-registered thresholds are in
   `docs/development/tiago-suspension.md`. Its part 2 fits on the real runs
   (section 12) find a linear spring-damper at the base **not enough**

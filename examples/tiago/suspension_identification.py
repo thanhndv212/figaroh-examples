@@ -1,4 +1,11 @@
-"""Run a deterministic generalized-base suspension identification demonstration."""
+"""Run a deterministic generalized-base suspension identification demonstration.
+
+With ``--data real`` the fit is **not a suspension estimate** (#70): the plate
+wrench of these runs is explained by the arm load of a rigid base, and no linear
+suspension stiffness is identified (docs/development/tiago-suspension.md,
+sections 12 and 13). The real data are read with the plate ``Fy`` sign corrected;
+the other status-quo loader errors stay, as this is the historical demonstration.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +26,7 @@ from examples.tiago.utils.suspension_model import (  # noqa: E402
 from examples.tiago.utils.suspension_data import (  # noqa: E402
     load_vicon_forceplate_trajectory,
 )
+from examples.tiago.suspension_model import PLATE_FY_SIGN  # noqa: E402
 from examples.tiago.utils.reporting import (  # noqa: E402
     ensure_results_dir,
     plot_suspension_fit,
@@ -54,7 +62,13 @@ def main() -> None:
     args = parse_args()
     if args.data == "real":
         trajectory = load_vicon_forceplate_trajectory(
-            Path("data/suspension/tiago_xyz_vicon_1640.csv")
+            Path("data/suspension/tiago_xyz_vicon_1640.csv"), fy_sign=PLATE_FY_SIGN
+        )
+        print(
+            "WARNING: --data real is a demonstration fit, not a suspension estimate: "
+            "the plate wrench is the arm load (#70; see "
+            "docs/development/tiago-suspension.md, sections 12 and 13).",
+            file=sys.stderr,
         )
         result = fit_generalized_base_suspension(
             trajectory.base_displacement,
@@ -114,6 +128,7 @@ def main() -> None:
         report = {
             "generated_at": utc_timestamp(),
             "data_source": args.data,
+            "suspension_estimate": False if args.data == "real" else None,
             "sample_count": sample_count,
             "rank": result.rank,
             "condition_number": result.condition_number,
