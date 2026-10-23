@@ -197,3 +197,15 @@ fixture:
   f5:
     correct_seeds_min: 4   # of 5, per truth (S1 under F2, S2 under F4a)
     h_e_tol: 0.05          # m
+
+# Amendment A1 (#70 part 2, approved by the maintainer 2026-10-24, written before
+# any read of the confirmation runs): the series reading, note section 13.
+# Secondary; section 8 and its verdict are unchanged. S1 and B2 fitted on training
+# only, the corrected loader, Mz about the plate centre. Per DOF, on both runs.
+amendment_a1:
+  model: S1                  # chosen after seeing S3 not transfer to validation (disclosed)
+  transfer_r2_min: 0.5       # A1-1: held-out R2 of the training S1
+  arm_load_r2_min: 0.5       # A1-2: R2 of the S1 prediction against the B2 prediction
+  k_rel_band: 0.25           # A1-3: S1 refit on the run, k within this of training, off its bound
+  base_motion_snr_min: 10.0  # A1-4: RMS of the base DOF over its sd on the noise floor
+  rigid_b2_r2_min: 0.5       # reading: A1-1 fails and B2 transfers -> rigid-base reading

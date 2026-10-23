@@ -121,3 +121,13 @@ def test_study_rerun_matches_the_golden(gold):
         for name, v in b["r2_validation"].items():
             assert np.allclose(a["r2_validation"][name], v, atol=1e-5), (conv, name)
         assert np.allclose(a["selected"]["k"], b["selected"]["k"], rtol=1e-6)
+
+
+def test_amendment_a1_is_frozen_before_the_confirmation_read(gold):
+    a1 = sm.SETTINGS["amendment_a1"]
+    assert a1 == {
+        "model": "S1", "transfer_r2_min": 0.5, "arm_load_r2_min": 0.5,
+        "k_rel_band": 0.25, "base_motion_snr_min": 10.0, "rigid_b2_r2_min": 0.5,
+    }  # fmt: skip
+    assert "## 13. Amendment A1: the series reading" in NOTE.read_text()
+    assert "not read" in gold["confirmation"]

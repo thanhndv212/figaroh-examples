@@ -1020,9 +1020,8 @@ stiffness is about 1.9e4 N m/rad (S1 1.87e4, S3 diagonal 1.95e4; refit on
 validation 2.39e4). This is a reading of the corrected first pass, not a
 verdict. The question it raises is whether a training `K x` **predicts** a run
 it was not fitted on, and agrees with B2, rather than whether it beats B2. That
-question needs rules written before the confirmation runs are read. A draft
-amendment is with the maintainer; it changes no rule of section 8
-retroactively.
+question needs rules written before the confirmation runs are read: amendment
+A1 (section 13). It changes no rule of section 8.
 
 ### 12.9 First read (before the `Fy` revision, 2026-10-23)
 
@@ -1056,3 +1055,53 @@ are the arm load". It is withdrawn. The flipped `Fy` made B2 fail on `Fx`
   unchanged under it (slow test).
 - The calibrated SE of the selected model uses the S1 fixture bias (12.4).
 - `h_e` at the grid ceiling for S2 (12.3) is reported, not acted on.
+
+## 13. Amendment A1: the series reading (approved by the maintainer, 2026-10-24)
+
+Written 2026-10-24, after the corrected read of validation (12.2, 12.3) and
+before any read of `xyz_mirror_1630` and `xyz_mirror_1642`. It adds one
+question. It changes no rule of section 8, and the section 8 verdict stays
+**not enough**.
+
+**Why.** On TIAGo the arm load reaches the plate through the suspension
+(12.8), so "beats B2" cannot separate a rigid base from a compliant one. The
+question becomes: does a stiffness fitted on training **predict** the wrench of
+runs it has not seen, and is that prediction the arm load?
+
+**Frozen inputs.**
+- The corrected loader (`plate_fy_sign: -1`) with `mz_about: centre`.
+- S1 and B2 fitted on `xyz_1640` only, as in the golden. Nothing is refitted on
+  confirmation, except in A1-3.
+- S1 is the model. S3 is not used. Disclosed: S1 was chosen after seeing that
+  S3 does not transfer to validation.
+
+**Rules (per DOF, each of the two confirmation runs scored separately).**
+- **A1-1 transfers:** held-out R2 of the training S1 >= 0.5, on both runs.
+- **A1-2 is the arm load:** R2 of the S1 prediction against the B2 prediction
+  >= 0.5, on both runs. Both predictions come from training parameters.
+- **A1-3 stiffness holds:** S1 refitted on each confirmation run, with `k`
+  within +-25 % of training and off its bound. Disclosed: the band was chosen
+  after seeing training and validation. It replaces nothing: the O4 band of
+  0.0061 still decides section 8.
+- **A1-4 the base moves:** the RMS of the base DOF on the run is >= 10 times
+  its sd on the noise floor (`postures_1720`). A rigid base fails here.
+
+**Reading.**
+- Passing A1-1 to A1-4 on a DOF is reported as "a compliance in series with the
+  arm load, stiffness `k`" on that DOF.
+- A1-1 failing while B2 transfers (R2 >= 0.5) is reported as "rigid-base
+  reading on that DOF".
+- Anything else is "no answer".
+- No overall "enough" is claimed: A1 is secondary.
+- Expected from the corrected validation read alone (not blind; no number
+  is promised): at most `rx`, perhaps `ry`.
+
+**Procedure.**
+- Both confirmation runs are read once by one command, and the output is frozen
+  in a golden.
+- Every number is reported, the failures included.
+- The thresholds are frozen in the study config (`amendment_a1`).
+- No rule, threshold or model is changed after the read. A change would be a
+  new amendment, and the runs would no longer count as confirmation.
+- Validation values of A1-1 to A1-4 are reported beside the confirmation ones,
+  marked as not blind.
