@@ -6,7 +6,9 @@ suspension parameter to a real run. It is frozen once merged. The study
 (real-data fits, comparison with the baselines, verdicts) is part 2 and changes
 no threshold written here. It was revised once before any real fit (the
 "Revision" decisions of section 10, 2026-10-23): the earlier numbers stay
-beside the current ones.
+beside the current ones. Part 2, the real fits, is section 12: the
+spring-damper is **not enough** under the frozen rules, read after one disclosed
+loader revision (the plate `Fy` sign, 12.2).
 
 Question: on the 2023-09-20 CREPS runs (TIAGo on a force plate in a Vicon
 room), is a linear spring-damper at the base enough to explain the wrench the
@@ -832,4 +834,274 @@ python examples/tiago/suspension_truth.py --golden tests/golden/tiago_suspension
 python -m pytest tests/test_tiago_suspension_model.py tests/test_tiago_suspension_truth.py -q
 ```
 
-The full fixture takes about 6 minutes.
+The full fixture takes about 6 minutes. Part 2 (section 12), about 40 s:
+
+```bash
+python examples/tiago/suspension_study.py --out tests/golden/tiago_suspension_study.json
+python -m pytest tests/test_tiago_suspension_study.py -q
+```
+
+## 12. Part 2: the real fits (2026-10-23, revised 2026-10-24)
+
+Run by `examples/tiago/suspension_study.py` on the merged pre-registration
+(`68a7807`), output frozen in `tests/golden/tiago_suspension_study.json`. No
+threshold, rule or model of sections 1 to 10 was changed. One loader revision
+was made after the first read (12.2): the plate `Fy` channel has the opposite
+sign of Vicon world y. The record is the corrected read; the first read stays in
+12.9.
+
+**Answer: not enough.** Under the rules of section 8, a linear spring-damper
+at the base is **not enough** to explain the plate wrench of `xyz_1628`: no DOF
+passes. Only `rx` is explained (S3, 0.50, at the threshold). The rigid-base arm
+load B2 explains five DOF to 0.57 to 0.98, and the suspension adds nothing to
+it (Q2 absent). The verdict does **not** show that the base is rigid. With the
+suspension in series between the arm and the plate, "beats B2" cannot separate
+the two readings (12.8). The confirmation runs `xyz_mirror_1630` and
+`xyz_mirror_1642` were **not read** (rule of step 4).
+
+**Validation is no longer blind.** The revision was found after the validation
+wrench had been read and scored. The corrected verdict on `xyz_1628` is
+therefore not a pre-registered hold-out result. The confirmation runs are the
+only unseen data left.
+
+### 12.1 Real reads of part 2
+
+In addition to section 1:
+- the plate wrench of training, of the five selection diagnostics
+  (`read_target`) and of validation (`unlock_validation`), under both `Mz`
+  conventions, twice (before and after 12.2);
+- the status-quo loader on the training and validation files (B1);
+- the unfiltered `Fz` of `xyz_1640`, `postures_1720` and `postures_1734`
+  (step 7);
+- for the frame checks of 12.2, the raw plate, COP and gripper columns of
+  `xyz_1640`, `postures_1720`, `postures_1734` and `around_z_1622`.
+
+Nothing of the confirmation runs was read beyond the sha256 check.
+
+### 12.2 Revision: the plate `Fy` sign
+
+The maintainer asked, after the first read, whether a frame was flipped or
+misplaced: the plate reference is not at the robot, and the markers are on the
+base and the gripper. Each frame was checked against the physics the plate must
+show. The action on the plate is `F = m (g - a)`, so the horizontal force is
+`-m a`, and the COP follows the arm's gravity moment.
+
+| check (raw columns, world) | expected | found |
+|---|---|---|
+| COP shift on gripper shift (x, y diagonal) | positive | 0.088, 0.082 (R2 0.97) |
+| `Fx` on gripper acceleration `a_x` | `-m`, a few kg | -6.7 kg |
+| `Fy` on gripper acceleration `a_y` | `-m`, a few kg | **+5.5 kg** |
+| `Fz` at rest | about -730 N | -730 N |
+| `Mz` on `[(r - c) x a]_z` of the gripper | `-m` | -5.0 and -7.3 kg (R2 0.93, 0.98), `Mz` about `c` |
+| footprint origin height (world) | at the floor | -0.004 m |
+
+The sign checks were run on `xyz_1640`, `around_z_1622` and `postures_1734`.
+Only `Fy` disagrees, with the same sign on every run checked. The location is
+correct: the COP is under the robot, and the transport lever to the footprint
+is (-0.025, -0.077, 0.004) m. Part 1 could not see the flip. Its plate-centre
+check fits `M = (COP - c) x F`, and with COPz = c_z = 0, `Mx` and `My` do not
+contain `Fy`.
+
+Revision: `plate_fy_sign: -1` in the study config. The loader
+(`process_raw(plate_fy_sign=...)`) negates the recorded `Fy` before any other
+use, so the `Mz` about the COP (O7) is corrected too. The switch applies to the
+real runs only (`suspension_model._run`). The fixture writes world `Fy`, so its
+golden is unchanged. The status quo B1 keeps its own reader: it is what #70
+reported. The checks are tests
+(`test_corrected_plate_force_is_minus_the_arm_mass_times_the_gripper_acceleration`).
+The cube mass the corrected B2 fits, 6.29 kg, falls in the 5.6 to 6.7 kg of
+these regressions. The first read (3.6 kg) did not.
+
+### 12.3 Selection and fits (steps 1 and 2)
+
+Blocked CV loss (lower is better) over training and the five selection
+diagnostics: S1 0.778, S2 0.767, S3 0.711. The simplest model within 5 % of the
+best (limit 0.746) is S3: the selected model is S3. S2 alone would sit at
+`h_e` = 0.60 m, the ceiling of the grid, as in the first read (reported, not
+acted on).
+
+Held-out R2 on validation (B0 is 0 by construction):
+
+| model | `x` | `y` | `z` | `rx` | `ry` | `rz` |
+|---|---|---|---|---|---|---|
+| B1 | 0.07 | 0.03 | 0.05 | 0.59 | 0.91 | 0.10 |
+| S1 | 0.08 | 0.00 | -0.06 | 0.90 | 0.58 | 0.16 |
+| S2 | 0.09 | 0.42 | -0.06 | 0.88 | 0.60 | 0.16 |
+| S3 | -0.81 | 0.20 | -1.00 | 0.50 | -0.20 | 0.36 |
+| B2 | 0.57 | 0.88 | 0.21 | 0.98 | 0.96 | 0.91 |
+| S1B2 | 0.58 | 0.88 | 0.17 | 0.99 | 0.96 | 0.91 |
+
+| item (S3) | `x` | `y` | `z` | `rx` | `ry` | `rz` |
+|---|---|---|---|---|---|---|
+| explained (R2 >= 0.5) | no | no | no | yes | no | no |
+| beats B2 by 0.1 | no | no | no | no | no | no |
+| stiffness at bound | yes | yes | yes | yes | yes | yes |
+| k train/validation rel. diff (band 0.0061) | 0.373 | 0.163 | 2.299 | 0.184 | 0.257 | 2.201 |
+| nonlinear corr (flag > 0.2) | 0.01 | -0.06 | 0.01 | -0.01 | 0.37 | 0.26 |
+| DOF ok | no | no | no | no | no | no |
+| `Mz` about COP: explained | no | no | no | no | no | no |
+| `Mz` about COP: DOF ok | no | no | no | no | no | no |
+
+`Mz` (step 6): both conventions give the same `Mz` verdict (fails), so `Mz`
+stays answerable. No held-out R2 of `Mz` moves by more than 0.01, and no R2 of
+any DOF by more than 0.03. The S3 `rx` (0.50 about `c`, 0.48 about the COP)
+sits on the threshold in both.
+
+### 12.4 Parameters (S3, training)
+
+| S3 | `x` | `y` | `z` | `rx` | `ry` | `rz` |
+|---|---|---|---|---|---|---|
+| `K` diagonal (N/m; N m/rad) | 7.13e+03 | 1.15e+04 | 6.76e+04 | 1.95e+04 | 3.45e+04 | 259 |
+| SE (bootstrap) | 2.49e+03 | 5.08e+03 | 1.37e+04 | 331 | 3.09e+03 | 43.3 |
+| `K` diagonal, refit on validation | 5.19e+03 | 1.38e+04 | 2.05e+04 | 2.39e+04 | 4.64e+04 | 81 |
+| `C` diagonal | 667 | 184 | 615 | 1.32e+03 | 694 | 71.3 |
+| SE (bootstrap) | 304 | 106 | 316 | 212 | 244 | 7.47 |
+| `K` eigenvalues | 6.52e-06 | 236 | 5.95e+03 | 1.86e+04 | 3.72e+04 | 7.86e+04 |
+| `C` eigenvalues | 1.51e-06 | 3.77e-06 | 2.88 | 197 | 1.07e+03 | 2.29e+03 |
+
+The PSD constraint is active: `K` has one zero eigenvalue and `C` two, so the
+stiffness is at its bound on every DOF of the coupled fit. The calibrated SE
+(fixture S1 bias, at most 0.2 % on `k`; assumed for S3, which has no fixture
+bias of its own) differs from the bootstrap SE in the third digit at most. S1,
+for comparison: `k` = 1.16e3, 0, 5.84e3, 1.87e4, 2.23e4, 190, with `k_y` at 0.
+The errors-in-variables row (`s1_eiv`, unconstrained) wants a negative `k_y`
+(-1.34e4), so that bound is not a noise artefact.
+
+### 12.5 Reading per item
+
+- **Explained**: only `rx`, at 0.50 (S3). S3 fits training to 0.26 to
+  0.86 and transfers badly (`x` -0.81, `z` -1.00). The coupled `K` and `C`
+  overfit the session. S1 explains `rx` to 0.90 and `ry` to 0.58, and was not
+  selected.
+- **Beats B2**: on no DOF. B2 reaches 0.57, 0.88, 0.21, 0.98, 0.96 and 0.91
+  with 4 parameters (cube mass 6.29 kg, not at its bound) and none of the base
+  motion.
+- **Active stiffness bound**: every DOF (PSD constraint, 12.4).
+- **Repeatable**: no DOF, as O4 expected from the band of 0.0061. The diagonal
+  moves by 16 % to 230 % between the sessions.
+- **Nonlinear**: `ry` (0.37) and `rz` (0.26).
+- **Q2 absent**: S1B2 gains -0.04 to 0.01 over B2 on every DOF. This is the
+  F4c pattern ("an arm load only") under the rule of section 8. 12.8 limits
+  what that pattern means.
+
+### 12.6 Status quo (B1) on the real runs
+
+B1, the #70 status quo, on validation: forces R2 0.07, 0.03, 0.05, `Mx` 0.59,
+`My` 0.91, and all six dampings negative. This is the F3 signature (forces
+<= 0.2, `My` >= 0.75, >= 3 negative dampings). The fixture reproduced it under
+the mixed truth (F3b), not under the spring truth (F3). B1 reads `Fy` as
+recorded. Its forces stay unexplained with either sign, and its moments do not
+contain `Fy` (12.2).
+
+### 12.7 Vertical mode (step 7, descriptive)
+
+The S3 `k_z` is 6.76e4 N/m, 0.039 times the 1.72e6 N/m of the 24.2 Hz `Fz`
+peak of training. `Fz` is not explained (R2 -1.00), so this `k_z` is not a
+vertical suspension stiffness. At rest, `postures_1734` has a peak at 30.0 Hz
+(9.2 times the band median) and `postures_1720` one at 37.1 Hz (3.2 times). A
+10 to 45 Hz mode persists without base motion, so the 24 Hz peak of training is
+not shown to be the suspension mode.
+
+### 12.8 What "beats B2" can and cannot tell (series load path)
+
+Section 8 reads "explained but not beyond B2" as "the arm's load, not a
+suspension estimate". That reading holds when the arm load reaches the plate
+on a path parallel to the suspension. The fixture's mixed truth (F3b, F4d) was
+built that way: the spring wrench plus the cube wrench, added. On TIAGo the
+arm load passes **through** the suspension: arm, base on its springs, wheels,
+plate. The plate then receives the arm load. If the base is compliant, that
+load is carried by the springs, and `K x` follows the arm load too. B2 and S1
+describe the same wrench, and S1B2 adds nothing over B2 whether the base is
+rigid or compliant. On this path the rule cannot tell the two apart.
+
+The data show a compliant reading beside the rigid one. S1 explains `Mx` to
+0.90 from base roll alone, and a rigid base has no roll to regress on. The roll
+stiffness is about 1.9e4 N m/rad (S1 1.87e4, S3 diagonal 1.95e4; refit on
+validation 2.39e4). This is a reading of the corrected first pass, not a
+verdict. The question it raises is whether a training `K x` **predicts** a run
+it was not fitted on, and agrees with B2, rather than whether it beats B2. That
+question needs rules written before the confirmation runs are read: amendment
+A1 (section 13). It changes no rule of section 8.
+
+### 12.9 First read (before the `Fy` revision, 2026-10-23)
+
+Committed as `4959973` and kept for the record. CV loss: S1 0.779, S2 0.769,
+S3 0.736. The selected model was S2 at the grid ceiling (0.60 m).
+
+| model, first read | `x` | `y` | `z` | `rx` | `ry` | `rz` |
+|---|---|---|---|---|---|---|
+| S1 | 0.00 | 0.00 | -0.06 | 0.90 | 0.58 | 0.15 |
+| S2 | 0.00 | 0.41 | -0.06 | 0.88 | 0.58 | 0.15 |
+| S3 | 0.07 | 0.57 | -0.69 | 0.55 | 0.08 | 0.45 |
+| B2 | -0.97 | 0.75 | 0.20 | 0.88 | 0.83 | 0.88 |
+| S1B2 | -0.46 | 0.53 | 0.09 | 0.95 | 0.80 | 0.82 |
+
+Verdict: not enough. `rx` and `ry` were explained and tied or beaten by B2
+(cube mass 3.6 kg), and Q2 was absent. The first read concluded "the moments
+are the arm load". It is withdrawn. The flipped `Fy` made B2 fail on `Fx`
+(-0.97), and the rule could not support the conclusion anyway (12.8).
+
+### 12.10 Deviations of part 2
+
+- **The `Fy` revision (12.2)**, after the validation run had been read.
+  Validation is not blind for the corrected verdict.
+- The library gained what step 6 and step 4 need and part 1 did not implement:
+  the `mz_about` switch of the loader (`centre` default, unchanged),
+  `plate_fy_sign` (default +1), and `read_regressors(..., unlock_confirmation)`
+  (unused).
+- The S3 semidefinite fit failed in cvxopt (math domain error) on the real
+  training CV. Its objective is now divided by `|z|^2`, which has the same
+  minimiser (it agrees with the norm form to 2e-6). The fixture golden is
+  unchanged under it (slow test).
+- The calibrated SE of the selected model uses the S1 fixture bias (12.4).
+- `h_e` at the grid ceiling for S2 (12.3) is reported, not acted on.
+
+## 13. Amendment A1: the series reading (approved by the maintainer, 2026-10-24)
+
+Written 2026-10-24, after the corrected read of validation (12.2, 12.3) and
+before any read of `xyz_mirror_1630` and `xyz_mirror_1642`. It adds one
+question. It changes no rule of section 8, and the section 8 verdict stays
+**not enough**.
+
+**Why.** On TIAGo the arm load reaches the plate through the suspension
+(12.8), so "beats B2" cannot separate a rigid base from a compliant one. The
+question becomes: does a stiffness fitted on training **predict** the wrench of
+runs it has not seen, and is that prediction the arm load?
+
+**Frozen inputs.**
+- The corrected loader (`plate_fy_sign: -1`) with `mz_about: centre`.
+- S1 and B2 fitted on `xyz_1640` only, as in the golden. Nothing is refitted on
+  confirmation, except in A1-3.
+- S1 is the model. S3 is not used. Disclosed: S1 was chosen after seeing that
+  S3 does not transfer to validation.
+
+**Rules (per DOF, each of the two confirmation runs scored separately).**
+- **A1-1 transfers:** held-out R2 of the training S1 >= 0.5, on both runs.
+- **A1-2 is the arm load:** R2 of the S1 prediction against the B2 prediction
+  >= 0.5, on both runs. Both predictions come from training parameters.
+- **A1-3 stiffness holds:** S1 refitted on each confirmation run, with `k`
+  within +-25 % of training and off its bound. Disclosed: the band was chosen
+  after seeing training and validation. It replaces nothing: the O4 band of
+  0.0061 still decides section 8.
+- **A1-4 the base moves:** the RMS of the base DOF on the run is >= 10 times
+  its sd on the noise floor (`postures_1720`). A rigid base fails here.
+
+**Reading.**
+- Passing A1-1 to A1-4 on a DOF is reported as "a compliance in series with the
+  arm load, stiffness `k`" on that DOF.
+- A1-1 failing while B2 transfers (R2 >= 0.5) is reported as "rigid-base
+  reading on that DOF".
+- Anything else is "no answer".
+- No overall "enough" is claimed: A1 is secondary.
+- Expected from the corrected validation read alone (not blind; no number
+  is promised): at most `rx`, perhaps `ry`.
+
+**Procedure.**
+- Both confirmation runs are read once by one command, and the output is frozen
+  in a golden.
+- Every number is reported, the failures included.
+- The thresholds are frozen in the study config (`amendment_a1`).
+- No rule, threshold or model is changed after the read. A change would be a
+  new amendment, and the runs would no longer count as confirmation.
+- Validation values of A1-1 to A1-4 are reported beside the confirmation ones,
+  marked as not blind.

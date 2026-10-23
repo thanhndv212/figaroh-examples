@@ -97,6 +97,10 @@ LOADER = dict(
 )
 
 
+# Real runs only (part 2 revision); simulated rows carry world Fy.
+PLATE_FY_SIGN = float(SETTINGS["plate_fy_sign"])
+
+
 def h_e_grid() -> np.ndarray:
     g = SETTINGS["h_e_grid"]
     n = int(round((g["max"] - g["min"]) / g["step"])) + 1
@@ -131,9 +135,11 @@ def verify_hashes() -> List[str]:
 
 
 @lru_cache(maxsize=None)
-def _run(session_id: str) -> sd.SuspensionRun:
+def _run(session_id: str, mz_about: str = "centre") -> sd.SuspensionRun:
     session = load_sessions(verify=False)[session_id]
-    return sd.load_run(session.path, **LOADER)
+    return sd.load_run(
+        session.path, mz_about=mz_about, plate_fy_sign=PLATE_FY_SIGN, **LOADER
+    )
 
 
 @dataclass
@@ -159,9 +165,13 @@ class Regressors:
         return self.t.size
 
 
-def read_regressors(session: Session) -> Regressors:
-    """Base motion and arm marker clusters; never a plate channel."""
-    if session.role == "confirmation":
+def read_regressors(session: Session, unlock_confirmation: bool = False) -> Regressors:
+    """Base motion and arm marker clusters; never a plate channel.
+
+    The confirmation runs are read only by the confirmation stage of part 2
+    (``unlock_confirmation``), after validation says "enough".
+    """
+    if session.role == "confirmation" and not unlock_confirmation:
         raise PermissionError(
             f"{session.id}: confirmation runs are not read (hash check only)"
         )
@@ -192,7 +202,10 @@ def regressors_from_raw(t, values, **overrides) -> Tuple[Regressors, np.ndarray]
 
 
 def read_target(
-    session: Session, unlock_validation: bool = False, unlock_confirmation: bool = False
+    session: Session,
+    unlock_validation: bool = False,
+    unlock_confirmation: bool = False,
+    mz_about: str = "centre",
 ) -> np.ndarray:
     """(n, 6) plate wrench about the origin, on the rows of :func:`read_regressors`.
 
@@ -200,7 +213,8 @@ def read_target(
     (model selection only, O3). The validation wrench is read by the study stage
     of part 2 (``unlock_validation``); the confirmation wrench by the
     confirmation stage (``unlock_confirmation``), which does not exist in part 1.
-    Other diagnostic runs (the postures) are not targets.
+    Other diagnostic runs (the postures) are not targets. ``mz_about``: the
+    ``Mz`` convention of the loader (O7, part 2 step 6).
     """
     if session.role == "confirmation" and not unlock_confirmation:
         raise PermissionError(
@@ -216,7 +230,7 @@ def read_target(
         raise PermissionError(f"{session.id}: not a selection run, not a target")
     if session.role not in ("training", "validation", "confirmation", "diagnostic"):
         raise PermissionError(f"{session.id}: {session.role} runs are not targets")
-    return _run(session.id).w
+    return _run(session.id, mz_about).w
 
 
 # ---------------------------------------------------------------- designs
@@ -518,7 +532,9 @@ def _solve_psd(r: np.ndarray, z: np.ndarray, scale: np.ndarray, p: int) -> np.nd
     prob = picos.Problem()
     th = picos.RealVariable("th", n_par)
     r_c, z_c = picos.Constant("R", r), picos.Constant("z", z)
-    prob.set_objective("min", abs(r_c * th - z_c) ** 2)
+    # Divided by |z|^2: the same minimiser, but cvxopt fails (math domain error)
+    # on the unscaled objective of the real training run (#70 part 2).
+    prob.set_objective("min", abs(r_c * th - z_c) ** 2 / max(float(z @ z), 1e-300))
     for off in (0, n_pair):
         diag = np.array(
             [
@@ -1001,7 +1017,7 @@ def mz_convention(values: np.ndarray) -> dict:
     """
     c = np.asarray(SETTINGS["plate_centre"], float)
     f, m, cop = values[:, 30:33], values[:, 33:36], values[:, 36:39]
-    dz = (cop[:, 0] - c[0]) * f[:, 1] - (cop[:, 1] - c[1]) * f[:, 0]
+    dz = (cop[:, 0] - c[0]) * PLATE_FY_SIGN * f[:, 1] - (cop[:, 1] - c[1]) * f[:, 0]
     return {"term_rms": float(np.std(dz)), "mz_sd": float(np.std(m[:, 2]))}
 
 

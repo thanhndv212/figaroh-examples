@@ -16,8 +16,9 @@ copied verbatim from the reachable `figaroh-plus` Git ref at commit
   plate centre and the receive clock as time
   ([#70](https://github.com/thanhndv212/figaroh-examples/issues/70)). The
   corrected loader, the models and the pre-registered thresholds are in
-  `docs/development/tiago-suspension.md`; no suspension parameter has been
-  fitted to a real run yet.
+  `docs/development/tiago-suspension.md`. Its part 2 fits on the real runs
+  (section 12) find a linear spring-damper at the base **not enough**
+  under the pre-registered rules.
 - `backlash/sinus_amp3_period10_2023-07-24-13-28-42/` contains the PAL
   introspection name/value exports. By default the example fits
   relative-minus-absolute encoder difference using relative position,
@@ -241,6 +242,14 @@ transfer to.
   points down (the audit's reading of the example's frame definition). The
   example's model treats these points loosely; fixing that is #70, not this
   data.
+- **Plate `Fy` sign:** the recorded `Fy4` has the **opposite sign** of Vicon
+  world y; `Fx4`, `Fz4`, the moments and the COP agree with world. Regressed
+  on the gripper acceleration, the horizontal force of the action on the
+  plate is `-m a`: `Fx4` gives about -6.7 kg and `Fy4` about +5.5 kg, on
+  `xyz_1640`, `around_z_1622` and `postures_1734`. The files are kept as
+  recorded; the corrected loader negates `Fy4` (`plate_fy_sign: -1` in the
+  study config, a #70 part 2 revision). The plate-centre check cannot see it:
+  with COPz = 0, `Mx` and `My` do not depend on `Fy`.
 - **Static load:** Fz is about -730 N at rest in every run (74 kg on the
   plate); the first 100 samples are the example's zero.
 - **Robot side:** the nine oscillation runs each have a robot introspection
