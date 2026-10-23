@@ -84,3 +84,14 @@ def test_a1_rerun_matches_the_golden():
     for sid, r in g["confirmation"].items():
         for key in ("r2_s1", "r2_arm", "r2_b2", "snr"):
             assert np.allclose(res["confirmation"][sid][key], r[key], atol=1e-6), (sid, key)
+
+
+@pytest.mark.skipif(not GOLDEN.exists(), reason="A1 not read yet")
+def test_note_quotes_the_a1_result():
+    g = json.loads(GOLDEN.read_text())
+    note = (ROOT / "docs/development/tiago-suspension.md").read_text()
+    assert "### 13.1 A1 result: the confirmation read" in note
+    assert "| reading | " + " | ".join(g["reading"]) + " |" in note
+    a, b = (g["confirmation"][s]["r2_s1"] for s in sm.SETTINGS["sessions"]["confirmation"])
+    cells = " | ".join(f"{x:.2f} / {y:.2f}" for x, y in zip(a, b)).replace("-0.00", "0.00")
+    assert "| A1-1 R2 of training S1 (>= 0.5) | " + cells + " |" in note
