@@ -1132,10 +1132,22 @@ A1-2 0.88, `k` 1.97e4, A1-4 7.8.
 On `rx`, the training roll stiffness predicts `Mx` on two unseen runs (R2 0.91
 and 0.88). That prediction is the arm load (R2 against B2 0.90 and 0.89), and
 the refitted `k_rx` stays within 10 to 19 % of training. The base roll, though,
-is only 7.3 to 7.7 times its sd at rest, below the frozen floor of 10. A1
-therefore cannot exclude a rigid base: a roll this small could be a
-marker-level artefact correlated with the arm. This stays a near miss and is
-not a finding; the floor was not moved. `rz` has the largest base motion (yaw,
+is only 7.3 to 7.7 times its sd at rest, below the frozen floor of 10, so
+under A1 this stays a near miss, not a finding; the floor was not moved.
+
+A check made after the read, descriptive only; it does not change the reading.
+It uses the raw base markers of `postures_1720`, `xyz_1640` and `xyz_1628`,
+and no confirmation run is read again.
+- The floor run is really at rest: the gripper moves less than 3 mm, so its roll
+  sd (9.0e-5 rad) is measurement wander, not a tilt.
+- In the xyz runs, the roll is a rigid see-saw of the triad. `base1` and
+  `base2` (0.41 m apart) move vertically in opposite directions (corr -0.94 and
+  -0.93), with 0.20 and 0.11 mm sd, against 0.02 to 0.03 mm at rest. The
+  marker distances stay within 0.05 to 0.09 mm.
+- The roll is therefore a real, small tilt of the base, about 0.04 deg RMS, and
+  not a marker artefact. What A1-4 cannot separate is its source: the base
+  suspension, or the tyres and casters on the plate. Both would read as a
+  compliance in series with the arm load. `rz` has the largest base motion (yaw,
 40 to 56 times the floor), and S1 does not predict `Mz` from it (0.20, 0.33):
 the yaw is not a spring.
 
