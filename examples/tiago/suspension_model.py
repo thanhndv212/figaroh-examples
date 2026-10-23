@@ -131,9 +131,9 @@ def verify_hashes() -> List[str]:
 
 
 @lru_cache(maxsize=None)
-def _run(session_id: str) -> sd.SuspensionRun:
+def _run(session_id: str, mz_about: str = "centre") -> sd.SuspensionRun:
     session = load_sessions(verify=False)[session_id]
-    return sd.load_run(session.path, **LOADER)
+    return sd.load_run(session.path, mz_about=mz_about, **LOADER)
 
 
 @dataclass
@@ -159,9 +159,13 @@ class Regressors:
         return self.t.size
 
 
-def read_regressors(session: Session) -> Regressors:
-    """Base motion and arm marker clusters; never a plate channel."""
-    if session.role == "confirmation":
+def read_regressors(session: Session, unlock_confirmation: bool = False) -> Regressors:
+    """Base motion and arm marker clusters; never a plate channel.
+
+    The confirmation runs are read only by the confirmation stage of part 2
+    (``unlock_confirmation``), after validation says "enough".
+    """
+    if session.role == "confirmation" and not unlock_confirmation:
         raise PermissionError(
             f"{session.id}: confirmation runs are not read (hash check only)"
         )
@@ -192,7 +196,10 @@ def regressors_from_raw(t, values, **overrides) -> Tuple[Regressors, np.ndarray]
 
 
 def read_target(
-    session: Session, unlock_validation: bool = False, unlock_confirmation: bool = False
+    session: Session,
+    unlock_validation: bool = False,
+    unlock_confirmation: bool = False,
+    mz_about: str = "centre",
 ) -> np.ndarray:
     """(n, 6) plate wrench about the origin, on the rows of :func:`read_regressors`.
 
@@ -200,7 +207,8 @@ def read_target(
     (model selection only, O3). The validation wrench is read by the study stage
     of part 2 (``unlock_validation``); the confirmation wrench by the
     confirmation stage (``unlock_confirmation``), which does not exist in part 1.
-    Other diagnostic runs (the postures) are not targets.
+    Other diagnostic runs (the postures) are not targets. ``mz_about``: the
+    ``Mz`` convention of the loader (O7, part 2 step 6).
     """
     if session.role == "confirmation" and not unlock_confirmation:
         raise PermissionError(
@@ -216,7 +224,7 @@ def read_target(
         raise PermissionError(f"{session.id}: not a selection run, not a target")
     if session.role not in ("training", "validation", "confirmation", "diagnostic"):
         raise PermissionError(f"{session.id}: {session.role} runs are not targets")
-    return _run(session.id).w
+    return _run(session.id, mz_about).w
 
 
 # ---------------------------------------------------------------- designs
@@ -518,7 +526,9 @@ def _solve_psd(r: np.ndarray, z: np.ndarray, scale: np.ndarray, p: int) -> np.nd
     prob = picos.Problem()
     th = picos.RealVariable("th", n_par)
     r_c, z_c = picos.Constant("R", r), picos.Constant("z", z)
-    prob.set_objective("min", abs(r_c * th - z_c) ** 2)
+    # Divided by |z|^2: the same minimiser, but cvxopt fails (math domain error)
+    # on the unscaled objective of the real training run (#70 part 2).
+    prob.set_objective("min", abs(r_c * th - z_c) ** 2 / max(float(z @ z), 1e-300))
     for off in (0, n_pair):
         diag = np.array(
             [

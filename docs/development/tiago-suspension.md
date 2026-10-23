@@ -6,7 +6,8 @@ suspension parameter to a real run. It is frozen once merged. The study
 (real-data fits, comparison with the baselines, verdicts) is part 2 and changes
 no threshold written here. It was revised once before any real fit (the
 "Revision" decisions of section 10, 2026-10-23): the earlier numbers stay
-beside the current ones.
+beside the current ones. Part 2, the real fits, is section 12: the
+spring-damper is **not enough**, and the explained moments are the arm load.
 
 Question: on the 2023-09-20 CREPS runs (TIAGo on a force plate in a Vicon
 room), is a linear spring-damper at the base enough to explain the wrench the
@@ -832,4 +833,142 @@ python examples/tiago/suspension_truth.py --golden tests/golden/tiago_suspension
 python -m pytest tests/test_tiago_suspension_model.py tests/test_tiago_suspension_truth.py -q
 ```
 
-The full fixture takes about 6 minutes.
+The full fixture takes about 6 minutes. Part 2 (section 12), about 35 s:
+
+```bash
+python examples/tiago/suspension_study.py --out tests/golden/tiago_suspension_study.json
+python -m pytest tests/test_tiago_suspension_study.py -q
+```
+
+## 12. Part 2: the real fits (2026-10-23)
+
+Run by `examples/tiago/suspension_study.py` on the merged pre-registration
+(`68a7807`), output frozen in `tests/golden/tiago_suspension_study.json`. No
+threshold, rule or model of sections 1 to 10 was changed.
+
+**Answer: not enough.** A linear spring-damper at the base is **not enough** to
+explain the plate wrench of `xyz_1628`: no DOF passes section 8. The two
+explained DOF (`rx`, `ry`) are matched or beaten by the arm load B2, and the
+suspension adds nothing to it (Q2 absent). By the meanings of section 8 the
+moment fit is the arm's load, not a suspension estimate. The confirmation runs
+`xyz_mirror_1630` and `xyz_mirror_1642` were **not read** (rule of step 4).
+
+### 12.1 Real reads of part 2
+
+In addition to section 1: the plate wrench of training, of the five selection
+diagnostics (`read_target`) and of validation (`unlock_validation`), under both
+`Mz` conventions; the status-quo loader on the training and validation files
+(B1); the unfiltered `Fz` of `xyz_1640`, `postures_1720` and `postures_1734`
+(step 7). Nothing of the confirmation runs beyond the sha256 check.
+
+### 12.2 Selection and fits (steps 1 and 2)
+
+Blocked CV over training and the five selection diagnostics: S1 0.779, S2 0.769,
+S3 0.736. S2 is the simplest within 5 % of the best (limit 0.773), and the
+selected model is S2 at `h_e` = 0.60 m. That `h_e` is the **ceiling of
+the grid**: the CV prefers an elastic centre at or above 0.6 m over the
+footprint, higher than the base itself (the triad is 0.31 m up). Read with the
+F4a sensitivity rows (the gain follows the lever), the S2 over S1 gain sits
+only on `y` (0.41). There it carries a roll-coupled lateral force, the signature
+of a load above the base (B2 explains `Fy` to 0.75), not of a physical elastic
+centre. The grid was not extended (frozen).
+
+Held-out R2 on validation (B0 is 0 by construction):
+
+| model | `x` | `y` | `z` | `rx` | `ry` | `rz` |
+|---|---|---|---|---|---|---|
+| B1 | 0.07 | 0.03 | 0.05 | 0.59 | 0.91 | 0.10 |
+| S1 | 0.00 | 0.00 | -0.06 | 0.90 | 0.58 | 0.15 |
+| S2 | 0.00 | 0.41 | -0.06 | 0.88 | 0.58 | 0.15 |
+| S3 | 0.07 | 0.57 | -0.69 | 0.55 | 0.08 | 0.45 |
+| B2 | -0.97 | 0.75 | 0.20 | 0.88 | 0.83 | 0.88 |
+| S1B2 | -0.46 | 0.53 | 0.09 | 0.95 | 0.80 | 0.82 |
+
+| item | `x` | `y` | `z` | `rx` | `ry` | `rz` |
+|---|---|---|---|---|---|---|
+| explained (R2 >= 0.5) | no | no | no | yes | yes | no |
+| beats B2 by 0.1 | yes | no | no | no | no | no |
+| stiffness at bound | yes | no | no | no | no | no |
+| k train/validation rel. diff (band 0.0061) | inf (k = 0) | 0.120 | 0.644 | 0.035 | 0.360 | 1.197 |
+| nonlinear corr (flag > 0.2) | 0.00 | -0.22 | -0.02 | 0.01 | 0.30 | 0.38 |
+| damping not identified | yes | no | no | yes | yes | no |
+| DOF ok | no | no | no | no | no | no |
+| `Mz` about COP: DOF ok | no | no | no | no | no | no |
+
+`Mz` (step 6): both conventions give the same DOF verdict (fails), so `Mz`
+stays answerable; no held-out R2 of any model moves by more than 0.02
+(`cop` block of the golden).
+
+### 12.3 Parameters (S2, training)
+
+| S2 | `x` | `y` | `z` | `rx` | `ry` | `rz` |
+|---|---|---|---|---|---|---|
+| k (N/m; N m/rad) | 0 | 8.55e+03 | 5.66e+03 | 1.65e+04 | 2.23e+04 | 188 |
+| SE (bootstrap) | 0 | 1.43e+03 | 4.31e+03 | 465 | 1.08e+03 | 94 |
+| SE calibrated | 0 | 1.43e+03 | 4.31e+03 | 465 | 1.08e+03 | 94 |
+| k, refit on validation | 0 | 9.71e+03 | 1.59e+04 | 1.71e+04 | 3.48e+04 | 85.5 |
+| c (N s/m; N m s/rad) | 0 | 425 | 2.85e+03 | 159 | 0 | 54.2 |
+| SE (bootstrap) | 1.19 | 158 | 1.19e+03 | 98.2 | 9.09 | 2.73 |
+| SE calibrated | 1.19 | 158 | 1.22e+03 | 98.3 | 9.09 | 2.73 |
+
+The calibrated SE adds the fixture's S1 bias (section 7.1), which is at most
+0.2 % on `k`. For the S2 and S1B2 fits the fixture measured no bias of its own,
+so the S1 bias is used for them (a stated assumption). The errors-in-variables
+row (`s1_eiv` in the golden, unconstrained) gives negative `k_x`, `c_x`, `k_y`,
+`c_y` and `c_ry`. The bound of the record fit is therefore not a
+noise artefact.
+
+### 12.4 Reading per item
+
+- **Explained**: only `rx` (0.88) and `ry` (0.58). `Fx`, `Fy`, `Fz` and `Mz`
+  stay below 0.5; `Fz` is negative (-0.06).
+- **Beats B2**: only `x`, which is vacuous there. The S2 `k_x` and `c_x` are at
+  0 (R2 0), and B2 is worse than the static prediction on `Fx` (-0.97). On
+  `rx` S2 and B2 tie (0.88), and on `ry` B2 wins (0.83 against 0.58).
+- **Active stiffness bound**: `x` (the unconstrained fit wants a negative
+  `k_x`; section 8, "the arm's inertial coupling").
+- **Repeatable**: no DOF, as O4 expected from the band of 0.0061. Even against
+  a loose band, only `rx` (3.5 %) and `y` (12 %) are close. `z`, `ry` and `rz`
+  move by 36 % to 120 % between the two sessions, so these are session
+  properties.
+- **Nonlinear**: `y` (-0.22), `ry` (0.30), `rz` (0.38).
+- **Damping not identified** (O9, not a failure): `x` and `ry` at 0, `rx` with a
+  relative SE above 50 %.
+- **B2**: the cube mass is 3.6 kg (not at its bound), small next to the 25 kg of
+  the F4c truth. B2 explains `Fy`, `Mx`, `My` and `Mz` (0.75 to 0.88) with 4
+  parameters and none of the base motion.
+- **Q2 absent**: S1B2 beats B2 by 0.1 only on `x` (gain 0.51, both R2
+  negative), where the S1B2 `k_x` is at its bound; the rule excludes it. On the
+  other DOF the gain is between -0.22 and 0.06. This is the F4c pattern ("an arm
+  load only"), not the F4d one.
+
+### 12.5 Status quo (B1) on the real runs
+
+B1, the #70 status quo, on validation: forces R2 0.07, 0.03, 0.05, `Mx` 0.59,
+`My` 0.91, and all six dampings negative. This is the F3 signature (forces
+<= 0.2, `My` >= 0.75, >= 3 negative dampings), which the fixture reproduced
+under the mixed truth (F3b) and not under the spring truth (F3, the reported
+fail). The real runs side with the arm-load reading. The `My` of the status
+quo is the arm's gravity moment.
+
+### 12.6 Vertical mode (step 7, descriptive)
+
+The S2 `k_z` is 5.66e3 N/m, 0.0033 times the 1.72e6 N/m of the 24.2 Hz `Fz`
+peak of training: more than two orders below. Since `Fz` is not explained
+(R2 -0.06), this `k_z` is not a vertical suspension stiffness either. At rest,
+`postures_1734` has a peak at 30.0 Hz (9.2 times the band median) and
+`postures_1720` one at 37.1 Hz (3.2 times). A 10 to 45 Hz mode therefore
+persists without base motion: the 24 Hz peak of training is not shown to be the
+suspension mode (structural or plate mode).
+
+### 12.7 Deviations of part 2
+
+- The library gained what step 6 and step 4 need and part 1 did not implement.
+  The `mz_about` switch of the loader (`centre` default, unchanged) and
+  `read_regressors(..., unlock_confirmation)` (unused, since validation fails).
+- The S3 semidefinite fit failed in cvxopt (math domain error) on the real
+  training CV. Its objective is now divided by `|z|^2`, which has the same
+  minimiser (it agrees with the norm form to 2e-6). The fixture golden is
+  unchanged under it (slow test).
+- The calibrated SE of S2 uses the S1 fixture bias (12.3).
+- `h_e` at the grid ceiling (12.2) is reported, not acted on.

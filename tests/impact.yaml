@@ -50,6 +50,7 @@ robots:
       - tests/golden/tiago_backlash.json
       - tests/golden/tiago_backlash_truth.json
       - tests/golden/tiago_suspension_truth.json
+      - tests/golden/tiago_suspension_study.json
     tests:
       - tests/test_calibration_harness_tiago.py
       - tests/test_tiago_backlash_model.py
@@ -84,6 +85,7 @@ robots:
       - tests/test_tiago_suspension_backlash.py
       - tests/test_tiago_suspension_model.py
       - tests/test_tiago_suspension_runs.py
+      - tests/test_tiago_suspension_study.py
       - tests/test_tiago_suspension_truth.py
       - tests/test_tiago_vicon_2023_09_20.py
       - tests/test_tiago_vicon_extraction.py

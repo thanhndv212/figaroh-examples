@@ -202,6 +202,36 @@ def test_transport_and_origin_switches_change_only_what_they_name():
     assert np.allclose(co.x[:, 3:], base.x[:, 3:])
 
 
+def test_mz_about_cop_adds_the_cop_lever_term_to_mz_only():
+    n, t, markers, *_ = _synthetic_run(seconds=20)
+    f = np.array([5.0, -3.0, -730.0])
+    dx = 0.02 * np.sin(np.arange(n) / 50.0)  # moving COP: the term is not a constant
+    cop = np.column_stack((0.95 + dx, np.full(n, 0.42), np.zeros(n)))
+    raw = _raw(n, markers, force=f, moment=[1.0, 2.0, 0.5], cop=cop)
+    a = sd.process_raw(t, raw, frame="world")
+    b = sd.process_raw(t, raw, frame="world", mz_about="cop")
+    assert np.allclose(a.w[:, :5], b.w[:, :5]) and np.allclose(a.x, b.x)
+    # (COP - c) x F, z: only the moving part survives the filter and the static offset
+    term = sd.lowpass((dx * f[1])[:, None], RATE, sd.CUTOFF_HZ)[:, 0]
+    term = term - term[:100].mean()
+    assert np.allclose((b.w[:, 5] - a.w[:, 5])[a.valid], term[a.valid], atol=1e-9)
+    with pytest.raises(ValueError):
+        sd.process_raw(t, raw, mz_about="plate")
+
+
+def test_s3_psd_fit_solves_when_the_free_fit_wants_a_negative_stiffness():
+    n, t, markers, *_ = _synthetic_run()
+    reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
+    k = np.array([-1e4, 1e4, 1e5, 3e4, 2e4, 1e3])
+    c = np.array([-150.0, -150.0, 500.0, 100.0, 80.0, 12.0])
+    w = reg.x * k + reg.v * c
+    fit = sm.fit_model("S3", reg, w)
+    kk, cc = fit.matrices()
+    assert np.linalg.eigvalsh(kk)[0] >= -1e-6 * np.abs(kk).max()
+    assert np.linalg.eigvalsh(cc)[0] >= -1e-6 * np.abs(cc).max()
+    assert fit.stiffness_bound_dofs().all()
+
+
 def test_corner_origin_gives_translation_for_a_pure_rotation():
     n = 400
     ang = np.zeros((n, 3))
@@ -499,6 +529,15 @@ def test_confirmation_runs_are_never_read():
             sm.read_target(sess[sid])
 
 
+def test_confirmation_regressors_need_the_confirmation_unlock(monkeypatch):
+    sess = sm.load_sessions(verify=False)
+    monkeypatch.setattr(sm, "_run", lambda sid, *a: None)
+    monkeypatch.setattr(sm, "_regressors", lambda s, r: s.id)
+    with pytest.raises(PermissionError):
+        sm.read_regressors(sess["xyz_mirror_1630"])
+    assert sm.read_regressors(sess["xyz_mirror_1630"], unlock_confirmation=True) == "xyz_mirror_1630"
+
+
 def test_validation_wrench_needs_the_unlock_and_the_postures_are_no_targets():
     sess = sm.load_sessions(verify=False)
     with pytest.raises(PermissionError):
@@ -513,7 +552,7 @@ def test_selection_diagnostics_are_targets_but_never_confirmation(monkeypatch):
     assert selection and all(sess[i].role == "diagnostic" for i in selection)
     assert not set(selection) & {"postures_1720", "postures_1734"}
     monkeypatch.setattr(
-        sm, "_run", lambda sid: type("R", (), {"w": np.zeros((3, 6))})()
+        sm, "_run", lambda sid, *a: type("R", (), {"w": np.zeros((3, 6))})()
     )
     assert sm.read_target(sess[selection[0]]).shape == (3, 6)  # no real wrench read
     with pytest.raises(PermissionError):
