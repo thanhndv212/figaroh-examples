@@ -384,6 +384,89 @@ def test_verdict_fails_on_an_active_bound_or_a_vacuous_b2():
     assert zero.sum() == 0
 
 
+def test_s1b2_nests_s1_and_b2_and_bounds_both():
+    reg = _cube_run()
+    k = np.array([1e4, 1e4, 1e5, 3e4, 2e4, 1e3])
+    c = np.array([150.0, 150.0, 500.0, 100.0, 80.0, 12.0])
+    arm = np.array([25.0, 25.0 * 0.04, 25.0 * -0.03, 25.0 * 0.05])
+    d = sm.design("S1B2", reg)
+    assert d.shape == (reg.n, 6, 16)
+    assert np.allclose(d[:, :, :12], sm.design("S1", reg))
+    assert np.allclose(d[:, :, 12:], sm.design("B2", reg))
+    assert sm.parameter_names("S1B2")[12:] == sm.B2_NAMES
+    w = reg.x * k + reg.v * c + sm.arm_design(reg) @ arm
+    fit = sm.fit_model("S1B2", reg, w)
+    assert np.allclose(fit.k(), k, rtol=1e-5) and np.allclose(fit.c(), c, rtol=1e-5)
+    assert np.allclose(fit.theta[12:], arm, rtol=1e-5) and not fit.b2_at_bound()
+    neg = sm.fit_model("S1B2", reg, reg.x * k + reg.v * c - sm.arm_design(reg) @ arm)
+    assert neg.theta[12] == 0.0 and neg.b2_at_bound() and np.all(neg.theta[:12] >= 0)
+
+
+def test_a_damping_at_its_bound_is_unidentified_not_a_failed_dof():
+    n, t, markers, *_ = _synthetic_run()
+    reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
+    k = np.array([1e4, 1e4, 1e5, 3e4, 2e4, 1e3])
+    c = np.array([150.0, 150.0, -500.0, 100.0, 80.0, 12.0])
+    fit = sm.fit_model("S1", reg, reg.x * k + reg.v * c)
+    assert fit.bound_dofs()[2] and not fit.stiffness_bound_dofs().any()
+    assert fit.damping_unidentified().tolist() == [False, False, True] + [False] * 3
+    soft = sm.fit_model("S1", reg, reg.x * -k + reg.v * np.abs(c))
+    assert soft.stiffness_bound_dofs().all()
+
+
+def test_damping_with_a_large_relative_se_is_unidentified():
+    n, t, markers, *_ = _synthetic_run()
+    reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
+    k = np.array([1e4, 1e4, 1e5, 3e4, 2e4, 1e3])
+    c = np.array([150.0, 150.0, 500.0, 100.0, 80.0, 12.0])
+    fit = sm.fit_model("S1", reg, reg.x * k + reg.v * c)
+    fit.se = np.zeros(12)
+    fit.se[1::2] = 0.1 * c
+    fit.se[9] = 0.6 * c[4]  # c_ry: relative SE above rules.damping_rel_se_max
+    assert fit.damping_unidentified().tolist() == [False] * 4 + [True, False]
+
+
+def test_q2_needs_a_gain_over_b2_and_a_stiffness_off_its_bound():
+    r2_b2 = np.full(6, 0.5)
+    r2 = np.array([0.7, 0.55, 0.7, 0.5, 0.5, 0.5])
+    bound = np.array([False, False, True, False, False, False])
+    q2 = sm.suspension_adds(r2, r2_b2, bound)
+    assert q2["adds"] == [True, False, False, False, False, False] and q2["present"]
+    assert not sm.suspension_adds(r2_b2, r2_b2, np.zeros(6, bool))["present"]
+
+
+def test_errors_in_variables_correction_removes_the_attenuation(monkeypatch):
+    n, t, markers, *_ = _synthetic_run(seconds=200)
+    reg, _ = sm.regressors_from_raw(t, _raw(n, markers))
+    k = np.array([1e4, 1e4, 1e5, 3e4, 2e4, 1e3])
+    c = np.array([150.0, 150.0, 500.0, 100.0, 80.0, 12.0])
+    w = reg.x * k + reg.v * c
+    rng = np.random.default_rng(3)
+    xs = 0.5 * reg.x[reg.valid].std(axis=0)
+    vs = 0.5 * reg.v[reg.valid].std(axis=0)
+    reg.x = reg.x + xs * rng.normal(size=reg.x.shape)
+    reg.v = reg.v + vs * rng.normal(size=reg.v.shape)
+    noise = dict(sm.SETTINGS["noise"], x_sd=xs.tolist(), v_sd=vs.tolist())
+    monkeypatch.setitem(sm.SETTINGS, "noise", noise)
+    plain = sm.fit_model("S1", reg, w, constrained=False)
+    eiv = sm.fit_s1_eiv(reg, w, level=1.0)
+    assert np.all(plain.k() < 0.85 * k)  # attenuated by 1 / (1 + 0.25)
+    assert np.allclose(eiv[0::2], k, rtol=0.05)
+
+
+def test_near_duplicates_are_frozen_rows_of_a_moving_arm():
+    n = 400
+    s = np.arange(n) / RATE
+    v = _raw(n, np.broadcast_to(TRIAD_DOWN, (n, 3, 3)).copy())
+    v[:, 21:30] += np.tile(0.05 * np.sin(2 * np.pi * 0.5 * s)[:, None], (1, 9))
+    v[:, :30] += 1e-3 * 0.011 * np.random.default_rng(0).normal(size=(n, 30))
+    assert sm.near_duplicates(v)["count"] == 0
+    v[201, :30] = v[200, :30]  # a repeated (frozen) row while the arm moves
+    v[301, :30] = v[300, :30] + 1e-6
+    out = sm.near_duplicates(v)
+    assert out["count"] == 2 and out["rate"] == pytest.approx(2 / (n - 1))
+
+
 def test_selection_pools_runs_and_picks_s1_for_an_s1_truth():
     runs = []
     for seed in (0, 1):
@@ -452,3 +535,11 @@ def test_frozen_config_is_complete():
     assert len(fp["rotation_triad_rotvec"]) == 3 and fp["rotation_sd_rad"] > 0
     assert s["h_e_grid"]["min"] == 0.0 and s["b2"]["edge_m"] > 0
     assert "neg_damping_se" not in s["rules"] and s["rules"]["psd_zero_rel"] > 0
+    # revision (maintainer, 2026-10-23)
+    assert s["filter"]["cutoff_hz"] == 5.0 == sd.CUTOFF_HZ
+    assert s["rules"]["damping_rel_se_max"] == 0.5 and s["rules"]["suspension_adds"] == 0.1
+    assert s["clock"]["near_duplicate_sd"] == 3.0
+    fx = s["fixture"]
+    assert fx["truth"]["h_e"] == 0.0985 and fx["truth"]["h_e_sensitivity"] == [0.065, 0.25]
+    assert fx["f2"]["bias_max"] == {"k": 0.01, "c": 0.10}
+    assert "s2_gain_min" not in fx["f4"] and fx["f4"]["h_e_tol"] == 0.05

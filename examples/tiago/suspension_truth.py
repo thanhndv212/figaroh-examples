@@ -19,15 +19,20 @@ before any run.
   (worst over the h_e grid) and S3; per-column signal-to-noise (reported).
 - F2 recovery: S1 fit on the corrected loader path recovers an S1 truth (z of
   the 12 parameters from the block bootstrap, held-out R2 against the noise
-  ceiling, exact at level 0).
+  ceiling, exact at level 0); F2-bias (revision): the mean relative error over
+  seeds at the used level, and an errors-in-variables corrected S1 as a
+  sensitivity row.
 - F3 status-quo signature: the status-quo loader + S1 on the same truth
   reproduces "forces R2 below 0.2, My R2 high, negative dampings"; the four
   loader errors are put back one at a time (ablation) and the full fix is
-  checked against the ceiling.
-- F4 misspecified truths: (a) elastic centre away from the origin, S1/S2/S3;
-  (b) hardening and deadband springs, the nonlinearity flag; (c) arm load
-  only (no suspension): a rigid cube at an offset from the gripper markers,
-  B2 (cube, mass and first moment) and the "enough" rule.
+  checked against the ceiling. F3b (revision): the signature under the mixed
+  truth (spring plus arm cube).
+- F4 misspecified truths: (a) elastic centre away from the origin, S1/S2/S3,
+  with the truth height moved (sensitivity rows); (b) hardening and deadband
+  springs, the nonlinearity flag; (c) arm load only (no suspension): a rigid
+  cube at an offset from the gripper markers, B2 (cube, mass and first moment),
+  the "enough" rule and Q2 (S1B2 over B2); (d, revision) the mixed truth: S1
+  "enough", S1B2 against the ceiling and Q2.
 - Origin sensitivity (descriptive, no threshold): S1 refit with the footprint
   offset moved by +-1 sd per axis, and with the triad centroid as origin.
 - F5 selection: the blocked-CV choice recovers S1 (S1 truth) and S2 with its
@@ -95,7 +100,7 @@ def stream(kind: str, seed: int) -> np.random.Generator:
 @dataclass
 class Truth:
     seed: int
-    kind: str  # spring | elastic | hard | deadband | arm
+    kind: str  # spring | elastic | hard | deadband | arm | mixed
     k: np.ndarray  # (6,)
     c: np.ndarray  # (6,)
     h_e: float
@@ -109,16 +114,25 @@ class Truth:
         out[0::2], out[1::2] = self.k, self.c
         return out
 
+    @property
+    def theta_s1b2(self) -> np.ndarray:
+        """S1B2 parameters ``[theta, m, m o]`` (B2 neglects the quadratic term in ``o``)."""
+        return np.concatenate((self.theta, [self.mass], self.mass * self.cube_offset))
 
-def draw_truth(seed: int, kind: str = "spring") -> Truth:
-    """Parameters around the configured values; the same draw for every ``kind``."""
+
+def draw_truth(seed: int, kind: str = "spring", h_e: Optional[float] = None) -> Truth:
+    """Parameters around the configured values; the same draw for every ``kind``.
+
+    ``h_e`` replaces the configured elastic-centre height (elastic truth; the
+    sensitivity rows of F4a). ``mixed`` is the spring truth plus the arm cube.
+    """
     t = FX["truth"]
     rng = np.random.default_rng(seed)
     s = t["spread"]
     k = np.asarray(t["k"]) * (1.0 + s * rng.uniform(-1.0, 1.0, 6))
     c = np.asarray(t["c"]) * (1.0 + s * rng.uniform(-1.0, 1.0, 6))
-    h_e = t["h_e"] if kind == "elastic" else 0.0
-    mass = t["arm_mass_kg"] if kind == "arm" else 0.0
+    h_e = (t["h_e"] if h_e is None else h_e) if kind == "elastic" else 0.0
+    mass = t["arm_mass_kg"] if kind in ("arm", "mixed") else 0.0
     cube_offset = np.asarray(t["cube_offset_m"], dtype=float)
     if kind == "arm":
         k, c = np.zeros(6), np.zeros(6)
@@ -198,6 +212,8 @@ def true_wrench(truth: Truth, m: Motion, sd_ref: np.ndarray) -> np.ndarray:
         return eff * truth.k + v * truth.c
     if truth.kind == "arm":
         return cube_wrench(truth, m)
+    if truth.kind == "mixed":  # additive: a stiff parallel path for the arm load
+        return sm.spring_design("S1", x, v) @ truth.theta + cube_wrench(truth, m)
     raise ValueError(truth.kind)
 
 
@@ -358,6 +374,7 @@ def s1_cell(fx: Fixture, truth: Truth, level: float, bootstrap: bool) -> dict:
     th = truth.theta
     cell = {
         "seed": truth.seed,
+        "rel_err": ((fit.theta - th) / th).tolist(),
         "rel_err_max": float(np.max(np.abs(fit.theta - th) / np.abs(th))),
         "r2": r2.tolist(),
         "ceiling": ceiling.tolist(),
@@ -367,10 +384,14 @@ def s1_cell(fx: Fixture, truth: Truth, level: float, bootstrap: bool) -> dict:
     }
     if bootstrap:
         z = (fit.theta - th) / fit.se
+        eiv = sm.fit_s1_eiv(rt, wt, level)
         cell.update(
             z=z.tolist(),
             k_rel_se=(fit.k_se() / truth.k).tolist(),
             c_rel_se=(fit.c_se() / truth.c).tolist(),
+            eiv_rel_err=((eiv - th) / th).tolist(),
+            eiv_z=((eiv - th) / fit.se).tolist(),
+            c_unidentified=fit.damping_unidentified().tolist(),
         )
     return cell
 
@@ -388,17 +409,42 @@ def z_stats(cells) -> dict:
     }
 
 
+def bias_stats(cells, key: str = "rel_err") -> dict:
+    """Mean over seeds of the signed relative error, stiffness and damping (6 each)."""
+    e = np.mean([c[key] for c in cells], axis=0)
+    return {"k": e[0::2].tolist(), "c": e[1::2].tolist()}
+
+
 def context(f2_used: list) -> dict:
-    """Answerable DOF, repeatability band and the F2 gap, from the F2 cells of the used level."""
+    """Answerable DOF, repeatability band, bias and calibrated SE, from the F2 cells of the used level.
+
+    The calibrated relative SE is ``sqrt(SE^2 + bias^2)`` (part 2 reports it):
+    the bootstrap sees the scatter, not the errors-in-variables bias.
+    """
     rel_se = np.mean([c["k_rel_se"] for c in f2_used], axis=0)
+    c_se = np.mean([c["c_rel_se"] for c in f2_used], axis=0)
     diff = np.concatenate([c["k_rel_diff"] for c in f2_used])
+    bias = bias_stats(f2_used)
     return {
         "k_rel_se": rel_se.tolist(),
         "answerable": (rel_se <= RULES["answerable_rel_se"]).tolist(),
-        "c_rel_se": np.mean([c["c_rel_se"] for c in f2_used], axis=0).tolist(),
+        "c_rel_se": c_se.tolist(),
+        "k_bias": bias["k"],
+        "c_bias": bias["c"],
+        "k_rel_se_cal": np.hypot(rel_se, bias["k"]).tolist(),
+        "c_rel_se_cal": np.hypot(c_se, bias["c"]).tolist(),
         "k_rel_diff_rms": float(np.sqrt(np.mean(diff**2))),
         "band": float(RULES["band_factor"] * np.sqrt(np.mean(diff**2))),
     }
+
+
+def grade_bias(ctx: dict) -> dict:
+    """F2-bias: the used-level mean relative bias within ``f2.bias_max``, answerable DOF."""
+    t = FX["f2"]["bias_max"]
+    ans = np.asarray(ctx["answerable"], bool)
+    k = float(np.max(np.abs(np.asarray(ctx["k_bias"])[ans])))
+    c = float(np.max(np.abs(np.asarray(ctx["c_bias"])[ans])))
+    return {"k_max": k, "c_max": c, "pass": bool(k <= t["k"] and c <= t["c"])}
 
 
 def mean_gap(cells, answerable) -> float:
@@ -430,9 +476,8 @@ def _arm(fx: Fixture, truth, level, fixed=(), all_fixed=False):
     return r2, f.parameters[1::2]
 
 
-def f3_cell(fx: Fixture, seed: int, level: float) -> dict:
-    """Status-quo signature and the one-at-a-time ablation of the four errors."""
-    truth = draw_truth(seed)
+def b1_signature(fx: Fixture, truth: Truth, level: float) -> dict:
+    """The status-quo loader + S1 (B1): held-out R2 and the damping signs."""
     raw = fx.measure(truth, level)
     traj = {k: sd.status_quo_from_arrays(*v) for k, v in raw.items()}
     f = sm.fit_status_quo(
@@ -443,16 +488,19 @@ def f3_cell(fx: Fixture, seed: int, level: float) -> dict:
     tv = traj["validation"]
     pred = sm.predict_status_quo(f.parameters, tv.base_displacement, tv.base_velocity)
     r2 = _r2(tv.wrench, pred, np.ones(tv.sample_count, bool))
-    out = {
-        "seed": seed,
-        "b1": {
-            "r2": r2.tolist(),
-            "forces_r2": float(np.mean(r2[:3])),
-            "my_r2": float(r2[4]),
-            "neg_damping": int(np.sum(f.parameters[1::2] < 0.0)),
-            "c": f.parameters[1::2].tolist(),
-        },
+    return {
+        "r2": r2.tolist(),
+        "forces_r2": float(np.mean(r2[:3])),
+        "my_r2": float(r2[4]),
+        "neg_damping": int(np.sum(f.parameters[1::2] < 0.0)),
+        "c": f.parameters[1::2].tolist(),
     }
+
+
+def f3_cell(fx: Fixture, seed: int, level: float) -> dict:
+    """Status-quo signature and the one-at-a-time ablation of the four errors."""
+    truth = draw_truth(seed)
+    out = {"seed": seed, "b1": b1_signature(fx, truth, level)}
     base, c_base = _arm(fx, truth, level)
     out["arm_status_quo"] = {
         "forces_r2": float(np.mean(base[:3])),
@@ -470,14 +518,36 @@ def f3_cell(fx: Fixture, seed: int, level: float) -> dict:
     return out
 
 
-def grade_f3(cells, answerable) -> dict:
+def f3b_cell(fx: Fixture, seed: int, level: float) -> dict:
+    """F3b: the B1 signature under the mixed truth (spring plus the arm cube)."""
+    return {"seed": seed, "b1": b1_signature(fx, draw_truth(seed, "mixed"), level)}
+
+
+def _signature(cells) -> List[bool]:
     sig = FX["f3"]["signature"]
-    seeds = [
+    return [
         c["b1"]["forces_r2"] < sig["forces_r2_max"]
         and c["b1"]["my_r2"] >= sig["my_r2_min"]
         and c["b1"]["neg_damping"] >= sig["neg_damping_min"]
         for c in cells
     ]
+
+
+def grade_f3b(cells) -> dict:
+    seeds = _signature(cells)
+    return {
+        "signature_seeds": int(sum(seeds)),
+        "signature_pass": bool(sum(seeds) >= FX["f3"]["signature"]["seeds_min"]),
+        "forces_r2": float(np.mean([c["b1"]["forces_r2"] for c in cells])),
+        "my_r2": float(np.mean([c["b1"]["my_r2"] for c in cells])),
+        "neg_damping": float(np.mean([c["b1"]["neg_damping"] for c in cells])),
+        "r2": np.mean([c["b1"]["r2"] for c in cells], axis=0).tolist(),
+    }
+
+
+def grade_f3(cells, answerable) -> dict:
+    sig = FX["f3"]["signature"]
+    seeds = _signature(cells)
     gain = {k: float(np.mean([c["gain"][k] for c in cells])) for k in ERRORS}
     resp = [k for k, v in gain.items() if v >= FX["f3"]["attribution_gain_min"]]
     gap = mean_gap([c["full"] for c in cells], answerable)
@@ -512,8 +582,11 @@ def flags(fit, r, w) -> np.ndarray:
     )
 
 
-def f4a_cell(fx: Fixture, seed: int, level: float, ctx: dict) -> dict:
-    truth = draw_truth(seed, "elastic")
+def f4a_cell(
+    fx: Fixture, seed: int, level: float, ctx: dict, h_e: Optional[float] = None
+) -> dict:
+    """Elastic-centre truth (at ``h_e``, default the configured one): selection, S1/S2/S3."""
+    truth = draw_truth(seed, "elastic", h_e)
     d = fx.load(truth, level)
     (rt, wt), (rv, wv) = d["training"], d["validation"]
     sel = sm.select_model(fx.selection_data(truth, level))
@@ -532,7 +605,31 @@ def f4a_cell(fx: Fixture, seed: int, level: float, ctx: dict) -> dict:
         "ceiling": ceiling.tolist(),
         "gain": float(np.mean(r2["S2"] - r2["S1"])),
         "gap": float(np.mean((ceiling - r2["S2"])[ans])),
+        "h_e_true": truth.h_e,
         "h_e_cv": sel["h_e_cv"],
+        "model": sel["model"],
+    }
+
+
+def f4a_ok(cell) -> bool:
+    """F4a per seed (revision): S2 near the ceiling and h_e recovered."""
+    t = FX["f4"]
+    return bool(
+        cell["gap"] <= t["s2_gap_max"]
+        and abs(cell["h_e_cv"] - cell["h_e_true"]) <= t["h_e_tol"]
+    )
+
+
+def summarize_f4a(a) -> dict:
+    ok = [f4a_ok(x) for x in a]
+    return {
+        "gain": float(np.mean([x["gain"] for x in a])),
+        "gap": float(np.mean([x["gap"] for x in a])),
+        "h_e_true": a[0]["h_e_true"],
+        "h_e_cv": [x["h_e_cv"] for x in a],
+        "models": [x["model"] for x in a],
+        "ok_seeds": int(sum(ok)),
+        "pass": bool(sum(ok) >= FX["f4"]["flag_seeds_min"]),
     }
 
 
@@ -566,13 +663,9 @@ def f4c_cell(fx: Fixture, seed: int, level: float, ctx: dict) -> dict:
     b2 = sm.fit_model("B2", rt, wt)
     r2_s1 = _r2(wv, sm.predict(s1, rv), rv.valid)
     r2_b2 = _r2(wv, sm.predict(b2, rv), rv.valid)
-    at_bound = s1.bound_dofs()
-    kv = np.abs(s1v.k())
-    rep = np.abs(s1.k() - s1v.k()) <= ctx["band"] * np.where(kv > 0, kv, np.nan)
-    nonlin = np.abs(flags(s1, rt, wt)) > RULES["nonlinear_corr"]
-    v = sm.verdict(
-        r2_s1, r2_b2, at_bound, rep, nonlin, ctx["answerable"], b2.b2_at_bound()
-    )
+    out = _s1_verdict(s1, s1v, rt, wt, r2_s1, r2_b2, b2, ctx)
+    out.update(_q2(rt, wt, rv, wv, r2_b2))
+    out.pop("_s1b2")
     mass = float(b2.theta[0])
     # the isotropic inertia a^2 m / 6: B2 refitted with the edge at 0 and doubled
     inertia = {}
@@ -583,34 +676,91 @@ def f4c_cell(fx: Fixture, seed: int, level: float, ctx: dict) -> dict:
     ):
         f = sm.fit_model("B2", rt, wt, edge=edge)
         inertia[name] = _r2(wv, sm.predict(f, rv), rv.valid).tolist()
+    out.update(
+        seed=seed,
+        mass_hat=mass,
+        o_hat=(b2.theta[1:] / mass).tolist() if mass > 0 else [float("nan")] * 3,
+        inertia_r2=inertia,
+    )
+    return out
+
+
+def _s1_verdict(s1, s1v, rt, wt, r2_s1, r2_b2, b2, ctx) -> dict:
+    """The "enough" rule on an S1 fit (stiffness bound only, O9) against B2."""
+    at_bound = s1.stiffness_bound_dofs()
+    kv = np.abs(s1v.k())
+    rep = np.abs(s1.k() - s1v.k()) <= ctx["band"] * np.where(kv > 0, kv, np.nan)
+    nonlin = np.abs(flags(s1, rt, wt)) > RULES["nonlinear_corr"]
+    v = sm.verdict(
+        r2_s1, r2_b2, at_bound, rep, nonlin, ctx["answerable"], b2.b2_at_bound()
+    )
     return {
-        "seed": seed,
         "r2_s1": r2_s1.tolist(),
         "r2_b2": r2_b2.tolist(),
-        "mass_hat": mass,
-        "o_hat": (b2.theta[1:] / mass).tolist() if mass > 0 else [float("nan")] * 3,
         "b2_at_bound": b2.b2_at_bound(),
         "at_bound": at_bound.tolist(),
+        "any_bound": s1.bound_dofs().tolist(),
+        "c_unidentified": s1.damping_unidentified().tolist(),
         "repeatable": rep.tolist(),
         "nonlinear": nonlin.tolist(),
-        "inertia_r2": inertia,
         "verdict": v,
     }
 
 
-def summarize_f4(a, b, c) -> dict:
+def _q2(rt, wt, rv, wv, r2_b2) -> dict:
+    """S1B2 on training, held out on validation, and Q2 against B2."""
+    f = sm.fit_model("S1B2", rt, wt)
+    r2 = _r2(wv, sm.predict(f, rv), rv.valid)
+    q2 = sm.suspension_adds(r2, r2_b2, f.stiffness_bound_dofs())
+    return {
+        "r2_s1b2": r2.tolist(),
+        "s1b2_k": f.k().tolist(),
+        "s1b2_mass": float(f.theta[12]),
+        "q2": q2,
+        "_s1b2": f,
+    }
+
+
+def f4d_cell(fx: Fixture, seed: int, level: float, ctx: dict) -> dict:
+    """F4d: mixed truth (spring plus arm cube): S1 "enough", S1B2 at the ceiling, Q2."""
+    truth = draw_truth(seed, "mixed")
+    d = fx.load(truth, level)
+    (rt, wt), (rv, wv) = d["training"], d["validation"]
+    s1 = sm.fit_model("S1", rt, wt, bootstrap=True)
+    s1v = sm.fit_model("S1", rv, wv)
+    b2 = sm.fit_model("B2", rt, wt)
+    r2_s1 = _r2(wv, sm.predict(s1, rv), rv.valid)
+    r2_b2 = _r2(wv, sm.predict(b2, rv), rv.valid)
+    out = _s1_verdict(s1, s1v, rt, wt, r2_s1, r2_b2, b2, ctx)
+    out.update(_q2(rt, wt, rv, wv, r2_b2))
+    f = out.pop("_s1b2")
+    ceiling = _r2(wv, sm.design("S1B2", rv) @ truth.theta_s1b2, rv.valid)
+    ans = np.asarray(ctx["answerable"], bool)
+    gap = ceiling - np.asarray(out["r2_s1b2"])
+    out.update(
+        seed=seed,
+        ceiling=ceiling.tolist(),
+        s1b2_gap=float(np.mean(gap[ans])),
+        s1b2_k_rel_err=((f.k() - truth.k) / truth.k).tolist(),
+        s1b2_mass_rel_err=float((f.theta[12] - truth.mass) / truth.mass),
+    )
+    return out
+
+
+def summarize_f4(a, b, c, d, a_sens=None) -> dict:
     t = FX["f4"]
     flagged = {k: sum(any(x[k]["flagged"]) for x in b) for k in ("hard", "deadband")}
     false = sum(x["linear"]["false_flags"] for x in b)
     not_enough = sum(not x["verdict"]["enough"] for x in c)
+    q2_absent = sum(not x["q2"]["present"] for x in c)
+    d_s1 = sum(not x["verdict"]["enough"] for x in d)
+    d_gap = sum(x["s1b2_gap"] <= t["s2_gap_max"] for x in d)
+    d_q2 = sum(x["q2"]["present"] for x in d)
+    n_min = t["q2_seeds_min"]
     return {
-        "a": {
-            "gain": float(np.mean([x["gain"] for x in a])),
-            "gap": float(np.mean([x["gap"] for x in a])),
-            "pass": bool(
-                np.mean([x["gain"] for x in a]) >= t["s2_gain_min"]
-                and np.mean([x["gap"] for x in a]) <= t["s2_gap_max"]
-            ),
+        "a": summarize_f4a(a),
+        "a_sensitivity": {
+            str(h): summarize_f4a(cells) for h, cells in (a_sens or {}).items()
         },
         "b": {
             "flagged_seeds": flagged,
@@ -637,7 +787,27 @@ def summarize_f4(a, b, c) -> dict:
             ),
             "r2_s1": np.mean([x["r2_s1"] for x in c], axis=0).tolist(),
             "r2_b2": np.mean([x["r2_b2"] for x in c], axis=0).tolist(),
+            "r2_s1b2": np.mean([x["r2_s1b2"] for x in c], axis=0).tolist(),
+            "q2_gain": np.mean([x["q2"]["gain"] for x in c], axis=0).tolist(),
+            "q2_absent_seeds": int(q2_absent),
+            "q2_pass": bool(q2_absent >= n_min),
             "pass": bool(not_enough >= t["enough_false_seeds_min"]),
+        },
+        "d": {
+            "s1_not_enough_seeds": int(d_s1),
+            "s1b2_gap_seeds": int(d_gap),
+            "q2_present_seeds": int(d_q2),
+            "s1b2_gap": float(np.mean([x["s1b2_gap"] for x in d])),
+            "r2_s1": np.mean([x["r2_s1"] for x in d], axis=0).tolist(),
+            "r2_b2": np.mean([x["r2_b2"] for x in d], axis=0).tolist(),
+            "r2_s1b2": np.mean([x["r2_s1b2"] for x in d], axis=0).tolist(),
+            "ceiling": np.mean([x["ceiling"] for x in d], axis=0).tolist(),
+            "q2_gain": np.mean([x["q2"]["gain"] for x in d], axis=0).tolist(),
+            "s1b2_k_rel_err": np.mean(
+                [np.abs(x["s1b2_k_rel_err"]) for x in d], axis=0
+            ).tolist(),
+            "s1b2_mass_rel_err": float(np.mean([x["s1b2_mass_rel_err"] for x in d])),
+            "pass": bool(d_s1 >= n_min and d_gap >= n_min and d_q2 >= n_min),
         },
     }
 
@@ -757,10 +927,19 @@ def run(seeds=SEEDS, levels=LEVELS, verbose=True) -> dict:
         entry = {"cells": cells, "rel_err_max": max(c["rel_err_max"] for c in cells)}
         if lv > 0.0:
             entry["z"] = z_stats(cells)
+            entry["bias"] = bias_stats(cells)
+            entry["eiv"] = {
+                "bias": bias_stats(cells, "eiv_rel_err"),
+                "z": z_stats([{"z": c["eiv_z"]} for c in cells]),
+            }
+            entry["c_unidentified"] = np.sum(
+                [c["c_unidentified"] for c in cells], axis=0
+            ).tolist()
         out["f2"][str(lv)] = entry
     used = out["f2"][str(USED)]["cells"]
     ctx = context(used)
     out["context"] = ctx
+    out["f2_bias"] = grade_bias(ctx)
     for lv in levels:
         if lv > 0.0:
             out["f2"][str(lv)]["gap"] = mean_gap(
@@ -770,12 +949,22 @@ def run(seeds=SEEDS, levels=LEVELS, verbose=True) -> dict:
         print("F3", flush=True)
     f3 = [f3_cell(fx, s, USED) for s in seeds]
     out["f3"] = {"cells": f3, **grade_f3(f3, ctx["answerable"])}
+    f3b = [f3b_cell(fx, s, USED) for s in seeds]
+    out["f3b"] = {"cells": f3b, **grade_f3b(f3b)}
     if verbose:
         print("F4", flush=True)
     a = [f4a_cell(fx, s, USED, ctx) for s in seeds]
+    a_sens = {
+        h: [f4a_cell(fx, s, USED, ctx, h_e=h) for s in seeds]
+        for h in FX["truth"]["h_e_sensitivity"]
+    }
     b = [f4b_cell(fx, s, USED) for s in seeds]
     c = [f4c_cell(fx, s, USED, ctx) for s in seeds]
-    out["f4"] = {"cells": {"a": a, "b": b, "c": c}, **summarize_f4(a, b, c)}
+    d = [f4d_cell(fx, s, USED, ctx) for s in seeds]
+    out["f4"] = {
+        "cells": {"a": a, "b": b, "c": c, "d": d},
+        **summarize_f4(a, b, c, d, a_sens),
+    }
     if verbose:
         print("F5", flush=True)
     f5 = [f5_cell(fx, s, USED) for s in seeds]
@@ -807,12 +996,16 @@ def grade(res: dict) -> dict:
         "F2_z": bool(z_ok),
         "F2_exact": exact,
         "F2_gap": bool(gap_ok),
+        "F2_bias": res["f2_bias"]["pass"],
         "F3_signature": f3["signature_pass"],
         "F3_attribution": f3["attribution_pass"],
         "F3_full": f3["full_pass"],
+        "F3b_signature": res["f3b"]["signature_pass"],
         "F4a": f4["a"]["pass"],
         "F4b": f4["b"]["pass"],
         "F4c": f4["c"]["pass"],
+        "F4c_q2": f4["c"]["q2_pass"],
+        "F4d": f4["d"]["pass"],
         "F5": f5["pass"],
     }
 
@@ -837,6 +1030,7 @@ def golden(res: dict) -> dict:
         lv: {k: v for k, v in e.items() if k != "cells"} for lv, e in res["f2"].items()
     }
     f3 = {k: v for k, v in res["f3"].items() if k != "cells"}
+    f3b = {k: v for k, v in res["f3b"].items() if k != "cells"}
     f4 = {k: v for k, v in res["f4"].items() if k != "cells"}
     f5 = {k: v for k, v in res["f5"].items() if k != "cells"}
     origin = {k: v for k, v in res["origin"].items() if k != "cells"}
@@ -852,7 +1046,9 @@ def golden(res: dict) -> dict:
             "f1": res["f1"],
             "context": res["context"],
             "f2": f2,
+            "f2_bias": res["f2_bias"],
             "f3": f3,
+            "f3b": f3b,
             "f4": f4,
             "f5": f5,
             "origin": origin,
@@ -861,6 +1057,7 @@ def golden(res: dict) -> dict:
                 "f3": res["f3"]["cells"][0],
                 "f4a": res["f4"]["cells"]["a"][0],
                 "f4c": res["f4"]["cells"]["c"][0],
+                "f4d": res["f4"]["cells"]["d"][0],
                 "f5": res["f5"]["cells"][0],
             },
         }

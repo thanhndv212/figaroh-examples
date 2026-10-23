@@ -11,6 +11,7 @@ corrected loader (``utils/suspension_data.py``).
     S1  w = K x + C v          K, C diagonal                (12 parameters)
     S2  S1 about an elastic centre at height h_e on base z  (12 + h_e)
     S3  K, C full symmetric                                  (21 + 21)
+    S1B2  S1 plus the B2 arm load, nested (revision F3)     (12 + 4)
 
 with one constant per DOF (static drift). Linear least squares on unit-RMS
 columns and unit-variance rows (each DOF scaled by the standard deviation of
@@ -18,7 +19,7 @@ its target); standard errors from a moving-block bootstrap over time.
 
 The fits are constrained (maintainer decision O4): S1/S2 k >= 0 and c >= 0
 (bounded least squares), S3 K and C symmetric positive semi-definite (an SDP),
-B2 m >= 0. The origin is the base_footprint frame (O1), located from shipped
+B2 m >= 0, S1B2 both. The origin is the base_footprint frame (O1), located from shipped
 data (:func:`footprint_derivation`).
 
 Baselines: B0 static (predicts the static wrench), B1 the status-quo loader +
@@ -230,6 +231,10 @@ def _pair_index() -> List[Tuple[int, int]]:
 def parameter_names(model: str) -> List[str]:
     if model in ("S1", "S2"):
         return [f"{p}_{d}" for d in DOFS for p in ("k", "c")]
+    if model == "S1B2":
+        return parameter_names("S1") + list(B2_NAMES)
+    if model == "B2":
+        return list(B2_NAMES)
     if model == "S3":
         pairs = _pair_index()
         return [f"K_{DOFS[a]}{DOFS[b]}" for a, b in pairs] + [
@@ -339,9 +344,13 @@ def arm_design(run, edge: Optional[float] = None) -> np.ndarray:
 def design(
     model: str, run: Regressors, h_e: float = 0.0, edge: Optional[float] = None
 ) -> np.ndarray:
-    """(n, 6, p) regressor of S1, S2 (at ``h_e``), S3 or B2 (cube ``edge``; offset excluded)."""
+    """(n, 6, p) regressor of S1, S2 (at ``h_e``), S3, B2 (cube ``edge``) or S1B2 (offset excluded)."""
     if model == "B2":
         return arm_design(run, edge)
+    if model == "S1B2":
+        return np.concatenate(
+            (spring_design("S1", run.x, run.v), arm_design(run, edge)), axis=2
+        )
     return spring_design(model, run.x, run.v, h_e)
 
 
@@ -374,15 +383,15 @@ class Fit:
         return self.params[: self.p]
 
     def k(self) -> np.ndarray:
-        """Diagonal stiffness (S1, S2) or diagonal of K (S3), length 6."""
-        if self.model in ("S1", "S2"):
-            return self.theta[0::2]
+        """Diagonal stiffness (S1, S2, S1B2) or diagonal of K (S3), length 6."""
+        if self.model in ("S1", "S2", "S1B2"):
+            return self.theta[:12:2]
         pairs = _pair_index()
         return np.array([self.theta[pairs.index((d, d))] for d in range(6)])
 
     def c(self) -> np.ndarray:
-        if self.model in ("S1", "S2"):
-            return self.theta[1::2]
+        if self.model in ("S1", "S2", "S1B2"):
+            return self.theta[1:12:2]
         pairs = _pair_index()
         return np.array(
             [self.theta[len(pairs) + pairs.index((d, d))] for d in range(6)]
@@ -391,16 +400,16 @@ class Fit:
     def c_se(self) -> Optional[np.ndarray]:
         if self.se is None:
             return None
-        if self.model in ("S1", "S2"):
-            return self.se[1::2]
+        if self.model in ("S1", "S2", "S1B2"):
+            return self.se[1:12:2]
         pairs = _pair_index()
         return np.array([self.se[len(pairs) + pairs.index((d, d))] for d in range(6)])
 
     def k_se(self) -> Optional[np.ndarray]:
         if self.se is None:
             return None
-        if self.model in ("S1", "S2"):
-            return self.se[0::2]
+        if self.model in ("S1", "S2", "S1B2"):
+            return self.se[:12:2]
         pairs = _pair_index()
         return np.array([self.se[pairs.index((d, d))] for d in range(6)])
 
@@ -417,14 +426,15 @@ class Fit:
         return np.diag(self.k()), np.diag(self.c())
 
     def bound_dofs(self) -> np.ndarray:
-        """(6,) bool, the DOF with a parameter at its bound (verdict item "active bound").
+        """(6,) bool, the DOF with a parameter at its bound (reported).
 
-        S1, S2: ``k`` or ``c`` of the DOF at 0. S3: ``K`` or ``C`` with an
+        S1, S2, S1B2: ``k`` or ``c`` of the DOF at 0. S3: ``K`` or ``C`` with an
         eigenvalue below ``rules.psd_zero_rel`` of the largest flags all six DOF.
+        The verdict uses :meth:`stiffness_bound_dofs` (O9).
         """
-        if self.model in ("S1", "S2"):
+        if self.model in ("S1", "S2", "S1B2"):
             a = np.asarray(self.active, bool)
-            return a[0::2] | a[1::2]
+            return a[0:12:2] | a[1:12:2]
         if self.model == "S3":
             tol = RULES["psd_zero_rel"]
             zero = False
@@ -434,9 +444,36 @@ class Fit:
             return np.full(6, zero)
         raise ValueError(self.model)
 
+    def stiffness_bound_dofs(self) -> np.ndarray:
+        """(6,) bool, the verdict item "active bound" (O9): a stiffness at its bound.
+
+        S1, S2, S1B2: ``k`` of the DOF at 0. S3: ``K`` with a zero eigenvalue
+        flags all six DOF. A damping at its bound is :meth:`damping_unidentified`.
+        """
+        if self.model in ("S1", "S2", "S1B2"):
+            return np.asarray(self.active, bool)[0:12:2].copy()
+        if self.model == "S3":
+            ev = np.linalg.eigvalsh(self.matrices()[0])
+            return np.full(6, bool(ev[0] <= RULES["psd_zero_rel"] * max(ev[-1], 1e-300)))
+        raise ValueError(self.model)
+
+    def damping_unidentified(self) -> np.ndarray:
+        """(6,) bool (O9): the damping is at its bound or its relative SE is above
+        ``rules.damping_rel_se_max`` (the SE test needs the bootstrap). Reported;
+        the DOF is then judged on its stiffness and R2.
+        """
+        if self.model not in ("S1", "S2", "S1B2"):
+            raise ValueError(self.model)
+        out = np.asarray(self.active, bool)[1:12:2].copy()
+        if self.se is not None:
+            c = np.abs(self.c())
+            rel = np.where(c > 0, self.c_se() / np.maximum(c, 1e-300), np.inf)
+            out |= rel > RULES["damping_rel_se_max"]
+        return out
+
     def b2_at_bound(self) -> bool:
-        """B2 only: the mass is at its bound ``m >= 0``."""
-        return bool(np.asarray(self.active, bool)[0])
+        """B2 or S1B2: the mass is at its bound ``m >= 0``."""
+        return bool(np.asarray(self.active, bool)[12 if self.model == "S1B2" else 0])
 
 
 def _full_design(x3: np.ndarray, offset: bool) -> np.ndarray:
@@ -516,7 +553,8 @@ def _solve(
     stacked, columns scaled to unit RMS), so a bounded or semidefinite fit costs
     the same however many rows. ``p`` leading columns are the model parameters
     (the rest are the offsets, free). Constraints (``constrained``): S1/S2 all
-    ``p`` parameters >= 0, B2 ``m`` >= 0 (bounded least squares); S3 ``K`` and
+    ``p`` parameters >= 0, B2 ``m`` >= 0, S1B2 the 12 spring parameters and
+    ``m`` >= 0 (bounded least squares); S3 ``K`` and
     ``C`` PSD (semidefinite program). ``active`` flags the box parameters at
     their bound.
     """
@@ -532,9 +570,9 @@ def _solve(
     active = np.zeros(p, bool)
     if constrained and model == "S3":
         sol = _solve_psd(r, z, scale, p)
-    elif constrained and model in ("S1", "S2", "B2"):
+    elif constrained and model in ("S1", "S2", "B2", "S1B2"):
         lower = np.full(n_par, -np.inf)
-        lower[: 1 if model == "B2" else p] = 0.0
+        lower[: {"B2": 1, "S1B2": 13}.get(model, p)] = 0.0
         res = lsq_linear(r, z, bounds=(lower, np.inf), method="bvls")
         sol, active = res.x, res.active_mask[:p] < 0
     else:
@@ -555,7 +593,7 @@ def fit_model(
     constrained: bool = True,
     edge: Optional[float] = None,
 ) -> Fit:
-    """Fit ``model`` (S1, S2 at ``h_e``, S3, B2) to the target ``w`` (n, 6).
+    """Fit ``model`` (S1, S2 at ``h_e``, S3, B2, S1B2) to the target ``w`` (n, 6).
 
     Rows: ``run.valid`` (or ``rows``). ``weights`` default to one over the
     standard deviation of the target on those rows. ``constrained=False`` is the
@@ -568,7 +606,7 @@ def fit_model(
     y = np.asarray(w)[use]
     if weights is None:
         weights = 1.0 / np.maximum(y.std(axis=0), 1e-12)
-    names = parameter_names(model) if model in MODELS else list(B2_NAMES)
+    names = parameter_names(model)
     p = len(names)
     full = _full_design(x3, offset)
     sol, scale, r, active = _solve(full, y, weights, model, p, constrained=constrained)
@@ -589,6 +627,32 @@ def fit_model(
             )
         fit.se = np.std(draws, axis=0, ddof=1)
     return fit
+
+
+def fit_s1_eiv(run: Regressors, w: np.ndarray, level: float = USED) -> np.ndarray:
+    """(12,) S1 ``[k_x, c_x, ...]`` corrected for errors in the regressors (sensitivity row).
+
+    Per DOF, the normal equations of ``w_j = k x_j + c v_j + const`` with the
+    expected noise variance of the displacement and velocity columns
+    (``noise.x_sd``, ``noise.v_sd`` of the config times ``level``) removed from
+    their diagonal: the classical errors-in-variables correction of the
+    attenuation of ``k`` and ``c`` by the marker noise. Unconstrained;
+    descriptive only (the fit of record is :func:`fit_model`).
+    """
+    n_cfg = noise_levels()
+    xs = level * np.asarray(n_cfg["x_sd"], float)
+    vs = level * np.asarray(n_cfg["v_sd"], float)
+    use = run.valid
+    x, v, y = run.x[use], run.v[use], np.asarray(w)[use]
+    n = y.shape[0]
+    out = np.zeros(12)
+    for j in range(6):
+        a = np.column_stack((x[:, j], v[:, j], np.ones(n)))
+        g = a.T @ a
+        g[0, 0] -= n * xs[j] ** 2
+        g[1, 1] -= n * vs[j] ** 2
+        out[2 * j : 2 * j + 2] = np.linalg.solve(g, a.T @ y[:, j])[:2]
+    return out
 
 
 def design_condition(model: str, run: Regressors, h_e: float = 0.0) -> float:
@@ -747,7 +811,10 @@ def verdict(
 ) -> dict:
     """The "spring-damper is enough" rule (note, section 8), per DOF arrays of 6.
 
-    ``at_bound``: the DOF has a parameter at its bound (:meth:`Fit.bound_dofs`).
+    ``at_bound``: the DOF has a stiffness at its bound
+    (:meth:`Fit.stiffness_bound_dofs`; a damping at its bound or with a large SE
+    is "damping not identified", :meth:`Fit.damping_unidentified`, and does not
+    fail the DOF, O9).
     ``b2_at_bound``: the B2 mass is at its bound, so the comparison with B2 is
     vacuous and "enough" fails.
     """
@@ -764,6 +831,17 @@ def verdict(
         "b2_at_bound": bool(b2_at_bound),
         "enough": bool(answerable.any() and np.all(ok[answerable]) and not b2_at_bound),
     }
+
+
+def suspension_adds(r2_s1b2: np.ndarray, r2_b2: np.ndarray, k_at_bound: np.ndarray) -> dict:
+    """Q2 (secondary): does the suspension add beyond the arm load, per DOF.
+
+    Present on a DOF if the held-out R2 of S1B2 exceeds that of B2 by
+    ``rules.suspension_adds`` and its stiffness (in S1B2) is not at its bound.
+    """
+    gain = np.asarray(r2_s1b2) - np.asarray(r2_b2)
+    adds = (gain >= RULES["suspension_adds"]) & ~np.asarray(k_at_bound, bool)
+    return {"gain": gain.tolist(), "adds": adds.tolist(), "present": bool(adds.any())}
 
 
 # ------------------------------------------------------------ noise stage
@@ -802,7 +880,11 @@ def clock_statistics(session_ids: Sequence[str]) -> dict:
 
 
 def noise_stage(floor_id: str = None, seed: int = 0, n_sim: int = 20000) -> dict:
-    """White noise levels from the rest run, and the same pushed through the loader."""
+    """White noise levels from the rest run, and the same pushed through the loader.
+
+    The displacement and velocity column noise is that of the pose of the frozen
+    origin and axes (the footprint, O1; the first version used the triad centroid).
+    """
     floor_id = floor_id or SETTINGS["sessions"]["noise_floor"]
     session = load_sessions(verify=False)[floor_id]
     if session.role != "diagnostic":
@@ -813,7 +895,10 @@ def noise_stage(floor_id: str = None, seed: int = 0, n_sim: int = 20000) -> dict
     ref = _run(floor_id).ref
     rng = np.random.default_rng(seed)
     mk = ref[None] + marker_sd * rng.normal(size=(n_sim, 3, 3))
-    trans, rot = sd.triad_pose(mk, ref)
+    trans, rot, _, _ = sd.base_pose(
+        mk, ref, origin=LOADER["origin"], frame=LOADER["frame"],
+        footprint=LOADER["footprint"],
+    )  # fmt: skip
     x = sd.lowpass(np.column_stack((trans, rot)), RATE, LOADER["cutoff_hz"])
     vel = np.gradient(x, 1.0 / RATE, axis=0)
     wn = sd.lowpass(plate_sd * rng.normal(size=(n_sim, 6)), RATE, LOADER["cutoff_hz"])
@@ -889,8 +974,63 @@ def footprint_derivation(
 # ----------------------------------------------------------- descriptives
 
 
+def near_duplicates(values: np.ndarray) -> dict:
+    """O6: rows whose markers all lie within ``clock.near_duplicate_sd`` marker sd of
+    the previous row while the gripper moves (neighbouring steps above 20 sd)."""
+    sd_m = 1e-3 * float(SETTINGS["noise"]["marker_sd_mm"])
+    tol = float(SETTINGS["clock"]["near_duplicate_sd"]) * sd_m
+    mk = np.asarray(values)[:, :30]
+    step = np.abs(np.diff(mk, axis=0)).max(axis=1)
+    g = mk[:, 21:30].reshape(-1, 3, 3).mean(axis=1)
+    gs = np.linalg.norm(np.diff(g, axis=0), axis=1)
+    nb = 0.5 * (np.r_[gs[0], gs[:-1]] + np.r_[gs[1:], gs[-1]])
+    moving = nb > 20 * sd_m
+    near = moving & (step <= tol)
+    return {
+        "count": int(near.sum()),
+        "rate": float(near.sum() / step.size),
+        "moving_rows": int(moving.sum()),
+    }
+
+
+def mz_convention(values: np.ndarray) -> dict:
+    """O7: RMS of the z component of ``(COP - c) x F`` (plate columns), against ``Mz``.
+
+    If ``Mz`` were about the COP rather than the plate centre ``c``, the moment
+    about ``c`` would differ by this term.
+    """
+    c = np.asarray(SETTINGS["plate_centre"], float)
+    f, m, cop = values[:, 30:33], values[:, 33:36], values[:, 36:39]
+    dz = (cop[:, 0] - c[0]) * f[:, 1] - (cop[:, 1] - c[1]) * f[:, 0]
+    return {"term_rms": float(np.std(dz)), "mz_sd": float(np.std(m[:, 2]))}
+
+
+def fz_mode(values: np.ndarray, band=(10.0, 45.0)) -> dict:
+    """O8: the largest peak of the unfiltered ``Fz`` spectrum in ``band`` (Hz) and the
+    vertical stiffness ``m (2 pi f)^2`` it implies, ``m`` from the static ``Fz``."""
+    from scipy.signal import welch
+
+    fz = values[:, 32]
+    f, pxx = welch(fz - fz.mean(), fs=RATE, nperseg=1024)
+    sel = (f > band[0]) & (f < band[1])
+    i = int(np.argmax(pxx[sel]))
+    peak = float(f[sel][i])
+    n0 = int(SETTINGS["static_window_s"] * RATE)
+    mass = float(abs(fz[:n0].mean()) / G)
+    return {
+        "peak_hz": peak,
+        "peak_over_median": float(pxx[sel][i] / np.median(pxx[sel])),
+        "mass_kg": mass,
+        "k_z": mass * (2 * np.pi * peak) ** 2,
+    }
+
+
 def describe() -> dict:
-    """The descriptive reads of the note (no suspension fit, no validation target)."""
+    """The descriptive reads of the note (no suspension fit, no validation target).
+
+    O7 and O8 read the plate columns of the training run and the noise floor only
+    (as the plate-centre check does).
+    """
     sessions = load_sessions(verify=True)
     out = {}
     for sid, s in sessions.items():
@@ -908,11 +1048,14 @@ def describe() -> dict:
             "x_ptp": np.ptp(r.x[m], axis=0).tolist(),
             "x_sd": r.x[m].std(axis=0).tolist(),
             "v_sd": r.v[m].std(axis=0).tolist(),
+            "near_duplicates": near_duplicates(v),
         }
         if s.role == "training" or sid == SETTINGS["sessions"]["noise_floor"]:
             centre, res = sd.plate_centre_fit(v[:, 30:33], v[:, 33:36], v[:, 36:39])
             out[sid]["plate_centre"] = centre.tolist()
             out[sid]["plate_centre_residual_rms"] = res
+            out[sid]["mz_convention"] = mz_convention(v)
+            out[sid]["fz_mode"] = fz_mode(v)
     return out
 
 

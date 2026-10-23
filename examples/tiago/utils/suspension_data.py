@@ -170,7 +170,7 @@ PLATE_CENTRE = (0.900, 0.450, 0.0)  # m, Vicon world; M = (COP - c) x F (measure
 STATIC_WINDOW_S = 1.0
 GUARD_FRAMES = 5
 EDGE_S = 0.5
-CUTOFF_HZ = 10.0
+CUTOFF_HZ = 5.0  # revision of #70 (was 10.0)
 FILTER_ORDER = 4
 
 

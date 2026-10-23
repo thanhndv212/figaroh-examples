@@ -230,8 +230,11 @@ transfer to.
   dropped and 0.5 to 0.8 % duplicated, judged from position continuity. The
   corrected loader (`utils/suspension_data.rebuild_clock`) rebuilds the 100 Hz
   frame grid from the receive stamps and finds 0.9 to 1.6 % dropped frames
-  (gaps up to 4 frames) and no exactly repeated row in any run; the
-  duplicates of the audit are not reproduced (see the note, open point O6).
+  (gaps up to 4 frames) and no exactly repeated row in any run. A
+  near-duplicate rule (every marker coordinate within 3 marker sd, 0.033 mm,
+  of the previous row while the arm moves) finds none either, in any of the
+  nine non-confirmation runs: the audit's 0.5 to 0.8 % duplicated frames are
+  not in these files (see the note, open point O6, resolved).
 - **Frames and points:** markers are in the Vicon world frame; the plate
   moments are about the plate centre (0.900, 0.450, 0) m, not the base. The
   base-marker triad frame is yawed about -5.6 degrees from world and its z axis
