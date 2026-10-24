@@ -60,6 +60,16 @@ tasks:
 
     parameters:
       calibration_level: "full_params"
+      # "ordered" is required here, not a preference. With core's default
+      # (LAPACK pivoting) joint_1's yaw is grouped into joint_2's
+      # parameters, so the structural set holds only five joint_1 entries,
+      # and add_base_name, which renames the first six to the base frame,
+      # overwrites d_px_joint_2: the fit keeps 29 of the 30 (4N + 6)
+      # parameters and cannot fit a full_params truth
+      # (calibration_truth.py, docs/development/tx40-calibration-synthetic-truth.md).
+      estimation:
+        method: structural
+        structural_selection: ordered
       include_non_geometric: false
       outlier_threshold: 0.01  # 1cm - high precision for small robot
 
