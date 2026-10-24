@@ -109,6 +109,7 @@ robots:
     paths:
       - examples/talos/**
     tests:
+      - tests/test_talos_identification_truth.py
       - tests/test_talos_mocap_2022_03_15.py
       - tests/test_talos_mocap_extraction.py
     golden_ids: ["talos/"]

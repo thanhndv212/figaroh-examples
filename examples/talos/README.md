@@ -15,6 +15,8 @@ TALOS humanoid robot's torso/arm kinematic chain using FIGAROH.
   `calibration_upperbody.py --update-model`.
 - `optimal_config.py`: D-optimal design of calibration postures (see
   [Posture design](#posture-design)).
+- `identification_truth.py`: torso-arm dynamics identification on **simulated
+  data** (see [Dynamics identification, simulated only](#dynamics-identification-simulated-only)).
 - `utils/talos_tools.py`: `TALOSCalibration`, a TALOS-specific specialization of
   `figaroh.calibration.base_calibration.BaseCalibration`, and
   `TALOSOptimalCalibration` for the posture design.
@@ -105,6 +107,25 @@ written, timestamped, to `data/optimal_configs/` (git-ignored).
 This is a design, not a measurement. Only self-collision is modelled: no
 table, fixture or camera line of sight, so check the selected postures on the
 real setup before recording them.
+
+## Dynamics identification, simulated only
+
+There are no TALOS dynamics recordings, so there is no `identification.py`.
+`identification_truth.py` draws a known truth (consistent link inertias,
+friction and actuator inertia in assumed ranges), simulates the torso and
+left-arm torques on a self-collision-checked Fourier excitation, identifies
+them with core's `BaseIdentification` and scores the fit against the truth:
+
+```bash
+python identification_truth.py              # seeds 0-4, torque noise 2 % and 10 %
+python identification_truth.py --seeds 0 --noise 0.05
+```
+
+With 2 % torque noise the held-out torque error is 0.7 % of RMS (0.2-0.4 %
+on the torso and shoulder, 1-2 % on the wrist), and 82 base parameters are
+recovered within their standard errors. These are pipeline checks, not
+estimates of any TALOS: design, results and limits in
+[docs/development/talos-identification-synthetic-truth.md](../../docs/development/talos-identification-synthetic-truth.md).
 
 ## Notes
 
