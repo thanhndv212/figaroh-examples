@@ -176,6 +176,10 @@ shared:
       - examples/compare_physical_real.py
     robots: [tiago, ur10]
     tests: [tests/test_physical_comparison_extended.py]
+  candidate_postures:
+    paths: [examples/candidate_postures.py]
+    robots: [talos, staubli_tx40]
+    tests: [tests/test_candidate_postures.py]
   verification:
     paths: [examples/verification.py]
     robots: [ur10, tiago, tiago_pro, talos_table_contact, staubli_tx40, so101]

@@ -13,8 +13,11 @@ TALOS humanoid robot's torso/arm kinematic chain using FIGAROH.
   update, and visual validation (run `--help` for modes).
 - `update_model.py`: thin shim that delegates to
   `calibration_upperbody.py --update-model`.
+- `optimal_config.py`: D-optimal design of calibration postures (see
+  [Posture design](#posture-design)).
 - `utils/talos_tools.py`: `TALOSCalibration`, a TALOS-specific specialization of
-  `figaroh.calibration.base_calibration.BaseCalibration`.
+  `figaroh.calibration.base_calibration.BaseCalibration`, and
+  `TALOSOptimalCalibration` for the posture design.
 - `config/`: YAML configuration files (typically use `talos_unified_config.yaml`).
 - `data/`: example measurement CSV(s) used by the calibration and timestamped
   calibration results (`calibration_results_*.npz`), and the motion-capture
@@ -83,7 +86,32 @@ All saved files are timestamped to avoid overwriting:
   interactive before/after chart. See FIGAROH's
   [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/reporting_and_verification/).
 
+## Posture design
+
+```bash
+python optimal_config.py                  # 1000 candidates, seed 0
+python optimal_config.py --candidates 2000 --seed 1
+```
+
+There is no recorded candidate pool for TALOS, so the candidates are drawn
+uniformly over the calibrated chain (`torso_1/2`, `arm_left_1..7`) within the
+URDF limits less `tasks.optimal_configuration.constraints.joint_limit_margin`
+(rad), with the rest of the body at `q0`. A candidate that collides with the
+robot itself under `models/talos_description/srdf/talos.srdf` is drawn again:
+about half of the uniform samples do, and `q0` itself has the left hand on
+the thigh. The D-optimal subset (107 postures for seed 0, about 2 min) is
+written, timestamped, to `data/optimal_configs/` (git-ignored).
+
+This is a design, not a measurement. Only self-collision is modelled: no
+table, fixture or camera line of sight, so check the selected postures on the
+real setup before recording them.
+
 ## Notes
+
+- The calibration entry point is `calibration_upperbody.py`, not
+  `calibration.py` as in the other examples: it calibrates the torso/arm chain
+  only, and the whole-body case lives in `../talos_table_contact/`. The name
+  is kept on purpose.
 
 - `calibration_upperbody.py` sets `known_baseframe` and `known_tipframe` flags
   explicitly before initialization.

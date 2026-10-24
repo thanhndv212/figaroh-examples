@@ -126,16 +126,16 @@ shared `models/` (robot description packages) and a Viser-based `web-interface/`
   — matches the core `figaroh/` repo convention. Other feature branches (`h1v2`, `soarm`,
   `0a`) exist locally.
 
-## Known issues — read `IMPROVEMENT_PLAN.md`
+## Known gaps
 
-`IMPROVEMENT_PLAN.md` is a 39-item audit (P0–P6) of this repo's current state.
-**Phases 1-6 are complete** (39/39 items fixed: failing tests, path bugs, copy-paste
-typos, dead code, standardized practices, config cleanup, infrastructure, URDF
-deduplication, smoke tests). Only Phase 7 remains:
-- **Phase 7** (P6): complete incomplete examples — add missing scripts to TALOS and
-  Staubli TX40 (new feature work, deferred)
+The 2026-06 audit (`IMPROVEMENT_PLAN.md`, since removed; see git history) is done.
+Its Phase 7 added `optimal_config.py` to TALOS and Staubli TX40, using the shared
+sampler in `examples/candidate_postures.py`. The scripts still missing are missing
+for a reason, recorded in each README: no TX40 calibration data, no TALOS dynamics
+data, a near-singular TX40 trajectory design, and no physically consistent TX40
+parameters to export. Don't add placeholder scripts for them.
 
-Run `python validate.py` to check current state. All 9 scripts pass, 3 skip (IPOPT).
+Run `python validate.py` to check current state.
 
 ## CodeGraph
 

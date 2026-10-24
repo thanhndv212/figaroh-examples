@@ -34,6 +34,8 @@ from figaroh.utils.error_handling import (
     DataProcessingError,
 )
 
+from examples.candidate_postures import SampledOptimalCalibration
+
 
 class TX40Identification(BaseIdentification):
     """Staubli TX40-specific dynamic parameter identification class."""
@@ -330,3 +332,24 @@ class TX40Identification(BaseIdentification):
             W[5 * N + i, W.shape[1] - 1] = np.sign(v[i, 4] + v[i, 5])
 
         return W
+
+
+class TX40OptimalCalibration(SampledOptimalCalibration):
+    """TX40 calibration posture design over sampled candidates.
+
+    There is no recorded candidate pool for the TX40, so candidates are
+    drawn uniformly over joints 1-6 within the URDF limits. Self-collision is
+    checked between non-adjacent links; the URDF has no floor or cell, so the
+    selected postures still need checking against the real installation.
+    """
+
+    collision = "non_adjacent"
+
+    def __init__(
+        self,
+        robot,
+        config_file: str = "config/staubli_tx40_unified_config.yaml",
+        n_candidates: int = 1000,
+        seed: int = 0,
+    ) -> None:
+        super().__init__(robot, config_file, n_candidates=n_candidates, seed=seed)

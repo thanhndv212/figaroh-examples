@@ -99,12 +99,14 @@ EXAMPLE_SCRIPTS = {
             ["--calibrate-only", "--no-plot", "--html-report"],
         ),
         ("update_model.py", 120, False),
+        ("optimal_config.py", 300, False),
     ],
     "talos_table_contact": [
         ("reference_run.py", 300, False, ["--no-plot"]),
     ],
     "staubli_tx40": [
         ("identification.py", 120, False, ["--verify", "--html-report"]),
+        ("optimal_config.py", 300, False),
     ],
     "so101": [
         ("identification.py", 120, False, ["--verify", "--html-report"]),
