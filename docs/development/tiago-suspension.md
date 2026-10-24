@@ -1105,3 +1105,54 @@ runs it has not seen, and is that prediction the arm load?
   new amendment, and the runs would no longer count as confirmation.
 - Validation values of A1-1 to A1-4 are reported beside the confirmation ones,
   marked as not blind.
+
+### 13.1 A1 result: the confirmation read (2026-10-24)
+
+Read once by `examples/tiago/suspension_a1.py`, committed as `e70ceed` before
+the read. The output is frozen in `tests/golden/tiago_suspension_a1.json`. No
+threshold or model was changed after the read.
+
+**Reading: no DOF is a series compliance under A1.** `x`, `y`, `ry` and `rz`
+read **rigid base**: the training S1 does not transfer, and B2 does on both
+runs. `z` and `rx` read **no answer**. `rx` comes closest: it passes A1-1 to
+A1-3 on both runs and fails only A1-4, the base-motion floor.
+
+| `xyz_mirror_1630` / `xyz_mirror_1642` | `x` | `y` | `z` | `rx` | `ry` | `rz` |
+|---|---|---|---|---|---|---|
+| A1-1 R2 of training S1 (>= 0.5) | -0.05 / -0.09 | 0.00 / 0.00 | -0.08 / -0.05 | 0.91 / 0.88 | 0.09 / -0.18 | 0.20 / 0.33 |
+| A1-2 R2 of S1 against B2 (>= 0.5) | -0.06 / -0.12 | 0.00 / 0.00 | -0.44 / -0.29 | 0.90 / 0.89 | 0.11 / -0.24 | 0.31 / 0.45 |
+| A1-3 `k` refit (training 1.87e4 on `rx`) | 687 / 1.02e3 | 0 / 0 | 0 / 2.88e3 | 2.06e4 / 2.23e4 | 1.33e4 / 8.68e3 | 97 / 281 |
+| A1-4 base RMS over floor sd (>= 10) | 13.0 / 8.4 | 3.3 / 3.0 | 1.3 / 2.1 | 7.7 / 7.3 | 1.6 / 2.2 | 56 / 40 |
+| B2 R2 (>= 0.5 for "rigid base") | 0.59 / 0.68 | 0.87 / 0.88 | 0.15 / 0.22 | 0.99 / 0.99 | 0.95 / 0.96 | 0.89 / 0.91 |
+| reading | rigid base | rigid base | no answer | no answer | rigid base | rigid base |
+
+Validation (`xyz_1628`, not blind) reads the same per item: on `rx`, A1-1 0.90,
+A1-2 0.88, `k` 1.97e4, A1-4 7.8.
+
+On `rx`, the training roll stiffness predicts `Mx` on two unseen runs (R2 0.91
+and 0.88). That prediction is the arm load (R2 against B2 0.90 and 0.89), and
+the refitted `k_rx` stays within 10 to 19 % of training. The base roll, though,
+is only 7.3 to 7.7 times its sd at rest, below the frozen floor of 10, so
+under A1 this stays a near miss, not a finding; the floor was not moved.
+
+A check made after the read, descriptive only; it does not change the reading.
+It uses the raw base markers of `postures_1720`, `xyz_1640` and `xyz_1628`,
+and no confirmation run is read again.
+- The floor run is really at rest: the gripper moves less than 3 mm, so its roll
+  sd (9.0e-5 rad) is measurement wander, not a tilt.
+- In the xyz runs, the roll is a rigid see-saw of the triad. `base1` and
+  `base2` (0.41 m apart) move vertically in opposite directions (corr -0.94 and
+  -0.93), with 0.20 and 0.11 mm sd, against 0.02 to 0.03 mm at rest. The
+  marker distances stay within 0.05 to 0.09 mm.
+- The roll is therefore a real, small tilt of the base, about 0.04 deg RMS, and
+  not a marker artefact. What A1-4 cannot separate is its source: the base
+  suspension, or the tyres and casters on the plate. Both would read as a
+  compliance in series with the arm load. `rz` has the largest base motion (yaw,
+40 to 56 times the floor), and S1 does not predict `Mz` from it (0.20, 0.33):
+the yaw is not a spring.
+
+**What #70 can say.** On these runs, the plate wrench is the arm load of a
+6.3 kg rigid cube at the gripper. Neither section 8 nor A1 identifies a linear
+suspension stiffness, and the status-quo fit of #70 is not a suspension
+estimate (12.6). The `rx` near miss is what a dedicated roll experiment would
+test: a larger base roll than these arm oscillations produce.
