@@ -1154,5 +1154,10 @@ the yaw is not a spring.
 **What #70 can say.** On these runs, the plate wrench is the arm load of a
 6.3 kg rigid cube at the gripper. Neither section 8 nor A1 identifies a linear
 suspension stiffness, and the status-quo fit of #70 is not a suspension
-estimate (12.6). The `rx` near miss is what a dedicated roll experiment would
-test: a larger base roll than these arm oscillations produce.
+estimate (12.6).
+
+The `rx` near miss stays open. The maintainer's reading is that the roll is
+most likely mostly the tyres and casters, not the suspension. This is a
+judgement, not a study result: these runs cannot separate the two, and no
+further experiment can be run on the robot. #70 was closed on this basis on
+2026-10-24.
