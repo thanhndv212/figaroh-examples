@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
@@ -26,6 +27,10 @@ from figaroh.calibration.calibration_tools import (
 
 # Import base class from figaroh
 from figaroh.calibration.base_calibration import BaseCalibration
+
+from examples.candidate_postures import SampledOptimalCalibration
+
+_MODELS = Path(__file__).resolve().parents[3] / "models"
 
 
 class TALOSCalibration(BaseCalibration):
@@ -97,3 +102,25 @@ class TALOSCalibration(BaseCalibration):
 
         # Main residual: SE3 log map (geometrically correct pose error)
         return self._compute_logmap_residuals(self.PEE_measured, PEEe)
+
+
+class TALOSOptimalCalibration(SampledOptimalCalibration):
+    """TALOS torso-arm calibration posture design over sampled candidates.
+
+    Candidates are drawn over the calibrated chain (torso and the configured
+    arm) with the rest of the body at ``q0``, and rejected when the robot
+    collides with itself under the TALOS SRDF (about half of the uniform
+    samples do). Nothing outside the robot is modelled.
+    """
+
+    collision = "srdf"
+    srdf = str(_MODELS / "talos_description" / "srdf" / "talos.srdf")
+
+    def __init__(
+        self,
+        robot,
+        config_file: str = "config/talos_unified_config.yaml",
+        n_candidates: int = 1000,
+        seed: int = 0,
+    ) -> None:
+        super().__init__(robot, config_file, n_candidates=n_candidates, seed=seed)
