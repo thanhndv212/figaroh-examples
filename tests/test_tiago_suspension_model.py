@@ -627,3 +627,19 @@ def test_frozen_config_is_complete():
     assert fx["truth"]["h_e"] == 0.0985 and fx["truth"]["h_e_sensitivity"] == [0.065, 0.25]
     assert fx["f2"]["bias_max"] == {"k": 0.01, "c": 0.10}
     assert "s2_gain_min" not in fx["f4"] and fx["f4"]["h_e_tol"] == 0.05
+
+
+def test_status_quo_fy_sign_flips_fy_only_and_b1_keeps_the_recorded_sign():
+    n, t, markers, *_ = _synthetic_run(seconds=5)
+    f = np.column_stack((np.full(n, 5.0), 3.0 * np.sin(np.arange(n) / 20.0), np.full(n, -730.0)))
+    raw = _raw(n, markers, force=f, moment=[1.0, 2.0, 0.5])
+    a = sd.status_quo_from_arrays(t, raw)
+    b = sd.status_quo_from_arrays(t, raw, fy_sign=-1)
+    assert np.allclose(a.wrench[:, 1], -b.wrench[:, 1]) and np.abs(a.wrench[:, 1]).max() > 1.0
+    assert np.allclose(a.wrench[:, [0, 2, 3, 4, 5]], b.wrench[:, [0, 2, 3, 4, 5]])
+    with pytest.raises(ValueError):
+        sd.status_quo_from_arrays(t, raw, fy_sign=0.0)
+    # B1 of the study is the status quo as recorded: the default stays +1
+    import inspect
+
+    assert inspect.signature(sd.load_status_quo).parameters["fy_sign"].default == 1.0
