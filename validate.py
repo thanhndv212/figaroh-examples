@@ -107,6 +107,7 @@ EXAMPLE_SCRIPTS = {
     "staubli_tx40": [
         ("identification.py", 120, False, ["--verify", "--html-report"]),
         ("optimal_config.py", 300, False),
+        ("update_model.py", 120, False),
     ],
     "so101": [
         ("identification.py", 120, False, ["--verify", "--html-report"]),
