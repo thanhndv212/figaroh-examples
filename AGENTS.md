@@ -132,8 +132,10 @@ The 2026-06 audit (`IMPROVEMENT_PLAN.md`, since removed; see git history) is don
 Its Phase 7 added `optimal_config.py` to TALOS and Staubli TX40, using the shared
 sampler in `examples/candidate_postures.py`. The scripts still missing are missing
 for a reason, recorded in each README: no TX40 calibration data, no TALOS dynamics
-data, a near-singular TX40 trajectory design, and no physically consistent TX40
-parameters to export. Don't add placeholder scripts for them.
+data, and no physically consistent TX40 parameters to export. Don't add placeholder
+scripts for them. TX40 `optimal_trajectory.py` is a simulated design (not run on the
+robot); its near-singular design was a core base-index tolerance issue, worked around
+in `TX40OptimalTrajectory` (docs/development/tx40-optimal-trajectory.md).
 
 Run `python validate.py` to check current state.
 

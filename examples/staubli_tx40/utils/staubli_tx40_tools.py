@@ -29,6 +29,21 @@ import pandas as pd
 
 # Import base classes from figaroh
 from figaroh.identification.base_identification import BaseIdentification
+from figaroh.identification.identification_tools import (
+    add_standard_additional_parameters,
+    get_standard_parameters,
+)
+from figaroh.optimal.base_optimal_trajectory import (
+    BaseOptimalTrajectory,
+    BaseTrajectoryIPOPTProblem,
+)
+from figaroh.tools.qrdecomposition import TOL_QR, QRDecomposer
+from figaroh.tools.regressor import (
+    build_regressor_basic,
+    build_regressor_reduced,
+    get_index_eliminate,
+)
+from figaroh.utils.cubic_spline import CubicSpline, WaypointsGeneration
 from figaroh.utils.error_handling import (
     validate_input_data,
     DataProcessingError,
@@ -320,18 +335,22 @@ class TX40Identification(BaseIdentification):
         Returns:
             ndarray: Regressor matrix with coupling terms added
         """
-        W = np.c_[W, np.zeros([W.shape[0], 3])]
-        for i in range(N):
-            # joint 5
-            W[4 * N + i, W.shape[1] - 3] = a[i, 5]
-            W[4 * N + i, W.shape[1] - 2] = v[i, 5]
-            W[4 * N + i, W.shape[1] - 1] = np.sign(v[i, 4] + v[i, 5])
-            # joint 6
-            W[5 * N + i, W.shape[1] - 3] = a[i, 4]
-            W[5 * N + i, W.shape[1] - 2] = v[i, 4]
-            W[5 * N + i, W.shape[1] - 1] = np.sign(v[i, 4] + v[i, 5])
+        return add_wrist_coupling(W, N, v, a)
 
-        return W
+
+def add_wrist_coupling(W, N, v, a):
+    """Append the coupled-wrist columns (``Iam6``, ``fvm6``, ``fsm6``).
+
+    Joint 5's rows get joint 6's acceleration and velocity, joint 6's rows
+    joint 5's, and both the Coulomb term ``sign(v5 + v6)``. ``W`` is
+    joint-major with ``N`` samples per joint.
+    """
+    v, a = np.asarray(v), np.asarray(a)
+    W = np.c_[W, np.zeros([W.shape[0], 3])]
+    sign = np.sign(v[:N, 4] + v[:N, 5])
+    W[4 * N : 5 * N, -3:] = np.c_[a[:N, 5], v[:N, 5], sign]
+    W[5 * N : 6 * N, -3:] = np.c_[a[:N, 4], v[:N, 4], sign]
+    return W
 
 
 class TX40OptimalCalibration(SampledOptimalCalibration):
@@ -353,3 +372,112 @@ class TX40OptimalCalibration(SampledOptimalCalibration):
         seed: int = 0,
     ) -> None:
         super().__init__(robot, config_file, n_candidates=n_candidates, seed=seed)
+
+
+class TX40OptimalTrajectory(BaseOptimalTrajectory):
+    """Condition-number-optimal excitation for the TX40 identification model.
+
+    Two changes from core's base class, both so that the objective is the
+    condition number of the regressor ``TX40Identification`` fits:
+
+    - the regressor carries the coupled-wrist columns when
+      ``has_coupled_wrist`` is set;
+    - base columns are chosen by ``QRDecomposer`` with a relative tolerance.
+      Core's trajectory path uses an absolute 1e-8 and keeps ``Izz_joint_2``
+      next to ``Ia_joint_2``: joint 2's axis is perpendicular to joint 1's,
+      so both columns are q̈2 in τ2 and their QR pivot is round-off
+      (about 1e-8 against 44). Kept, it pins the condition number near 1e13
+      whatever the trajectory.
+    """
+
+    qr_relative_tolerance = 1e-10
+
+    def __init__(
+        self,
+        robot,
+        active_joints,
+        config_file: str = "config/staubli_tx40_unified_config.yaml",
+    ) -> None:
+        super().__init__(robot, active_joints, config_file)
+        ps = self.identif_config
+        ps["active_joints"] = list(active_joints)
+        ps["act_Jid"] = [self.model.getJointId(j) for j in active_joints]
+        ps["act_J"] = [self.model.joints[jid] for jid in ps["act_Jid"]]
+        ps["act_idxq"] = [J.idx_q for J in ps["act_J"]]
+        ps["act_idxv"] = [J.idx_v for J in ps["act_J"]]
+
+    def initialize(self) -> None:
+        super().initialize()
+        self.idx_e, self.idx_b = self._identification_base_indices()
+        self.logger.info(f"TX40 trajectory design: {len(self.idx_b)} base parameters")
+
+    def _full_regressor(self, q, v, a) -> np.ndarray:
+        W = build_regressor_basic(self.robot, q, v, a, self.identif_config)
+        if self.identif_config.get("has_coupled_wrist", False):
+            W = add_wrist_coupling(W, np.asarray(q).shape[0], v, a)
+        return W
+
+    def _standard_parameters(self) -> dict:
+        std = get_standard_parameters(self.model, self.identif_config)
+        std.update(add_standard_additional_parameters(self.model, self.identif_config))
+        if self.identif_config.get("has_coupled_wrist", False):
+            for name in ("Iam6", "fvm6", "fsm6"):
+                std[name] = float(self.identif_config[name])
+        return std
+
+    def _identification_base_indices(self):
+        """Base columns from a random trajectory, as core, but chosen with
+        the identification's relative QR tolerance."""
+        n_wps, freq = 100, 100
+        CB = CubicSpline(self.robot, n_wps, self.active_joints)
+        WP = WaypointsGeneration(self.robot, n_wps, self.active_joints)
+        WP.gen_rand_pool(self.soft_lim_pool)
+        wps, vel_wps, acc_wps = WP.gen_rand_wp()
+        tps = np.matrix([0.5 * i for i in range(n_wps)]).transpose()
+        _, q, v, a = CB.get_full_config(freq, tps, wps, vel_wps, acc_wps)
+
+        std = self._standard_parameters()
+        W = self._full_regressor(q, v, a)
+        idx_e, params_r = get_index_eliminate(W, std, tol_e=0.001)
+        idx_e = np.array(idx_e, dtype=int)
+        W_e = build_regressor_reduced(W, idx_e)
+        dec = QRDecomposer(
+            tolerance=TOL_QR, relative_tolerance=self.qr_relative_tolerance
+        )
+        dec.double_decomposition(np.zeros(W_e.shape[0]), W_e, params_r, std)
+        return idx_e, np.array(dec.get_base_indices(), dtype=int)
+
+    def _stack_base_regressors(self, q, v, a, W_stack=None) -> np.ndarray:
+        W = self._full_regressor(q, v, a)
+        W_b = build_regressor_reduced(W, self.idx_e)[:, self.idx_b]
+        if isinstance(W_stack, np.ndarray):
+            W_b = np.vstack((W_stack, W_b))
+        return W_b
+
+    def create_ipopt_problem(
+        self,
+        n_joints,
+        n_wps,
+        Ns,
+        tps,
+        vel_wps,
+        acc_wps,
+        wp_init,
+        vel_wp_init,
+        acc_wp_init,
+        W_stack,
+    ) -> BaseTrajectoryIPOPTProblem:
+        return BaseTrajectoryIPOPTProblem(
+            self,
+            n_joints,
+            n_wps,
+            Ns,
+            tps,
+            vel_wps,
+            acc_wps,
+            wp_init,
+            vel_wp_init,
+            acc_wp_init,
+            W_stack,
+            "TX40TrajectoryOptimization",
+        )
