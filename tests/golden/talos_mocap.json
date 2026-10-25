@@ -1,0 +1,530 @@
+{
+  "kfold_metric": "pos_rmse_mm",
+  "models": {
+    "full map": {
+      "kfold_pos_rmse_mm": 5.389,
+      "kfold_train_mean_mm": 4.647,
+      "n_joint_params": 54,
+      "n_params": 66,
+      "sets": {
+        "qualisys_2022-03-15-1418_right_static_postures.csv": {
+          "dropped_rows": [],
+          "flip_rows": [
+            [
+              7,
+              8,
+              9,
+              21,
+              22
+            ],
+            [
+              10,
+              14,
+              35,
+              36,
+              37,
+              38
+            ],
+            [
+              15,
+              16,
+              28
+            ]
+          ],
+          "gauge_free_torso_pos_rmse_rereg_mm": 4.701,
+          "n": 39,
+          "n_flipped": 14,
+          "ori_rmse_rereg_deg": 1.795,
+          "ori_rmse_waist_deg": 1.801,
+          "pos_rmse_rereg_mm": 4.698,
+          "pos_rmse_unflipped_mm": 3.867,
+          "pos_rmse_waist_mm": 9.665,
+          "role": "validation",
+          "strata": {
+            "flipped": {
+              "n": 14,
+              "rmse": 5.825
+            },
+            "new": {
+              "n": 23,
+              "rmse": 3.894
+            },
+            "out_of_range": {
+              "n": 14,
+              "rmse": 5.246
+            },
+            "repeated": {
+              "n": 2,
+              "rmse": 7.968
+            },
+            "unflipped": {
+              "n": 25,
+              "rmse": 3.929
+            }
+          }
+        },
+        "qualisys_2022-03-15-1439_right_static_postures.csv": {
+          "dropped_rows": [
+            0
+          ],
+          "flip_rows": [],
+          "gauge_free_torso_pos_rmse_rereg_mm": 37.578,
+          "n": 22,
+          "n_flipped": 0,
+          "ori_rmse_rereg_deg": 1.049,
+          "ori_rmse_waist_deg": 0.993,
+          "pos_rmse_rereg_mm": 37.586,
+          "pos_rmse_unflipped_mm": 37.586,
+          "pos_rmse_waist_mm": 41.722,
+          "role": "confirmation",
+          "strata": {
+            "flipped": {
+              "n": 0,
+              "rmse": null
+            },
+            "new": {
+              "n": 8,
+              "rmse": 40.341
+            },
+            "out_of_range": {
+              "n": 13,
+              "rmse": 36.782
+            },
+            "repeated": {
+              "n": 1,
+              "rmse": 21.746
+            },
+            "unflipped": {
+              "n": 22,
+              "rmse": 37.586
+            }
+          }
+        }
+      },
+      "train_ori_rmse_deg": 1.858,
+      "train_pos_rmse_mm": 6.883
+    },
+    "full map_cv": {
+      "kfold_pos_rmse_mm": 164.091,
+      "kfold_train_mean_mm": 95.284,
+      "n_joint_params": 54,
+      "n_params": 66,
+      "sets": {
+        "qualisys_2022-03-15-1418_right_static_postures.csv": {
+          "dropped_rows": [],
+          "flip_rows": [
+            [
+              7,
+              8,
+              9,
+              21,
+              22
+            ],
+            [
+              10,
+              14,
+              35,
+              36,
+              37,
+              38
+            ],
+            [
+              15,
+              16,
+              28
+            ]
+          ],
+          "gauge_free_torso_pos_rmse_rereg_mm": 4.698,
+          "n": 39,
+          "n_flipped": 14,
+          "ori_rmse_rereg_deg": 1.799,
+          "ori_rmse_waist_deg": 1.822,
+          "pos_rmse_rereg_mm": 4.699,
+          "pos_rmse_unflipped_mm": 3.881,
+          "pos_rmse_waist_mm": 8.002,
+          "role": "validation",
+          "strata": {
+            "flipped": {
+              "n": 14,
+              "rmse": 5.814
+            },
+            "new": {
+              "n": 23,
+              "rmse": 3.893
+            },
+            "out_of_range": {
+              "n": 14,
+              "rmse": 5.257
+            },
+            "repeated": {
+              "n": 2,
+              "rmse": 7.925
+            },
+            "unflipped": {
+              "n": 25,
+              "rmse": 3.939
+            }
+          }
+        },
+        "qualisys_2022-03-15-1439_right_static_postures.csv": {
+          "dropped_rows": [
+            0
+          ],
+          "flip_rows": [],
+          "gauge_free_torso_pos_rmse_rereg_mm": 37.578,
+          "n": 22,
+          "n_flipped": 0,
+          "ori_rmse_rereg_deg": 1.056,
+          "ori_rmse_waist_deg": 1.151,
+          "pos_rmse_rereg_mm": 37.615,
+          "pos_rmse_unflipped_mm": 37.615,
+          "pos_rmse_waist_mm": 40.846,
+          "role": "confirmation",
+          "strata": {
+            "flipped": {
+              "n": 0,
+              "rmse": null
+            },
+            "new": {
+              "n": 8,
+              "rmse": 40.408
+            },
+            "out_of_range": {
+              "n": 13,
+              "rmse": 36.8
+            },
+            "repeated": {
+              "n": 1,
+              "rmse": 21.436
+            },
+            "unflipped": {
+              "n": 22,
+              "rmse": 37.615
+            }
+          }
+        }
+      },
+      "train_ori_rmse_deg": 1.319,
+      "train_pos_rmse_mm": 4.346
+    },
+    "full_params": {
+      "kfold_pos_rmse_mm": 70.745,
+      "kfold_train_mean_mm": 48.524,
+      "n_joint_params": 30,
+      "n_params": 42,
+      "sets": {
+        "qualisys_2022-03-15-1418_right_static_postures.csv": {
+          "dropped_rows": [],
+          "flip_rows": [
+            [
+              7,
+              8,
+              9,
+              21,
+              22
+            ],
+            [
+              10,
+              14,
+              35,
+              36,
+              37,
+              38
+            ],
+            [
+              15,
+              16,
+              28
+            ]
+          ],
+          "gauge_free_torso_pos_rmse_rereg_mm": 49.745,
+          "n": 39,
+          "n_flipped": 14,
+          "ori_rmse_rereg_deg": 11.679,
+          "ori_rmse_waist_deg": 25.175,
+          "pos_rmse_rereg_mm": 48.148,
+          "pos_rmse_unflipped_mm": 50.189,
+          "pos_rmse_waist_mm": 153.042,
+          "role": "validation",
+          "strata": {
+            "flipped": {
+              "n": 14,
+              "rmse": 42.107
+            },
+            "new": {
+              "n": 23,
+              "rmse": 47.249
+            },
+            "out_of_range": {
+              "n": 14,
+              "rmse": 51.548
+            },
+            "repeated": {
+              "n": 2,
+              "rmse": 30.547
+            },
+            "unflipped": {
+              "n": 25,
+              "rmse": 51.221
+            }
+          }
+        },
+        "qualisys_2022-03-15-1439_right_static_postures.csv": {
+          "dropped_rows": [
+            0
+          ],
+          "flip_rows": [],
+          "gauge_free_torso_pos_rmse_rereg_mm": 64.701,
+          "n": 22,
+          "n_flipped": 0,
+          "ori_rmse_rereg_deg": 11.596,
+          "ori_rmse_waist_deg": 26.74,
+          "pos_rmse_rereg_mm": 65.347,
+          "pos_rmse_unflipped_mm": 65.347,
+          "pos_rmse_waist_mm": 196.749,
+          "role": "confirmation",
+          "strata": {
+            "flipped": {
+              "n": 0,
+              "rmse": null
+            },
+            "new": {
+              "n": 8,
+              "rmse": 72.916
+            },
+            "out_of_range": {
+              "n": 13,
+              "rmse": 62.104
+            },
+            "repeated": {
+              "n": 1,
+              "rmse": 35.66
+            },
+            "unflipped": {
+              "n": 22,
+              "rmse": 65.347
+            }
+          }
+        }
+      },
+      "train_ori_rmse_deg": 93.949,
+      "train_pos_rmse_mm": 85.812
+    },
+    "joint_offset": {
+      "kfold_pos_rmse_mm": 157.877,
+      "kfold_train_mean_mm": 118.424,
+      "n_joint_params": 7,
+      "n_params": 19,
+      "sets": {
+        "qualisys_2022-03-15-1418_right_static_postures.csv": {
+          "dropped_rows": [],
+          "flip_rows": [
+            [
+              7,
+              8,
+              9,
+              21,
+              22
+            ],
+            [
+              10,
+              14,
+              35,
+              36,
+              37,
+              38
+            ],
+            [
+              15,
+              16,
+              28
+            ]
+          ],
+          "gauge_free_torso_pos_rmse_rereg_mm": 4.702,
+          "n": 39,
+          "n_flipped": 14,
+          "ori_rmse_rereg_deg": 27.79,
+          "ori_rmse_waist_deg": 103.598,
+          "pos_rmse_rereg_mm": 160.849,
+          "pos_rmse_unflipped_mm": 164.641,
+          "pos_rmse_waist_mm": 941.411,
+          "role": "validation",
+          "strata": {
+            "flipped": {
+              "n": 14,
+              "rmse": 145.27
+            },
+            "new": {
+              "n": 23,
+              "rmse": 143.823
+            },
+            "out_of_range": {
+              "n": 14,
+              "rmse": 180.415
+            },
+            "repeated": {
+              "n": 2,
+              "rmse": 196.946
+            },
+            "unflipped": {
+              "n": 25,
+              "rmse": 168.947
+            }
+          }
+        },
+        "qualisys_2022-03-15-1439_right_static_postures.csv": {
+          "dropped_rows": [
+            0
+          ],
+          "flip_rows": [],
+          "gauge_free_torso_pos_rmse_rereg_mm": 37.578,
+          "n": 22,
+          "n_flipped": 0,
+          "ori_rmse_rereg_deg": 30.152,
+          "ori_rmse_waist_deg": 100.831,
+          "pos_rmse_rereg_mm": 206.619,
+          "pos_rmse_unflipped_mm": 206.619,
+          "pos_rmse_waist_mm": 1017.275,
+          "role": "confirmation",
+          "strata": {
+            "flipped": {
+              "n": 0,
+              "rmse": null
+            },
+            "new": {
+              "n": 8,
+              "rmse": 190.667
+            },
+            "out_of_range": {
+              "n": 13,
+              "rmse": 203.428
+            },
+            "repeated": {
+              "n": 1,
+              "rmse": 332.267
+            },
+            "unflipped": {
+              "n": 22,
+              "rmse": 206.619
+            }
+          }
+        }
+      },
+      "train_ori_rmse_deg": 109.59,
+      "train_pos_rmse_mm": 196.614
+    },
+    "registration only": {
+      "kfold_pos_rmse_mm": 8.093,
+      "kfold_train_mean_mm": 7.606,
+      "n_joint_params": 0,
+      "n_params": 12,
+      "sets": {
+        "qualisys_2022-03-15-1418_right_static_postures.csv": {
+          "dropped_rows": [],
+          "flip_rows": [
+            [
+              7,
+              8,
+              9,
+              21,
+              22
+            ],
+            [
+              10,
+              14,
+              35,
+              36,
+              37,
+              38
+            ],
+            [
+              15,
+              16,
+              28
+            ]
+          ],
+          "gauge_free_torso_pos_rmse_rereg_mm": 4.702,
+          "n": 39,
+          "n_flipped": 14,
+          "ori_rmse_rereg_deg": 1.794,
+          "ori_rmse_waist_deg": 1.821,
+          "pos_rmse_rereg_mm": 4.702,
+          "pos_rmse_unflipped_mm": 3.866,
+          "pos_rmse_waist_mm": 10.419,
+          "role": "validation",
+          "strata": {
+            "flipped": {
+              "n": 14,
+              "rmse": 5.831
+            },
+            "new": {
+              "n": 23,
+              "rmse": 3.898
+            },
+            "out_of_range": {
+              "n": 14,
+              "rmse": 5.246
+            },
+            "repeated": {
+              "n": 2,
+              "rmse": 7.985
+            },
+            "unflipped": {
+              "n": 25,
+              "rmse": 3.93
+            }
+          }
+        },
+        "qualisys_2022-03-15-1439_right_static_postures.csv": {
+          "dropped_rows": [
+            0
+          ],
+          "flip_rows": [],
+          "gauge_free_torso_pos_rmse_rereg_mm": 37.578,
+          "n": 22,
+          "n_flipped": 0,
+          "ori_rmse_rereg_deg": 1.047,
+          "ori_rmse_waist_deg": 0.99,
+          "pos_rmse_rereg_mm": 37.578,
+          "pos_rmse_unflipped_mm": 37.578,
+          "pos_rmse_waist_mm": 42.088,
+          "role": "confirmation",
+          "strata": {
+            "flipped": {
+              "n": 0,
+              "rmse": null
+            },
+            "new": {
+              "n": 8,
+              "rmse": 40.32
+            },
+            "out_of_range": {
+              "n": 13,
+              "rmse": 36.777
+            },
+            "repeated": {
+              "n": 1,
+              "rmse": 21.849
+            },
+            "unflipped": {
+              "n": 22,
+              "rmse": 37.578
+            }
+          }
+        }
+      },
+      "train_ori_rmse_deg": 2.015,
+      "train_pos_rmse_mm": 7.655
+    }
+  },
+  "primary_metric": "pos_rmse_rereg_mm",
+  "protocol": "talos-mocap-2022-03-15 v2",
+  "selected": "full map",
+  "selection_scores": {
+    "full map": 4.577,
+    "full map_cv": 106.906,
+    "full_params": 54.796,
+    "joint_offset": 122.577,
+    "registration only": 8.036
+  }
+}
