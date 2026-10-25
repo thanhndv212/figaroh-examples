@@ -32,7 +32,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-pro-notes` | TIAGo Pro | Mocap calibration | notes | documentation | 0 | 0 B |  |
 | `tiago-pro-optimal-configs` | TIAGo Pro | Experiment design | generated | calibration postures | 1 | 9.6 KB |  |
 | `talos-left-arm-contact` | TALOS | Arm contact calibration | real | calibration | 1 | 14.2 KB | examples/talos/config/talos_unified_config.yaml |
-| `talos-mocap-2022-03-15` | TALOS | Motion-capture calibration | real | calibration | 4 | 88.0 KB | examples/talos/data/README.md; examples/talos/utils/mocap_extraction.py |
+| `talos-mocap-2022-03-15` | TALOS | Motion-capture calibration | real | calibration | 5 | 91.6 KB | examples/talos/data/README.md; examples/talos/utils/mocap_extraction.py |
 | `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 9 | 70.1 KB | examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
 | `talos-table-contact-synthetic` | TALOS | Table contact | simulated | synthetic train + validation | 3 | 27.5 KB | examples/talos_table_contact/generate_synthetic_data.py |
 | `staubli-tx40-logs` | Staubli TX40 | Dynamic identification | unspecified (unconfirmed) | identification; no separate validation set | 2 | 4.3 MB | examples/staubli_tx40/README.md |
@@ -411,11 +411,12 @@ Optimal configurations computed for the model.
 
 ### `talos-mocap-2022-03-15`
 
-Plateau-averaged static postures (joint angles and Qualisys marker poses of three bodies) from three 2022-03-15 sessions: left 56 (training), right 39 (validation), right 23 (confirmation). Roles and hashes are frozen in examples/talos/data/calibration/mocap/protocol.yaml.
+Plateau-averaged static postures (joint angles and Qualisys marker poses of three bodies) from three 2022-03-15 sessions: left 56 (training), right 39 (validation), right 23 (confirmation). Roles, hashes and the attachment and flip conventions are frozen in examples/talos/data/calibration/mocap/protocol.yaml (v2); the k-fold selection plan on the training run in protocol_1354_kfold.yaml.
 
 | File | Rows | Bytes | sha256 (first 16) |
 |---|---:|---:|---|
-| `examples/talos/data/calibration/mocap/protocol.yaml` |  | 5291 | `b74f3a717943de4d` |
+| `examples/talos/data/calibration/mocap/protocol.yaml` |  | 8022 | `514df4e28e99fb5f` |
+| `examples/talos/data/calibration/mocap/protocol_1354_kfold.yaml` |  | 897 | `dd29f0503d83e90b` |
 | `examples/talos/data/calibration/mocap/qualisys_2022-03-15-1354_left_static_postures.csv` | 56 | 40050 | `4bfa50c2219acf77` |
 | `examples/talos/data/calibration/mocap/qualisys_2022-03-15-1418_right_static_postures.csv` | 39 | 28079 | `8b1d0c5e3b4e5bef` |
 | `examples/talos/data/calibration/mocap/qualisys_2022-03-15-1439_right_static_postures.csv` | 23 | 16702 | `c6cc469bd21da32e` |
