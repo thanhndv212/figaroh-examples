@@ -296,6 +296,28 @@ def fit_model(label: str, data_file=None, rows=None) -> TalosMocapCalibration:
     return fit(level, frames_only, data_file, rows, estimation)
 
 
+def warm_started(label: str, frames: dict) -> TalosMocapCalibration:
+    """Post-hoc diagnostic, never used for selection: ``label`` fitted on the
+    whole training run from ``frames`` (the baseline's fitted ``B`` and ``T``)
+    instead of core's closed-form frame guess. On the real run the structural
+    fits converge to a wrong basin from that guess (docs/development/
+    talos-mocap.md, section 5)."""
+    level, frames_only, estimation = MODELS[label]
+    calib = TalosMocapCalibration(robot(), CONFIG, MOCAP / TRAINING)
+    cfg = calib.calib_config
+    cfg["estimation"] = dict(estimation)
+    cfg["calib_model"] = level
+    cfg["validation_data_file"] = None
+    with contextlib.redirect_stdout(io.StringIO()):
+        calib.initialize()
+        x0 = np.array([frames.get(n, 0.0) for n in cfg["param_name"]])
+        result, outliers = calib.solve_optimisation(var_init=x0)
+        calib._store_optimization_results(
+            result, calib._evaluate_solution(result, outliers), outliers
+        )
+    return calib
+
+
 def fitted_params(calib) -> dict:
     return dict(zip(calib.calib_config["param_name"], map(float, calib.LM_result.x)))
 
@@ -733,6 +755,16 @@ def main(argv=None) -> None:
                 f"{fl['axis']}" for fl in e["flips"]))
     print(f"\nSelected on the k-fold plan ({KFOLD_METRIC}): {best}")
     print("  " + "  ".join(f"{m} {s:.2f}" for m, s in scores.items()))
+    frames = fitted_params(results[BASELINE]["_calib"])
+    print("\nPost hoc, not used for selection: structural fits started from "
+          f"the {BASELINE} frames")
+    for label in ("joint_offset", "full_params"):
+        calib = warm_started(label, frames)
+        e = training_errors(calib)
+        v = heldout_errors(calib, MOCAP / SETS[1][1])
+        print(f"  {label}: training {e['pos_rmse_mm']:.2f} mm "
+              f"{e['ori_rmse_deg']:.2f} deg; validation re-registered "
+              f"{v[PRIMARY_METRIC]:.2f}")
 
 
 if __name__ == "__main__":
