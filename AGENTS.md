@@ -138,7 +138,8 @@ that pretend otherwise:
   the TX40 config needs `structural_selection: ordered` (core `add_base_name` bug,
   docs/development/tx40-calibration-synthetic-truth.md).
 
-- TALOS dynamics: no data.
+- TALOS dynamics: no data. `examples/talos/identification_truth.py` is a
+  synthetic-truth study (docs/development/talos-identification-synthetic-truth.md).
 
 - TX40 trajectory: the shared IPOPT design is near-singular on this config.
 
