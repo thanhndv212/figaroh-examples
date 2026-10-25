@@ -278,6 +278,133 @@ transfer to.
   when `TIAGO_RECORDINGS_ROOT` is set (`xyz_1640` is byte-identical to its
   source).
 
+## OptiTrack suspension oscillation runs (`suspension_optitrack/`)
+
+Twenty-two runs recorded with OptiTrack on 2023-07-26, 2023-07-28 and
+2023-09-12, for the base-suspension study
+([#112](https://github.com/thanhndv212/figaroh-examples/issues/112), for
+[#70](https://github.com/thanhndv212/figaroh-examples/issues/70)). In each
+run the arm swings to excite the base: one oscillation on 2023-07,
+sinusoids on 2023-09-12. Some runs carry a weight in the gripper. Roles,
+sources and file hashes are frozen in `suspension_optitrack/protocol.yaml`
+(`tiago-suspension-optitrack-2023` v1, a core `figaroh.data.protocol`
+Protocol). The directory sits beside `suspension/`, not inside it, so that
+dataset and its file list stay as they are.
+
+**There is no force plate in any run.** These runs support free-oscillation
+and base-motion fits only, not the plate-wrench fits of `suspension/`.
+
+| Run (`<date>-<hhmm>_<motion>_<load>`) | Role | Joint rows | Wrist force (N) | Lag (s) | Frozen % per body |
+|---|---|---|---|---|---|
+| `2023-07-26-1017_around_z_no_weight` | training | 5,729 | 12.8 | -0.047 | hand 1.8, shoulder 0.0 |
+| `2023-07-26-1058_around_y_no_weight` | training | 5,617 | 13.1 | -0.020 | hand 4.0, shoulder 0.0 |
+| `2023-07-26-1143_y_fold_no_weight` | training | 5,621 | 13.0 | -0.009 | hand 0.4, shoulder 0.0 |
+| `2023-07-28-1239_y_fold_no_weight` | diagnostic (rule 3) | 5,526 | 16.9 | -0.025 | hand 92.0, shoulder 1.0 |
+| `2023-07-28-1301_y_fold_no_weight` | diagnostic (rules 1, 3) | 5,838 | 17.6 | -0.043 | shoulder 0.0 |
+| `2023-07-28-1307_around_z_weight` | diagnostic (rule 2) | 5,286 | 17.6 | -0.047 | shoulder 17.3 |
+| `2023-07-28-1312_y_fold_weight` | training | 5,076 | 17.5 | -0.049 | shoulder 0.0 |
+| `2023-07-28-1314_around_y_weight` | training | 5,222 | 17.5 | -0.049 | shoulder 0.0 |
+| `2023-07-28-1324_around_x_weight` | training | 5,896 | 17.6 | -0.050 | shoulder 1.3 |
+| `2023-07-28-1328_around_x_weight` | training | 5,549 | 17.6 | -0.051 | shoulder 0.0 |
+| `2023-07-28-1333_x_fold_weight` | training | 5,350 | 17.6 | -0.054 | shoulder 0.0 |
+| `2023-09-12-1625_around_z_no_weight` | validation | 6,241 | 16.3 | -1.320 | base 0.0, schunk 28.3, shoulder 0.0 |
+| `2023-09-12-1626_y_fold_no_weight` | validation | 5,377 | 16.6 | -1.323 | base 0.0, schunk 80.1, shoulder 0.0 |
+| `2023-09-12-1628_x_fold_no_weight` | validation | 5,695 | 16.6 | -1.326 | base 0.0, schunk 34.8, shoulder 0.0 |
+| `2023-09-12-1629_around_x_no_weight` | validation | 4,770 | 16.5 | -1.329 | base 0.0, schunk 57.5, shoulder 6.8 |
+| `2023-09-12-1641_around_z_weight` | validation | 5,597 | 20.6 | -1.365 | base 0.0, shoulder 0.0 |
+| `2023-09-12-1643_y_fold_weight` | validation | 5,593 | 20.8 | -1.369 | base 0.0, shoulder 0.0 |
+| `2023-09-12-1644_around_z_weight` | confirmation | 5,742 | 20.8 | -1.372 | base 0.0, object 0.0, shoulder 0.0 |
+| `2023-09-12-1645_y_fold_weight` | confirmation | 5,600 | 20.8 | -1.376 | base 0.0, object 0.0, shoulder 0.0 |
+| `2023-09-12-1646_x_fold_weight` | validation | 5,205 | 20.8 | -1.380 | base 0.0, object 40.1, shoulder 0.0 |
+| `2023-09-12-1648_around_x_weight` | validation | 5,203 | 20.7 | -1.384 | base 0.0, object 50.9, shoulder 8.1 |
+| `2023-09-12-1649_around_y_weight` | validation | 5,200 | 20.6 | -1.387 | base 0.0, object 19.9, shoulder 0.0 |
+
+Motions: `around_x/y/z` swing the arm about one axis; `x_fold` and `y_fold`
+fold it. All bodies are prefixed `tiago_` in the files.
+
+- **Roles:** set by a rule written down before any fit; no model is fitted or
+  scored on these runs in this delivery. The rule:
+  1. diagnostic if torso_lift moves more than 50 mm (not the excitation
+     protocol);
+  2. diagnostic if `tiago_shoulder` is frozen in more than 10 % of its
+     samples;
+  3. diagnostic if a `no_weight` run reads the same day's weight-run wrist
+     force within 1 N, which contradicts its load label;
+  4. otherwise 2023-07 runs are training. On 2023-09-12 the first run of each
+     (motion, load) is validation and a later repeat is confirmation.
+
+  Each load case has training and held-out runs. `no_weight` has no
+  confirmation run (09-12 repeats only the loaded `around_z` and `y_fold`).
+  `tests/test_tiago_suspension_optitrack.py` re-derives the roles from the
+  shipped files.
+- **Layout:** each run directory has a `joints.csv` and one `<body>.csv` for
+  each tracked body.
+  - `joints.csv`: `t`, then `<joint>_position` and `<joint>_effort` for
+    `torso_lift` and `arm_1` to `arm_7`, then `wrist_ft_force_X/Y/Z` and
+    `wrist_ft_torque_X/Y/Z`. There is one row per PAL introspection message
+    (100 Hz), in the joint-inspection number format (#110). The recorded
+    joint velocity is the controller's estimate and is not shipped.
+  - `<body>.csv`: `t, x, y, z, qx, qy, qz, qw, live`, one row per NatNet
+    message (about 120 Hz), in bag order. Nothing is dropped: `live = 0`
+    marks a frozen sample, one whose 7 pose values repeat the previous sample
+    bit for bit. NatNet republishes the last pose with a new stamp when it
+    loses a body, so a frozen sample is not a measurement.
+  - Values are the recorded float64 `repr`, unchanged. NatNet poses are
+    float32 widened by ROS, hence their long text.
+- **Units and frames:** positions in m, unit quaternion with the scalar
+  last, in the OptiTrack world frame. Joint positions are in rad
+  (torso_lift in m). Effort is N m for arm joints and N for torso_lift. The
+  wrist sensor reads N and N m in its own frame and is uncalibrated.
+- **Clock:** one clock per run. `t` is the robot clock (the introspection
+  header stamp) in seconds from the first joint sample, rounded to 1 µs.
+  Body rows are the NatNet header stamp plus the run's `lag_s`
+  (`t_robot - t_mocap`). The lag is the difference of the median
+  receive-minus-header offsets of the live `tiago_shoulder` samples and of
+  the joint stream (`optitrack_extraction.measure_clock_lag`). It is about
+  -0.05 s on 2023-07. On 2023-09-12 it is -1.32 to -1.39 s, drifting about
+  3 ms a minute between runs; within a one-minute run the constant lag is
+  off by at most a few ms.
+- **Counts:** made at extraction (`audit`). No stream of any run has a
+  repeated or backward stamp. Frozen samples per body are counted in
+  `protocol.yaml` and the table above. The Schunk and object bodies were
+  often lost on 09-12, and the hand was lost in 92 % of 07-28 12:39.
+- **Bodies:** `tiago_shoulder` is on the torso, in every run, and is the lag
+  reference. `tiago_hand` was tracked on 2023-07-26 and 07-28 12:39 only;
+  `tiago_base` on 2023-09-12 only. `tiago_schunk` appears in the four
+  unloaded 09-12 runs, and `tiago_object` (on the weight) in five of the
+  seven loaded 09-12 runs, not 16:41 or 16:43.
+- **Load case and its evidence:** `load` comes from the run name.
+  `load_evidence.wrist_force_n` is the median norm of the wrist force. Its
+  bias drifts between days (13.0 N unloaded on 07-26, 16.5 N on 09-12), so
+  only runs of the same day compare. On 09-12 the weight adds 4.2 N (about
+  0.43 kg); its mass was not recorded. **On 07-28 all eight runs read 16.9 to
+  17.6 N**, so the sensor sees one load all day. The recorder confirms
+  (2026-10-25) that the weight was on the hand on 2023-07-28 and 2023-09-12,
+  with no force-plate measurement on either day. The five `weight` runs of
+  07-28 are therefore confirmed. The two runs named `no_weight` that day most
+  likely carried the weight too: their names are kept as recorded, and they
+  stay diagnostic (rule 3).
+- **Robot:** tiago-48, from maintainer information (2026-10-21,
+  `docs/development/tiago-mocap-hardware.md` section 15a). The Schunk hand
+  channels agree with that. The arm_7 encoder gap (-11.6 to -20.8 mrad, against
+  +2 to +7 mrad for tiago-48 at other dates) is not explained; see
+  `robot_evidence` in the protocol.
+- **Provenance:** original recordings (ROS bags, not distributed) in the
+  folders `2023-07_optitrack` and `2023-09-12_optitrack`, one bag per run,
+  named by file name and sha256 in `protocol.yaml`.
+- **Attribution:** recorded at LAAS-CNRS by
+  [@thanhndv212](https://github.com/thanhndv212). Licence: Apache 2.0, as
+  the repository ([LICENSE](../../../LICENSE)).
+- **Known limits:** no force plate. The weight mass is unknown. The 07-28
+  load labels are in doubt. The clock is aligned by a constant lag per run.
+  The base body was only tracked on 09-12, so on 2023-07 base motion is
+  seen through the shoulder body only.
+- **Re-creating the files:**
+  `python -m examples.tiago.utils.suspension_optitrack_extraction <bag>
+  <out_dir> --expected-sha256 <sha256>`.
+  `tests/test_tiago_suspension_optitrack.py` re-creates all 68 files byte
+  for byte when `TIAGO_RECORDINGS_ROOT` is set.
+
 ## Dynamic identification data (`identification/dynamic/`)
 
 Audited in [#20](https://github.com/thanhndv212/figaroh-examples/issues/20);

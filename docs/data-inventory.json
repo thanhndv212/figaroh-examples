@@ -192,6 +192,19 @@
       "provenance": "examples/tiago/data/README.md"
     },
     {
+      "id": "tiago-suspension-optitrack",
+      "robot": "TIAGo",
+      "study": "Suspension base",
+      "kind": "real",
+      "role": "training (2023-07 runs), validation (2023-09-12 first runs), confirmation (2023-09-12 repeats), diagnostic (contradicted load label, torso motion, lost shoulder body) (#112)",
+      "description": "22 OptiTrack arm-oscillation runs of 2023-07-26/28 and 2023-09-12, with and without a gripper weight: joint position, effort and wrist force-torque (100 Hz) and every NatNet body sample (frozen ones marked) on the robot clock, and the protocol that freezes roles and hashes. No force plate. The sources are not distributed.",
+      "paths": [
+        "examples/tiago/data/suspension_optitrack/"
+      ],
+      "provenance": "examples/tiago/data/README.md",
+      "confirm": "weight mass unrecorded; the two 2023-07-28 runs named no_weight most likely carried the weight (README, OptiTrack suspension section)"
+    },
+    {
       "id": "tiago-pro-mocap-samples",
       "robot": "TIAGo Pro",
       "study": "Mocap calibration",
@@ -1113,6 +1126,350 @@
       "sha256": "81323675bb0d9d2eaaf3ba424799b8f806c5697675e395ffa04d3f1da5e43206",
       "bytes": 4441821,
       "rows": 5872
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1017_around_z_no_weight/joints.csv": {
+      "sha256": "899f2632997c6abe5faed16afe5140164cc105d3df99012c6017a4b7454a5247",
+      "bytes": 1457901,
+      "rows": 5729
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1017_around_z_no_weight/tiago_hand.csv": {
+      "sha256": "cd7e8c8376f80ef43938a83b5f2aff19772cac57f4576eaab24028ab1f8687ef",
+      "bytes": 1039089,
+      "rows": 6865
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1017_around_z_no_weight/tiago_shoulder.csv": {
+      "sha256": "fa657ba256180fb320921dc8d0a5481ab5e3bcff8a29b3362832933eb33f8544",
+      "bytes": 1057970,
+      "rows": 6865
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1058_around_y_no_weight/joints.csv": {
+      "sha256": "903ccc5701e00107e098015689e7ae1863fa8b3e630c44df43f839c7a355acfe",
+      "bytes": 1420140,
+      "rows": 5617
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1058_around_y_no_weight/tiago_hand.csv": {
+      "sha256": "eab699d8e18eb091d0ffe74516e5532b5c6873d8b53c8d47a3ccab0e4e54f658",
+      "bytes": 1006886,
+      "rows": 6739
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1058_around_y_no_weight/tiago_shoulder.csv": {
+      "sha256": "dfe89322345ab5acf9156a7cd9e29e8289f162e398bcc404dcec2b645993675c",
+      "bytes": 1046531,
+      "rows": 6739
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1143_y_fold_no_weight/joints.csv": {
+      "sha256": "87dd8ac792d06e1509f21213e5447876f98261cc5c90e64cc880fd4112770daf",
+      "bytes": 1437584,
+      "rows": 5621
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1143_y_fold_no_weight/tiago_hand.csv": {
+      "sha256": "8b20c64fca0272ab575ae0b98ac81df905c9ebc25a7989b50430acb63418b803",
+      "bytes": 1013828,
+      "rows": 6745
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-26-1143_y_fold_no_weight/tiago_shoulder.csv": {
+      "sha256": "229b6b79030109e88a222c5adca6dd48df26bb4f041c1f72da388e06bb6f094f",
+      "bytes": 1047845,
+      "rows": 6746
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1239_y_fold_no_weight/joints.csv": {
+      "sha256": "a53a50bd8f78b7445a53e1bf51478829c2e799b0c11a5eb38be0542321a78194",
+      "bytes": 1404561,
+      "rows": 5526
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1239_y_fold_no_weight/tiago_hand.csv": {
+      "sha256": "f780656ef25e591b16baad29a5fe708d38bd97404ce84366d6a77624ef65fb4b",
+      "bytes": 976615,
+      "rows": 6629
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1239_y_fold_no_weight/tiago_shoulder.csv": {
+      "sha256": "82b489def7d88aa4d7ba5e37c7fadc1ced158a8d372c87782d6690c5e042c8fd",
+      "bytes": 1005207,
+      "rows": 6629
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1301_y_fold_no_weight/joints.csv": {
+      "sha256": "7f921042434d738632352f69bc294bd71765607e9babcad545bcb61d62f6c177",
+      "bytes": 1451743,
+      "rows": 5838
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1301_y_fold_no_weight/tiago_shoulder.csv": {
+      "sha256": "c34d8018c1802e790b6b40784887ebffb608b0f63f1675896a3ceafb8052c8ff",
+      "bytes": 1044222,
+      "rows": 6841
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1307_around_z_weight/joints.csv": {
+      "sha256": "9d3ecdd9f6f286c66c558773ededfe2388f8570b36b3c8eff5b18b2ff26d3675",
+      "bytes": 1345756,
+      "rows": 5286
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1307_around_z_weight/tiago_shoulder.csv": {
+      "sha256": "cd147d876f974bf43ff75c7468c2db1652222e77e8f222f33cfd0ce3753418dc",
+      "bytes": 981058,
+      "rows": 6325
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1312_y_fold_weight/joints.csv": {
+      "sha256": "31e94c283f1cbc8cd7a9952c8406dcaca30b7e0ecd7e2502670030b22bec4f14",
+      "bytes": 1285594,
+      "rows": 5076
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1312_y_fold_weight/tiago_shoulder.csv": {
+      "sha256": "51d51a4b8d928410b8206c50ae108af34f8a08e90d5fbf0b07c6c6f14e5fb280",
+      "bytes": 940424,
+      "rows": 6080
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1314_around_y_weight/joints.csv": {
+      "sha256": "44bbcbf871d3081c81a53a1611be8dbfa8dfceeb83f6173ffca98727f63cec49",
+      "bytes": 1331130,
+      "rows": 5222
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1314_around_y_weight/tiago_shoulder.csv": {
+      "sha256": "7eb47ea15459699aba2b36e256d329faaf2b0581e12dd3facf428615b9c319af",
+      "bytes": 970085,
+      "rows": 6267
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1324_around_x_weight/joints.csv": {
+      "sha256": "8e558960357aeadb48e9c165260767b604255d73422d569dd0818917234248ba",
+      "bytes": 1507946,
+      "rows": 5896
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1324_around_x_weight/tiago_shoulder.csv": {
+      "sha256": "b46931ac6436380bf320b2731ac9990e0bbd941acc13494c679dee4b75569a8a",
+      "bytes": 1090777,
+      "rows": 7073
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1328_around_x_weight/joints.csv": {
+      "sha256": "ba9b0bcfe1bd37053a21cd124bf1f08cd58a19f74c22613f29792b4a0ab31495",
+      "bytes": 1411003,
+      "rows": 5549
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1328_around_x_weight/tiago_shoulder.csv": {
+      "sha256": "69d84f2e554cc9fe0edf9ef7940fa77bba0a66569a5a0686754a91ae3f4d1f03",
+      "bytes": 1024610,
+      "rows": 6657
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1333_x_fold_weight/joints.csv": {
+      "sha256": "79f57470a3ed7cd40706d025b8b193a9d6db0f05bd53a3247fd955c0dd4bed6e",
+      "bytes": 1359238,
+      "rows": 5350
+    },
+    "examples/tiago/data/suspension_optitrack/2023-07-28-1333_x_fold_weight/tiago_shoulder.csv": {
+      "sha256": "50d30b0ccbbb69f34f6aac0e9c55bc1e8c0ad00016b6dd70eba27e7265f0e9e1",
+      "bytes": 983658,
+      "rows": 6419
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1625_around_z_no_weight/joints.csv": {
+      "sha256": "3103e651784a588c9c8ec836981fb0638cd3d88ec30e744f135f30431b8e3e9d",
+      "bytes": 1616527,
+      "rows": 6241
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1625_around_z_no_weight/tiago_base.csv": {
+      "sha256": "d1d30fb99ac58e98fff430057eae4d40f48243540b9fec29f3af713365a5d290",
+      "bytes": 1188493,
+      "rows": 7488
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1625_around_z_no_weight/tiago_schunk.csv": {
+      "sha256": "1ae9ff632164ab7fa591858b4691b8f38501efb61f7a6e9daf579e96b39343e0",
+      "bytes": 1104544,
+      "rows": 7488
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1625_around_z_no_weight/tiago_shoulder.csv": {
+      "sha256": "fa6d86a8af9451000408bd6595d47b1ade713086657252461c768e78398f53fd",
+      "bytes": 1166287,
+      "rows": 7488
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1626_y_fold_no_weight/joints.csv": {
+      "sha256": "342e772c45540f74f66d3cb2fa8ffcd304ef838693e42f4c73d0a1aeaf3a035a",
+      "bytes": 1365839,
+      "rows": 5377
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1626_y_fold_no_weight/tiago_base.csv": {
+      "sha256": "ecb6bdeeca35b5291392932e720be20872411f04afb359a8305aa0f7903da989",
+      "bytes": 1020874,
+      "rows": 6452
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1626_y_fold_no_weight/tiago_schunk.csv": {
+      "sha256": "47553340e5a777c8807d85d7d52a2da7efc26b2da68ab27c087fdfc0e22aa530",
+      "bytes": 929752,
+      "rows": 6451
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1626_y_fold_no_weight/tiago_shoulder.csv": {
+      "sha256": "dfe8eeee563f639482805fff994eb6184b4e0dcb2b43efa733bcfda6a02d17a4",
+      "bytes": 1004463,
+      "rows": 6451
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1628_x_fold_no_weight/joints.csv": {
+      "sha256": "5de6b56bf9bcd8839e6f6aed80b3e310837596a40003ce3cdf0a11c216db85fb",
+      "bytes": 1444470,
+      "rows": 5695
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1628_x_fold_no_weight/tiago_base.csv": {
+      "sha256": "07de3ad0e621913835b0abac2d5f3ee4416ead96f3529cca1b4d647981371f6d",
+      "bytes": 1083889,
+      "rows": 6835
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1628_x_fold_no_weight/tiago_schunk.csv": {
+      "sha256": "be2a4be23349482ee420f82490d327b6312bd4ce81d868b9784dee74a6f9578f",
+      "bytes": 987745,
+      "rows": 6835
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1628_x_fold_no_weight/tiago_shoulder.csv": {
+      "sha256": "6cacd9337a0e8077bab8ca9c864c94d26d452cff6ca58f02b55232d90106e2e8",
+      "bytes": 1069920,
+      "rows": 6836
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1629_around_x_no_weight/joints.csv": {
+      "sha256": "97b50ff0b865cd2500881f205992d6acdf322969976dc5c2b8f26a641c54ef42",
+      "bytes": 1220021,
+      "rows": 4770
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1629_around_x_no_weight/tiago_base.csv": {
+      "sha256": "1cc6431bdef6bd77e301cdc846358409c25bf082a782fc9a6096d3eddef559ed",
+      "bytes": 908243,
+      "rows": 5725
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1629_around_x_no_weight/tiago_schunk.csv": {
+      "sha256": "b1817cf7a346b3acb7edb3d6604d3b72789d462c7b9aecc7bae8dc9842d0cfeb",
+      "bytes": 831526,
+      "rows": 5725
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1629_around_x_no_weight/tiago_shoulder.csv": {
+      "sha256": "324fca5b53547ef70c9aaa1d36d9573da51ecb49ffd46e074d971230e19de35c",
+      "bytes": 897970,
+      "rows": 5725
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1641_around_z_weight/joints.csv": {
+      "sha256": "42610348e571134848fcd79d9fc0ae7b914d3f5a03970bd451416b847b25a769",
+      "bytes": 1445938,
+      "rows": 5597
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1641_around_z_weight/tiago_base.csv": {
+      "sha256": "d6b0c83acd8c740444abcdddb70a4380dc269925d3138d182d7a223d390e69d9",
+      "bytes": 1060431,
+      "rows": 6716
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1641_around_z_weight/tiago_shoulder.csv": {
+      "sha256": "4ba29a673f1f0a200e3373373268191742270e68e45fb339e895d17b2b297cf8",
+      "bytes": 1043375,
+      "rows": 6716
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1643_y_fold_weight/joints.csv": {
+      "sha256": "ee7b2ff01fff43f4118826e488a36f451f72aaf5b8ae2aa7d126da9bdd9da479",
+      "bytes": 1420034,
+      "rows": 5593
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1643_y_fold_weight/tiago_base.csv": {
+      "sha256": "61ce052d86dbae77932106b208f58c8a2043aeb031b0e232dc4ae0d87b4c249f",
+      "bytes": 1058967,
+      "rows": 6715
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1643_y_fold_weight/tiago_shoulder.csv": {
+      "sha256": "4b003bdad2df38aa16dad3899505d1d33586c04496a4110d1fbd6b9b4f0d4567",
+      "bytes": 1048194,
+      "rows": 6716
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1644_around_z_weight/joints.csv": {
+      "sha256": "2b45e5a1e474a3fcb4cc354cb0a7706cb3fd8a29b7de2b488c7485037d9e495f",
+      "bytes": 1468488,
+      "rows": 5742
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1644_around_z_weight/tiago_base.csv": {
+      "sha256": "bf99d15c167f806be0c31a3cb77ac5c2fdbb0b0c5dda9cae4dce468f78ba1218",
+      "bytes": 1084262,
+      "rows": 6890
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1644_around_z_weight/tiago_object.csv": {
+      "sha256": "d75ed2dc2565cc16215222bacd92882b98f555433cdb7f4313d8cb6bf1ada030",
+      "bytes": 1027943,
+      "rows": 6890
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1644_around_z_weight/tiago_shoulder.csv": {
+      "sha256": "cfe92becc03000fdc424f9f5950114fd359621a650b4dd4f72b799958d083f73",
+      "bytes": 1075150,
+      "rows": 6890
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1645_y_fold_weight/joints.csv": {
+      "sha256": "913ffe89ab251087975b293c21ec43cb8c242da6ad9e8a1c998570c4202b6557",
+      "bytes": 1426433,
+      "rows": 5600
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1645_y_fold_weight/tiago_base.csv": {
+      "sha256": "1647ada161639818a0df437a74d8570d56680ba2b4b542be92055b1b7445b8ab",
+      "bytes": 1055499,
+      "rows": 6722
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1645_y_fold_weight/tiago_object.csv": {
+      "sha256": "d54a160e8e4e145a9883ebca980b7ee626f91814aac791e03687ca72bc1ec412",
+      "bytes": 1002452,
+      "rows": 6722
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1645_y_fold_weight/tiago_shoulder.csv": {
+      "sha256": "491c6ac69c0a81a9dd17172529bdcf80a3b4a9e5e6d913a1203749808a2039b0",
+      "bytes": 1044554,
+      "rows": 6722
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1646_x_fold_weight/joints.csv": {
+      "sha256": "34896388ef1c9280e674f28217a140e0be76480ddf3316ccba79fc84983d7fbf",
+      "bytes": 1321697,
+      "rows": 5205
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1646_x_fold_weight/tiago_base.csv": {
+      "sha256": "228ae24b37bee10121c0d20ea01c1a3336689408459e9f60fce7f9fba43b994d",
+      "bytes": 985011,
+      "rows": 6247
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1646_x_fold_weight/tiago_object.csv": {
+      "sha256": "347825e69e2b207fade3bb2567898319d67b53eae4ab4541c66c33caaa1fd483",
+      "bytes": 930186,
+      "rows": 6246
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1646_x_fold_weight/tiago_shoulder.csv": {
+      "sha256": "2f705cd568fbed6de8811f1e9329ed3b312e8f4dd9679d47fad69e86929dff75",
+      "bytes": 977401,
+      "rows": 6246
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1648_around_x_weight/joints.csv": {
+      "sha256": "412b962a8bd9b3651a7a2b5eabef592635b1e60f1261f87563c2974f8a47b3dd",
+      "bytes": 1334914,
+      "rows": 5203
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1648_around_x_weight/tiago_base.csv": {
+      "sha256": "5a8bae9897da00bd042b555d02e1736c103ec8f6929efce3c31736141154a935",
+      "bytes": 986549,
+      "rows": 6245
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1648_around_x_weight/tiago_object.csv": {
+      "sha256": "ee170935b243a4fb7134efd5f919e27249bcd4369cda36c04fcd5586483dcf3c",
+      "bytes": 930710,
+      "rows": 6244
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1648_around_x_weight/tiago_shoulder.csv": {
+      "sha256": "86248828dc3972e8824dc8fad581af5368e89f5d846ad42e3e7f3a8f6dafbe55",
+      "bytes": 979086,
+      "rows": 6244
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/joints.csv": {
+      "sha256": "495d06ba99dd11258385ed790ca838860ebae38af5042e4c3fc42919c54a42d1",
+      "bytes": 1342590,
+      "rows": 5200
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_base.csv": {
+      "sha256": "630b088a30b8b8eed5b3dc1010547794ad99e2118fb6c9d6fb24acc87e7872cc",
+      "bytes": 981871,
+      "rows": 6242
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_object.csv": {
+      "sha256": "0745a5d6b5f4cdf1f967d27f4bb6b69af8b8169b2e86e04457d216cc706b78b2",
+      "bytes": 931476,
+      "rows": 6242
+    },
+    "examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_shoulder.csv": {
+      "sha256": "4e59c4a2b40ef4504384c46fd8efd7b6896da87c27d20ceb187faad40e415c26",
+      "bytes": 972587,
+      "rows": 6243
+    },
+    "examples/tiago/data/suspension_optitrack/protocol.yaml": {
+      "sha256": "2ace5805478083e795fa6abf1e1f36de8e436ca6f8c03c0a94bf45063e3baf6b",
+      "bytes": 24344
     },
     "examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_joints.csv": {
       "sha256": "ede5e54fca93a6fc93d0f796984dd825592b7a5f98c464b9b7abe04cc009d2c5",
