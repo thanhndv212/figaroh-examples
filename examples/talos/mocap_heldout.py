@@ -60,7 +60,7 @@ from figaroh.calibration.calibration_tools import (  # noqa: E402
     calc_updated_fkm,
     drop_calibration_parameters,
 )
-from figaroh.calibration.parameter import BASE_TPL, EE_TPL  # noqa: E402
+from figaroh.calibration.parameter import BASE_TPL  # noqa: E402
 from figaroh.data.observations import PoseObservations  # noqa: E402
 from figaroh.data.source import DataSource  # noqa: E402
 from figaroh.tools.robot import load_robot  # noqa: E402
@@ -644,10 +644,68 @@ def _short(name: str) -> str:
     return name.removeprefix("qualisys_2022-03-15-").removesuffix("_static_postures.csv")
 
 
-def main() -> None:
+def _r(v, nd=3):
+    return None if v is None or np.isnan(v) else round(float(v), nd)
+
+
+def snapshot(kfold: dict, results: dict, selection=None) -> dict:
+    """The golden view (tests/golden/talos_mocap.json): rounded numbers of
+    the k-fold plan, the selection (``select_model(kfold)`` unless given)
+    and every model's held-out errors."""
+    best, scores = selection or select_model(kfold)
+    models = {}
+    for label, res in results.items():
+        sets = {}
+        for role, f in SETS[1:]:
+            e, g = res["sets"][f], res["sets_gauge_free"][f]
+            sets[f] = {
+                "role": role,
+                "n": e["n"],
+                "n_flipped": e["n_flipped"],
+                "dropped_rows": list(e["dropped_rows"]),
+                "flip_rows": [[int(r) for r in fl["rows"]] for fl in e["flips"]],
+                **{k: _r(e[k]) for k in (
+                    PRIMARY_METRIC, "ori_rmse_rereg_deg", SECONDARY_METRIC,
+                    "ori_rmse_waist_deg", "pos_rmse_unflipped_mm")},
+                "gauge_free_torso_" + PRIMARY_METRIC: _r(g[PRIMARY_METRIC]),
+                "strata": {k: {"n": n, "rmse": _r(v)} for k, (n, v)
+                           in e["strata"].items()},
+            }
+        models[label] = {
+            "n_params": res["n_params"],
+            "n_joint_params": res["n_joint_params"],
+            "train_pos_rmse_mm": _r(res["train"]["pos_rmse_mm"]),
+            "train_ori_rmse_deg": _r(res["train"]["ori_rmse_deg"]),
+            "kfold_" + KFOLD_METRIC: _r(kfold[label][KFOLD_METRIC]),
+            "kfold_train_mean_mm": _r(np.mean(kfold[label]["fold_train_rmse_mm"])),
+            "sets": sets,
+        }
+    return {
+        "protocol": PLAN.protocol,
+        "primary_metric": PRIMARY_METRIC,
+        "kfold_metric": KFOLD_METRIC,
+        "selected": best,
+        "selection_scores": {m: _r(v) for m, v in scores.items()},
+        "models": models,
+    }
+
+
+def main(argv=None) -> None:
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--json", metavar="PATH", type=Path,
+                        help="also write the golden snapshot to PATH")
+    parser.add_argument("--no-plot", action="store_true",
+                        help="accepted for symmetry; never plots")
+    args = parser.parse_args(argv)
     kfold = run_kfold()
     best, scores = select_model(kfold)
     results = run()
+    if args.json:
+        args.json.write_text(
+            json.dumps(snapshot(kfold, results), indent=2, sort_keys=True) + "\n")
     print(f"Protocol {PLAN.protocol}: {PLAN.label}")
     print(f"K-fold: {kfold['_label']}")
     print("Position RMSE (mm); orientation RMSE (deg)")
