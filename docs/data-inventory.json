@@ -309,10 +309,23 @@
       "role": "identification; no separate validation set",
       "description": "Motor current and joint position, 45,000 samples each.",
       "paths": [
-        "examples/staubli_tx40/data/"
+        "examples/staubli_tx40/data/curr_data.csv",
+        "examples/staubli_tx40/data/pos_read_data.csv"
       ],
       "provenance": "examples/staubli_tx40/README.md",
       "confirm": "the README does not say whether the logs were recorded or simulated, or when"
+    },
+    {
+      "id": "staubli-tx40-calibration-truth-postures",
+      "robot": "Staubli TX40",
+      "study": "Geometric calibration",
+      "kind": "generated",
+      "role": "calibration postures of the synthetic-truth study",
+      "description": "The 66 D-optimal postures (1000 seeded candidates, seed 0) that calibration_truth.py simulates measurements at, with their selection settings. Computed for the model, not measurements; the TX40 has no calibration recordings.",
+      "paths": [
+        "examples/staubli_tx40/data/truth/"
+      ],
+      "provenance": "docs/development/tx40-calibration-synthetic-truth.md"
     },
     {
       "id": "so101-simulated",
@@ -461,6 +474,15 @@
       "sha256": "5cc1cecc1024ef0e331d0caba06f689456ab789ec3f1e904599c0a8be5c27bc8",
       "bytes": 2101824,
       "rows": 45000
+    },
+    "examples/staubli_tx40/data/truth/calibration_doptimal_postures.csv": {
+      "sha256": "57c9978df88a38474867984e289a849c40e36f73618d64fb67f8b10c9bed8bfa",
+      "bytes": 7800,
+      "rows": 66
+    },
+    "examples/staubli_tx40/data/truth/calibration_doptimal_postures.json": {
+      "sha256": "c0841fe5cf64fa06f7e64f7023b09fa670045a330cf394b1da5c9316165f225a",
+      "bytes": 213
     },
     "examples/talos/data/calibration/mocap/protocol.yaml": {
       "sha256": "b74f3a717943de4da038629f9d18eb877360ddecf719582270a9287f23c6f005",

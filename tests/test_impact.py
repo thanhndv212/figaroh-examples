@@ -33,7 +33,13 @@ def test_ur10_only_diff_selects_ur10():
 def test_calibration_harness_selects_its_users():
     sel = pick("examples/calibration_harness/protocol.py")
     assert not sel.full
-    assert set(sel.robots) == {"tiago", "tiago_pro", "talos_table_contact", "ur10"}
+    assert set(sel.robots) == {
+        "tiago",
+        "tiago_pro",
+        "talos_table_contact",
+        "ur10",
+        "staubli_tx40",
+    }
     assert "tests/test_calibration_harness_simulation.py" in sel.test_files
 
 
