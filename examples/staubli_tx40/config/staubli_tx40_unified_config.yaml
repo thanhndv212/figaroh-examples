@@ -137,9 +137,19 @@ tasks:
   optimal_trajectory:
     enabled: true
 
+    problem:
+      soft_lim: 0.05
+      # IPOPT iterations per segment; the condition-number objective is
+      # non-smooth, so a feasible final iterate is kept at this limit.
+      max_iterations: 100
+      # An infeasible segment is solved again from a new random start.
+      segment_attempts: 2
+
     trajectory:
       waypoints: 5
-      frequency: 200  # Higher frequency for precise robot
+      # Sampling rate of the regressor built at every objective evaluation;
+      # 20 Hz keeps the run within the validate.py budget.
+      frequency: 20
       segment_duration: 1.5  # Shorter segments
 
     constraints:

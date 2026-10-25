@@ -141,7 +141,9 @@ that pretend otherwise:
 - TALOS dynamics: no data. `examples/talos/identification_truth.py` is a
   synthetic-truth study (docs/development/talos-identification-synthetic-truth.md).
 
-- TX40 trajectory: the shared IPOPT design is near-singular on this config.
+- TX40 trajectory: `optimal_trajectory.py` is a simulated design (not run on the
+  robot). Core's absolute base-index tolerance made it near-singular; worked around in
+  `TX40OptimalTrajectory` (figaroh-plus#218, docs/development/tx40-optimal-trajectory.md).
 
 - TX40 export: no physically consistent standard parameters.
 

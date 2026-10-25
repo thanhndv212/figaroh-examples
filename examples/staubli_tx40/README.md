@@ -89,18 +89,28 @@ selection bug the study found (fixed for this robot by
 `structural_selection: ordered` in the config):
 [docs/development/tx40-calibration-synthetic-truth.md](../../docs/development/tx40-calibration-synthetic-truth.md).
 
+## Excitation trajectory (`optimal_trajectory.py`)
+
+```bash
+python optimal_trajectory.py        # 2 segments, seed 0, about 13 min
+```
+
+Designs a condition-number-optimal excitation for the identification model,
+coupled-wrist columns included, with core's IPOPT generator. Seed 0 gives a
+base-regressor condition number of **114** over 61 base parameters, against 967
+for the recorded data. **Simulated design only**: not run on a TX40, and the
+URDF has no floor or cell, so check it against the installation first.
+`TX40OptimalTrajectory` picks base columns with a relative QR tolerance;
+core's absolute one keeps a collinear pair and pins the condition number
+near 1e13. Details in
+[docs/development/tx40-optimal-trajectory.md](../../docs/development/tx40-optimal-trajectory.md).
+
 ## Not included
 
 - **`calibration.py`** on real data: there are no TX40 calibration
   measurements in this repository. `TX40Calibration` reads them in the
   layout `calibration_truth.py` writes (`x1 … phiz1`, `joint_1 … joint_6`)
   once they exist.
-- **`optimal_trajectory.py`**: tried with the shared IPOPT generator and this
-  config, it does not give a usable excitation: each 5-waypoint segment runs
-  to the 200-iteration limit (about 9 min) with a base-regressor condition
-  number near 2e12 over 59 base parameters, against 967 for the recorded
-  data (58 base parameters). That needs a look at the trajectory
-  parametrisation first.
 - **`update_model.py`**: the identification gives base parameters, and a URDF
   needs physically consistent standard parameters; writing one would put
   unidentified values in a model as if they were measured.
