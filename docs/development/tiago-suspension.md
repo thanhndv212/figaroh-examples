@@ -670,8 +670,8 @@ bound, F2) and the calibrated SE `sqrt(SE^2 + bias^2)` of section 7.1.
   sessions of the plan (#112) have no force-plate data; this study uses only
   the Vicon day. They now ship in `examples/tiago/data/suspension_optitrack/`
   (joints, wrist force-torque and body poses on one clock) for a
-  free-oscillation or base-motion study; their 2023-07-28 load labels are
-  contradicted by the wrist force (data README).
+  free-oscillation or base-motion study; the two 2023-07-28 runs named
+  no_weight most likely carried the weight (data README).
 - **O6 clock** (resolved by the revision). The data README reported 0.5 to
   0.8 % duplicated frames. The near-duplicate rule (section 3) finds none in
   the nine runs, so these duplicates are not in the shipped files; the README

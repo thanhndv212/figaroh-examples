@@ -378,10 +378,12 @@ fold it. All bodies are prefixed `tiago_` in the files.
   bias drifts between days (13.0 N unloaded on 07-26, 16.5 N on 09-12), so
   only runs of the same day compare. On 09-12 the weight adds 4.2 N (about
   0.43 kg); its mass was not recorded. **On 07-28 all eight runs read 16.9 to
-  17.6 N**, so the sensor sees one load all day, and it cannot say which
-  labels are wrong. The two `no_weight` runs of that day are diagnostic
-  (rule 3). The five `weight` runs keep their name: they are weight by name,
-  not confirmed.
+  17.6 N**, so the sensor sees one load all day. The recorder confirms
+  (2026-10-25) that the weight was on the hand on 2023-07-28 and 2023-09-12,
+  with no force-plate measurement on either day. The five `weight` runs of
+  07-28 are therefore confirmed. The two runs named `no_weight` that day most
+  likely carried the weight too: their names are kept as recorded, and they
+  stay diagnostic (rule 3).
 - **Robot:** tiago-48, from maintainer information (2026-10-21,
   `docs/development/tiago-mocap-hardware.md` section 15a). The Schunk hand
   channels agree with that. The arm_7 encoder gap (-11.6 to -20.8 mrad, against

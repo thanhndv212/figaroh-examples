@@ -202,7 +202,7 @@
         "examples/tiago/data/suspension_optitrack/"
       ],
       "provenance": "examples/tiago/data/README.md",
-      "confirm": "the 2023-07-28 load labels are contradicted by the wrist force; weight mass unrecorded (README, OptiTrack suspension section)"
+      "confirm": "weight mass unrecorded; the two 2023-07-28 runs named no_weight most likely carried the weight (README, OptiTrack suspension section)"
     },
     {
       "id": "tiago-pro-mocap-samples",
@@ -1468,8 +1468,8 @@
       "rows": 6243
     },
     "examples/tiago/data/suspension_optitrack/protocol.yaml": {
-      "sha256": "bdbc1d1ad493bbc67c9a0bb339bd8d74c2bdb8245d21e8304fcc893a389cc831",
-      "bytes": 24241
+      "sha256": "2ace5805478083e795fa6abf1e1f36de8e436ca6f8c03c0a94bf45063e3baf6b",
+      "bytes": 24344
     },
     "examples/tiago/data/validation/square_motion/2021-12-16-15-04-54_zero_joints.csv": {
       "sha256": "ede5e54fca93a6fc93d0f796984dd825592b7a5f98c464b9b7abe04cc009d2c5",

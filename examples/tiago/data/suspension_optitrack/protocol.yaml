@@ -30,8 +30,10 @@
 #   4. otherwise 2023-07 runs are training; on 2023-09-12 the first run of each
 #      (motion, load) is validation and a later repeat is confirmation.
 # On 2023-07-28 all eight runs read 16.9 to 17.6 N, so the sensor sees one load
-# that day; it cannot tell which label is wrong. The weight runs of that day keep
-# their name (rule 3 tests no_weight labels only): weight by name, not confirmed.
+# that day. The recorder confirms (2026-10-25) the weight was on the hand on
+# 2023-07-28 and 2023-09-12: the weight runs of 07-28 are confirmed, and the two
+# runs named no_weight that day most likely carried it too (names kept as
+# recorded; diagnostic by rule 3).
 # Every load case has training and held-out runs; no_weight has no confirmation.
 name: tiago-suspension-optitrack-2023
 version: 1

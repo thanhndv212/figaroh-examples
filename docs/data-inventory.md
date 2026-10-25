@@ -50,7 +50,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 - `ur10-calibration-simulation`: no README entry or saved generator says how this file was produced
 - `tiago-base-parameter-list`: not used by identification.py and not audited
 - `tiago-calibration-nov-30-64`: not used by identification.py and not audited
-- `tiago-suspension-optitrack`: the 2023-07-28 load labels are contradicted by the wrist force; weight mass unrecorded (README, OptiTrack suspension section)
+- `tiago-suspension-optitrack`: weight mass unrecorded; the two 2023-07-28 runs named no_weight most likely carried the weight (README, OptiTrack suspension section)
 - `staubli-tx40-logs`: the README does not say whether the logs were recorded or simulated, or when
 
 ### `ur10-identification-truth`
@@ -352,7 +352,7 @@ Eleven CREPS Vicon and force-plate logs of 2023-09-20 in one layout (no header, 
 | `examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_base.csv` | 6242 | 981871 | `630b088a30b8b8ee` |
 | `examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_object.csv` | 6242 | 931476 | `0745a5d6b5f4cdf1` |
 | `examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_shoulder.csv` | 6243 | 972587 | `4e59c4a2b40ef450` |
-| `examples/tiago/data/suspension_optitrack/protocol.yaml` |  | 24241 | `bdbc1d1ad493bbc6` |
+| `examples/tiago/data/suspension_optitrack/protocol.yaml` |  | 24344 | `2ace5805478083e7` |
 
 ### `tiago-pro-mocap-samples`
 
