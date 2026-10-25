@@ -6,7 +6,8 @@ This folder contains a runnable example for **dynamic parameter identification**
 
 - `identification.py`: entry point that loads the TX40 URDF, initializes the identification pipeline, and runs the solve step.
 - `optimal_config.py`: D-optimal design of kinematic calibration postures (see [Posture design](#posture-design)).
-- `utils/staubli_tx40_tools.py`: TX40-specific classes `TX40Identification` (active joints, filtering/decimation choices, and reporting) and `TX40OptimalCalibration`.
+- `calibration_truth.py`: calibration on **simulated** tool poses with a known truth (see [Calibration, simulated only](#calibration-simulated-only)).
+- `utils/staubli_tx40_tools.py`: TX40-specific classes `TX40Identification` (active joints, filtering/decimation choices, and reporting), `TX40Calibration` (6-DOF tool-pose residual) and `TX40OptimalCalibration`.
 - `config/`: YAML configuration files (typically use `staubli_tx40_unified_config.yaml`).
 - `data/`: input CSV logs used by the example (`pos_read_data.csv`, `curr_data.csv`).
 - `urdf/`: the TX40 URDF model used by the scripts.
@@ -71,6 +72,23 @@ postures for seed 0, about 1 min) is written, timestamped, to
 `data/optimal_configs/` (git-ignored). The URDF has no floor or cell, so
 check the postures against the real installation before recording.
 
+## Calibration, simulated only
+
+```bash
+python calibration_truth.py                 # 2 designs x 2 truths x 2 noise x 3 fits x 5 seeds, ~3 min
+python calibration_truth.py --seeds 0 --noise 0.1 --designs doptimal
+python calibration_truth.py --design        # rerun the D-optimal selection into data/truth/
+```
+
+There are no TX40 calibration measurements, so the calibration is checked on
+simulated ones: a drawn truth, tool poses from it with seeded noise at the 66
+D-optimal postures (or 66 random ones), a FIGAROH fit, and the fit's tool
+position at 300 held-out postures against the truth. The output says what
+the pipeline recovers, not what a real TX40 looks like. Results, and a core
+selection bug the study found (fixed for this robot by
+`structural_selection: ordered` in the config):
+[docs/development/tx40-calibration-synthetic-truth.md](../../docs/development/tx40-calibration-synthetic-truth.md).
+
 ## Excitation trajectory (`optimal_trajectory.py`)
 
 ```bash
@@ -89,9 +107,10 @@ near 1e13. Details in
 
 ## Not included
 
-- **`calibration.py`**: there are no TX40 calibration measurements in this
-  repository, so there is nothing to calibrate against. The posture design
-  above is the first step toward recording them.
+- **`calibration.py`** on real data: there are no TX40 calibration
+  measurements in this repository. `TX40Calibration` reads them in the
+  layout `calibration_truth.py` writes (`x1 … phiz1`, `joint_1 … joint_6`)
+  once they exist.
 - **`update_model.py`**: the identification gives base parameters, and a URDF
   needs physically consistent standard parameters; writing one would put
   unidentified values in a model as if they were measured.

@@ -28,6 +28,8 @@ import numpy as np
 import pandas as pd
 
 # Import base classes from figaroh
+from figaroh.calibration.base_calibration import BaseCalibration
+from figaroh.calibration.calibration_tools import calc_updated_fkm
 from figaroh.identification.base_identification import BaseIdentification
 from figaroh.identification.identification_tools import (
     add_standard_additional_parameters,
@@ -50,6 +52,31 @@ from figaroh.utils.error_handling import (
 )
 
 from examples.candidate_postures import SampledOptimalCalibration
+
+
+class TX40Calibration(BaseCalibration):
+    """Staubli TX40 geometric calibration from 6-DOF tool poses.
+
+    There is no recorded TX40 calibration data; the class is exercised on
+    simulated measurements (``calibration_truth.py``).
+    """
+
+    def __init__(
+        self,
+        robot,
+        config_file: str = "config/staubli_tx40_unified_config.yaml",
+        del_list=None,
+    ) -> None:
+        super().__init__(robot, config_file, del_list or [])
+
+    def cost_function(self, var: np.ndarray) -> np.ndarray:
+        """SE(3) log-map residual of the tool pose, position in m and
+        orientation in rad weighted 1 : 0.5 (as the UR10)."""
+        PEEe = calc_updated_fkm(
+            self.model, self.data, var, self.q_measured, self.calib_config
+        )
+        raw = self._compute_logmap_residuals(self.PEE_measured, PEEe)
+        return self.apply_measurement_weighting(raw, pos_weight=1.0, orient_weight=0.5)
 
 
 class TX40Identification(BaseIdentification):

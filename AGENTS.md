@@ -130,12 +130,21 @@ shared `models/` (robot description packages) and a Viser-based `web-interface/`
 
 The 2026-06 audit (`IMPROVEMENT_PLAN.md`, since removed; see git history) is done.
 Its Phase 7 added `optimal_config.py` to TALOS and Staubli TX40, using the shared
-sampler in `examples/candidate_postures.py`. The scripts still missing are missing
-for a reason, recorded in each README: no TX40 calibration data, no TALOS dynamics
-data, and no physically consistent TX40 parameters to export. Don't add placeholder
-scripts for them. TX40 `optimal_trajectory.py` is a simulated design (not run on the
-robot); its near-singular design was a core base-index tolerance issue, worked around
-in `TX40OptimalTrajectory` (docs/development/tx40-optimal-trajectory.md).
+sampler in `examples/candidate_postures.py`. Where data is missing, the work is
+done on **simulated data only**, labelled as such; don't add placeholder scripts
+that pretend otherwise:
+
+- TX40 calibration: no data. `calibration_truth.py` is a synthetic-truth study;
+  the TX40 config needs `structural_selection: ordered` (core `add_base_name` bug,
+  docs/development/tx40-calibration-synthetic-truth.md).
+
+- TALOS dynamics: no data.
+
+- TX40 trajectory: `optimal_trajectory.py` is a simulated design (not run on the
+  robot). Core's absolute base-index tolerance made it near-singular; worked around in
+  `TX40OptimalTrajectory` (figaroh-plus#218, docs/development/tx40-optimal-trajectory.md).
+
+- TX40 export: no physically consistent standard parameters.
 
 Run `python validate.py` to check current state.
 

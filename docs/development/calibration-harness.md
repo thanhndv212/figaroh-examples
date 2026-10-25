@@ -146,6 +146,14 @@ now uses the postures the measurements were generated on (`post`). The
 default path returns the same object, so the TIAGo golden is unchanged;
 `tests/test_calibration_harness_simulation.py` covers it.
 
+**Training residual components (TX40).** `train_rms_mm` is the RMS of every
+column of `pred - meas`. For a 6-DOF pose the last three columns are
+roll-pitch-yaw angles that wrap at ±π, so the difference is meaningless
+there. `SimulationStudy.train_residual` picks the components (default: all,
+so existing studies and the TIAGo golden are unchanged); the TX40 study
+keeps the position columns. See
+[tx40-calibration-synthetic-truth.md](tx40-calibration-synthetic-truth.md).
+
 ## Adapter sketches
 
 - **#97 (another geometric robot).** Subclass nothing: write

@@ -140,6 +140,7 @@ robots:
       - examples/staubli_tx40/**
     tests:
       - tests/test_tx40_torque_alignment.py
+      - tests/test_tx40_calibration_truth.py
       - tests/test_tx40_optimal_trajectory.py
     golden_ids: ["staubli_tx40/"]
     script_key: staubli_tx40
@@ -159,7 +160,7 @@ shared:
     paths:
       - examples/calibration_harness/**
       - tests/golden/calibration_harness_tiago.json
-    robots: [tiago, tiago_pro, talos_table_contact, ur10]
+    robots: [tiago, tiago_pro, talos_table_contact, ur10, staubli_tx40]
     tests:
       - tests/test_calibration_harness_heldout.py
       - tests/test_calibration_harness_simulation.py

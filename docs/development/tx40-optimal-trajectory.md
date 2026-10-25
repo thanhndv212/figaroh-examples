@@ -58,4 +58,4 @@ and `--changed` skip it by default.
   show how well a real recording of this trajectory would identify them,
   because filtering and current-to-torque errors are not simulated.
 - The fix is local to this example. Core's trajectory path still uses the
-  absolute tolerance (drafted core issue, not filed).
+  absolute tolerance (figaroh-plus#218).
