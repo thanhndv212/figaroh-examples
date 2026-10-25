@@ -25,6 +25,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `tiago-backlash-2023-07-24` | TIAGo | Backlash surface (#71) | real | training (2023-07-24, untraced), validation (2023-03-09 bottom), diagnostic (2023-03-09 top, pose only) (#109) | 6 | 108.6 MB | examples/tiago/data/README.md |
 | `tiago-joint-inspection-2023-2024` | TIAGo | Backlash surface (#71) | real | diagnostic (all 24 sessions) (#110) | 25 | 41.9 MB | examples/tiago/data/README.md |
 | `tiago-suspension-vicon-1640` | TIAGo | Suspension base | real | training (xyz 1640), validation (xyz 1628), confirmation (mirrored xyz 1630, 1642), diagnostic (rotations, folds, postures) (#111) | 12 | 54.0 MB | examples/tiago/data/README.md |
+| `tiago-suspension-optitrack` | TIAGo | Suspension base | real (unconfirmed) | training (2023-07 runs), validation (2023-09-12 first runs), confirmation (2023-09-12 repeats), diagnostic (contradicted load label, torso motion, lost shoulder body) (#112) | 69 | 73.9 MB | examples/tiago/data/README.md |
 | `tiago-pro-mocap-samples` | TIAGo Pro | Mocap calibration | real | training (2026-08-05), validation (07-01), confirmation (07-02); frozen in data/protocol.yaml | 3 | 42.4 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
 | `tiago-pro-calibration-results` | TIAGo Pro | Mocap calibration | derived | results and applied calibrations | 6 | 16.8 KB | examples/tiago_pro/data/README.md; docs/development/tiago-pro-mocap.md |
 | `tiago-pro-protocol` | TIAGo Pro | Mocap calibration | derived | frozen protocol and k-fold diagnostic plan | 2 | 3.4 KB | docs/development/tiago-pro-mocap.md |
@@ -49,6 +50,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 - `ur10-calibration-simulation`: no README entry or saved generator says how this file was produced
 - `tiago-base-parameter-list`: not used by identification.py and not audited
 - `tiago-calibration-nov-30-64`: not used by identification.py and not audited
+- `tiago-suspension-optitrack`: the 2023-07-28 load labels are contradicted by the wrist force; weight mass unrecorded (README, OptiTrack suspension section)
 - `staubli-tx40-logs`: the README does not say whether the logs were recorded or simulated, or when
 
 ### `ur10-identification-truth`
@@ -275,6 +277,82 @@ Eleven CREPS Vicon and force-plate logs of 2023-09-20 in one layout (no header, 
 | `examples/tiago/data/suspension/tiago_xyz_vicon_1628.csv` | 5336 | 4027370 | `7dbac63e589efe02` |
 | `examples/tiago/data/suspension/tiago_xyz_vicon_1640.csv` | 5546 | 3877388 | `8a0b993304e57b57` |
 | `examples/tiago/data/suspension/tiago_y_fold_vicon_1636.csv` | 5872 | 4441821 | `81323675bb0d9d2e` |
+
+### `tiago-suspension-optitrack`
+
+22 OptiTrack arm-oscillation runs of 2023-07-26/28 and 2023-09-12, with and without a gripper weight: joint position, effort and wrist force-torque (100 Hz) and every NatNet body sample (frozen ones marked) on the robot clock, and the protocol that freezes roles and hashes. No force plate. The sources are not distributed.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1017_around_z_no_weight/joints.csv` | 5729 | 1457901 | `899f2632997c6abe` |
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1017_around_z_no_weight/tiago_hand.csv` | 6865 | 1039089 | `cd7e8c8376f80ef4` |
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1017_around_z_no_weight/tiago_shoulder.csv` | 6865 | 1057970 | `fa657ba256180fb3` |
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1058_around_y_no_weight/joints.csv` | 5617 | 1420140 | `903ccc5701e00107` |
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1058_around_y_no_weight/tiago_hand.csv` | 6739 | 1006886 | `eab699d8e18eb091` |
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1058_around_y_no_weight/tiago_shoulder.csv` | 6739 | 1046531 | `dfe89322345ab5ac` |
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1143_y_fold_no_weight/joints.csv` | 5621 | 1437584 | `87dd8ac792d06e15` |
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1143_y_fold_no_weight/tiago_hand.csv` | 6745 | 1013828 | `8b20c64fca0272ab` |
+| `examples/tiago/data/suspension_optitrack/2023-07-26-1143_y_fold_no_weight/tiago_shoulder.csv` | 6746 | 1047845 | `229b6b79030109e8` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1239_y_fold_no_weight/joints.csv` | 5526 | 1404561 | `a53a50bd8f78b744` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1239_y_fold_no_weight/tiago_hand.csv` | 6629 | 976615 | `f780656ef25e591b` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1239_y_fold_no_weight/tiago_shoulder.csv` | 6629 | 1005207 | `82b489def7d88aa4` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1301_y_fold_no_weight/joints.csv` | 5838 | 1451743 | `7f921042434d7386` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1301_y_fold_no_weight/tiago_shoulder.csv` | 6841 | 1044222 | `c34d8018c1802e79` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1307_around_z_weight/joints.csv` | 5286 | 1345756 | `9d3ecdd9f6f286c6` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1307_around_z_weight/tiago_shoulder.csv` | 6325 | 981058 | `cd147d876f974bf4` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1312_y_fold_weight/joints.csv` | 5076 | 1285594 | `31e94c283f1cbc8c` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1312_y_fold_weight/tiago_shoulder.csv` | 6080 | 940424 | `51d51a4b8d928410` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1314_around_y_weight/joints.csv` | 5222 | 1331130 | `44bbcbf871d3081c` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1314_around_y_weight/tiago_shoulder.csv` | 6267 | 970085 | `7eb47ea15459699a` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1324_around_x_weight/joints.csv` | 5896 | 1507946 | `8e558960357aeadb` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1324_around_x_weight/tiago_shoulder.csv` | 7073 | 1090777 | `b46931ac6436380b` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1328_around_x_weight/joints.csv` | 5549 | 1411003 | `ba9b0bcfe1bd3705` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1328_around_x_weight/tiago_shoulder.csv` | 6657 | 1024610 | `69d84f2e554cc9fe` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1333_x_fold_weight/joints.csv` | 5350 | 1359238 | `79f57470a3ed7cd4` |
+| `examples/tiago/data/suspension_optitrack/2023-07-28-1333_x_fold_weight/tiago_shoulder.csv` | 6419 | 983658 | `50d30b0ccbbb69f3` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1625_around_z_no_weight/joints.csv` | 6241 | 1616527 | `3103e651784a588c` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1625_around_z_no_weight/tiago_base.csv` | 7488 | 1188493 | `d1d30fb99ac58e98` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1625_around_z_no_weight/tiago_schunk.csv` | 7488 | 1104544 | `1ae9ff632164ab7f` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1625_around_z_no_weight/tiago_shoulder.csv` | 7488 | 1166287 | `fa6d86a8af945100` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1626_y_fold_no_weight/joints.csv` | 5377 | 1365839 | `342e772c45540f74` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1626_y_fold_no_weight/tiago_base.csv` | 6452 | 1020874 | `ecb6bdeeca35b529` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1626_y_fold_no_weight/tiago_schunk.csv` | 6451 | 929752 | `47553340e5a777c8` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1626_y_fold_no_weight/tiago_shoulder.csv` | 6451 | 1004463 | `dfe8eeee563f6394` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1628_x_fold_no_weight/joints.csv` | 5695 | 1444470 | `5de6b56bf9bcd883` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1628_x_fold_no_weight/tiago_base.csv` | 6835 | 1083889 | `07de3ad0e6219138` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1628_x_fold_no_weight/tiago_schunk.csv` | 6835 | 987745 | `be2a4be23349482e` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1628_x_fold_no_weight/tiago_shoulder.csv` | 6836 | 1069920 | `6cacd9337a0e8077` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1629_around_x_no_weight/joints.csv` | 4770 | 1220021 | `97b50ff0b865cd25` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1629_around_x_no_weight/tiago_base.csv` | 5725 | 908243 | `1cc6431bdef6bd77` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1629_around_x_no_weight/tiago_schunk.csv` | 5725 | 831526 | `b1817cf7a346b3ac` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1629_around_x_no_weight/tiago_shoulder.csv` | 5725 | 897970 | `324fca5b53547ef7` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1641_around_z_weight/joints.csv` | 5597 | 1445938 | `42610348e5711348` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1641_around_z_weight/tiago_base.csv` | 6716 | 1060431 | `d6b0c83acd8c7404` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1641_around_z_weight/tiago_shoulder.csv` | 6716 | 1043375 | `4ba29a673f1f0a20` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1643_y_fold_weight/joints.csv` | 5593 | 1420034 | `ee7b2ff01fff43f4` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1643_y_fold_weight/tiago_base.csv` | 6715 | 1058967 | `61ce052d86dbae77` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1643_y_fold_weight/tiago_shoulder.csv` | 6716 | 1048194 | `4b003bdad2df38aa` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1644_around_z_weight/joints.csv` | 5742 | 1468488 | `2b45e5a1e474a3fc` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1644_around_z_weight/tiago_base.csv` | 6890 | 1084262 | `bf99d15c167f806b` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1644_around_z_weight/tiago_object.csv` | 6890 | 1027943 | `d75ed2dc2565cc16` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1644_around_z_weight/tiago_shoulder.csv` | 6890 | 1075150 | `cfe92becc03000fd` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1645_y_fold_weight/joints.csv` | 5600 | 1426433 | `913ffe89ab251087` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1645_y_fold_weight/tiago_base.csv` | 6722 | 1055499 | `1647ada161639818` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1645_y_fold_weight/tiago_object.csv` | 6722 | 1002452 | `d54a160e8e4e145a` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1645_y_fold_weight/tiago_shoulder.csv` | 6722 | 1044554 | `491c6ac69c0a81a9` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1646_x_fold_weight/joints.csv` | 5205 | 1321697 | `34896388ef1c9280` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1646_x_fold_weight/tiago_base.csv` | 6247 | 985011 | `228ae24b37bee101` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1646_x_fold_weight/tiago_object.csv` | 6246 | 930186 | `347825e69e2b207f` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1646_x_fold_weight/tiago_shoulder.csv` | 6246 | 977401 | `2f705cd568fbed6d` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1648_around_x_weight/joints.csv` | 5203 | 1334914 | `412b962a8bd9b365` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1648_around_x_weight/tiago_base.csv` | 6245 | 986549 | `5a8bae9897da00bd` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1648_around_x_weight/tiago_object.csv` | 6244 | 930710 | `ee170935b243a4fb` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1648_around_x_weight/tiago_shoulder.csv` | 6244 | 979086 | `86248828dc3972e8` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/joints.csv` | 5200 | 1342590 | `495d06ba99dd1125` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_base.csv` | 6242 | 981871 | `630b088a30b8b8ee` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_object.csv` | 6242 | 931476 | `0745a5d6b5f4cdf1` |
+| `examples/tiago/data/suspension_optitrack/2023-09-12-1649_around_y_weight/tiago_shoulder.csv` | 6243 | 972587 | `4e59c4a2b40ef450` |
+| `examples/tiago/data/suspension_optitrack/protocol.yaml` |  | 24241 | `bdbc1d1ad493bbc6` |
 
 ### `tiago-pro-mocap-samples`
 
