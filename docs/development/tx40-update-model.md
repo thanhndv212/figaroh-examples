@@ -55,6 +55,10 @@ default weight. QICS 1.1.3 (`pip install qics`, not in the env) solves every
 row of the table in under 0.5 s. It is the script's fallback when it is
 installed. Where both succeed they agree to 1e-5 relative.
 
+On the Linux CI runners cvxopt reports no optimal solution at 100 as well,
+so CI installs `qics==1.1.3` (`.github/workflows/ci.yml`) and the tests run
+on the fallback there.
+
 ## 4. The exported URDF
 
 - Exported vs estimated inertials (p10): max difference 3e-11.

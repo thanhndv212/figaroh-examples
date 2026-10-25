@@ -36,9 +36,9 @@ the excitation does not see. At the default of 100 the training RMSE rises
 by 0.8 % and every mass stays within 15 % of CAD.
 
 The fit is a semidefinite program. With this prior cvxopt (core's default,
-in ``figaroh-dev``) solves it in about a second. With weak priors (``--prior-weight``
-1 or less) the problem is nearly singular and cvxopt reports no optimal
-solution; QICS (``pip install qics``, optional) still solves it and is tried
+in ``figaroh-dev``) solves it in about a second on macOS; on Linux it reports
+no optimal solution. With weak priors (``--prior-weight`` 1 or less) the
+problem is nearly singular and cvxopt fails everywhere. QICS (``pip install qics``, optional) still solves it and is tried
 second. The two agree to 1e-5 relative where both succeed.
 """
 
