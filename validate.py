@@ -100,6 +100,7 @@ EXAMPLE_SCRIPTS = {
         ),
         ("update_model.py", 120, False),
         ("optimal_config.py", 300, False),
+        ("mocap_reference_run.py", 300, False, ["--no-plot"]),
     ],
     "talos_table_contact": [
         ("reference_run.py", 300, False, ["--no-plot"]),

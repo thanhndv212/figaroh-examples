@@ -117,6 +117,7 @@ robots:
       - tests/test_talos_mocap_2022_03_15.py
       - tests/test_talos_mocap_extraction.py
       - tests/test_talos_mocap_heldout.py
+      - tests/test_talos_mocap_reference_run.py
       - tests/test_talos_mocap_study.py
     golden_ids: ["talos/"]
     script_key: talos
