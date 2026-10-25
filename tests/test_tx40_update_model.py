@@ -15,7 +15,7 @@ def fitted(tmp_path_factory):
     cwd = os.getcwd()
     os.chdir(os.path.join(os.path.dirname(um.__file__)))
     try:
-        args = um.parse_args(["--output", str(out), "--second-solver", "none"])
+        args = um.parse_args(["--output", str(out)])
         robot = um.load_robot(args.urdf, package_dirs="../../models")
         iden = um.physical_fit(robot, args)
         assert iden.result["selected"]["status"] == "accepted"
