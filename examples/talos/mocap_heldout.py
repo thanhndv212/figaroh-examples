@@ -638,6 +638,16 @@ def select_model(kfold: dict) -> tuple:
     return harness.select(kfold["_harness"], KFOLD_METRIC, role="validation")
 
 
+def configured_model() -> str:
+    """The MODELS label of the config's reference model (the k-fold
+    selection, set after the study ran)."""
+    params = yaml.safe_load(CONFIG.read_text())["tasks"]["calibration"]["parameters"]
+    key = (params["calibration_level"], params["estimation"]["method"])
+    (label,) = [m for m, (lvl, fo, est) in MODELS.items()
+                if not fo and (lvl, est["method"]) == key]
+    return label
+
+
 def run(models=None) -> dict:
     """Fit every model on the whole training run and evaluate the right-arm
     runs: ``{model: {"train": ..., "n_params", "sets": {file: errors},

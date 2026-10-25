@@ -19,9 +19,9 @@
 #
 # estimation.method is the method the k-fold plan of the training run
 # selects (protocol_1354_kfold.yaml, mocap_heldout.select_model); never one
-# chosen on the confirmation run. Until the study ran it is structural with
-# the ordered selection, which keeps the names of the retained parameters
-# independent of the random draw on TALOS (figaroh-plus#204).
+# chosen on the confirmation run. The k-fold plan selected ``full map``
+# (mean k-fold error 4.58 mm, against 8.04 mm for the frames-only baseline;
+# docs/development/talos-mocap.md, section 5): map with the priors below.
 
 extends: ../../templates/base_robot_config.yaml
 robot:
@@ -34,8 +34,7 @@ tasks:
     parameters:
       calibration_level: full_params
       estimation:
-        method: structural
-        structural_selection: ordered
+        method: map
         priors:
           translation: 0.001
           rotation: 0.002

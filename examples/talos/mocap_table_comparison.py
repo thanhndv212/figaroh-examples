@@ -14,7 +14,8 @@ The comparison is therefore on predictions:
   run, with ``B`` and ``T`` re-registered on all its rows;
 - ``R_nominal``: the same with nominal joints (the registration-only fit);
 - ``R_mocap``: the k-fold error of the model the mocap study selected
-  (mocap_heldout.select_model).
+  (mocap_heldout.select_model; the config carries it,
+  mocap_heldout.configured_model).
 
 Pre-registered verdict (docs/development/talos-mocap.md):
 
@@ -121,13 +122,13 @@ def compare(selected_calib, r_mocap: float, table=None) -> dict:
 
 
 def main() -> None:
-    kfold = mh.run_kfold()
-    best, _ = mh.select_model(kfold)
+    best = mh.configured_model()  # the k-fold selection
+    kfold = mh.run_kfold([best])
     calib = mh.fit_model(best)
     out = compare(calib, kfold[best][mh.KFOLD_METRIC])
     print(f"Table contact ({out['table_plan']}), {out['table_model']}: "
           f"{len(out['shared_params'])} shared parameters of {out['n_table_params']}")
-    print(f"Mocap training run, position RMSE with B and T re-registered:")
+    print("Mocap training run, position RMSE with B and T re-registered:")
     print(f"  nominal joints        {out['R_nominal_mm']:.2f} mm")
     print(f"  table-contact joints  {out['R_table_mm']:.2f} mm "
           f"({out['R_table_ori_deg']:.2f} deg)")
