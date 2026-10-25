@@ -172,3 +172,56 @@ def test_no_body_is_fixed_in_the_lab(frames):
             )
             assert spread.max() > 0.1
 
+
+def _angle_deg(a, b):
+    import pinocchio as pin
+
+    return np.degrees(np.linalg.norm(pin.log3(a.T @ b)))
+
+
+def _angle_mismatch_deg(measured, nominal):
+    """RMS over row pairs of |angle(M_i^T M_j) - angle(N_i^T N_j)|."""
+    n = len(measured)
+    err = [
+        _angle_deg(measured[i], measured[j]) - _angle_deg(nominal[i], nominal[j])
+        for i in range(n)
+        for j in range(i + 1, n)
+    ]
+    return float(np.sqrt(np.mean(np.square(err))))
+
+
+@pytest.mark.parametrize("sid", SESSIONS)
+def test_attachment_links_from_rotation_angles(sid, frames):
+    """Fit-free: if body b rides on link l and the waist on base_link, the
+    rotation of b in the waist frame between two rows has the angle of l's
+    nominal rotation between them (the unknown mounts cancel). Only the
+    claimed links match; the end-effector keeps about 1 deg, the joint
+    errors the study fits. Flipped rows are left out."""
+    import pinocchio as pin
+
+    from examples.talos import mocap_heldout as mh
+
+    model = mh.robot().model
+    data = model.createData()
+    arm = SESSIONS[sid][1]
+    df = frames[sid]
+    df = df[mh.flip_clusters(model, df, arm) == 0]
+    waist = mh.body_poses(df, "waist")
+
+    def in_waist(body):
+        return [w.rotation.T @ b.rotation for w, b in zip(waist, mh.body_poses(df, body))]
+
+    def nominal(link):
+        out = []
+        for q in mh.configurations(model, df, arm):
+            pin.framesForwardKinematics(model, data, q)
+            out.append(data.oMf[model.getFrameId(link)].rotation.copy())
+        return out
+
+    upper, ee = in_waist("upper_body"), in_waist("endeffector")
+    assert _angle_mismatch_deg(upper, nominal("torso_2_link")) < 0.3
+    for link in ("base_link", "torso_1_link"):
+        assert _angle_mismatch_deg(upper, nominal(link)) > 5
+    assert _angle_mismatch_deg(ee, nominal(f"arm_{arm}_7_link")) < 1.5
+    for link in (f"arm_{arm}_6_link", f"arm_{arm}_5_link"):
+        assert _angle_mismatch_deg(ee, nominal(link)) > 10

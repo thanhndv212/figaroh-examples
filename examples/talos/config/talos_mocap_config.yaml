@@ -1,0 +1,64 @@
+# TALOS torso-arm calibration from Qualisys motion capture (examples#172).
+#
+# Chain base_link -> arm_left_7_link (torso_1, torso_2, arm_left_1..7),
+# measured as the pose (6D) of the end-effector body in the waist body frame:
+# inverse(waist_frame) * endeffector_frame, built from the shipped static-
+# posture file by TalosMocapCalibration.load_data_set (mocap_heldout.py). The
+# protocol is data/calibration/mocap/protocol.yaml (v2), the study and its
+# pre-registration docs/development/talos-mocap.md.
+#
+#  - base frame (base_px..base_phiz): base_link in the waist body frame, the
+#    waist body's mount on base_link (unknown offset, estimated);
+#  - tool frame (pEE*_1, phiEE*_1): the end-effector body on arm_left_7_link
+#    (unknown offset, estimated). known_baseframe/known_tipframe are not read
+#    from this YAML; TalosMocapCalibration sets both to False;
+#  - residuals: position (m) and rotation vector times 0.1 m (LEVER in
+#    mocap_heldout.py), so that both carry about 0.17 mm of noise;
+#  - outlier rejection and the regularisation rows are off (null): the
+#    training run has no flipped rows and every plateau passed the extractor.
+#
+# estimation.method is the method the k-fold plan of the training run
+# selects (protocol_1354_kfold.yaml, mocap_heldout.select_model); never one
+# chosen on the confirmation run. Until the study ran it is structural with
+# the ordered selection, which keeps the names of the retained parameters
+# independent of the random draw on TALOS (figaroh-plus#204).
+
+extends: ../../templates/base_robot_config.yaml
+robot:
+  name: "talos"
+  description: "TALOS torso-left-arm calibration from motion capture"
+tasks:
+  calibration:
+    enabled: true
+    type: kinematic_calibration
+    parameters:
+      calibration_level: full_params
+      estimation:
+        method: structural
+        structural_selection: ordered
+        priors:
+          translation: 0.001
+          rotation: 0.002
+          joint_offset: 0.02
+          prismatic_offset: 0.002
+      include_non_geometric: false
+      regularization_coefficient: null
+      outlier_threshold: null
+    kinematics:
+      base_frame: universe
+      tool_frame: arm_left_7_link
+      free_flying_base: false
+    measurements:
+      markers:
+      - reference_joint: arm_left_7_joint
+        measurable_dof: [true, true, true, true, true, true]
+      poses:
+        base_pose: null
+        tool_pose: null
+    data:
+      # Training session of the frozen protocol, relative to examples/talos.
+      source_file: data/calibration/mocap/qualisys_2022-03-15-1354_left_static_postures.csv
+      sample_configurations_file: null
+      number_of_samples: 56
+  identification:
+    enabled: false
