@@ -389,8 +389,10 @@ fold it. All bodies are prefixed `tiago_` in the files.
   `robot_evidence` in the protocol.
 - **Provenance:** original recordings (ROS bags, not distributed) in the
   folders `2023-07_optitrack` and `2023-09-12_optitrack`, one bag per run,
-  named by file name and sha256 in `protocol.yaml`. Lab and licence line: to
-  be added by the maintainer.
+  named by file name and sha256 in `protocol.yaml`.
+- **Attribution:** recorded at LAAS-CNRS by
+  [@thanhndv212](https://github.com/thanhndv212). Licence: Apache 2.0, as
+  the repository ([LICENSE](../../../LICENSE)).
 - **Known limits:** no force plate. The weight mass is unknown. The 07-28
   load labels are in doubt. The clock is aligned by a constant lag per run.
   The base body was only tracked on 09-12, so on 2023-07 base motion is
