@@ -1,0 +1,23 @@
+# K-fold plan of the training run of protocol.yaml (talos-mocap-2022-03-15
+# v2), examples#172: 5 row folds of the 2022-03-15 13:54 left-arm run, seed 0.
+# The held-out runs move the right arm, so they cannot judge the left-arm
+# parameters; this plan does, within one session (development evidence,
+# weaker than a held-out session: same day, same mounting, same body
+# labelling). The study selects its estimation method here
+# (docs/development/talos-mocap.md, section 3). Same file and sha256 as
+# protocol.yaml; change both together.
+name: talos-mocap-2022-03-15-kfold
+version: 1
+sessions:
+- id: 2022-03-15-1354-left
+  role: training
+  arm: left
+  files:
+    qualisys_2022-03-15-1354_left_static_postures.csv: 4bfa50c2219acf776c18d484433553ab5283ba0ecc29a6bf053584a314ae92ef
+heldout:
+  split: kfold
+  selection_role: validation
+  kfold:
+    session: 2022-03-15-1354-left
+    k: 5
+    seed: 0
