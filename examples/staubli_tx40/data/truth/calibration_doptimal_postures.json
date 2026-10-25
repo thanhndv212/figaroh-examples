@@ -1,0 +1,10 @@
+{
+  "source": "TX40OptimalCalibration (optimal_config.py), threshold selection",
+  "candidates": {
+    "n": 1000,
+    "seed": 0
+  },
+  "margin_rad": 0.05,
+  "selected": 66,
+  "detroot_whole": 184.54820709620626
+}

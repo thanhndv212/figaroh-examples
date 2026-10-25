@@ -150,3 +150,15 @@ def test_train_rms_uses_simulated_postures(tmp_path):
     study.simulate = simulate
     r = run_case(study, "lin", "lin", 0, 0.0, tmp_path)
     assert r["train_rms_mm"] < 1e-9
+
+
+def test_train_residual_selects_the_rms_components(tmp_path):
+    # only the first column is noisy, so the all-column RMS averages in the
+    # second column's small residual and the first-column RMS is larger
+    noise = anisotropic([1e-3, 0.0])
+    full = run_case(_study(noise=noise, outputs=2), "lin", "lin", 0, 0.5, tmp_path)
+    st = _study(noise=noise, outputs=2)
+    st.train_residual = lambda e: e[:, :1]
+    first = run_case(st, "lin", "lin", 0, 0.5, tmp_path)
+    assert first["heldout_rmse_mm"] == full["heldout_rmse_mm"]
+    assert first["train_rms_mm"] > full["train_rms_mm"]

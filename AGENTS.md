@@ -130,11 +130,20 @@ shared `models/` (robot description packages) and a Viser-based `web-interface/`
 
 The 2026-06 audit (`IMPROVEMENT_PLAN.md`, since removed; see git history) is done.
 Its Phase 7 added `optimal_config.py` to TALOS and Staubli TX40, using the shared
-sampler in `examples/candidate_postures.py`. The scripts still missing are missing
-for a reason, recorded in each README: no TX40 calibration data, no TALOS dynamics
-data (`examples/talos/identification_truth.py` is a synthetic-truth study, simulated
-data only), a near-singular TX40 trajectory design, and no physically consistent TX40
-parameters to export. Don't add placeholder scripts for them.
+sampler in `examples/candidate_postures.py`. Where data is missing, the work is
+done on **simulated data only**, labelled as such; don't add placeholder scripts
+that pretend otherwise:
+
+- TX40 calibration: no data. `calibration_truth.py` is a synthetic-truth study;
+  the TX40 config needs `structural_selection: ordered` (core `add_base_name` bug,
+  docs/development/tx40-calibration-synthetic-truth.md).
+
+- TALOS dynamics: no data. `examples/talos/identification_truth.py` is a
+  synthetic-truth study (docs/development/talos-identification-synthetic-truth.md).
+
+- TX40 trajectory: the shared IPOPT design is near-singular on this config.
+
+- TX40 export: no physically consistent standard parameters.
 
 Run `python validate.py` to check current state.
 

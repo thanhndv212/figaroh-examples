@@ -90,7 +90,10 @@ class SimulationStudy:
       (measurements, postures)`` replaces the default for studies whose
       noise is not additive on the measurement (encoder noise through IK);
     - ``strata(name) -> {stratum: bool mask}`` for a held-out set;
-    - ``z_params[level]`` is the predicate on names the fit keeps.
+    - ``z_params[level]`` is the predicate on names the fit keeps;
+    - ``train_residual(pred - meas)`` picks the components of the training
+      RMS (default: all), e.g. positions only when the other columns are
+      angles that wrap.
     """
 
     sample_truth: Callable[[str, np.random.Generator], Mapping[str, float]]
@@ -104,6 +107,7 @@ class SimulationStudy:
     strata: Optional[Callable[[str], Dict[str, np.ndarray]]] = None
     z_params: Dict[str, Callable[[str], bool]] = field(default_factory=dict)
     row_error: Callable[[np.ndarray], np.ndarray] = _row_error
+    train_residual: Callable[[np.ndarray], np.ndarray] = lambda e: e
 
 
 def _simulate(study, truth, kind, postures, level, seed):
@@ -144,7 +148,8 @@ def run_case(
         "absorbed": list(fit.absorbed),
     }
     pred = study.predict(fit.params, fit.level, post, fit.handle)
-    result["train_rms_mm"] = 1000 * float(np.sqrt(np.mean((pred - meas) ** 2)))
+    res = study.train_residual(pred - meas)
+    result["train_rms_mm"] = 1000 * float(np.sqrt(np.mean(res**2)))
 
     errors = []
     strata: Dict[str, list] = {}

@@ -55,6 +55,9 @@ table, z = summarize(df)
 - The random streams are fixed: the truth uses `default_rng(seed)` and the
   noise uses `default_rng(10_000 + seed)`. Keep this order so that seeds
   reproduce.
+- `train_residual` picks the columns of the training RMS (default: all).
+  Use it when some columns are angles that wrap, as in the TX40's 6-DOF
+  poses.
 - When noise is not additive on the measurement (for example encoder noise
   propagated through IK), set `simulate` so that it returns
   `(measurements, postures_used)`.
