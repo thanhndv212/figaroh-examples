@@ -35,6 +35,7 @@ Kinds: `real` (recorded on hardware), `simulated` (generated from a known model)
 | `talos-table-contact-real` | TALOS | Table contact | real | train / held out by day | 9 | 70.1 KB | examples/talos_table_contact/data/real/README.md; examples/talos_table_contact/README.md; docs/development/talos-contact-calibration-audit-2026-10-04.md |
 | `talos-table-contact-synthetic` | TALOS | Table contact | simulated | synthetic train + validation | 3 | 27.5 KB | examples/talos_table_contact/generate_synthetic_data.py |
 | `staubli-tx40-logs` | Staubli TX40 | Dynamic identification | unspecified (unconfirmed) | identification; no separate validation set | 2 | 4.3 MB | examples/staubli_tx40/README.md |
+| `staubli-tx40-calibration-truth-postures` | Staubli TX40 | Geometric calibration | generated | calibration postures of the synthetic-truth study | 2 | 7.8 KB | docs/development/tx40-calibration-synthetic-truth.md |
 | `so101-simulated` | SO-101 | Dynamic identification | simulated | training | 7 | 986.7 KB |  |
 | `so101-simulated-validation` | SO-101 | Dynamic identification | simulated | held-out validation | 7 | 983.1 KB |  |
 | `tiago-identification-slow-2021-07` | TIAGo | Dynamic identification | real | cross-run validation | 4 | 6.6 MB | examples/tiago/data/README.md; docs/development/tiago-identification-cross-run-protocol.md |
@@ -375,6 +376,15 @@ Motor current and joint position, 45,000 samples each.
 |---|---:|---:|---|
 | `examples/staubli_tx40/data/curr_data.csv` | 45000 | 2357129 | `f4592f4ba4db42f5` |
 | `examples/staubli_tx40/data/pos_read_data.csv` | 45000 | 2101824 | `5cc1cecc1024ef0e` |
+
+### `staubli-tx40-calibration-truth-postures`
+
+The 66 D-optimal postures (1000 seeded candidates, seed 0) that calibration_truth.py simulates measurements at, with their selection settings. Computed for the model, not measurements; the TX40 has no calibration recordings.
+
+| File | Rows | Bytes | sha256 (first 16) |
+|---|---:|---:|---|
+| `examples/staubli_tx40/data/truth/calibration_doptimal_postures.csv` | 66 | 7800 | `57c9978df88a3847` |
+| `examples/staubli_tx40/data/truth/calibration_doptimal_postures.json` |  | 213 | `c0841fe5cf64fa06` |
 
 ### `so101-simulated`
 
