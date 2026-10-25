@@ -105,14 +105,27 @@ core's absolute one keeps a collinear pair and pins the condition number
 near 1e13. Details in
 [docs/development/tx40-optimal-trajectory.md](../../docs/development/tx40-optimal-trajectory.md).
 
+## Updating the model (`update_model.py`)
+
+```bash
+python update_model.py              # writes results/tx40_identified.urdf
+```
+
+Fits **physically consistent** link inertials to the recording (core's
+direct physical fit, `select_stage: physical_fit`, regularised towards the
+CAD URDF with `--prior-weight`, default 100) and writes them into a copy of
+the URDF. **Not independently validated**: the TX40 has one recording, so the
+fit is scored on the data it was fitted to. Training torque RMSE rises by
+0.8 % over the base-parameter fit; masses stay within 15 % of CAD. Link 6 is
+a point mass in the CAD URDF and link 3 comes out rod-like; the script flags
+both. Details in
+[docs/development/tx40-update-model.md](../../docs/development/tx40-update-model.md).
+
 ## Not included
 
 - **`calibration.py`** on real data: there are no TX40 calibration
   measurements in this repository. `TX40Calibration` reads them in the
   layout `calibration_truth.py` writes (`x1 … phiz1`, `joint_1 … joint_6`)
   once they exist.
-- **`update_model.py`**: the identification gives base parameters, and a URDF
-  needs physically consistent standard parameters; writing one would put
-  unidentified values in a model as if they were measured.
 
 See FIGAROH's [Reporting & Verification guide](https://thanhndv212.github.io/figaroh-plus/reporting_and_verification/) for what the report/verdict contain and how to compare two runs.

@@ -145,7 +145,8 @@ that pretend otherwise:
   robot). Core's absolute base-index tolerance made it near-singular; worked around in
   `TX40OptimalTrajectory` (figaroh-plus#218, docs/development/tx40-optimal-trajectory.md).
 
-- TX40 export: no physically consistent standard parameters.
+- TX40 export: `update_model.py` exports a physically consistent fit to the single
+  recording, not independently validated (docs/development/tx40-update-model.md).
 
 Run `python validate.py` to check current state.
 

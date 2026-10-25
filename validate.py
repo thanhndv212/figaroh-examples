@@ -108,6 +108,7 @@ EXAMPLE_SCRIPTS = {
         ("identification.py", 120, False, ["--verify", "--html-report"]),
         ("optimal_config.py", 300, False),
         ("optimal_trajectory.py", 1200, True),
+        ("update_model.py", 120, False),
     ],
     "so101": [
         ("identification.py", 120, False, ["--verify", "--html-report"]),

@@ -143,6 +143,7 @@ robots:
       - tests/test_tx40_torque_alignment.py
       - tests/test_tx40_calibration_truth.py
       - tests/test_tx40_optimal_trajectory.py
+      - tests/test_tx40_update_model.py
     golden_ids: ["staubli_tx40/"]
     script_key: staubli_tx40
   so101:
