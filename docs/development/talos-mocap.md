@@ -283,7 +283,107 @@ linearisation point, which is why it gives 42 kept parameters against 44.
 
 ## 5. Results
 
-Not run at the pre-registration commit.
+Written after the pre-registration commit (`e4810d5`). Numbers are in
+`tests/golden/talos_mocap.json` (`python mocap_heldout.py --json ...`); the
+whole study takes about 75 minutes, most of it `full map_cv` on k-fold
+fold 4 (below).
+
+### 5.1 Selection and C1
+
+| Model | Parameters | Train (mm) | K-fold, pooled (mm) | Mean fold-train (mm) | Selection score (mm) |
+|---|---|---|---|---|---|
+| `registration only` | 12 | 7.66 | 8.09 | 7.61 | 8.04 |
+| `joint_offset` | 19 | 196.61 | 157.88 | 118.42 | 122.58 |
+| `full_params` | 42 | 85.81 | 70.74 | 48.52 | 54.80 |
+| `full map` | 66 | 6.88 | 5.39 | 4.65 | **4.58** |
+| `full map_cv` | 66 | 4.35 | 164.09 | 95.28 | 106.91 |
+
+The selection score is the harness's: the mean of the per-fold RMSEs.
+
+- **Selected: `full map`.** The config now carries `method: map`, set in the
+  commit after this selection.
+- **C1 passes.** 4.58 mm against the baseline's 8.04 mm. The k-fold over
+  mean fold-training ratio is 5.39 / 4.65 = 1.16 (limit 1.5).
+
+**The structural fits are not a fit of their model.** `joint_offset` and
+`full_params` end above the frames-only fit even in training (197 and 86 mm
+against 7.66 mm), which no overfitting can do. They start from core's
+closed-form frame guess and converge to a wrong basin; on k-fold fold 4,
+`full_params` stops at core's 1000-evaluation cap without converging. A
+post-hoc diagnostic, not used for anything above
+(`mocap_heldout.warm_started`, `test_structural_fits_recover_from_the_baseline_frames`),
+starts them from the baseline's fitted frames instead: training 2.92 mm
+(`joint_offset`) and 1.02 mm (`full_params`), validation 4.70 and 4.64 mm.
+The pre-registration did not foresee a failed fit, so the frozen numbers
+stand and the selection is unchanged. The same basin explains `full map_cv`'s
+k-fold score: on fold 4 its preliminary free fit and its weakest-prior inner
+fits run to their evaluation caps (hours), and its fold fits land far off.
+On the whole run it fits well (4.35 mm), but it was not selected.
+
+### 5.2 C2: the torso carried to the right arm
+
+Position RMSE (mm), right arm nominal; orientation in parentheses (deg):
+
+| Run | Model | Re-registered (primary) | Waist kept | Unflipped only | Gauge-free torso |
+|---|---|---|---|---|---|
+| validation (n=39, 14 flipped) | `registration only` | 4.70 (1.79) | 10.42 | 3.87 | 4.70 |
+| | `full map` | 4.70 (1.80) | 9.66 | 3.87 | 4.70 |
+| confirmation (n=22, row 0 dropped) | `registration only` | 37.58 (1.05) | 42.09 | 37.58 | 37.58 |
+| | `full map` | 37.59 (1.05) | 41.72 | 37.59 | 37.58 |
+
+- **Validation: neutral** (ratio 1.00), as the fixture expected.
+  **Confirmation: neutral** (1.00).
+- **The neutral is the trivial one.** `full map`'s torso posterior is its
+  prior: every torso standard deviation equals the prior size (1 mm, 2 mrad,
+  20 mrad on the joint axis) and the largest correction is 0.86 mrad
+  (`d_phiy_torso_2_joint`). The training run does not inform the torso
+  beyond core's default priors, so there is nothing to carry.
+- **The flip repair works on the real run.** The validation run's three
+  clusters are repaired as 90.8, 178.9 and 93.0 deg rotations; the flipped
+  rows score 5.8 mm against 3.9 mm for the unflipped ones.
+- **The waist mount transfers to within about 10 mm.** Keeping `B` from
+  training costs 5 mm over re-registering it.
+- **The confirmation run is 8 times worse for every model**, its one
+  repeated posture included (21.8 mm). Posture range does not explain it; a
+  moved body or marker set between 14:18 and 14:39 would, but the data
+  cannot tell. It is a disclosed limit, not a verdict on any model.
+- For the structural fits as frozen, carrying their torso costs 48 to
+  207 mm, and the gauge-free reset brings `joint_offset` back to the
+  baseline: the wrong basin sits in the torso and frame gauge.
+
+### 5.3 C3: against table contact
+
+`mocap_table_comparison.py`, the table study's structural left fit (56
+parameters, 24 shared):
+
+| Mocap training run, `B` and `T` re-registered | Position RMSE |
+|---|---|
+| `R_nominal`, nominal joints | 7.66 mm |
+| `R_table`, table-contact torso and left arm | 10.93 mm (1.05 deg) |
+| `R_mocap`, `full map`, k-fold pooled | 5.39 mm |
+
+**C3: disagrees.** The table parameters make the mocap prediction worse than
+nominal joints, and the two predictions differ by 15.3 mm. As pre-registered,
+this does not separate a change of the robot over the seven months from a
+modelling error in either study.
+
+### 5.4 Reference run
+
+`mocap_reference_run.py` fits `full map` on the training run (66 parameters,
+residual dof 270, `ftol`, 15 evaluations), passes the execution-scope
+verification and archives under `results/runs/TALOS/calibration/`
+(git-ignored) with `report.html`, `heldout.json`, `corrections.json` and the
+reproduction record. Its held-out numbers are the golden's.
+
+### 5.5 What this study supports
+
+- Within the session, `full map` predicts the left end-effector body to
+  5.4 mm (k-fold), against 8.1 mm for the frames-only baseline.
+- Nothing is learned about the torso, and the table-contact geometry does not
+  carry over to this session. The left-arm corrections are judged only on
+  the training session.
+- Not supported: any URDF export, any claim on the right arm, and any
+  structural (unregularised) model on these data.
 
 ## 6. Reproduction
 
@@ -291,11 +391,14 @@ From `examples/talos` in the `figaroh-dev` env:
 
 ```bash
 python mocap_truth.py              # fixture, about 40 min (--seeds 0 --noise 0.17: 1 min)
-python mocap_heldout.py            # k-fold selection, all models, right-arm runs
+python mocap_heldout.py            # k-fold selection, all models, right-arm runs (~75 min)
 python mocap_table_comparison.py   # C3
 python mocap_reference_run.py      # archived run under results/runs/
 ```
 
 Tests:
 - `tests/test_talos_mocap_2022_03_15.py`: protocol v2 and the attachments;
-- `tests/test_talos_mocap_study.py`: the rules and the fixture.
+- `tests/test_talos_mocap_study.py`: the rules and the fixture;
+- `tests/test_talos_mocap_heldout.py`: the real runs against the golden
+  (`full map_cv`'s k-fold scores are taken from the golden, not recomputed);
+- `tests/test_talos_mocap_reference_run.py`: the archived reference run.

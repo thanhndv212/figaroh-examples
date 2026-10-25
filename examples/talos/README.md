@@ -15,6 +15,9 @@ TALOS humanoid robot's torso/arm kinematic chain using FIGAROH.
   `calibration_upperbody.py --update-model`.
 - `optimal_config.py`: D-optimal design of calibration postures (see
   [Posture design](#posture-design)).
+- `mocap_heldout.py`, `mocap_truth.py`, `mocap_table_comparison.py`,
+  `mocap_reference_run.py`: the torso-arm motion-capture study (see
+  [Motion-capture calibration](#motion-capture-calibration)).
 - `identification_truth.py`: torso-arm dynamics identification on **simulated
   data** (see [Dynamics identification, simulated only](#dynamics-identification-simulated-only)).
 - `utils/talos_tools.py`: `TALOSCalibration`, a TALOS-specific specialization of
@@ -107,6 +110,26 @@ written, timestamped, to `data/optimal_configs/` (git-ignored).
 This is a design, not a measurement. Only self-collision is modelled: no
 table, fixture or camera line of sight, so check the selected postures on the
 real setup before recording them.
+
+## Motion-capture calibration
+
+The Qualisys runs of 2022-03-15 (`data/calibration/mocap/`) calibrate the
+torso and left arm from end-effector poses in the waist frame, under a
+frozen protocol: one left-arm training run, two right-arm runs held out
+(validation, confirmation).
+
+```bash
+python mocap_heldout.py            # k-fold selection and right-arm runs (~75 min)
+python mocap_truth.py              # simulated fixture (~40 min)
+python mocap_table_comparison.py   # against the table-contact study
+python mocap_reference_run.py      # fit, report, archive under results/runs/
+```
+
+The k-fold plan selects `full map` (`config/talos_mocap_config.yaml`):
+5.4 mm within the session against 8.1 mm for the frames-only baseline. It
+learns nothing about the torso (C2 neutral on the right arm) and disagrees
+with the table-contact fit. Design, results and limits in
+[docs/development/talos-mocap.md](../../docs/development/talos-mocap.md).
 
 ## Dynamics identification, simulated only
 
