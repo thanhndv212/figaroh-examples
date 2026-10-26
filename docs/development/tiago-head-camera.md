@@ -318,7 +318,13 @@ uncertain.
    sample evaluated last. The study therefore builds the two chains in
    pinocchio at `q + d` (`head_camera.Kinematics`); a test checks the arm chain
    against core's `joint_offset` kinematics to 1e-12 (all TIAGo arm axes are
-   +z, so core's axis sign is +1). A core issue is drafted, not filed.
+   +z, so core's axis sign is +1). Fixed in core by
+   [figaroh-plus#217](https://github.com/thanhndv212/figaroh-plus/issues/217)
+   (PR #221, on `devel` 2026-10-26): the anchor is now evaluated per sample.
+   `test_kinematics_match_core_eye_hand_anchor` checks core's eye-hand chain
+   (camera anchor, head and arm offsets) against `Kinematics` to 1e-12 on the
+   training postures; it fails on core before #221. The study keeps
+   `Kinematics`, so its recorded results are unchanged.
 2. No QR/base-parameter selection for a custom residual: a numerical Jacobian
    and an SVD are used (the gauge of section 3).
 3. `parse_heldout` refuses the `diagnostic` role: the role sets are built in
