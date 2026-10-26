@@ -11,9 +11,14 @@ Three sessions of 2022-03-15
 ([#114](https://github.com/thanhndv212/figaroh-examples/issues/114)), extracted
 from the original recordings as static postures: one row per plateau with the
 joint angles and the mean pose of three tracked bodies. Their own protocol
-(`calibration/mocap/protocol.yaml`, `talos-mocap-2022-03-15` v1) freezes roles
-and hashes. No study evaluates them yet: the calibration study is a follow-up
-and adds the held-out block in v2.
+(`calibration/mocap/protocol.yaml`) freezes roles and hashes. v1 shipped the
+files; v2 ([#172](https://github.com/thanhndv212/figaroh-examples/issues/172),
+same files and hashes) adds the bodies' attachment links, the measurement and
+flip rules and the held-out block of the calibration study
+(`examples/talos/mocap_heldout.py`,
+[docs/development/talos-mocap.md](../../../docs/development/talos-mocap.md)).
+`protocol_1354_kfold.yaml` is the study's row k-fold plan of the training run
+(selects the estimation method).
 
 | File | Role | Arm | Run (UTC) | Postures | Plateaus | Lag (s) | sha256 (prefix) |
 |---|---|---|---|---|---|---|---|
@@ -43,19 +48,36 @@ Per session, from the bag (`protocol.yaml` holds the same figures).
   Qualisys poses with the robot's own link transforms on `/tf_throttle`, and
   the PAL introspection statistics (joint positions among 604 values) on
   `/introspection_data/values_throttle`. The throttled topics are what was
-  recorded; the original publishing rates are unknown. Qualisys system, camera
-  count, marker model and calibration quality are unknown. PAL Robotics TALOS;
-  lab and licence line: to be added by the maintainer.
+  recorded; the original publishing rates are unknown. PAL Robotics TALOS.
+  Recorded at LAAS-CNRS by @thanhndv212; distributed under Apache 2.0, as the
+  repository. Sensor hardware is a disclosed limit: the Qualisys system,
+  camera count, marker model and calibration quality are unknown, and nothing
+  is assumed about them.
 - **Bodies and frames:** three rigid bodies, parent frame `Qualisys` (the
   Qualisys world frame, the frame of every shipped pose):
   `waist_frame` (`waist_*`), `upper_body_frame` (`upper_body_*`),
   `endeffector_frame` (`endeffector_*`). Poses are position (m) and unit
   quaternion `x, y, z, w` (scalar part >= 0, the mean of the plateau samples).
-  Which robot link each body is mounted on, and the offset to that link, are
-  unknown: nothing in the recordings states them, and nothing is assumed.
-  Both `waist_frame` and `upper_body_frame` move with the torso joints, so none of the three bodies is a fixed base
-  reference; the robot base pose in the world is not recorded. A calibration
-  needs a free registration (body to link, world to base).
+  Nothing in the recordings states the links; they are established fit-free
+  (v2, `test_attachment_links_from_rotation_angles`): if a body rides on a
+  link and the waist on `base_link`, the angle of the body's rotation in the
+  waist frame between two rows equals the angle of that link's nominal
+  rotation between them (the unknown mounts cancel). `upper_body_frame`
+  matches `torso_2_link` to 0.17 deg RMS (`base_link`, `torso_1_link`: 8 deg
+  or more); `endeffector_frame` matches `arm_<side>_7_link` to 0.8 to 1.2
+  deg (`arm_<side>_6_link`: 15 deg or more), the remainder being joint
+  errors. `waist_frame` is on `base_link`, which moves in the lab (the waist
+  spreads by about 0.2 m over a run; it does not move with the torso joints,
+  as v1 said). The offsets body to link are unknown and are estimated.
+  The robot base pose in the world is not recorded; the study measures the
+  end-effector in the waist frame, so it is not needed.
+- **Flipped orientations:** the end-effector body's orientation jumps by 90
+  or 180 deg on some rows (the marker body re-identified with its axes
+  permuted; its origin moves with it, a rotation about a point): 14 of 39 rows of the 14:18 run in three clusters, 1 of 23 of
+  the 14:39 run, none of the training run. The fit-free rule (45 deg from the
+  run's medoid, `mocap_heldout.flip_clusters`) flags them; the study repairs
+  clusters of at least 3 rows with a fitted rotation about a centroid and
+  drops smaller ones from its metrics. The files are not changed.
 - **Joints:** radians, joint positions `<joint>_joint_position` of the PAL
   statistics (the joint-side measurement, not the motor side): the seven joints
   of the recorded arm and `torso_1_joint`, `torso_2_joint`, at the plateau mean.
@@ -83,7 +105,8 @@ Per session, from the bag (`protocol.yaml` holds the same figures).
   median sample periods; the counts above are those gaps and their total
   length. The end-effector body is lost for a large part of each run
   (183 s, 393 s and 97 s) and arrives at 1 Hz when tracked; that limits the number of usable postures.
-- **Known limits:** attachment links and base pose unknown (above); the
+- **Known limits:** sensor hardware unknown; body offsets unknown (estimated);
+  flipped end-effector orientations on the right-arm runs (above); the
   end-effector pose is a few samples per posture; the clock lag is good to about
   0.1 s; the unshipped plateaus (39 of 158 found are dropped) are mostly those with too few end-effector samples; the throttled topics hide the original
   rates; the validation run is the other arm than the training run, so the

@@ -282,7 +282,7 @@
       "study": "Motion-capture calibration",
       "kind": "real",
       "role": "calibration",
-      "description": "Plateau-averaged static postures (joint angles and Qualisys marker poses of three bodies) from three 2022-03-15 sessions: left 56 (training), right 39 (validation), right 23 (confirmation). Roles and hashes are frozen in examples/talos/data/calibration/mocap/protocol.yaml.",
+      "description": "Plateau-averaged static postures (joint angles and Qualisys marker poses of three bodies) from three 2022-03-15 sessions: left 56 (training), right 39 (validation), right 23 (confirmation). Roles, hashes and the attachment and flip conventions are frozen in examples/talos/data/calibration/mocap/protocol.yaml (v2); the k-fold selection plan on the training run in protocol_1354_kfold.yaml.",
       "paths": [
         "examples/talos/data/calibration/mocap/"
       ],
@@ -498,8 +498,12 @@
       "bytes": 213
     },
     "examples/talos/data/calibration/mocap/protocol.yaml": {
-      "sha256": "b74f3a717943de4da038629f9d18eb877360ddecf719582270a9287f23c6f005",
-      "bytes": 5291
+      "sha256": "514df4e28e99fb5f00d29b67eb552171f88720be183cfaa97a9219e67c7466bd",
+      "bytes": 8022
+    },
+    "examples/talos/data/calibration/mocap/protocol_1354_kfold.yaml": {
+      "sha256": "dd29f0503d83e90b329d6a5b0e09079c69eb8bc36bba26b5dd88e6a6b25bc713",
+      "bytes": 897
     },
     "examples/talos/data/calibration/mocap/qualisys_2022-03-15-1354_left_static_postures.csv": {
       "sha256": "4bfa50c2219acf776c18d484433553ab5283ba0ecc29a6bf053584a314ae92ef",

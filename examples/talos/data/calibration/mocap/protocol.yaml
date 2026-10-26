@@ -1,7 +1,50 @@
 # TALOS torso-arm Qualisys motion-capture sessions of 2022-03-15 (examples#114)
 # as a data-contract Protocol (figaroh-plus#55). Roles are frozen: changing a
-# file or a role needs a new version. No heldout: block: the calibration study
-# that evaluates these sessions is a follow-up issue, which adds the block in v2.
+# file or a role needs a new version. The heldout: block is read by
+# examples/calibration_harness (core's Protocol.load ignores it).
+#
+# v2 (examples#172, the calibration study; written and committed before any
+# study model was fitted to these files). Files, hashes and roles are those of
+# v1. Added: the body attachments, the heldout: block, and the rules below.
+# The study is examples/talos/mocap_heldout.py and its pre-registration is
+# docs/development/talos-mocap.md (section 3).
+#
+# - Attachments (bodies: below), found from the data before the study with
+#   the nominal model and a free 6D registration per body: waist_frame on
+#   base_link, upper_body_frame on torso_2_link (0.29 mm, 0.16 deg RMS on the
+#   training run; every other pair of links 8 to 24 mm), endeffector_frame on
+#   arm_<side>_7_link (links 4 to 6: 37 to 76 mm). The offsets stay unknown
+#   and are estimated. waist_frame moves in the world (up to 0.2 m over a
+#   run: the base is not fixed) but rides on base_link, so it is the base
+#   reference; the robot base pose in the world is not recorded and is not
+#   needed.
+# - Measurement: the end-effector body in the waist body frame,
+#   inverse(waist) * endeffector, 6D. upper_body_frame is not used by the
+#   study: it would only observe the torso, whose errors it absorbs.
+# - Orientation flips: Qualisys sometimes reports the end-effector body in a
+#   rotated frame (a different marker labelling of the same rigid body).
+#   Rule, fit-free, on the nominal model: rotation of the body relative to
+#   arm_<side>_7_link with the waist rotation taken as identity; a row is
+#   flipped when it is more than 45 deg from the session medoid (the row
+#   within 45 deg of the most others). Flipped rows are grouped by the same
+#   45 deg rule into clusters. The validation run has 14 of 39 such rows
+#   (the training run none; the confirmation run was not inspected). Each
+#   cluster k is repaired, not dropped: a rotation R_k about a marker
+#   centroid c shared by all clusters, S_k = (R_k, (I - R_k) c) on the body
+#   side, estimated with the registration of the session.
+# - Held-out metric (PRIMARY_METRIC in mocap_heldout.py, the harness schema
+#   has no key for it): end-effector position RMSE in the waist frame (mm),
+#   RE-REGISTERED: on the evaluated session the waist and end-effector
+#   registrations (6D each) and the flip repair are refitted; the model's
+#   torso parameters are carried over, the evaluated arm is nominal.
+#   Secondary: the waist registration carried over from training (the same
+#   body on the same link).
+# - Strata are over the torso joints only: the held-out runs move the other
+#   arm, so every held-out arm posture is new to the training.
+# - Model selection: on the k-fold plan of the training run
+#   (protocol_1354_kfold.yaml, development evidence), never on the
+#   confirmation run. The validation run judges the torso transfer.
+#
 # Three sessions, all usable (>= 15 plateaus kept; the gate below). Roles:
 # training = left arm, validation = right arm (the two roles span the two
 # arms, as the issue asks), confirmation = the third run (right arm, a
@@ -9,11 +52,8 @@
 # validation run within 5 mrad, so it neither extends the training nor repeats
 # the validation).
 # Frame: every body is expressed in the Qualisys world frame. The recordings
-# hold three bodies (waist_frame, upper_body_frame, endeffector_frame); which
-# robot link each is mounted on, and the offset from that link, are unknown
-# and are not guessed (free registration in a study). Both waist_frame and
-# upper_body_frame move with the torso joints, so none of the three bodies is
-# a fixed base reference.
+# hold three bodies (waist_frame, upper_body_frame, endeffector_frame); v1
+# left their links unknown, v2 records them (above).
 # source: the original recording (not distributed): the ROS bag, with sha256, and
 # the clock lag measured from it (t_robot - t_mocap). The bag holds joint
 # positions from the PAL introspection statistics and the Qualisys poses from
@@ -33,11 +73,11 @@
 # flag in the bag), reported as gap count and total seconds. Joint stream: no
 # gaps above 0.042 s (maximum interval).
 name: talos-mocap-2022-03-15
-version: 1
+version: 2
 bodies:
-  waist: {frame: waist_frame, parent: Qualisys, attached_to: unknown}
-  upper_body: {frame: upper_body_frame, parent: Qualisys, attached_to: unknown}
-  endeffector: {frame: endeffector_frame, parent: Qualisys, attached_to: unknown}
+  waist: {frame: waist_frame, parent: Qualisys, attached_to: base_link}
+  upper_body: {frame: upper_body_frame, parent: Qualisys, attached_to: torso_2_link}
+  endeffector: {frame: endeffector_frame, parent: Qualisys, attached_to: arm_<side>_7_link}
 sessions:
 - id: 2022-03-15-1354-left
   role: training
@@ -90,3 +130,10 @@ sessions:
     endeffector: {samples: 343, rate_hz: 1.2, frozen: 0, nan: 0, tracking_loss_gaps: 16, tracking_loss_s: 96.7}
   files:
     qualisys_2022-03-15-1439_right_static_postures.csv: c6cc469bd21da32e5c4bdbb901131770f23e5e85267a549700573eb24e2f1989
+heldout:
+  split: sessions
+  selection_role: validation
+  strata:
+    joints: [torso_1_joint, torso_2_joint]
+    repeated_tol: 0.01
+    out_of_range_margin: 0.05

@@ -1,9 +1,11 @@
 """TALOS torso-arm motion-capture sessions of 2022-03-15 (#114).
 
-Protocol v1 freezes three Qualisys sessions in the Qualisys world frame (three
-bodies, see examples/talos/utils/mocap_extraction.py). These tests pin their
-hashes, roles, schema, per-run clock lags, usability gate and audit figures
-from the shipped files alone (no ``rosbags`` needed).
+Protocol v1 froze three Qualisys sessions in the Qualisys world frame (three
+bodies, see examples/talos/utils/mocap_extraction.py); v2 (#172) adds the
+bodies' attachment links and the held-out block of the study, with the same
+files. These tests pin their hashes, roles, schema, per-run clock lags,
+usability gate and audit figures from the shipped files alone (no
+``rosbags`` needed), and the attachment links from a fit-free invariant.
 """
 
 from pathlib import Path
@@ -61,8 +63,10 @@ def frames():
 def test_protocol_freezes_three_roles_and_hashes(manifest):
     from figaroh.data import Protocol
 
-    assert (manifest["name"], manifest["version"]) == ("talos-mocap-2022-03-15", 1)
-    assert "heldout" not in manifest  # the study adds it in v2
+    assert (manifest["name"], manifest["version"]) == ("talos-mocap-2022-03-15", 2)
+    assert manifest["heldout"]["split"] == "sessions"
+    assert manifest["heldout"]["selection_role"] == "validation"
+    assert manifest["heldout"]["strata"]["joints"] == ["torso_1_joint", "torso_2_joint"]
     protocol = Protocol.load(MOCAP / "protocol.yaml")
     protocol.verify(root=MOCAP)
     assert len(protocol.sessions) == 3
@@ -87,8 +91,12 @@ def test_sources_are_named_by_sha256_and_not_distributed(manifest):
     assert not list(MOCAP.rglob("introspection*")) and not list(MOCAP.rglob("tf_*"))
     # a bag per session, all distinct
     assert len({e["source"]["sha256"] for e in raw.values()}) == 3
-    # attachment links are not known: never recorded as a guess
-    assert {b["attached_to"] for b in manifest["bodies"].values()} == {"unknown"}
+    # attachment links: test_attachment_links_from_rotation_angles
+    assert {k: b["attached_to"] for k, b in manifest["bodies"].items()} == {
+        "waist": "base_link",
+        "upper_body": "torso_2_link",
+        "endeffector": "arm_<side>_7_link",
+    }
     assert set(manifest["bodies"]) == set(BODIES)
 
 
@@ -153,8 +161,9 @@ def test_runs_do_not_repeat_each_other(frames):
     assert matched == 0
 
 
-def test_waist_and_upper_body_move_with_the_torso(frames):
-    """No body is a fixed base: waist and upper body poses spread by decimetres."""
+def test_no_body_is_fixed_in_the_lab(frames):
+    """Waist and upper body poses spread by decimetres in the Qualisys frame
+    (the waist rides on base_link, which moves in the lab)."""
     for df in frames.values():
         for body in ("waist", "upper_body"):
             spread = (
@@ -162,3 +171,57 @@ def test_waist_and_upper_body_move_with_the_torso(frames):
                 - df[[f"{body}_x", f"{body}_y"]].min()
             )
             assert spread.max() > 0.1
+
+
+def _angle_deg(a, b):
+    import pinocchio as pin
+
+    return np.degrees(np.linalg.norm(pin.log3(a.T @ b)))
+
+
+def _angle_mismatch_deg(measured, nominal):
+    """RMS over row pairs of |angle(M_i^T M_j) - angle(N_i^T N_j)|."""
+    n = len(measured)
+    err = [
+        _angle_deg(measured[i], measured[j]) - _angle_deg(nominal[i], nominal[j])
+        for i in range(n)
+        for j in range(i + 1, n)
+    ]
+    return float(np.sqrt(np.mean(np.square(err))))
+
+
+@pytest.mark.parametrize("sid", SESSIONS)
+def test_attachment_links_from_rotation_angles(sid, frames):
+    """Fit-free: if body b rides on link l and the waist on base_link, the
+    rotation of b in the waist frame between two rows has the angle of l's
+    nominal rotation between them (the unknown mounts cancel). Only the
+    claimed links match; the end-effector keeps about 1 deg, the joint
+    errors the study fits. Flipped rows are left out."""
+    import pinocchio as pin
+
+    from examples.talos import mocap_heldout as mh
+
+    model = mh.robot().model
+    data = model.createData()
+    arm = SESSIONS[sid][1]
+    df = frames[sid]
+    df = df[mh.flip_clusters(model, df, arm) == 0]
+    waist = mh.body_poses(df, "waist")
+
+    def in_waist(body):
+        return [w.rotation.T @ b.rotation for w, b in zip(waist, mh.body_poses(df, body))]
+
+    def nominal(link):
+        out = []
+        for q in mh.configurations(model, df, arm):
+            pin.framesForwardKinematics(model, data, q)
+            out.append(data.oMf[model.getFrameId(link)].rotation.copy())
+        return out
+
+    upper, ee = in_waist("upper_body"), in_waist("endeffector")
+    assert _angle_mismatch_deg(upper, nominal("torso_2_link")) < 0.3
+    for link in ("base_link", "torso_1_link"):
+        assert _angle_mismatch_deg(upper, nominal(link)) > 5
+    assert _angle_mismatch_deg(ee, nominal(f"arm_{arm}_7_link")) < 1.5
+    for link in (f"arm_{arm}_6_link", f"arm_{arm}_5_link"):
+        assert _angle_mismatch_deg(ee, nominal(link)) > 10
