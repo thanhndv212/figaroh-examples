@@ -17,6 +17,16 @@ Models, all built from the ``full_params`` level:
 - ``full map``, ``full map_cv``, ``full excitation``, ``full cv_subset``:
   core's regularised methods with core's default prior sizes.
 
+Measurement noise (figaroh-plus#215): every regularised fit (the
+structural ones do not use the noise) estimates one noise level
+per residual component (``estimation.noise_std: per_component``, from a
+free fit: noise plus model error). The noise is taken as diagonal in a
+sensor frame (``noise_rotation``): position in the camera frame, which is
+the body frame of the cost function's position residual, and orientation
+in the fixed board frame, which the body-frame angle residual sees through
+the measured rotation. These frames are the synthetic-truth study's
+assumption, not measured on this sensor.
+
 Metrics are never mixed into one number: ``rmse_pos_mm`` (board-frame
 position error, the metric models are selected on, validation role only) and
 ``rmse_rot_deg`` (geodesic orientation error). There is no re-registration:
@@ -86,6 +96,12 @@ PRIORS = {
     "joint_offset": 2e-2,
     "prismatic_offset": 2e-3,
 }
+#: ``estimation.noise_std`` of the non-structural fits unless set:
+#: estimated per residual component (the session has no repeated posture)
+NOISE_STD = "per_component"
+#: orientation weight of UR10Calibration.cost_function (position weight 1):
+#: converts an angle noise (rad) to residual units
+ORIENT_WEIGHT = 0.5
 # label -> (calibration level, frames_only, core estimation settings)
 MODELS = {
     "registration only": ("full_params", True, {"method": "structural"}),
@@ -106,6 +122,33 @@ def is_frame(name: str) -> bool:
     return name in BASE_TPL or "EE" in name
 
 
+def noise_rotation(pee_measured: np.ndarray, n: int) -> np.ndarray:
+    """(n, 6, 6) sensor-frame rotations of the residuals (figaroh-plus#215).
+
+    The residual is the body-frame position and angle-axis error of
+    ``log(M_meas^-1 M_est)``. Camera-frame position noise is already in the
+    body frame (identity block); board-frame orientation noise ``w`` shows in
+    the residual as ``R_meas^T w``. ``pee_measured`` is DOF-major (x, y, z,
+    roll, pitch, yaw), as ``BaseCalibration.PEE_measured``.
+    """
+    rpy = np.asarray(pee_measured, dtype=float).reshape(6, n)[3:].T
+    R = np.zeros((n, 6, 6))
+    R[:, :3, :3] = np.eye(3)
+    for i, r in enumerate(rpy):
+        R[i, 3:, 3:] = pin.rpy.rpyToMatrix(r).T
+    return R
+
+
+class HandEyeCalibration(UR10Calibration):
+    """UR10Calibration with the hand-eye noise frames (``noise_rotation``)."""
+
+    def load_data_set(self):
+        super().load_data_set()
+        self.noise_rotation = noise_rotation(
+            self.PEE_measured, self.calib_config["NbSample"]
+        )
+
+
 def fit(
     data_file,
     level: str = "full_params",
@@ -118,11 +161,12 @@ def fit(
 
     ``frames_only`` keeps the 12 frame parameters (the registration
     baseline). ``max_iterations=1`` fits once, without outlier exclusion.
-    ``estimation=None`` keeps the config's method; ``instance`` adds to the
-    run's instance record (asset id, operator).
+    ``estimation=None`` keeps the config's method; a non-structural method
+    without a ``noise_std`` gets ``NOISE_STD``. ``instance`` adds to the run's
+    instance record (asset id, operator).
     """
     robot = load_robot(str(URDF), package_dirs=str(MODELS_DIR), load_by_urdf=True)
-    calib = UR10Calibration(robot, str(CONFIG))
+    calib = HandEyeCalibration(robot, str(CONFIG))
     path = Path(data_file).resolve()
     calib.calib_config["data_file"] = str(path)
     calib._data_path = str(path)
@@ -131,6 +175,9 @@ def fit(
     calib.calib_config["calib_model"] = level
     if estimation is not None:
         calib.calib_config["estimation"] = dict(estimation)
+    est = calib.calib_config.setdefault("estimation", {})
+    if est.get("method", "structural") != "structural":
+        est.setdefault("noise_std", NOISE_STD)  # structural ignores the noise
     if instance:
         calib.calib_config["instance"] = dict(
             calib.calib_config.get("instance") or {}, **instance

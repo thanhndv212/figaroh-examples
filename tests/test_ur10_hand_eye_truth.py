@@ -40,6 +40,48 @@ def test_camera_frame_noise_covariance_matches_the_sigmas():
     assert np.allclose(w.std(axis=0), sig_r, rtol=0.02)
 
 
+def test_noise_rotation_whitens_the_cost_function_residual():
+    """The fits' noise model is the simulated one (figaroh-plus#215).
+
+    The cost function's residual of a noisy measurement, rotated into the
+    sensor frames by ``noise_rotation`` (core: R_i^T r) and divided by
+    ``residual_sigma``, has unit variance per component.
+    """
+    import pinocchio as pin
+
+    n, level = 20_000, 2.0
+    rot = Rotation.random(n, random_state=4).as_matrix()
+    pos = np.random.default_rng(6).uniform(-1, 1, (n, 3))
+    pos2, rot2 = het.add_noise(pos, rot, level, np.random.default_rng(7))
+    rpy2 = np.array([pin.rpy.matrixToRpy(r) for r in rot2])
+    R = heh.noise_rotation(np.hstack([pos2, rpy2]).T.ravel(), n)
+    assert R.shape == (n, 6, 6)
+    assert np.allclose(R @ np.swapaxes(R, 1, 2), np.eye(6), atol=1e-9)
+    weight = np.r_[1.0, 1.0, 1.0, [heh.ORIENT_WEIGHT] * 3]
+    r = np.array(
+        [
+            weight * pin.log(pin.SE3(m_r, m_p).inverse() * pin.SE3(t_r, t_p)).vector
+            for m_r, m_p, t_r, t_p in zip(rot2, pos2, rot, pos)
+        ]
+    )
+    sensor = np.einsum("ikc,ik->ic", R, r)
+    z = sensor / np.array(het.residual_sigma(level))
+    assert np.allclose(z.std(axis=0), 1.0, rtol=0.03)
+    assert np.allclose(np.corrcoef(z.T) - np.eye(6), 0, atol=0.03)
+
+
+def test_fit_estimation_gives_the_regularised_fits_the_noise():
+    est = {"method": "map", "priors": heh.PRIORS}
+    assert het.fit_estimation(est, 2.0)["noise_std"] == het.residual_sigma(2.0)
+    assert het.fit_estimation(est, 2.0, estimated=True)["noise_std"] == (
+        "per_component"
+    )
+    assert "noise_std" not in est  # not modified in place
+    structural = {"method": "structural"}
+    assert het.fit_estimation(structural, 2.0) is structural
+    assert het.fit_estimation(est, 0.0) is est  # nothing to whiten by
+
+
 def test_simulation_is_reproducible_and_seed_dependent():
     st = het.study()
     q = het.training_postures()

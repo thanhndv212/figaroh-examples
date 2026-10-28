@@ -3,7 +3,7 @@
  "kfold": {
   "label": "k-fold within session ur10-hand-eye-session-1 (single session; weaker than held-out sessions)",
   "primary_metric": "rmse_pos_mm",
-  "selected": "full map_cv",
+  "selected": "full cv_subset",
   "models": {
    "registration only": {
     "n_params": 12,
@@ -22,23 +22,23 @@
    },
    "full map": {
     "n_params": 48,
-    "rmse_pos_mm": 4.022,
-    "rmse_rot_deg": 0.403
+    "rmse_pos_mm": 3.975,
+    "rmse_rot_deg": 0.414
    },
    "full map_cv": {
     "n_params": 48,
-    "rmse_pos_mm": 4.012,
-    "rmse_rot_deg": 0.449
+    "rmse_pos_mm": 3.975,
+    "rmse_rot_deg": 0.414
    },
    "full excitation": {
-    "n_params": 28,
-    "rmse_pos_mm": 4.127,
-    "rmse_rot_deg": 0.402
+    "n_params": 29,
+    "rmse_pos_mm": 4.093,
+    "rmse_rot_deg": 0.413
    },
    "full cv_subset": {
     "n_params": 25,
-    "rmse_pos_mm": 4.004,
-    "rmse_rot_deg": 0.472
+    "rmse_pos_mm": 3.953,
+    "rmse_rot_deg": 0.414
    }
   }
  },
@@ -71,33 +71,33 @@
    "fit": "full map",
    "noise_mm": 1.0,
    "n_params": 48,
-   "train_rms_mm": 0.636,
-   "heldout_rmse_mm": 2.875,
-   "heldout_rot_deg": 0.072
+   "train_rms_mm": 0.682,
+   "heldout_rmse_mm": 2.878,
+   "heldout_rot_deg": 0.065
   },
   {
    "fit": "full map_cv",
    "noise_mm": 1.0,
    "n_params": 48,
-   "train_rms_mm": 0.62,
-   "heldout_rmse_mm": 3.132,
-   "heldout_rot_deg": 0.081
+   "train_rms_mm": 0.682,
+   "heldout_rmse_mm": 2.878,
+   "heldout_rot_deg": 0.065
   },
   {
    "fit": "full excitation",
    "noise_mm": 1.0,
    "n_params": 29,
-   "train_rms_mm": 0.62,
-   "heldout_rmse_mm": 7.451,
-   "heldout_rot_deg": 0.082
+   "train_rms_mm": 0.679,
+   "heldout_rmse_mm": 6.727,
+   "heldout_rot_deg": 0.07
   },
   {
    "fit": "full cv_subset",
    "noise_mm": 1.0,
-   "n_params": 29,
-   "train_rms_mm": 0.62,
-   "heldout_rmse_mm": 7.451,
-   "heldout_rot_deg": 0.082
+   "n_params": 27,
+   "train_rms_mm": 0.683,
+   "heldout_rmse_mm": 6.721,
+   "heldout_rot_deg": 0.089
   }
  ]
 }

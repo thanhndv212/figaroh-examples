@@ -30,12 +30,17 @@ robot-specific part plugs into examples/calibration_harness/simulation.py.
   Gauge: base and tool frames absorb joint errors, so recovery is judged
   in predictions, plus z-scores of the joint parameters for the map family
   only (the structural fits' parameters are base-parameter representatives).
-  The z-score assumes isotropic ``noise_std``; with this anisotropic noise
-  the map and map_cv z-scores run above 1 (a per-component measurement
-  noise is not a core option).
+- **Noise model of the fits** (figaroh-plus#215): the regularised fits get
+  the simulated noise, per residual component (``residual_sigma``), in the
+  sensor frames of ``hand_eye_heldout.noise_rotation``; ``--estimated-noise``
+  has them estimate it (``per_component``, as on the real data) instead.
+  It improves the held-out accuracy. The z-scores (``z_by_fit``) are near 1
+  for map and map_cv with a scalar or a per-component noise alike; cv_subset's
+  are not, as its standard errors ignore the bias of the parameters it drops.
 
     python examples/ur10/hand_eye_truth.py                 # full grid (slow)
     python examples/ur10/hand_eye_truth.py --seeds 0 --noise 1
+    python examples/ur10/hand_eye_truth.py --seeds 0 --noise 1 --estimated-noise
 """
 
 from __future__ import annotations
@@ -119,6 +124,30 @@ def heldout_postures() -> pd.DataFrame:
     rng = np.random.default_rng(HELD_SEED)
     q = rng.uniform(real.min().to_numpy(), real.max().to_numpy(), (N_HELD, 6))
     return pd.DataFrame(q, columns=heh.JOINTS)
+
+
+def residual_sigma(level: float) -> list:
+    """Noise per residual component at ``level``, in the sensor frames.
+
+    Position in metres (camera frame), orientation in the cost function's
+    units: angle (board frame) times ``hand_eye_heldout.ORIENT_WEIGHT``.
+    """
+    angle = heh.ORIENT_WEIGHT * np.array([TILT, TILT, INPLANE])
+    return list(level * np.r_[SIGMA_XY, SIGMA_XY, SIGMA_Z, angle])
+
+
+def fit_estimation(estimation, level: float, estimated: bool = False):
+    """``estimation`` with the noise the regularised fits are given.
+
+    The simulated noise (``residual_sigma``), or ``per_component`` with
+    ``estimated``; unchanged for structural fits (no noise used) and at
+    level 0 (no noise to whiten by).
+    """
+    est = dict(estimation or {})
+    if est.get("method", "structural") == "structural" or level == 0:
+        return estimation
+    est["noise_std"] = heh.NOISE_STD if estimated else residual_sigma(level)
+    return est
 
 
 def is_joint_param(name: str) -> bool:
@@ -271,9 +300,20 @@ def study() -> sim.SimulationStudy:
 
 
 def run_case(
-    truth_kind, fit_level, seed, noise, workdir, estimation=None, label=None
+    truth_kind,
+    fit_level,
+    seed,
+    noise,
+    workdir,
+    estimation=None,
+    label=None,
+    estimated_noise=False,
 ) -> dict:
-    """One case (``sim.run_case``), plus the held-out orientation error (deg)."""
+    """One case (``sim.run_case``), plus the held-out orientation error (deg).
+
+    The fit's noise is set by ``fit_estimation``.
+    """
+    estimation = fit_estimation(estimation, noise, estimated_noise)
     out = sim.run_case(
         study(), truth_kind, fit_level, seed, noise, workdir, estimation, label
     )
@@ -281,7 +321,7 @@ def run_case(
     return out
 
 
-def run(seeds=SEEDS, noise=None, models=None) -> pd.DataFrame:
+def run(seeds=SEEDS, noise=None, models=None, estimated_noise=False) -> pd.DataFrame:
     """The grid: truth x noise x fit x seed (``models``: labels of ``FITS``)."""
     import tempfile
 
@@ -296,7 +336,9 @@ def run(seeds=SEEDS, noise=None, models=None) -> pd.DataFrame:
                 for label in labels:
                     level, est = FITS[label]
                     for s in seeds:
-                        rows.append(run_case(t, level, s, n, tmp, est, label))
+                        rows.append(
+                            run_case(t, level, s, n, tmp, est, label, estimated_noise)
+                        )
     return pd.DataFrame(rows)
 
 
@@ -307,25 +349,50 @@ def summary(df: pd.DataFrame) -> tuple:
     return table.join(rot), z
 
 
+def z_by_fit(df: pd.DataFrame) -> dict:
+    """``sim.summarize``'s z summary per fit (fits with their own std only)."""
+    out = {}
+    for fit, rows in df.groupby("fit", sort=False):
+        _, z = sim.summarize(rows, {})
+        if z:
+            out[fit] = z
+    return out
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--seeds", type=int, nargs="+", default=list(SEEDS))
     parser.add_argument("--noise", type=float, nargs="+", default=None)
     parser.add_argument("--models", nargs="+", default=None, choices=list(FITS))
+    parser.add_argument(
+        "--estimated-noise",
+        action="store_true",
+        help="fits estimate the noise per component instead of being given it",
+    )
     args = parser.parse_args(argv)
-    table, z = summary(run(args.seeds, args.noise, args.models))
+    df = run(args.seeds, args.noise, args.models, args.estimated_noise)
+    table, z = summary(df)
     print(
         "Assumed noise (no repeats in the session): camera-frame "
         f"{SIGMA_XY * 1e3:.1f}/{SIGMA_Z * 1e3:.1f} mm, board-frame "
         f"{np.degrees(TILT):.2f}/{np.degrees(INPLANE):.2f} deg, times the level"
+    )
+    print(
+        "Fits given the noise: "
+        + ("estimated per component" if args.estimated_noise else "the simulated one")
     )
     print(table.round(3).to_string())
     if z:
         print(
             f"\nfull_params joint-level recovery (fits with their own std): "
             f"{z['n']} z-scores, mean {z['mean']:+.2f}, rms {z['rms']:.2f}, "
-            f"max |z| {z['max_abs']:.2f} (isotropic-noise z-scores)"
+            f"max |z| {z['max_abs']:.2f}"
         )
+        for fit, zf in z_by_fit(df).items():
+            print(
+                f"  {fit:16s} {zf['n']:5d} z-scores, mean {zf['mean']:+.2f}, "
+                f"rms {zf['rms']:.2f}, max |z| {zf['max_abs']:.2f}"
+            )
 
 
 if __name__ == "__main__":

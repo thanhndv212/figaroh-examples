@@ -110,6 +110,9 @@ def test_registration_baseline_fits_one_fold():
     names = list(calib.calib_config["param_name"])
     assert len(names) == 12
     assert all(heh.is_frame(n) for n in names)
+    # structural fits ignore the noise: none is set (figaroh-plus#215)
+    assert "noise_std" not in calib.calib_config["estimation"]
+    assert calib.noise_rotation.shape == (len(heh.PLAN.folds[0].training[0].rows), 6, 6)
     held = heh.PLAN.folds[0].evaluated[0]
     m = heh.evaluate(calib, held)
     assert m["n"] == len(held.rows)
