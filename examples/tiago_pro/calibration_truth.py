@@ -12,9 +12,10 @@ Same design as examples/tiago/calibration_truth.py, on the harness
 - **Truth:** base and tool frames from the real registration-only fit of the
   training session (``FRAMES``), plus seeded random joint errors
   (``TRUTH_SIGMA``) of the ``full_params`` class (six placement errors per
-  joint, in the joint frame). Only this class exists here: the joint_offset
-  level cannot represent the non-axis-aligned arm_right_6_joint (core
-  fails to build its parameter list), see heldout_protocol.MODELS.
+  joint, in the joint frame). Only this class is drawn: a joint_offset
+  truth is contained in it, and the joint_offset fit (available since
+  figaroh-plus#205) is compared on the real sessions only, see
+  heldout_protocol.MODELS.
 - **Measurements:** pose of the tool body in the mocap frame, computed with
   core's ``calc_updated_fkm`` (the model the fit uses), plus seeded Gaussian
   noise. The harness adds one isotropic noise level in millimetres per

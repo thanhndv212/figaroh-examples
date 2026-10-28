@@ -81,13 +81,16 @@ dropping rows on residual size alone would tune the data to the model.
 
 ## 5. Models
 
-All models are built from `full_params` (arm joints: 4 geometric parameters
-per joint, plus the base frame in the mocap frame, 6D, and the tool frame,
-6D). Same data, same config, one explicit `parameters.estimation.method`:
+All models but joint_offset are built from `full_params` (arm joints: 4
+geometric parameters per joint, plus the base frame in the mocap frame, 6D,
+and the tool frame, 6D). joint_offset fits one angle offset per joint on top
+of the same frames. Same data, same config, one explicit
+`parameters.estimation.method`:
 
 | Label | Estimation | Parameters (joint-level) |
 |---|---|---|
 | registration only | base and tool frame fitted, joints nominal | 12 (0) |
+| joint_offset | structural (QR) selection | 18 (6) |
 | full_params | structural (QR) selection | 35 (23) |
 | full map | MAP with core's default priors | 60 (48) |
 | full map_cv | MAP, prior scale by cross-validation | 60 (48) |
@@ -98,13 +101,18 @@ by platform, so their counts can differ (the tests skip those values when the
 count differs; CI runs Linux). The config default is `map_cv`, the model the
 validation role selected.
 
-**joint_offset is missing.** TIAGo also compares a `joint_offset` level
-(14 parameters). It is not available here: `arm_right_6_joint` is a
-`RevoluteUnaligned` joint that core's offset parameters cannot express
-(`create_param_list` fails). This is core bug
-[figaroh-plus#205](https://github.com/thanhndv212/figaroh-plus/issues/205);
-the model stays dropped until it is fixed, so the "registration, joint_offset,
-full_params" ladder of TIAGo has no middle rung here.
+**joint_offset was added after the protocol was frozen.** TIAGo compares a
+`joint_offset` level; here it was first left out because `arm_right_6_joint`
+is a `RevoluteUnaligned` joint that core's offset parameters could not
+express (`create_param_list` failed, core bug
+[figaroh-plus#205](https://github.com/thanhndv212/figaroh-plus/issues/205)).
+With the fix (figaroh-plus `devel` at `521c69c`) the level builds, and it
+fills the middle rung of TIAGo's "registration, joint_offset, full_params"
+ladder. It entered the model list after the held-out numbers of the other
+models had been seen; it does not change the selection (section 6). The
+structural selection keeps the offsets of arm_right_1 to arm_right_6: the
+arm_right_7 offset is the tool frame's rotation about the same axis, and
+the prismatic torso has no angle offset.
 
 ## 6. Held-out results
 
@@ -118,6 +126,7 @@ fit's own error on 08-05 (position / orientation).
 | Model | Training (mm / deg) | 07-01 validation: re-reg. | transfer | 07-02 confirmation: re-reg. | transfer |
 |---|---|---|---|---|---|
 | registration only | 19.78 / 3.09 | 28.56 | 38.31 | 28.06 | 33.52 |
+| joint_offset | 7.44 / 1.87 | 20.60 | 27.36 | 17.62 | 22.28 |
 | full_params | 6.69 / 1.81 | 20.49 | 26.68 | 17.50 | 22.17 |
 | full map | 7.44 / 1.93 | 20.41 | 27.31 | 16.92 | 22.05 |
 | full map_cv | 6.69 / 1.81 | **20.40** | 26.73 | 17.28 | 22.03 |
@@ -125,10 +134,15 @@ fit's own error on 08-05 (position / orientation).
 
 Selection on the validation role (primary metric): **map_cv**. Its margin
 over map (0.01 mm) and over full_params (0.09 mm) is not meaningful, and
-cv_subset trails by 0.36 mm; the four fitted models are equivalent on these
+cv_subset trails by 0.36 mm; the four full models are equivalent on these
 data. What the data do support is that any joint-level calibration beats the
 registration baseline by 8 mm (validation) and 11 mm (confirmation) on
-re-registered error. The confirmation set agrees with the validation order
+re-registered error. Six joint angle offsets (joint_offset, 0.20 mm behind
+map_cv on validation, 0.34 mm on confirmation) already give that gain; the
+42 further placement parameters of the full models add nothing measurable
+on held-out sessions, though they lower the training RMS from 7.4 to 6.7 mm.
+joint_offset was added after the protocol was frozen (section 5); had it
+been in the list, it would not have been selected. The confirmation set agrees with the validation order
 among the fitted models only loosely (map is best there by 0.4 mm), which is
 expected from the same equivalence. Split by overlap, the confirmation error
 on the 14 postures that repeat the validation set (about 17 mm) matches the
@@ -191,6 +205,7 @@ session), pooled over folds.
 | Model | Training RMS, all rows (mm) | Left-out fold position (mm) | Ratio | Left-out fold orientation (deg) |
 |---|---|---|---|---|
 | registration only | 19.78 | 21.02 | 1.06 | 3.21 |
+| joint_offset | 7.43 | 8.33 | 1.12 | 2.05 |
 | full_params | 6.68 | 8.70 | 1.30 | 2.10 |
 | full map | 7.44 | 8.84 | 1.19 | 2.19 |
 | full map_cv | 6.69 | 8.24 | 1.23 | 2.07 |
@@ -212,6 +227,7 @@ marker or frame move between days from robot changes over the month.
 | Model | Parameters | Training RMS 07-01 | 07-02 re-reg. | 07-02 transfer | Shared 14, re-reg. | Other 80, re-reg. |
 |---|---|---|---|---|---|---|
 | registration only | 9 | 22.70 | 28.06 | 36.54 | 30.59 | 27.60 |
+| joint_offset | 15 | 12.70 | 12.85 | 16.90 | 12.91 | 12.84 |
 | full_params | 30 | 11.59 | 11.58 | 15.73 | 12.07 | 11.50 |
 | full map | 57 | 12.55 | 12.42 | 16.15 | 13.18 | 12.28 |
 | full map_cv | 57 | 11.77 | 11.76 | 15.70 | 12.05 | 11.71 |
@@ -240,7 +256,7 @@ and swap. map_cv:
 | 07-02 (94) | 17.28 | 18.53 | +7% |
 
 (mm; pooled over both swaps. The other models give the same picture: 23.7-24.0
-and 18.0-19.0.) The in-sample bias is real but small (a few mm at most on 44
+and 18.0-19.0; joint_offset 23.78 and 18.82.) The in-sample bias is real but small (a few mm at most on 44
 rows). It does not explain a threefold gap.
 
 ### 8.4 What the gap is
@@ -400,8 +416,10 @@ section 6.
   nominal URDF masses, and is a diagnostic, not part of the protocol; so
   is the elastic model fitted from the mocap (section 8.6). Its stiffness
   values rest on the nominal URDF masses and no tool payload.
-- joint_offset is not available ([figaroh-plus#205](https://github.com/thanhndv212/figaroh-plus/issues/205)).
-- The differences among the four fitted models (0.01-0.4 mm) are below any
+- joint_offset needs figaroh-plus with
+  [#205](https://github.com/thanhndv212/figaroh-plus/issues/205) and was
+  added to the model list after the protocol was frozen (section 5).
+- The differences among the five fitted models (0.01-0.4 mm) are below any
   meaningful resolution; the study does not rank them.
 
 ## 10. Reproduction
