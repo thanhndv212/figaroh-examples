@@ -20,10 +20,13 @@ the held-out sessions the tool position is off by about 17-20&nbsp;mm even after
 re-registering the mocap frames (see the held-out study). See
 `docs/development/tiago-pro-mocap.md` for the reliability notes behind these
 numbers and the held-out study (frozen protocol, sessions in `data/README.md`).
-The `joint_offset` calibration level, which the TIAGo study compares, is not
-available for this arm: `arm_right_6_joint` is a `RevoluteUnaligned` joint
-that core's offset parameters cannot express
-([figaroh-plus#205](https://github.com/thanhndv212/figaroh-plus/issues/205)).
+The `joint_offset` calibration level (one angle offset per joint, as in the
+TIAGo study) needs figaroh-plus with
+[#205](https://github.com/thanhndv212/figaroh-plus/issues/205), because
+`arm_right_6_joint` is a `RevoluteUnaligned` joint. On the held-out sessions
+it does as well as the full models (20.60 / 17.62&nbsp;mm against 20.40 /
+17.28&nbsp;mm for `map_cv`), so the joint offsets account for nearly all of
+the gain over registration alone.
 Diagnostics of the train / held-out gap: `diagnostics.py`.
 
 ---

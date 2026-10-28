@@ -106,14 +106,20 @@ def test_roles_match_config_and_golden(hp):
 def test_models_are_the_frozen_list(hp):
     assert list(hp.MODELS) == [
         "registration only",
+        "joint_offset",
         "full_params",
         "full map",
         "full map_cv",
         "full cv_subset",
     ]
-    # joint_offset is absent: arm_right_6_joint is RevoluteUnaligned
-    # (figaroh-plus#205), core's offset parameters cannot express it
-    assert all(level == "full_params" for level, _, _ in hp.MODELS.values())
+    # joint_offset needs figaroh-plus#205 (arm_right_6_joint is
+    # RevoluteUnaligned); every other model is built from full_params
+    assert hp.MODELS["joint_offset"][0] == "joint_offset"
+    assert all(
+        level == "full_params"
+        for m, (level, _, _) in hp.MODELS.items()
+        if m != "joint_offset"
+    )
 
 
 def test_selection_never_looks_at_confirmation(hp):

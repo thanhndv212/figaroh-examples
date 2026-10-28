@@ -5,6 +5,8 @@ the position error on the two held-out sessions (2026-07-01 validation,
 2026-07-02 confirmation, position only):
 
 - registration only: nominal joints, base (6D) and tool frame fitted;
+- joint_offset: one angle offset per joint (added after the protocol was
+  frozen, once figaroh-plus#205 made the level available for this arm);
 - full_params: structural base parameters (the reference configuration);
 - full map / map_cv / cv_subset: core's regularised estimation methods.
 
@@ -87,11 +89,8 @@ PRIORS = {
 # label -> (calibration level, frames_only, core estimation settings or None
 # for the config's)
 MODELS = {
-    # the joint_offset level is not available for this arm: arm_right_6_joint
-    # is a RevoluteUnaligned joint that core's offset parameters cannot
-    # express (create_param_list fails), so every model is built from
-    # full_params, the registration baseline by dropping the joint parameters
     "registration only": ("full_params", True, {"method": "structural"}),
+    "joint_offset": ("joint_offset", False, {"method": "structural"}),
     "full_params": ("full_params", False, {"method": "structural"}),
     "full map": ("full_params", False, {"method": "map", "priors": PRIORS}),
     "full map_cv": ("full_params", False, {"method": "map_cv", "priors": PRIORS}),
