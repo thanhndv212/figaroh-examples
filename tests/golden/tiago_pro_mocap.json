@@ -31,6 +31,34 @@
     }
    }
   },
+  "joint_offset": {
+   "n_params": 18,
+   "n_joint_params": 6,
+   "train_pos_rmse_mm": 7.435,
+   "train_ori_rmse_deg": 1.874,
+   "sets": {
+    "calibration_samples_20260701_0913.csv": {
+     "rmse_rereg": 20.598,
+     "rmse_transfer": 27.361,
+     "n": 44,
+     "strata": {
+      "repeated": 0,
+      "new": 38,
+      "out_of_range": 6
+     }
+    },
+    "calibration_samples_20260702_0756.csv": {
+     "rmse_rereg": 17.621,
+     "rmse_transfer": 22.284,
+     "n": 94,
+     "strata": {
+      "repeated": 0,
+      "new": 74,
+      "out_of_range": 20
+     }
+    }
+   }
+  },
   "full_params": {
    "n_params": 35,
    "n_joint_params": 23,
