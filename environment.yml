@@ -18,4 +18,4 @@ dependencies:
 
   # Install remaining via pip
   - pip:
-    - figaroh>=0.7,<0.8  # paired core release; see README "Core compatibility"
+    - figaroh>=1.1,<1.2  # paired core release; see README "Core compatibility"
