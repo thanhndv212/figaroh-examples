@@ -103,8 +103,64 @@ def test_kinematics_match_core_on_the_arm_chain(kin):
     assert np.allclose(core[3:].T, rpy, atol=1e-12)
 
 
+def test_kinematics_match_core_eye_hand_anchor(kin):
+    """Core's head-camera anchor follows each sample (figaroh-plus#217).
+
+    With ``base_to_ref_frame`` at the camera, core returns
+    ``T_cam(q+d) S^-1 T_cam(q+d)^-1 T_hand(q+d)``, ``S`` the camera pose
+    parameters; before #217 the anchor came from one stale configuration.
+    """
+    from figaroh.calibration.calibration_tools import (
+        calc_updated_fkm,
+        cartesian_to_SE3,
+    )
+
+    rng = np.random.default_rng(0)
+    model = kin.model
+    data = model.createData()
+    n = 5
+    plan = hc.read_plan(hc.role_sets()["training"][0])[:n]
+    off = np.zeros(10)
+    off[1:] = rng.normal(0, 0.02, 9)  # head_1, head_2 and the arm
+    base = np.concatenate([rng.normal(0, 0.01, 3), rng.normal(0, 0.02, 3)])
+    q = np.tile(pin.neutral(model), (n, 1))
+    q[:, kin.idx] = plan
+    moved = [model.getJointId(j) for j in hc.JOINTS[1:]]
+    cfg = dict(
+        calib_model="joint_offset",
+        start_frame="universe",
+        end_frame=hc.HAND_FRAME,
+        base_to_ref_frame=hc.CAMERA_FRAME,
+        ref_frame=hc.CAMERA_FRAME,
+        NbMarkers=1,
+        calibration_index=6,
+        NbSample=n,
+        actJoint_idx=moved,
+        param_name=[
+            "base_px",
+            "base_py",
+            "base_pz",
+            "base_phix",
+            "base_phiy",
+            "base_phiz",
+        ]
+        + [f"offsetRZ_{model.names[j]}" for j in moved],
+        measurability=[True] * 6,
+    )
+    # the caller's last forward kinematics is the last sample, as in #217
+    pin.framesForwardKinematics(model, data, q[-1])
+    var = np.concatenate([base, off[1:]])
+    core = calc_updated_fkm(model, data, var, q, cfg).reshape(6, n)
+
+    Tc, Ta = kin.poses(plan, off)
+    S_inv = cartesian_to_SE3(base).inverse().homogeneous
+    expected = Tc @ S_inv @ np.linalg.inv(Tc) @ Ta
+    assert np.allclose(core[:3].T, expected[:, :3, 3], atol=1e-12)
+    rpy = np.array([pin.rpy.matrixToRpy(T[:3, :3]) for T in expected])
+    assert np.allclose(core[3:].T, rpy, atol=1e-12)
+
+
 def test_residual_is_a_rotation_vector_in_the_camera_frame():
-    rng = np.random.default_rng(1)
     w = np.array([0.02, -0.01, 0.03])
     Rm = Rotation.random(3, random_state=0).as_matrix()
     Rp = Rotation.from_rotvec(w).as_matrix() @ Rm[0]
