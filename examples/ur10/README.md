@@ -75,6 +75,9 @@ The validated reference case (`identification_reference.py --case truth`:
 known-truth fixture, physical-consistency-constrained fit, exported and reloaded
 URDF) is described in the
 [identification reference workflow](../../docs/development/identification-reference-workflow.md).
+The log-Cholesky physical fit is compared against OLS and corrected OLS+SDP on
+the same fixture by `log_cholesky_benchmark.py` (simulated data; core `devel`
+≥ 21994ed): see [LC1](../../docs/development/ur10-log-cholesky-lc1.md).
 
 #### Problem Statement
 Accurate dynamic models are essential for:

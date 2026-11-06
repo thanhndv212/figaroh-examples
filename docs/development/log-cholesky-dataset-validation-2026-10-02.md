@@ -21,6 +21,11 @@ or a fitted-model export.
 >
 > A port of the runner to current data is deferred until a later D5 revision
 > records a go, or to examples #11.
+>
+> Update: core #25 recorded a go and shipped the boundary-aware fit (#235,
+> #236). The current UR10 comparison is [LC1](ur10-log-cholesky-lc1.md)
+> (examples #11); it uses the truth fixture and core's production module, not
+> this runner.
 
 ## Reproduction
 

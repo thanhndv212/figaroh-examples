@@ -1,0 +1,4410 @@
+{
+  "title": "LC1 log-Cholesky comparison (#11): SIMULATED UR10 truth fixture",
+  "smoke": false,
+  "provenance": {
+    "data": "SIMULATED: Pinocchio RNEA on the drawn truth model (data/truth)",
+    "torque_provenance": "tau = RNEA(truth URDF, q, dq, ddq) with analytic q/dq/ddq; noisy levels add seeded Gaussian effort and position noise (protocol.yaml)",
+    "hardware_validated": false,
+    "urdf_exported": false,
+    "examples": {
+      "commit": "fa18810d3c4b56279c79f8ce76cbf3219a36f192",
+      "describe": "v1.1.0-2-gfa18810",
+      "branch": "thanhndv212/work-status",
+      "dirty": true
+    },
+    "core": {
+      "commit": "21994ed396eb91b1f09988098a2ef8725b514dad",
+      "describe": "v1.1.0-21-g21994ed",
+      "branch": "devel",
+      "dirty": false
+    },
+    "core_version": "1.1.0",
+    "minimum_core": "figaroh-plus devel >= 21994ed (log-Cholesky #235 plus the #234 null-space fix #236); unreleased after 1.1.0",
+    "versions": {
+      "python": "3.12.5",
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "pinocchio": "3.7.0",
+      "picos": "2.6.1",
+      "cvxopt": "1.3.2"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "threads": {
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "model": {
+      "nominal_prior_urdf": "examples/ur10/urdf/ur10_robot.urdf",
+      "truth_urdf": "examples/ur10/data/truth/ur10_truth.urdf",
+      "joints": [
+        "shoulder_pan_joint",
+        "shoulder_lift_joint",
+        "elbow_joint",
+        "wrist_1_joint",
+        "wrist_2_joint",
+        "wrist_3_joint"
+      ],
+      "parameter_order": "per joint m, mx, my, mz, Ixx, Ixy, Iyy, Ixz, Iyz, Izz"
+    },
+    "split": {
+      "train": "train.csv (24 s spline, 2400 rows at 100 Hz)",
+      "heldout": "validation.csv (independent 8 s Fourier, 800 rows)",
+      "derivatives": "analytic, unfiltered, undecimated"
+    },
+    "seeds": {
+      "datasets": [
+        {
+          "noise": "none",
+          "train_seed": null,
+          "validation_seed": null
+        },
+        {
+          "noise": "low",
+          "train_seed": 101,
+          "validation_seed": 201
+        },
+        {
+          "noise": "low",
+          "train_seed": 102,
+          "validation_seed": 202
+        },
+        {
+          "noise": "low",
+          "train_seed": 103,
+          "validation_seed": 203
+        },
+        {
+          "noise": "low",
+          "train_seed": 104,
+          "validation_seed": 204
+        },
+        {
+          "noise": "low",
+          "train_seed": 105,
+          "validation_seed": 205
+        },
+        {
+          "noise": "high",
+          "train_seed": 101,
+          "validation_seed": 201
+        },
+        {
+          "noise": "high",
+          "train_seed": 102,
+          "validation_seed": 202
+        },
+        {
+          "noise": "high",
+          "train_seed": 103,
+          "validation_seed": 203
+        },
+        {
+          "noise": "high",
+          "train_seed": 104,
+          "validation_seed": 204
+        },
+        {
+          "noise": "high",
+          "train_seed": 105,
+          "validation_seed": 205
+        }
+      ],
+      "perturbation_seeds": [
+        1101,
+        1102
+      ],
+      "perturbation_sigma": 0.2
+    },
+    "units": {
+      "effort": "N\u00b7m",
+      "m": "kg",
+      "mx, my, mz": "kg\u00b7m",
+      "Ixx..Izz": "kg\u00b7m\u00b2 (at the joint frame)",
+      "objective": "N\u00b2\u00b7m\u00b2 (sum over stacked rows)"
+    },
+    "hashes": {
+      "train.csv": "014cdb143d2744b2ea0ecb6d4a4c8b7f6d02f40f56a91805ee13e0faa7297a5a",
+      "validation.csv": "3dec2056016206f2b2c2b8c81e4fa06c4243703382b7fbf9b98855303f3ec894",
+      "manifest.json": "00441b57def86aa5b0ca6eceb506191a060dfd10f78c73700a92a7a79fe64746",
+      "protocol.yaml": "9054bb8c023afab3d659a6fae90b9c065bec4340de4b5f3e2d39f686bb6d5fd0",
+      "ur10_truth.urdf": "e3ce01ca3579c6a2057674447dc445bbc46ff37e24da9111ad9d7b4246efee13",
+      "truth_parameters.csv": "bc39953ab222dcdaf75c6445b4d03c49d1ccdcd4647d64715ea0116b2d3843af",
+      "ur10_robot.urdf": "1da0c0de1909bbf6bb5ea9449ee07ccf88e0b3456edca2955e23cc4770027ecd",
+      "ur10_unified_config.yaml": "a816beb1fc1622e0ba0cacd8064046d597aa6e2d64ab74724a16c6a04627104d",
+      "ur10_lc1_ols.yaml": "72a9b2466e1e12e7a19f302c9120bcb764d659c534cb2ff96fadbab9d8a279b2",
+      "ur10_lc1_ols_sdp.yaml": "f1e4d16645fa4f120003bf540068612a25db706e41bfcb9f4264a4c90949aaaf",
+      "ur10_lc1_log_cholesky.yaml": "9f4e586afbd38c38ad093efc51a61c15380e4bdefd67a1d77e93d4d1634302e8",
+      "log_cholesky_benchmark.py": "9d8cbfce1cf478416830e87f2dff8ed12eb5b18036da20872b095e2253089810"
+    }
+  },
+  "preflight": {
+    "train": {
+      "ddq_central_difference": [
+        1.2349659073151997e-09,
+        5.945999317913397e-10,
+        5.64430280292072e-10,
+        1.2603464938365505e-09,
+        8.745645319052642e-10,
+        1.3129124454280827e-09
+      ],
+      "dq_central_difference": [
+        6.024123417984473e-10,
+        1.3311840518781537e-10,
+        1.0430234453906451e-10,
+        3.572111491149943e-10,
+        2.829523282343871e-10,
+        4.2435033265064703e-10
+      ],
+      "crba_nle": 3.552713678800501e-14,
+      "aba_ddq": 6.328271240363392e-14,
+      "pinocchio_regressor": 2.842170943040401e-14,
+      "figaroh_regressor": 2.842170943040401e-14,
+      "ddq_rms": {
+        "shoulder_pan_joint": 1.525331599029669,
+        "shoulder_lift_joint": 0.4833938696472441,
+        "elbow_joint": 0.4207785193838604,
+        "wrist_1_joint": 1.0565318675415405,
+        "wrist_2_joint": 0.6727676981603643,
+        "wrist_3_joint": 1.3629830586947966
+      }
+    },
+    "validation": {
+      "ddq_central_difference": [
+        8.776850357605781e-10,
+        6.80217215887069e-10,
+        7.922005273997001e-10,
+        1.2753069711379794e-09,
+        7.606448804153843e-10,
+        8.891829494928061e-10
+      ],
+      "dq_central_difference": [
+        2.6464097580003454e-10,
+        1.7740853230918674e-10,
+        2.730908832404566e-10,
+        3.778446444613337e-10,
+        2.925901743111581e-10,
+        3.0993652089250645e-10
+      ],
+      "crba_nle": 4.263256414560601e-14,
+      "aba_ddq": 6.777911565336581e-14,
+      "pinocchio_regressor": 4.263256414560601e-14,
+      "figaroh_regressor": 2.842170943040401e-14,
+      "ddq_rms": {
+        "shoulder_pan_joint": 1.6236305395879946,
+        "shoulder_lift_joint": 1.5432404274480496,
+        "elbow_joint": 2.2203090011164797,
+        "wrist_1_joint": 2.5407333826784244,
+        "wrist_2_joint": 1.8391965185161072,
+        "wrist_3_joint": 1.841728713124109
+      }
+    },
+    "pipeline_ddq_is_fixture_ddq": true,
+    "failures": [],
+    "passed": true
+  },
+  "datasets": [
+    {
+      "noise": "none",
+      "train_seed": null,
+      "validation_seed": null,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.10465216600277927,
+          "heldout_vs_measurement": {
+            "aggregate": 2.0579936367162612e-14,
+            "per_joint": {
+              "shoulder_pan_joint": 1.6810211844990652e-14,
+              "shoulder_lift_joint": 1.99828872266967e-14,
+              "elbow_joint": 4.2696181032186746e-14,
+              "wrist_1_joint": 3.221192098994168e-15,
+              "wrist_2_joint": 4.879316122477915e-15,
+              "wrist_3_joint": 1.4683330601306012e-15
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 2.0579936367162612e-14,
+            "per_joint": {
+              "shoulder_pan_joint": 1.6810211844990652e-14,
+              "shoulder_lift_joint": 1.99828872266967e-14,
+              "elbow_joint": 4.2696181032186746e-14,
+              "wrist_1_joint": 3.221192098994168e-15,
+              "wrist_2_joint": 4.879316122477915e-15,
+              "wrist_3_joint": 1.4683330601306012e-15
+            }
+          },
+          "train_objective": 0.012354598936459163,
+          "train_rmse": 1.9906605797776223e-14,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.015457989872341378
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": 0.01887651768540596
+            },
+            "elbow_joint": {
+              "mass": 3.5889676247560542,
+              "min_eig": -0.02604280920787017
+            },
+            "wrist_1_joint": {
+              "mass": 1.7140696279346475,
+              "min_eig": 0.0027620439927676177
+            },
+            "wrist_2_joint": {
+              "mass": 1.7220584765494853,
+              "min_eig": 0.0016638868689058811
+            },
+            "wrist_3_joint": {
+              "mass": 0.23333458490908002,
+              "min_eig": 0.001292239154038812
+            }
+          },
+          "min_eig": -0.02604280920787017,
+          "min_mass": 0.23333458490908002
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.13784075000148732,
+          "heldout_vs_measurement": {
+            "aggregate": 0.021228481649652277,
+            "per_joint": {
+              "shoulder_pan_joint": 0.030817879303662008,
+              "shoulder_lift_joint": 0.029753437432530984,
+              "elbow_joint": 0.029476802081591275,
+              "wrist_1_joint": 3.6872038940061016e-06,
+              "wrist_2_joint": 7.176649526160927e-07,
+              "wrist_3_joint": 5.750151826303762e-08
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.021228481649652277,
+            "per_joint": {
+              "shoulder_pan_joint": 0.030817879303662008,
+              "shoulder_lift_joint": 0.029753437432530984,
+              "elbow_joint": 0.029476802081591275,
+              "wrist_1_joint": 3.6872038940061016e-06,
+              "wrist_2_joint": 7.176649526160927e-07,
+              "wrist_3_joint": 5.750151826303762e-08
+            }
+          },
+          "train_objective": 2.3164029369826658,
+          "train_rmse": 0.012649243319817078,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778002731305262,
+              "min_eig": 0.015457982746871782
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93001080508313,
+              "min_eig": 0.01887794151781516
+            },
+            "elbow_joint": {
+              "mass": 3.5894333422723257,
+              "min_eig": 8.796039129933302e-10
+            },
+            "wrist_1_joint": {
+              "mass": 1.7140670273849563,
+              "min_eig": 0.002762024913949024
+            },
+            "wrist_2_joint": {
+              "mass": 1.7220562678676141,
+              "min_eig": 0.0016638784277752938
+            },
+            "wrist_3_joint": {
+              "mass": 0.23333294103173136,
+              "min_eig": 0.0012922437185570591
+            }
+          },
+          "min_eig": 8.796039129933302e-10,
+          "min_mass": 0.23333294103173136
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.022055708002881147,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.15461880109193793,
+          "active_links": {
+            "elbow_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.17538937499921303,
+          "heldout_vs_measurement": {
+            "aggregate": 5.840370293982185e-06,
+            "per_joint": {
+              "shoulder_pan_joint": 2.697575999913833e-06,
+              "shoulder_lift_joint": 7.248353229289241e-06,
+              "elbow_joint": 5.0265733369539456e-06,
+              "wrist_1_joint": 5.070413014593493e-06,
+              "wrist_2_joint": 9.633322356897854e-06,
+              "wrist_3_joint": 1.0332390482725046e-06
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 5.840370293982185e-06,
+            "per_joint": {
+              "shoulder_pan_joint": 2.697575999913833e-06,
+              "shoulder_lift_joint": 7.248353229289241e-06,
+              "elbow_joint": 5.0265733369539456e-06,
+              "wrist_1_joint": 5.070413014593493e-06,
+              "wrist_2_joint": 9.633322356897854e-06,
+              "wrist_3_joint": 1.0332390482725046e-06
+            }
+          },
+          "train_objective": 0.002759293418456648,
+          "train_rmse": 2.59298530147547e-06,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.6688972541875975,
+              "min_eig": 0.010892390578414304
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.907142082699531,
+              "min_eig": 0.010156108202558765
+            },
+            "elbow_joint": {
+              "mass": 3.3855260715963755,
+              "min_eig": 0.0006252930327525009
+            },
+            "wrist_1_joint": {
+              "mass": 1.0145911174347653,
+              "min_eig": 2.6428743160838585e-06
+            },
+            "wrist_2_joint": {
+              "mass": 2.886029638480799,
+              "min_eig": 6.825942537373059e-08
+            },
+            "wrist_3_joint": {
+              "mass": 0.18165453664518105,
+              "min_eig": 1.9439676644439087e-08
+            }
+          },
+          "min_eig": 1.9439676644439087e-08,
+          "min_mass": 0.18165453664518105,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.01869766700110631,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.1561904579939437,
+          "heldout_vs_measurement": {
+            "aggregate": 5.840370293982185e-06,
+            "per_joint": {
+              "shoulder_pan_joint": 2.697575999913833e-06,
+              "shoulder_lift_joint": 7.248353229289241e-06,
+              "elbow_joint": 5.0265733369539456e-06,
+              "wrist_1_joint": 5.070413014593493e-06,
+              "wrist_2_joint": 9.633322356897854e-06,
+              "wrist_3_joint": 1.0332390482725046e-06
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 5.840370293982185e-06,
+            "per_joint": {
+              "shoulder_pan_joint": 2.697575999913833e-06,
+              "shoulder_lift_joint": 7.248353229289241e-06,
+              "elbow_joint": 5.0265733369539456e-06,
+              "wrist_1_joint": 5.070413014593493e-06,
+              "wrist_2_joint": 9.633322356897854e-06,
+              "wrist_3_joint": 1.0332390482725046e-06
+            }
+          },
+          "train_objective": 0.002759293418456648,
+          "train_rmse": 2.59298530147547e-06,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.6688972541875975,
+              "min_eig": 0.010892390578414304
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.907142082699531,
+              "min_eig": 0.010156108202558765
+            },
+            "elbow_joint": {
+              "mass": 3.3855260715963755,
+              "min_eig": 0.0006252930327525009
+            },
+            "wrist_1_joint": {
+              "mass": 1.0145911174347653,
+              "min_eig": 2.6428743160838585e-06
+            },
+            "wrist_2_joint": {
+              "mass": 2.886029638480799,
+              "min_eig": 6.825942537373059e-08
+            },
+            "wrist_3_joint": {
+              "mass": 0.18165453664518105,
+              "min_eig": 1.9439676644439087e-08
+            }
+          },
+          "min_eig": 1.9439676644439087e-08,
+          "min_mass": 0.18165453664518105,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66540327051192,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.023919249993923586,
+          "objective": 0.002759293418456648,
+          "min_eig": 1.9439676644439087e-08,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.024921541000367142,
+          "objective": 0.002759293418456648,
+          "min_eig": 1.9439676644439087e-08,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.023425915998814162,
+          "objective": 0.002759293418456648,
+          "min_eig": 1.9439676644439087e-08,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.022799667000072077,
+          "objective": 0.002759293418456648,
+          "min_eig": 1.9439676644439087e-08,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.022554916999069974,
+          "objective": 0.002759293418456648,
+          "min_eig": 1.9439676644439087e-08,
+          "max_abs_diff_to_reference": 0.0
+        }
+      },
+      "starts_forced_interior": {
+        "nominal": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 0.9508714924630158,
+          "exception": null,
+          "runtime_s": 2.025950041002943,
+          "objective": null
+        },
+        "repaired_ols": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 5.892831641806274,
+          "exception": null,
+          "runtime_s": 1.9988349999985076,
+          "objective": null
+        },
+        "perturbed_1101": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 18.08680694389711,
+          "exception": null,
+          "runtime_s": 1.9939874579940806,
+          "objective": null
+        },
+        "perturbed_1102": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 18.501806340646553,
+          "exception": null,
+          "runtime_s": 1.9741479170043021,
+          "objective": null
+        },
+        "unrepaired_ols": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "invalid_start",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": "link 'elbow_joint': pseudo-inertia is not positive definite: min eig -2.604e-02, max eig 3.953e+00 (relative floor 1e-12). The body is physically inconsistent or singular (e.g. a point mass or thin rod); use repair_p10 to lift it explicitly. Pass a physically consistent start or set LogCholeskyOptions(repair_start=True)",
+          "runtime_s": 0.005058082999312319,
+          "objective": null
+        }
+      }
+    },
+    {
+      "noise": "low",
+      "train_seed": 101,
+      "validation_seed": 201,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.11508816699642921,
+          "heldout_vs_measurement": {
+            "aggregate": 0.18671575393534268,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0406379157117684,
+              "shoulder_lift_joint": 0.3727892457604167,
+              "elbow_joint": 0.25995242802930413,
+              "wrist_1_joint": 0.030408233061002692,
+              "wrist_2_joint": 0.006202306598083453,
+              "wrist_3_joint": 0.0038704747104252694
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.0187322318267135,
+            "per_joint": {
+              "shoulder_pan_joint": 0.01980257014615729,
+              "shoulder_lift_joint": 0.03734127169882469,
+              "elbow_joint": 0.013360319712553923,
+              "wrist_1_joint": 0.009852468642785947,
+              "wrist_2_joint": 0.005403836590169767,
+              "wrist_3_joint": 0.003754459709133881
+            }
+          },
+          "train_objective": 541.2875611541734,
+          "train_rmse": 0.19387764226154086,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.01449660051138537
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": 0.011057416083375782
+            },
+            "elbow_joint": {
+              "mass": 3.5854724350803013,
+              "min_eig": -0.02586191686355693
+            },
+            "wrist_1_joint": {
+              "mass": 1.7119260804312968,
+              "min_eig": 0.0012593428872163213
+            },
+            "wrist_2_joint": {
+              "mass": 1.7199674389938517,
+              "min_eig": 0.0008408952488630723
+            },
+            "wrist_3_joint": {
+              "mass": 0.23120772096119857,
+              "min_eig": 0.0005235099241917408
+            }
+          },
+          "min_eig": -0.02586191686355693,
+          "min_mass": 0.23120772096119857
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.15510120899853064,
+          "heldout_vs_measurement": {
+            "aggregate": 0.18789070999489532,
+            "per_joint": {
+              "shoulder_pan_joint": 0.05297279621932286,
+              "shoulder_lift_joint": 0.37367200580712207,
+              "elbow_joint": 0.2615384381597741,
+              "wrist_1_joint": 0.03041089660745083,
+              "wrist_2_joint": 0.006202477394824833,
+              "wrist_3_joint": 0.0038704467115613364
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.029708987904825006,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0383274927085272,
+              "shoulder_lift_joint": 0.04870670182687758,
+              "elbow_joint": 0.03624668564875781,
+              "wrist_1_joint": 0.009863212911230712,
+              "wrist_2_joint": 0.005404010671238258,
+              "wrist_3_joint": 0.0037544311170502162
+            }
+          },
+          "train_objective": 543.4902695374058,
+          "train_rmse": 0.19427173245251186,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778002996471692,
+              "min_eig": 0.014496593832169847
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93008087159423,
+              "min_eig": 0.011063474342822033
+            },
+            "elbow_joint": {
+              "mass": 3.5858471376756893,
+              "min_eig": 3.4784636500443463e-09
+            },
+            "wrist_1_joint": {
+              "mass": 1.71192443210891,
+              "min_eig": 0.0012593353497066713
+            },
+            "wrist_2_joint": {
+              "mass": 1.7199897043423857,
+              "min_eig": 0.0008408995565018113
+            },
+            "wrist_3_joint": {
+              "mass": 0.23120596475792418,
+              "min_eig": 0.0005235007139058554
+            }
+          },
+          "min_eig": 3.4784636500443463e-09,
+          "min_mass": 0.23120596475792418
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.020984958995541092,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.160328095744208,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "elbow_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.21114754199516028,
+          "heldout_vs_measurement": {
+            "aggregate": 0.1867156499520765,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04063711816497314,
+              "shoulder_lift_joint": 0.37278918403771377,
+              "elbow_joint": 0.2599523552160923,
+              "wrist_1_joint": 0.030407504669425576,
+              "wrist_2_joint": 0.006199214433746324,
+              "wrist_3_joint": 0.003870262483302908
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.018730367351683895,
+            "per_joint": {
+              "shoulder_pan_joint": 0.01980104616352057,
+              "shoulder_lift_joint": 0.03733866834068494,
+              "elbow_joint": 0.013357264701610654,
+              "wrist_1_joint": 0.009850201869725241,
+              "wrist_2_joint": 0.005400460544091608,
+              "wrist_3_joint": 0.0037542526389538096
+            }
+          },
+          "train_objective": 541.2778244200224,
+          "train_rmse": 0.19387764228105434,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.735727947870569,
+              "min_eig": 0.010909578373217405
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.953630622950852,
+              "min_eig": 0.008024814423763743
+            },
+            "elbow_joint": {
+              "mass": 3.375420110655911,
+              "min_eig": 0.002062388765783304
+            },
+            "wrist_1_joint": {
+              "mass": 1.0054866509955156,
+              "min_eig": 0.0001237001218422158
+            },
+            "wrist_2_joint": {
+              "mass": 2.7699421033888405,
+              "min_eig": 2.0421550030615478e-08
+            },
+            "wrist_3_joint": {
+              "mass": 0.3009593496358111,
+              "min_eig": 7.925327359604264e-09
+            }
+          },
+          "min_eig": 7.925327359604264e-09,
+          "min_mass": 0.3009593496358111,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.017738167000061367,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.1799340419966029,
+          "heldout_vs_measurement": {
+            "aggregate": 0.1867156499520765,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04063711816497314,
+              "shoulder_lift_joint": 0.37278918403771377,
+              "elbow_joint": 0.2599523552160923,
+              "wrist_1_joint": 0.030407504669425576,
+              "wrist_2_joint": 0.006199214433746324,
+              "wrist_3_joint": 0.003870262483302908
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.018730367351683895,
+            "per_joint": {
+              "shoulder_pan_joint": 0.01980104616352057,
+              "shoulder_lift_joint": 0.03733866834068494,
+              "elbow_joint": 0.013357264701610654,
+              "wrist_1_joint": 0.009850201869725241,
+              "wrist_2_joint": 0.005400460544091608,
+              "wrist_3_joint": 0.0037542526389538096
+            }
+          },
+          "train_objective": 541.2778244200224,
+          "train_rmse": 0.19387764228105434,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.735727947870569,
+              "min_eig": 0.010909578373217405
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.953630622950852,
+              "min_eig": 0.008024814423763743
+            },
+            "elbow_joint": {
+              "mass": 3.375420110655911,
+              "min_eig": 0.002062388765783304
+            },
+            "wrist_1_joint": {
+              "mass": 1.0054866509955156,
+              "min_eig": 0.0001237001218422158
+            },
+            "wrist_2_joint": {
+              "mass": 2.7699421033888405,
+              "min_eig": 2.0421550030615478e-08
+            },
+            "wrist_3_joint": {
+              "mass": 0.3009593496358111,
+              "min_eig": 7.925327359604264e-09
+            }
+          },
+          "min_eig": 7.925327359604264e-09,
+          "min_mass": 0.3009593496358111,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66533086923721,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.023980833997484297,
+          "objective": 541.2778244200224,
+          "min_eig": 7.925327359604264e-09,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.023652542004128918,
+          "objective": 541.2778244200224,
+          "min_eig": 7.925327359604264e-09,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.024128375000145752,
+          "objective": 541.2778244200224,
+          "min_eig": 7.925327359604264e-09,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02228629200544674,
+          "objective": 541.2778244200224,
+          "min_eig": 7.925327359604264e-09,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.024380457994993776,
+          "objective": 541.2778244200224,
+          "min_eig": 7.925327359604264e-09,
+          "max_abs_diff_to_reference": 0.0
+        }
+      },
+      "starts_forced_interior": {
+        "nominal": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 1.0864612999208865,
+          "exception": null,
+          "runtime_s": 2.0844024580001133,
+          "objective": null
+        },
+        "repaired_ols": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 8.630177919489729,
+          "exception": null,
+          "runtime_s": 1.694643625000026,
+          "objective": null
+        },
+        "perturbed_1101": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 25.30492703841359,
+          "exception": null,
+          "runtime_s": 2.0533599170012167,
+          "objective": null
+        },
+        "perturbed_1102": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 46.88923795677856,
+          "exception": null,
+          "runtime_s": 1.8851370420015883,
+          "objective": null
+        },
+        "unrepaired_ols": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "invalid_start",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": "link 'elbow_joint': pseudo-inertia is not positive definite: min eig -2.586e-02, max eig 3.952e+00 (relative floor 1e-12). The body is physically inconsistent or singular (e.g. a point mass or thin rod); use repair_p10 to lift it explicitly. Pass a physically consistent start or set LogCholeskyOptions(repair_start=True)",
+          "runtime_s": 0.004791625004145317,
+          "objective": null
+        }
+      }
+    },
+    {
+      "noise": "low",
+      "train_seed": 102,
+      "validation_seed": 202,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.13727779100008775,
+          "heldout_vs_measurement": {
+            "aggregate": 0.1902564744313409,
+            "per_joint": {
+              "shoulder_pan_joint": 0.03728116384749497,
+              "shoulder_lift_joint": 0.3731284827016889,
+              "elbow_joint": 0.27504062957316516,
+              "wrist_1_joint": 0.02924334393704663,
+              "wrist_2_joint": 0.007828316955669299,
+              "wrist_3_joint": 0.0025696245232730694
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.016349328212135125,
+            "per_joint": {
+              "shoulder_pan_joint": 0.016773809202615685,
+              "shoulder_lift_joint": 0.030410404305239568,
+              "elbow_joint": 0.016660159509311247,
+              "wrist_1_joint": 0.007752225696804085,
+              "wrist_2_joint": 0.007349686213728423,
+              "wrist_3_joint": 0.002444182314121465
+            }
+          },
+          "train_objective": 506.1024193514297,
+          "train_rmse": 0.18747037632228067,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.014385327179685575
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": 0.009202564101802509
+            },
+            "elbow_joint": {
+              "mass": 3.5890111450759257,
+              "min_eig": -0.02163146116491153
+            },
+            "wrist_1_joint": {
+              "mass": 1.7124002163360335,
+              "min_eig": 0.0015632041717495273
+            },
+            "wrist_2_joint": {
+              "mass": 1.7204336377240914,
+              "min_eig": 0.002921963574496838
+            },
+            "wrist_3_joint": {
+              "mass": 0.23175910611184097,
+              "min_eig": 0.0008297118576781255
+            }
+          },
+          "min_eig": -0.02163146116491153,
+          "min_mass": 0.23175910611184097
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.18655062500329223,
+          "heldout_vs_measurement": {
+            "aggregate": 0.19115881334463458,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04687121377412809,
+              "shoulder_lift_joint": 0.37458152170143116,
+              "elbow_joint": 0.2753523102632883,
+              "wrist_1_joint": 0.02924288457140949,
+              "wrist_2_joint": 0.007828185189859484,
+              "wrist_3_joint": 0.002569608219083073
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.02630313377854406,
+            "per_joint": {
+              "shoulder_pan_joint": 0.03228948806403538,
+              "shoulder_lift_joint": 0.04171767414404933,
+              "elbow_joint": 0.03532845436276681,
+              "wrist_1_joint": 0.007750114508982671,
+              "wrist_2_joint": 0.007349544098158839,
+              "wrist_3_joint": 0.0024441650906035233
+            }
+          },
+          "train_objective": 507.60343044559346,
+          "train_rmse": 0.1877481794307013,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778001750990276,
+              "min_eig": 0.014385314836844083
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.9300814384532,
+              "min_eig": 0.009205176539486055
+            },
+            "elbow_joint": {
+              "mass": 3.58900478593137,
+              "min_eig": 5.266407617121998e-09
+            },
+            "wrist_1_joint": {
+              "mass": 1.712397134760715,
+              "min_eig": 0.0015631885895042129
+            },
+            "wrist_2_joint": {
+              "mass": 1.7204312391468972,
+              "min_eig": 0.002921951506410541
+            },
+            "wrist_3_joint": {
+              "mass": 0.23175749844667493,
+              "min_eig": 0.0008297169938542318
+            }
+          },
+          "min_eig": 5.266407617121998e-09,
+          "min_mass": 0.23175749844667493
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.021981417005008552,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.1497100467880555,
+          "active_links": {
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.21794491699984064,
+          "heldout_vs_measurement": {
+            "aggregate": 0.1902565054881564,
+            "per_joint": {
+              "shoulder_pan_joint": 0.037281547512270856,
+              "shoulder_lift_joint": 0.37312845271805534,
+              "elbow_joint": 0.27504074592507577,
+              "wrist_1_joint": 0.029243884727377205,
+              "wrist_2_joint": 0.00782626495126871,
+              "wrist_3_joint": 0.00256985109527383
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.016349133505778737,
+            "per_joint": {
+              "shoulder_pan_joint": 0.016774808827337902,
+              "shoulder_lift_joint": 0.030410405300614517,
+              "elbow_joint": 0.016658171356818945,
+              "wrist_1_joint": 0.007753859242774561,
+              "wrist_2_joint": 0.007347509340651488,
+              "wrist_3_joint": 0.002444409330783234
+            }
+          },
+          "train_objective": 506.0927824125159,
+          "train_rmse": 0.18747037633992894,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.839209961587663,
+              "min_eig": 0.01098803853385198
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.925519050594794,
+              "min_eig": 0.008670161696746328
+            },
+            "elbow_joint": {
+              "mass": 3.39416516745417,
+              "min_eig": 0.001169387085046466
+            },
+            "wrist_1_joint": {
+              "mass": 0.9988082392594114,
+              "min_eig": 1.6144651906477637e-06
+            },
+            "wrist_2_joint": {
+              "mass": 2.858335645777747,
+              "min_eig": 8.441246730783688e-08
+            },
+            "wrist_3_joint": {
+              "mass": 0.21233236263673483,
+              "min_eig": 1.781342080090406e-08
+            }
+          },
+          "min_eig": 1.781342080090406e-08,
+          "min_mass": 0.21233236263673483,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.0194058750057593,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.19880337499489542,
+          "heldout_vs_measurement": {
+            "aggregate": 0.1902565054881564,
+            "per_joint": {
+              "shoulder_pan_joint": 0.037281547512270856,
+              "shoulder_lift_joint": 0.37312845271805534,
+              "elbow_joint": 0.27504074592507577,
+              "wrist_1_joint": 0.029243884727377205,
+              "wrist_2_joint": 0.00782626495126871,
+              "wrist_3_joint": 0.00256985109527383
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.016349133505778737,
+            "per_joint": {
+              "shoulder_pan_joint": 0.016774808827337902,
+              "shoulder_lift_joint": 0.030410405300614517,
+              "elbow_joint": 0.016658171356818945,
+              "wrist_1_joint": 0.007753859242774561,
+              "wrist_2_joint": 0.007347509340651488,
+              "wrist_3_joint": 0.002444409330783234
+            }
+          },
+          "train_objective": 506.0927824125159,
+          "train_rmse": 0.18747037633992894,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.839209961587663,
+              "min_eig": 0.01098803853385198
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.925519050594794,
+              "min_eig": 0.008670161696746328
+            },
+            "elbow_joint": {
+              "mass": 3.39416516745417,
+              "min_eig": 0.001169387085046466
+            },
+            "wrist_1_joint": {
+              "mass": 0.9988082392594114,
+              "min_eig": 1.6144651906477637e-06
+            },
+            "wrist_2_joint": {
+              "mass": 2.858335645777747,
+              "min_eig": 8.441246730783688e-08
+            },
+            "wrist_3_joint": {
+              "mass": 0.21233236263673483,
+              "min_eig": 1.781342080090406e-08
+            }
+          },
+          "min_eig": 1.781342080090406e-08,
+          "min_mass": 0.21233236263673483,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66534709063377,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.024457332998281345,
+          "objective": 506.0927824125159,
+          "min_eig": 1.781342080090406e-08,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.022402208000130486,
+          "objective": 506.0927824125159,
+          "min_eig": 1.781342080090406e-08,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.022842999998829328,
+          "objective": 506.0927824125159,
+          "min_eig": 1.781342080090406e-08,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02367729099933058,
+          "objective": 506.0927824125159,
+          "min_eig": 1.781342080090406e-08,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.024922332995629404,
+          "objective": 506.0927824125159,
+          "min_eig": 1.781342080090406e-08,
+          "max_abs_diff_to_reference": 0.0
+        }
+      }
+    },
+    {
+      "noise": "low",
+      "train_seed": 103,
+      "validation_seed": 203,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.15500662499835016,
+          "heldout_vs_measurement": {
+            "aggregate": 0.19235834710541,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04948250835912892,
+              "shoulder_lift_joint": 0.3822975650161057,
+              "elbow_joint": 0.2690193830810118,
+              "wrist_1_joint": 0.030796630503317882,
+              "wrist_2_joint": 0.009099458498124215,
+              "wrist_3_joint": 0.002791825100612012
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.025315201119537178,
+            "per_joint": {
+              "shoulder_pan_joint": 0.03789133937068083,
+              "shoulder_lift_joint": 0.04586985930934651,
+              "elbow_joint": 0.01047519304662705,
+              "wrist_1_joint": 0.010632118954742073,
+              "wrist_2_joint": 0.008661720096236643,
+              "wrist_3_joint": 0.0027498792909706827
+            }
+          },
+          "train_objective": 545.5016823733642,
+          "train_rmse": 0.19463095417899104,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.01327217457564863
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": 0.03546847382283077
+            },
+            "elbow_joint": {
+              "mass": 3.588701682730592,
+              "min_eig": -0.032881996173465614
+            },
+            "wrist_1_joint": {
+              "mass": 1.7134456164193825,
+              "min_eig": -0.0034985188299547203
+            },
+            "wrist_2_joint": {
+              "mass": 1.7214256492518292,
+              "min_eig": -0.002047906220792345
+            },
+            "wrist_3_joint": {
+              "mass": 0.2326966092350335,
+              "min_eig": 0.0005237189487454118
+            }
+          },
+          "min_eig": -0.032881996173465614,
+          "min_mass": 0.2326966092350335
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.184007208001276,
+          "heldout_vs_measurement": {
+            "aggregate": 0.19554438400839586,
+            "per_joint": {
+              "shoulder_pan_joint": 0.05449268662584741,
+              "shoulder_lift_joint": 0.38790672732781983,
+              "elbow_joint": 0.2738478307910724,
+              "wrist_1_joint": 0.030565802598564305,
+              "wrist_2_joint": 0.007061003469104649,
+              "wrist_3_joint": 0.0027918119554557865
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.04141588529810866,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04216627087109784,
+              "shoulder_lift_joint": 0.0709464358163544,
+              "elbow_joint": 0.057526399984798304,
+              "wrist_1_joint": 0.011010607190568835,
+              "wrist_2_joint": 0.006494632140464383,
+              "wrist_3_joint": 0.002749866066139969
+            }
+          },
+          "train_objective": 557.6409715521745,
+          "train_rmse": 0.19678471446300777,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778003126002383,
+              "min_eig": 0.0132721681749212
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.929910658007959,
+              "min_eig": 0.035457485155954184
+            },
+            "elbow_joint": {
+              "mass": 3.5887045400910647,
+              "min_eig": 1.830094209467823e-10
+            },
+            "wrist_1_joint": {
+              "mass": 1.7250655436534839,
+              "min_eig": -3.5262722397040526e-11
+            },
+            "wrist_2_joint": {
+              "mass": 1.7216592137298656,
+              "min_eig": -1.5267727872209264e-10
+            },
+            "wrist_3_joint": {
+              "mass": 0.23269532587282385,
+              "min_eig": 0.0005237159654093885
+            }
+          },
+          "min_eig": -1.5267727872209264e-10,
+          "min_mass": 0.23269532587282385
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.024385000004258472,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.15591218127966572,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_2_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.23514145799708785,
+          "heldout_vs_measurement": {
+            "aggregate": 0.19233217958128124,
+            "per_joint": {
+              "shoulder_pan_joint": 0.049332783525798916,
+              "shoulder_lift_joint": 0.38229749742495184,
+              "elbow_joint": 0.2689996323379225,
+              "wrist_1_joint": 0.030608895568149757,
+              "wrist_2_joint": 0.007522181488330436,
+              "wrist_3_joint": 0.003257889953655163
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.02513951841715651,
+            "per_joint": {
+              "shoulder_pan_joint": 0.037656064997779515,
+              "shoulder_lift_joint": 0.045876468196948725,
+              "elbow_joint": 0.010334564855008981,
+              "wrist_1_joint": 0.010158184857793857,
+              "wrist_2_joint": 0.006996740534972862,
+              "wrist_3_joint": 0.0032243485660568955
+            }
+          },
+          "train_objective": 545.4999874695868,
+          "train_rmse": 0.19463199295656422,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.787550000066427,
+              "min_eig": 5.914102144122246e-08
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.89630075931547,
+              "min_eig": 4.408125770410765e-08
+            },
+            "elbow_joint": {
+              "mass": 3.1148329203874052,
+              "min_eig": 1.4425300112814561e-08
+            },
+            "wrist_1_joint": {
+              "mass": 1.6479558204008704,
+              "min_eig": -2.0833348350464604e-11
+            },
+            "wrist_2_joint": {
+              "mass": 2.809174305966547,
+              "min_eig": -4.554918873321676e-11
+            },
+            "wrist_3_joint": {
+              "mass": 0.14273079613396528,
+              "min_eig": 1.2235673643163252e-11
+            }
+          },
+          "min_eig": -4.554918873321676e-11,
+          "min_mass": 0.14273079613396528,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.01970158399490174,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.22294720799982315,
+          "heldout_vs_measurement": {
+            "aggregate": 0.19233217958128124,
+            "per_joint": {
+              "shoulder_pan_joint": 0.049332783525798916,
+              "shoulder_lift_joint": 0.38229749742495184,
+              "elbow_joint": 0.2689996323379225,
+              "wrist_1_joint": 0.030608895568149757,
+              "wrist_2_joint": 0.007522181488330436,
+              "wrist_3_joint": 0.003257889953655163
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.02513951841715651,
+            "per_joint": {
+              "shoulder_pan_joint": 0.037656064997779515,
+              "shoulder_lift_joint": 0.045876468196948725,
+              "elbow_joint": 0.010334564855008981,
+              "wrist_1_joint": 0.010158184857793857,
+              "wrist_2_joint": 0.006996740534972862,
+              "wrist_3_joint": 0.0032243485660568955
+            }
+          },
+          "train_objective": 545.4999874695868,
+          "train_rmse": 0.19463199295656422,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.787550000066427,
+              "min_eig": 5.914102144122246e-08
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.89630075931547,
+              "min_eig": 4.408125770410765e-08
+            },
+            "elbow_joint": {
+              "mass": 3.1148329203874052,
+              "min_eig": 1.4425300112814561e-08
+            },
+            "wrist_1_joint": {
+              "mass": 1.6479558204008704,
+              "min_eig": -2.0833348350464604e-11
+            },
+            "wrist_2_joint": {
+              "mass": 2.809174305966547,
+              "min_eig": -4.554918873321676e-11
+            },
+            "wrist_3_joint": {
+              "mass": 0.14273079613396528,
+              "min_eig": 1.2235673643163252e-11
+            }
+          },
+          "min_eig": -4.554918873321676e-11,
+          "min_mass": 0.14273079613396528,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.6653528337714,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02816029100358719,
+          "objective": 545.4999874695868,
+          "min_eig": -4.554918873321676e-11,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.028143125004135072,
+          "objective": 545.4999874695868,
+          "min_eig": -4.554918873321676e-11,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.027118375001009554,
+          "objective": 545.4999874695868,
+          "min_eig": -4.554918873321676e-11,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.026139292000152636,
+          "objective": 545.4999874695868,
+          "min_eig": -4.554918873321676e-11,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.026305250001314562,
+          "objective": 545.4999874695868,
+          "min_eig": -4.554918873321676e-11,
+          "max_abs_diff_to_reference": 0.0
+        }
+      }
+    },
+    {
+      "noise": "low",
+      "train_seed": 104,
+      "validation_seed": 204,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.1441460000060033,
+          "heldout_vs_measurement": {
+            "aggregate": 0.19170737569234136,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04300197823868626,
+              "shoulder_lift_joint": 0.3839877901219009,
+              "elbow_joint": 0.2650433484619542,
+              "wrist_1_joint": 0.029920513002680914,
+              "wrist_2_joint": 0.007053449357319629,
+              "wrist_3_joint": 0.004642140004449217
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.0168877097912767,
+            "per_joint": {
+              "shoulder_pan_joint": 0.023338162208233197,
+              "shoulder_lift_joint": 0.027857831009804348,
+              "elbow_joint": 0.014470883044299613,
+              "wrist_1_joint": 0.010674847312855559,
+              "wrist_2_joint": 0.0067431612250802705,
+              "wrist_3_joint": 0.0046487464542254
+            }
+          },
+          "train_objective": 504.8621265300929,
+          "train_rmse": 0.1872405158150488,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.014584992293414437
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": 0.02051242741302517
+            },
+            "elbow_joint": {
+              "mass": 3.5865618721246264,
+              "min_eig": -0.032108176412961084
+            },
+            "wrist_1_joint": {
+              "mass": 1.7136204426460766,
+              "min_eig": -3.8274271971304484e-06
+            },
+            "wrist_2_joint": {
+              "mass": 1.721626759839159,
+              "min_eig": 0.000603954848071676
+            },
+            "wrist_3_joint": {
+              "mass": 0.23291640870249228,
+              "min_eig": 0.001415156388988198
+            }
+          },
+          "min_eig": -0.032108176412961084,
+          "min_mass": 0.23291640870249228
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.20912287499959348,
+          "heldout_vs_measurement": {
+            "aggregate": 0.1923584632828436,
+            "per_joint": {
+              "shoulder_pan_joint": 0.05333743957080565,
+              "shoulder_lift_joint": 0.3843430006446739,
+              "elbow_joint": 0.2654803949875013,
+              "wrist_1_joint": 0.029918144798058294,
+              "wrist_2_joint": 0.007054125942573087,
+              "wrist_3_joint": 0.004642151549699178
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.02693038404827972,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0407991745691304,
+              "shoulder_lift_joint": 0.03677843798900684,
+              "elbow_joint": 0.03396277763495311,
+              "wrist_1_joint": 0.010662369642979359,
+              "wrist_2_joint": 0.006743887685857372,
+              "wrist_3_joint": 0.004648758037280155
+            }
+          },
+          "train_objective": 508.2118337527048,
+          "train_rmse": 0.1878606646517024,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778002978882773,
+              "min_eig": 0.014584985582233957
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.930004319981881,
+              "min_eig": 0.020512895241414652
+            },
+            "elbow_joint": {
+              "mass": 3.586608690757946,
+              "min_eig": 5.279981765563287e-09
+            },
+            "wrist_1_joint": {
+              "mass": 1.7136192541556892,
+              "min_eig": 1.566470238458892e-08
+            },
+            "wrist_2_joint": {
+              "mass": 1.7216583029875028,
+              "min_eig": 0.0006038967688486619
+            },
+            "wrist_3_joint": {
+              "mass": 0.23291471610036782,
+              "min_eig": 0.0014151579131020768
+            }
+          },
+          "min_eig": 5.279981765563287e-09,
+          "min_mass": 0.23291471610036782
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.020267250001779757,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.1521446568388599,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_2_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.22096924999641487,
+          "heldout_vs_measurement": {
+            "aggregate": 0.19170754262410386,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0430022273101444,
+              "shoulder_lift_joint": 0.3839881264337551,
+              "elbow_joint": 0.26504348998199645,
+              "wrist_1_joint": 0.029919996076503322,
+              "wrist_2_joint": 0.007057582555552584,
+              "wrist_3_joint": 0.004642346337115324
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.016888181763054295,
+            "per_joint": {
+              "shoulder_pan_joint": 0.023338529671787258,
+              "shoulder_lift_joint": 0.027858325848646833,
+              "elbow_joint": 0.014471421312782805,
+              "wrist_1_joint": 0.01067350123377892,
+              "wrist_2_joint": 0.006747766910885334,
+              "wrist_3_joint": 0.004648955964331781
+            }
+          },
+          "train_objective": 504.8524345353763,
+          "train_rmse": 0.1872405158321727,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.757065286702032,
+              "min_eig": 0.010906183313506955
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.963607259354701,
+              "min_eig": 0.003940262710433683
+            },
+            "elbow_joint": {
+              "mass": 3.339674635677167,
+              "min_eig": 0.008005638176035147
+            },
+            "wrist_1_joint": {
+              "mass": 1.0721427698435253,
+              "min_eig": 2.0755758934279624e-08
+            },
+            "wrist_2_joint": {
+              "mass": 2.8803072190369163,
+              "min_eig": 4.468014305403938e-09
+            },
+            "wrist_3_joint": {
+              "mass": 0.18885444854815697,
+              "min_eig": 4.970662104205983e-09
+            }
+          },
+          "min_eig": 4.468014305403938e-09,
+          "min_mass": 0.18885444854815697,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.020792458002688363,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.2244987910016789,
+          "heldout_vs_measurement": {
+            "aggregate": 0.19170754262410386,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0430022273101444,
+              "shoulder_lift_joint": 0.3839881264337551,
+              "elbow_joint": 0.26504348998199645,
+              "wrist_1_joint": 0.029919996076503322,
+              "wrist_2_joint": 0.007057582555552584,
+              "wrist_3_joint": 0.004642346337115324
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.016888181763054295,
+            "per_joint": {
+              "shoulder_pan_joint": 0.023338529671787258,
+              "shoulder_lift_joint": 0.027858325848646833,
+              "elbow_joint": 0.014471421312782805,
+              "wrist_1_joint": 0.01067350123377892,
+              "wrist_2_joint": 0.006747766910885334,
+              "wrist_3_joint": 0.004648955964331781
+            }
+          },
+          "train_objective": 504.8524345353763,
+          "train_rmse": 0.1872405158321727,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.757065286702032,
+              "min_eig": 0.010906183313506955
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.963607259354701,
+              "min_eig": 0.003940262710433683
+            },
+            "elbow_joint": {
+              "mass": 3.339674635677167,
+              "min_eig": 0.008005638176035147
+            },
+            "wrist_1_joint": {
+              "mass": 1.0721427698435253,
+              "min_eig": 2.0755758934279624e-08
+            },
+            "wrist_2_joint": {
+              "mass": 2.8803072190369163,
+              "min_eig": 4.468014305403938e-09
+            },
+            "wrist_3_joint": {
+              "mass": 0.18885444854815697,
+              "min_eig": 4.970662104205983e-09
+            }
+          },
+          "min_eig": 4.468014305403938e-09,
+          "min_mass": 0.18885444854815697,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66538783465988,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.027590541998506524,
+          "objective": 504.8524345353763,
+          "min_eig": 4.468014305403938e-09,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.027873457998794038,
+          "objective": 504.8524345353763,
+          "min_eig": 4.468014305403938e-09,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.028034082999511156,
+          "objective": 504.8524345353763,
+          "min_eig": 4.468014305403938e-09,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.025518374997773208,
+          "objective": 504.8524345353763,
+          "min_eig": 4.468014305403938e-09,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02618599999550497,
+          "objective": 504.8524345353763,
+          "min_eig": 4.468014305403938e-09,
+          "max_abs_diff_to_reference": 0.0
+        }
+      }
+    },
+    {
+      "noise": "low",
+      "train_seed": 105,
+      "validation_seed": 205,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.16033520799828693,
+          "heldout_vs_measurement": {
+            "aggregate": 0.18973469005968668,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04906590400198271,
+              "shoulder_lift_joint": 0.3809703251104629,
+              "elbow_joint": 0.2596982864936509,
+              "wrist_1_joint": 0.030092825447916898,
+              "wrist_2_joint": 0.009369134641129715,
+              "wrist_3_joint": 0.0036201224934751695
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.02000164824394835,
+            "per_joint": {
+              "shoulder_pan_joint": 0.033523179560120804,
+              "shoulder_lift_joint": 0.029304941120915383,
+              "elbow_joint": 0.014291627759151878,
+              "wrist_1_joint": 0.01105515143890154,
+              "wrist_2_joint": 0.008871039177441954,
+              "wrist_3_joint": 0.003556700647583043
+            }
+          },
+          "train_objective": 513.2013461720248,
+          "train_rmse": 0.18878060760839027,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.011795985130701084
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": 0.037866991478505925
+            },
+            "elbow_joint": {
+              "mass": 3.587970226458026,
+              "min_eig": -0.028039161237983154
+            },
+            "wrist_1_joint": {
+              "mass": 1.7138813554777692,
+              "min_eig": -7.327365881706986e-05
+            },
+            "wrist_2_joint": {
+              "mass": 1.7218737495797778,
+              "min_eig": -0.002816425359327525
+            },
+            "wrist_3_joint": {
+              "mass": 0.23310376964404841,
+              "min_eig": 0.0007763989077544584
+            }
+          },
+          "min_eig": -0.028039161237983154,
+          "min_mass": 0.23310376964404841
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.2057742920005694,
+          "heldout_vs_measurement": {
+            "aggregate": 0.2039569846850786,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0511272256001896,
+              "shoulder_lift_joint": 0.4060197376969555,
+              "elbow_joint": 0.28415353270969146,
+              "wrist_1_joint": 0.030132764592334337,
+              "wrist_2_joint": 0.02145623917094106,
+              "wrist_3_joint": 0.003620105131596394
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.07181295861883122,
+            "per_joint": {
+              "shoulder_pan_joint": 0.03828186344239629,
+              "shoulder_lift_joint": 0.13563039889188033,
+              "elbow_joint": 0.10247169835529521,
+              "wrist_1_joint": 0.010914025709338852,
+              "wrist_2_joint": 0.021196345673311006,
+              "wrist_3_joint": 0.0035566825050491486
+            }
+          },
+          "train_objective": 564.7050084168427,
+          "train_rmse": 0.19802724180641018,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778003036989323,
+              "min_eig": 0.011795978644680773
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.929938321392866,
+              "min_eig": 0.037864295142058184
+            },
+            "elbow_joint": {
+              "mass": 3.590894559545247,
+              "min_eig": 1.534291486994322e-09
+            },
+            "wrist_1_joint": {
+              "mass": 1.7142538093363606,
+              "min_eig": -8.649432695336387e-11
+            },
+            "wrist_2_joint": {
+              "mass": 1.7429157482279953,
+              "min_eig": -3.6499277940461734e-10
+            },
+            "wrist_3_joint": {
+              "mass": 0.23310194505620446,
+              "min_eig": 0.0007763971094650161
+            }
+          },
+          "min_eig": -3.6499277940461734e-10,
+          "min_mass": 0.23310194505620446
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.03209500000230037,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.16025654757506602,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "elbow_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_2_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.24303266700007953,
+          "heldout_vs_measurement": {
+            "aggregate": 0.18972276571651014,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04901967264682913,
+              "shoulder_lift_joint": 0.3809541363792701,
+              "elbow_joint": 0.25968947274730325,
+              "wrist_1_joint": 0.03002198001050946,
+              "wrist_2_joint": 0.009261493197958093,
+              "wrist_3_joint": 0.0036970069073969693
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.01990420509046166,
+            "per_joint": {
+              "shoulder_pan_joint": 0.03344601732352923,
+              "shoulder_lift_joint": 0.029183319515415317,
+              "elbow_joint": 0.014118157483195708,
+              "wrist_1_joint": 0.01084128505571127,
+              "wrist_2_joint": 0.0087572717830037,
+              "wrist_3_joint": 0.0036354404813481976
+            }
+          },
+          "train_objective": 513.1921671887607,
+          "train_rmse": 0.18878062375220334,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.779038417278328,
+              "min_eig": 2.526085172774306e-07
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.938116690886194,
+              "min_eig": 7.853217554481714e-08
+            },
+            "elbow_joint": {
+              "mass": 4.601523446070974,
+              "min_eig": 2.914340748310988e-09
+            },
+            "wrist_1_joint": {
+              "mass": 0.4418367870439459,
+              "min_eig": 2.4808969013364357e-10
+            },
+            "wrist_2_joint": {
+              "mass": 2.5999923655101074,
+              "min_eig": -8.708643027529913e-12
+            },
+            "wrist_3_joint": {
+              "mass": 0.506024960676734,
+              "min_eig": 5.6198703964629484e-12
+            }
+          },
+          "min_eig": -8.708643027529913e-12,
+          "min_mass": 0.4418367870439459,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.018706291004491504,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.201377457997296,
+          "heldout_vs_measurement": {
+            "aggregate": 0.18972276571651014,
+            "per_joint": {
+              "shoulder_pan_joint": 0.04901967264682913,
+              "shoulder_lift_joint": 0.3809541363792701,
+              "elbow_joint": 0.25968947274730325,
+              "wrist_1_joint": 0.03002198001050946,
+              "wrist_2_joint": 0.009261493197958093,
+              "wrist_3_joint": 0.0036970069073969693
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.01990420509046166,
+            "per_joint": {
+              "shoulder_pan_joint": 0.03344601732352923,
+              "shoulder_lift_joint": 0.029183319515415317,
+              "elbow_joint": 0.014118157483195708,
+              "wrist_1_joint": 0.01084128505571127,
+              "wrist_2_joint": 0.0087572717830037,
+              "wrist_3_joint": 0.0036354404813481976
+            }
+          },
+          "train_objective": 513.1921671887607,
+          "train_rmse": 0.18878062375220334,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.779038417278328,
+              "min_eig": 2.526085172774306e-07
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.938116690886194,
+              "min_eig": 7.853217554481714e-08
+            },
+            "elbow_joint": {
+              "mass": 4.601523446070974,
+              "min_eig": 2.914340748310988e-09
+            },
+            "wrist_1_joint": {
+              "mass": 0.4418367870439459,
+              "min_eig": 2.4808969013364357e-10
+            },
+            "wrist_2_joint": {
+              "mass": 2.5999923655101074,
+              "min_eig": -8.708643027529913e-12
+            },
+            "wrist_3_joint": {
+              "mass": 0.506024960676734,
+              "min_eig": 5.6198703964629484e-12
+            }
+          },
+          "min_eig": -8.708643027529913e-12,
+          "min_mass": 0.4418367870439459,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66531996182879,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.022482792002847418,
+          "objective": 513.1921671887607,
+          "min_eig": -8.708643027529913e-12,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02178937500139,
+          "objective": 513.1921671887607,
+          "min_eig": -8.708643027529913e-12,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02205129200592637,
+          "objective": 513.1921671887607,
+          "min_eig": -8.708643027529913e-12,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.022139959000924136,
+          "objective": 513.1921671887607,
+          "min_eig": -8.708643027529913e-12,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.025593917001970112,
+          "objective": 513.1921671887607,
+          "min_eig": -8.708643027529913e-12,
+          "max_abs_diff_to_reference": 0.0
+        }
+      }
+    },
+    {
+      "noise": "high",
+      "train_seed": 101,
+      "validation_seed": 201,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.16210083400073927,
+          "heldout_vs_measurement": {
+            "aggregate": 0.933585731477032,
+            "per_joint": {
+              "shoulder_pan_joint": 0.20315905330093526,
+              "shoulder_lift_joint": 1.8639686388146213,
+              "elbow_joint": 1.2997623760178627,
+              "wrist_1_joint": 0.1520438860321647,
+              "wrist_2_joint": 0.031091971083047232,
+              "wrist_3_joint": 0.019363177044963775
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.09356978987034521,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0989484835534521,
+              "shoulder_lift_joint": 0.18645748110220547,
+              "elbow_joint": 0.06679347038957803,
+              "wrist_1_joint": 0.04925020456201657,
+              "wrist_2_joint": 0.02710857648334429,
+              "wrist_3_joint": 0.018783331619790337
+            }
+          },
+          "train_objective": 13530.608524694248,
+          "train_rmse": 0.9693423801582586,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.010661487340702755
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": -0.03653595065985358
+            },
+            "elbow_joint": {
+              "mass": 3.5715010221093646,
+              "min_eig": -0.026918536497161676
+            },
+            "wrist_1_joint": {
+              "mass": 1.7033506792023387,
+              "min_eig": -0.015062832031715035
+            },
+            "wrist_2_joint": {
+              "mass": 1.7116016832012584,
+              "min_eig": -0.0036665396997924028
+            },
+            "wrist_3_joint": {
+              "mass": 0.22269827660024577,
+              "min_eig": -0.004947232672444855
+            }
+          },
+          "min_eig": -0.03653595065985358,
+          "min_mass": 0.22269827660024577
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.19950066699675517,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9746964181964121,
+            "per_joint": {
+              "shoulder_pan_joint": 0.22196032103843644,
+              "shoulder_lift_joint": 1.9311297139935972,
+              "elbow_joint": 1.3772713755978334,
+              "wrist_1_joint": 0.15393354248050356,
+              "wrist_2_joint": 0.031234780451481613,
+              "wrist_3_joint": 0.011077022768507921
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.2964476967207059,
+            "per_joint": {
+              "shoulder_pan_joint": 0.1282833163817762,
+              "shoulder_lift_joint": 0.5583691416737286,
+              "elbow_joint": 0.4427907769654088,
+              "wrist_1_joint": 0.0467158889927751,
+              "wrist_2_joint": 0.026496769762258694,
+              "wrist_3_joint": 0.010324168385715204
+            }
+          },
+          "train_objective": 14130.703875751677,
+          "train_rmse": 0.9906048848144531,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778002766912311,
+              "min_eig": 0.010661480352211733
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.939121676692146,
+              "min_eig": 2.0647054148360507e-09
+            },
+            "elbow_joint": {
+              "mass": 3.5729281302740556,
+              "min_eig": 2.189870517919003e-09
+            },
+            "wrist_1_joint": {
+              "mass": 1.7739510313422289,
+              "min_eig": -8.313169089494911e-11
+            },
+            "wrist_2_joint": {
+              "mass": 1.7321928153316493,
+              "min_eig": -5.1532077918283124e-11
+            },
+            "wrist_3_joint": {
+              "mass": 0.22899293182317043,
+              "min_eig": -1.0699826932298637e-10
+            }
+          },
+          "min_eig": -1.0699826932298637e-10,
+          "min_mass": 0.22899293182317043
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.025619250001909677,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.1832013696151238,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "elbow_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_2_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.23960058300144738,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9333451157445238,
+            "per_joint": {
+              "shoulder_pan_joint": 0.20067821580963593,
+              "shoulder_lift_joint": 1.8637199942998308,
+              "elbow_joint": 1.2997306672019453,
+              "wrist_1_joint": 0.1512076841237488,
+              "wrist_2_joint": 0.025138500851887388,
+              "wrist_3_joint": 0.016707837175720632
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.09077259242695664,
+            "per_joint": {
+              "shoulder_pan_joint": 0.09412101640322022,
+              "shoulder_lift_joint": 0.18475615013453178,
+              "elbow_joint": 0.06121548558335028,
+              "wrist_1_joint": 0.04502736458174939,
+              "wrist_2_joint": 0.020281972976088726,
+              "wrist_3_joint": 0.01606931267875123
+            }
+          },
+          "train_objective": 13530.90152089411,
+          "train_rmse": 0.9693530951649868,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.704913365401733,
+              "min_eig": 3.2109438281605895e-07
+            },
+            "shoulder_lift_joint": {
+              "mass": 15.91602655637895,
+              "min_eig": 4.472960804214036e-08
+            },
+            "elbow_joint": {
+              "mass": 2.7480012754853504,
+              "min_eig": 2.095407478729294e-07
+            },
+            "wrist_1_joint": {
+              "mass": 0.6400043072054356,
+              "min_eig": 5.217881758525351e-10
+            },
+            "wrist_2_joint": {
+              "mass": 0.8749667686895604,
+              "min_eig": -1.6138300481734173e-10
+            },
+            "wrist_3_joint": {
+              "mass": 2.4316563586768614,
+              "min_eig": -1.993455947302252e-10
+            }
+          },
+          "min_eig": -1.993455947302252e-10,
+          "min_mass": 0.6400043072054356,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.023264792005647905,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.22598091699910583,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9333451157445238,
+            "per_joint": {
+              "shoulder_pan_joint": 0.20067821580963593,
+              "shoulder_lift_joint": 1.8637199942998308,
+              "elbow_joint": 1.2997306672019453,
+              "wrist_1_joint": 0.1512076841237488,
+              "wrist_2_joint": 0.025138500851887388,
+              "wrist_3_joint": 0.016707837175720632
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.09077259242695664,
+            "per_joint": {
+              "shoulder_pan_joint": 0.09412101640322022,
+              "shoulder_lift_joint": 0.18475615013453178,
+              "elbow_joint": 0.06121548558335028,
+              "wrist_1_joint": 0.04502736458174939,
+              "wrist_2_joint": 0.020281972976088726,
+              "wrist_3_joint": 0.01606931267875123
+            }
+          },
+          "train_objective": 13530.90152089411,
+          "train_rmse": 0.9693530951649868,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.704913365401733,
+              "min_eig": 3.2109438281605895e-07
+            },
+            "shoulder_lift_joint": {
+              "mass": 15.91602655637895,
+              "min_eig": 4.472960804214036e-08
+            },
+            "elbow_joint": {
+              "mass": 2.7480012754853504,
+              "min_eig": 2.095407478729294e-07
+            },
+            "wrist_1_joint": {
+              "mass": 0.6400043072054356,
+              "min_eig": 5.217881758525351e-10
+            },
+            "wrist_2_joint": {
+              "mass": 0.8749667686895604,
+              "min_eig": -1.6138300481734173e-10
+            },
+            "wrist_3_joint": {
+              "mass": 2.4316563586768614,
+              "min_eig": -1.993455947302252e-10
+            }
+          },
+          "min_eig": -1.993455947302252e-10,
+          "min_mass": 0.6400043072054356,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66467453241727,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02948525000101654,
+          "objective": 13530.90152089411,
+          "min_eig": -1.993455947302252e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.028391167004883755,
+          "objective": 13530.90152089411,
+          "min_eig": -1.993455947302252e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02823408300173469,
+          "objective": 13530.90152089411,
+          "min_eig": -1.993455947302252e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.028047708998201415,
+          "objective": 13530.90152089411,
+          "min_eig": -1.993455947302252e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.028994291998969857,
+          "objective": 13530.90152089411,
+          "min_eig": -1.993455947302252e-10,
+          "max_abs_diff_to_reference": 0.0
+        }
+      },
+      "starts_forced_interior": {
+        "nominal": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 1.353046452050583,
+          "exception": null,
+          "runtime_s": 1.717695833001926,
+          "objective": null
+        },
+        "repaired_ols": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 23.166790556877,
+          "exception": null,
+          "runtime_s": 2.040902749999077,
+          "objective": null
+        },
+        "perturbed_1101": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 45.82397280696582,
+          "exception": null,
+          "runtime_s": 2.0061210409985506,
+          "objective": null
+        },
+        "perturbed_1102": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "max_nfev",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": "max_nfev",
+          "nfev": 2000,
+          "identifiable_rms": 42.61075068416461,
+          "exception": null,
+          "runtime_s": 1.8364948340022238,
+          "objective": null
+        },
+        "unrepaired_ols": {
+          "branch": "interior",
+          "start_used": true,
+          "solver_status": "invalid_start",
+          "accepted": false,
+          "converged": false,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": "link 'shoulder_lift_joint': pseudo-inertia is not positive definite: min eig -3.654e-02, max eig 1.439e+01 (relative floor 1e-12). The body is physically inconsistent or singular (e.g. a point mass or thin rod); use repair_p10 to lift it explicitly. Pass a physically consistent start or set LogCholeskyOptions(repair_start=True)",
+          "runtime_s": 0.004586875002132729,
+          "objective": null
+        }
+      }
+    },
+    {
+      "noise": "high",
+      "train_seed": 102,
+      "validation_seed": 202,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.16851804200268816,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9512443175759616,
+            "per_joint": {
+              "shoulder_pan_joint": 0.186317729660893,
+              "shoulder_lift_joint": 1.8655688103273822,
+              "elbow_joint": 1.3751616924117063,
+              "wrist_1_joint": 0.14619483012066606,
+              "wrist_2_joint": 0.03905124356287427,
+              "wrist_3_joint": 0.012869328521027937
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.08160261258505,
+            "per_joint": {
+              "shoulder_pan_joint": 0.08365860200468053,
+              "shoulder_lift_joint": 0.1518177641491008,
+              "elbow_joint": 0.08315216392725454,
+              "wrist_1_joint": 0.03871493668768129,
+              "wrist_2_joint": 0.036654047492599456,
+              "wrist_3_joint": 0.01224235261373885
+            }
+          },
+          "train_objective": 12653.605208862607,
+          "train_rmse": 0.9374015744120529,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.007863003512766122
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": -0.042555369041867484
+            },
+            "elbow_joint": {
+              "mass": 3.589176199601814,
+              "min_eig": -0.009026210516589885
+            },
+            "wrist_1_joint": {
+              "mass": 1.705723742080867,
+              "min_eig": -0.0037265577098660654
+            },
+            "wrist_2_joint": {
+              "mass": 1.7139353382212525,
+              "min_eig": -0.003443078890851107
+            },
+            "wrist_3_joint": {
+              "mass": 0.2254577766265201,
+              "min_eig": -0.001035864000079788
+            }
+          },
+          "min_eig": -0.042555369041867484,
+          "min_mass": 0.2254577766265201
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.26854437500151107,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9520537033431523,
+            "per_joint": {
+              "shoulder_pan_joint": 0.20640573555271657,
+              "shoulder_lift_joint": 1.8623914659809144,
+              "elbow_joint": 1.3801302164148173,
+              "wrist_1_joint": 0.14499734650187757,
+              "wrist_2_joint": 0.03731262736957563,
+              "wrist_3_joint": 0.012503885550153202
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.09942731389074268,
+            "per_joint": {
+              "shoulder_pan_joint": 0.11949715617934907,
+              "shoulder_lift_joint": 0.15770054853303944,
+              "elbow_joint": 0.13288654182952225,
+              "wrist_1_joint": 0.034041016031549104,
+              "wrist_2_joint": 0.034749268445885446,
+              "wrist_3_joint": 0.011856462929667636
+            }
+          },
+          "train_objective": 12720.155662712728,
+          "train_rmse": 0.9398634421781522,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.777942027098033,
+              "min_eig": 0.007862920203646259
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.931230656281027,
+              "min_eig": 1.2660393379992965e-08
+            },
+            "elbow_joint": {
+              "mass": 3.5901733594979586,
+              "min_eig": 4.4674698690282226e-09
+            },
+            "wrist_1_joint": {
+              "mass": 1.7145347349182345,
+              "min_eig": -1.8824807931154543e-10
+            },
+            "wrist_2_joint": {
+              "mass": 1.7232163110415635,
+              "min_eig": -9.533292841087416e-11
+            },
+            "wrist_3_joint": {
+              "mass": 0.22694173817750474,
+              "min_eig": -1.5746179932359034e-10
+            }
+          },
+          "min_eig": -1.8824807931154543e-10,
+          "min_mass": 0.22694173817750474
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.04418733400234487,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.13016849353388948,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_2_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.2529326250005397,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9508275492363717,
+            "per_joint": {
+              "shoulder_pan_joint": 0.18392369691453558,
+              "shoulder_lift_joint": 1.864262055029983,
+              "elbow_joint": 1.3755597450498231,
+              "wrist_1_joint": 0.14601790363093778,
+              "wrist_2_joint": 0.038872858777836854,
+              "wrist_3_joint": 0.011844605433378287
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.07439582536601085,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0779752776002397,
+              "shoulder_lift_joint": 0.12328092934148233,
+              "elbow_joint": 0.0948391497377016,
+              "wrist_1_joint": 0.03849410613175351,
+              "wrist_2_joint": 0.03645500002202196,
+              "wrist_3_joint": 0.01117470262456141
+            }
+          },
+          "train_objective": 12654.27388283566,
+          "train_rmse": 0.9374264622201519,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.811425757515086,
+              "min_eig": 2.2640650534921924e-09
+            },
+            "shoulder_lift_joint": {
+              "mass": 13.187027956299643,
+              "min_eig": -4.154768696311559e-10
+            },
+            "elbow_joint": {
+              "mass": 3.555189933636853,
+              "min_eig": -1.323221969765353e-10
+            },
+            "wrist_1_joint": {
+              "mass": 0.40537613232270364,
+              "min_eig": -1.9274063767012447e-10
+            },
+            "wrist_2_joint": {
+              "mass": 1.4368935899101145,
+              "min_eig": -2.665128401849133e-10
+            },
+            "wrist_3_joint": {
+              "mass": 1.431183539513467,
+              "min_eig": -3.815471817035532e-10
+            }
+          },
+          "min_eig": -4.154768696311559e-10,
+          "min_mass": 0.40537613232270364,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.04810449999786215,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.2651252919968101,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9508275492363717,
+            "per_joint": {
+              "shoulder_pan_joint": 0.18392369691453558,
+              "shoulder_lift_joint": 1.864262055029983,
+              "elbow_joint": 1.3755597450498231,
+              "wrist_1_joint": 0.14601790363093778,
+              "wrist_2_joint": 0.038872858777836854,
+              "wrist_3_joint": 0.011844605433378287
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.07439582536601085,
+            "per_joint": {
+              "shoulder_pan_joint": 0.0779752776002397,
+              "shoulder_lift_joint": 0.12328092934148233,
+              "elbow_joint": 0.0948391497377016,
+              "wrist_1_joint": 0.03849410613175351,
+              "wrist_2_joint": 0.03645500002202196,
+              "wrist_3_joint": 0.01117470262456141
+            }
+          },
+          "train_objective": 12654.27388283566,
+          "train_rmse": 0.9374264622201519,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.811425757515086,
+              "min_eig": 2.2640650534921924e-09
+            },
+            "shoulder_lift_joint": {
+              "mass": 13.187027956299643,
+              "min_eig": -4.154768696311559e-10
+            },
+            "elbow_joint": {
+              "mass": 3.555189933636853,
+              "min_eig": -1.323221969765353e-10
+            },
+            "wrist_1_joint": {
+              "mass": 0.40537613232270364,
+              "min_eig": -1.9274063767012447e-10
+            },
+            "wrist_2_joint": {
+              "mass": 1.4368935899101145,
+              "min_eig": -2.665128401849133e-10
+            },
+            "wrist_3_joint": {
+              "mass": 1.431183539513467,
+              "min_eig": -3.815471817035532e-10
+            }
+          },
+          "min_eig": -4.154768696311559e-10,
+          "min_mass": 0.40537613232270364,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66483541114702,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.047768541997356806,
+          "objective": 12654.27388283566,
+          "min_eig": -4.154768696311559e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.0478509579988895,
+          "objective": 12654.27388283566,
+          "min_eig": -4.154768696311559e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.04710041700309375,
+          "objective": 12654.27388283566,
+          "min_eig": -4.154768696311559e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.04798124999797437,
+          "objective": 12654.27388283566,
+          "min_eig": -4.154768696311559e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.04618329100048868,
+          "objective": 12654.27388283566,
+          "min_eig": -4.154768696311559e-10,
+          "max_abs_diff_to_reference": 0.0
+        }
+      }
+    },
+    {
+      "noise": "high",
+      "train_seed": 103,
+      "validation_seed": 203,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.16778258299746085,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9617962377156183,
+            "per_joint": {
+              "shoulder_pan_joint": 0.24750565914642403,
+              "shoulder_lift_joint": 1.9114763720508021,
+              "elbow_joint": 1.3451161288116875,
+              "wrist_1_joint": 0.1539839154325501,
+              "wrist_2_joint": 0.04547932567658844,
+              "wrist_3_joint": 0.013936635900773172
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.12664292293998344,
+            "per_joint": {
+              "shoulder_pan_joint": 0.18957765389382358,
+              "shoulder_lift_joint": 0.22949429352171058,
+              "elbow_joint": 0.05230516361853682,
+              "wrist_1_joint": 0.05315142716015847,
+              "wrist_2_joint": 0.043289026691788544,
+              "wrist_3_joint": 0.013726535889807647
+            }
+          },
+          "train_objective": 13637.785832988056,
+          "train_rmse": 0.9731739914831663,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.00451735750965513
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": -0.02837041217991925
+            },
+            "elbow_joint": {
+              "mass": 3.587634678375271,
+              "min_eig": -0.07041127124714619
+            },
+            "wrist_1_joint": {
+              "mass": 1.7109585426523697,
+              "min_eig": -0.029333082754722378
+            },
+            "wrist_2_joint": {
+              "mass": 1.7189035886019304,
+              "min_eig": -0.020050224736887726
+            },
+            "wrist_3_joint": {
+              "mass": 0.23015427992879495,
+              "min_eig": -0.005358473255273285
+            }
+          },
+          "min_eig": -0.07041127124714619,
+          "min_mass": 0.23015427992879495
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.19258049999916693,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9713221228554946,
+            "per_joint": {
+              "shoulder_pan_joint": 0.216710746840158,
+              "shoulder_lift_joint": 1.9347377442792628,
+              "elbow_joint": 1.3591354451858073,
+              "wrist_1_joint": 0.1502495797289515,
+              "wrist_2_joint": 0.026687425912316088,
+              "wrist_3_joint": 0.009486721521314011
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.17163092455209006,
+            "per_joint": {
+              "shoulder_pan_joint": 0.13622988139655076,
+              "shoulder_lift_joint": 0.32504450797493256,
+              "elbow_joint": 0.22341993711145736,
+              "wrist_1_joint": 0.04456642426651119,
+              "wrist_2_joint": 0.02336202483561114,
+              "wrist_3_joint": 0.00906168584961643
+            }
+          },
+          "train_objective": 13881.379599193391,
+          "train_rmse": 0.9818268204043721,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.777995824167869,
+              "min_eig": 0.00451735517288905
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.940450356135637,
+              "min_eig": 5.990097627008774e-09
+            },
+            "elbow_joint": {
+              "mass": 3.590805795225848,
+              "min_eig": 4.043694588997439e-10
+            },
+            "wrist_1_joint": {
+              "mass": 1.7466469498700932,
+              "min_eig": -1.8932785070872225e-11
+            },
+            "wrist_2_joint": {
+              "mass": 1.7372543073399975,
+              "min_eig": -4.689439921087418e-11
+            },
+            "wrist_3_joint": {
+              "mass": 0.23230129623320006,
+              "min_eig": -6.914438820498248e-12
+            }
+          },
+          "min_eig": -4.689439921087418e-11,
+          "min_mass": 0.23230129623320006
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.02538458399794763,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.16104476559463232,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_2_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.23088141700281994,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9610642595616761,
+            "per_joint": {
+              "shoulder_pan_joint": 0.2368840345467151,
+              "shoulder_lift_joint": 1.9117664806292736,
+              "elbow_joint": 1.3444903576829912,
+              "wrist_1_joint": 0.1504760355529342,
+              "wrist_2_joint": 0.022148515629463534,
+              "wrist_3_joint": 0.010678381776932484
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.12101409006143708,
+            "per_joint": {
+              "shoulder_pan_joint": 0.17474191737026173,
+              "shoulder_lift_joint": 0.23003286523294114,
+              "elbow_joint": 0.049961799847413474,
+              "wrist_1_joint": 0.038843744205811354,
+              "wrist_2_joint": 0.01754588585869875,
+              "wrist_3_joint": 0.010184653572301194
+            }
+          },
+          "train_objective": 13640.191765463762,
+          "train_rmse": 0.9732584211582684,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.810658907809657,
+              "min_eig": 4.593761968041399e-10
+            },
+            "shoulder_lift_joint": {
+              "mass": 59.016921536158506,
+              "min_eig": 3.1816233126741105e-10
+            },
+            "elbow_joint": {
+              "mass": 5.584133800263327,
+              "min_eig": 2.7908829024146896e-10
+            },
+            "wrist_1_joint": {
+              "mass": 2.3544514669021557,
+              "min_eig": -1.349275327780372e-11
+            },
+            "wrist_2_joint": {
+              "mass": 1.89837645525784,
+              "min_eig": -1.4846712113575744e-11
+            },
+            "wrist_3_joint": {
+              "mass": 0.7237298585005842,
+              "min_eig": -1.3485787470953488e-11
+            }
+          },
+          "min_eig": -1.4846712113575744e-11,
+          "min_mass": 0.7237298585005842,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.022717667001415975,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.22917179099749774,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9610642595616761,
+            "per_joint": {
+              "shoulder_pan_joint": 0.2368840345467151,
+              "shoulder_lift_joint": 1.9117664806292736,
+              "elbow_joint": 1.3444903576829912,
+              "wrist_1_joint": 0.1504760355529342,
+              "wrist_2_joint": 0.022148515629463534,
+              "wrist_3_joint": 0.010678381776932484
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.12101409006143708,
+            "per_joint": {
+              "shoulder_pan_joint": 0.17474191737026173,
+              "shoulder_lift_joint": 0.23003286523294114,
+              "elbow_joint": 0.049961799847413474,
+              "wrist_1_joint": 0.038843744205811354,
+              "wrist_2_joint": 0.01754588585869875,
+              "wrist_3_joint": 0.010184653572301194
+            }
+          },
+          "train_objective": 13640.191765463762,
+          "train_rmse": 0.9732584211582684,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.810658907809657,
+              "min_eig": 4.593761968041399e-10
+            },
+            "shoulder_lift_joint": {
+              "mass": 59.016921536158506,
+              "min_eig": 3.1816233126741105e-10
+            },
+            "elbow_joint": {
+              "mass": 5.584133800263327,
+              "min_eig": 2.7908829024146896e-10
+            },
+            "wrist_1_joint": {
+              "mass": 2.3544514669021557,
+              "min_eig": -1.349275327780372e-11
+            },
+            "wrist_2_joint": {
+              "mass": 1.89837645525784,
+              "min_eig": -1.4846712113575744e-11
+            },
+            "wrist_3_joint": {
+              "mass": 0.7237298585005842,
+              "min_eig": -1.3485787470953488e-11
+            }
+          },
+          "min_eig": -1.4846712113575744e-11,
+          "min_mass": 0.7237298585005842,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66489325192897,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02990204199886648,
+          "objective": 13640.191765463762,
+          "min_eig": -1.4846712113575744e-11,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.03033408299961593,
+          "objective": 13640.191765463762,
+          "min_eig": -1.4846712113575744e-11,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.030580833001295105,
+          "objective": 13640.191765463762,
+          "min_eig": -1.4846712113575744e-11,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.029110167000908405,
+          "objective": 13640.191765463762,
+          "min_eig": -1.4846712113575744e-11,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02927179200196406,
+          "objective": 13640.191765463762,
+          "min_eig": -1.4846712113575744e-11,
+          "max_abs_diff_to_reference": 0.0
+        }
+      }
+    },
+    {
+      "noise": "high",
+      "train_seed": 104,
+      "validation_seed": 204,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.14810504199704155,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9585836260184506,
+            "per_joint": {
+              "shoulder_pan_joint": 0.21494264188807985,
+              "shoulder_lift_joint": 1.9200736173585513,
+              "elbow_joint": 1.3252321680491803,
+              "wrist_1_joint": 0.14961751532869788,
+              "wrist_2_joint": 0.035287482198686035,
+              "wrist_3_joint": 0.023269433179986972
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.08441167973195034,
+            "per_joint": {
+              "shoulder_pan_joint": 0.11654206538952308,
+              "shoulder_lift_joint": 0.13929144972118593,
+              "elbow_joint": 0.07235853213827302,
+              "wrist_1_joint": 0.053394193452129896,
+              "wrist_2_joint": 0.03373557122764362,
+              "wrist_3_joint": 0.023303288323028762
+            }
+          },
+          "train_objective": 12622.159807197317,
+          "train_rmse": 0.9362360806631853,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": 0.011078190250492143
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": 0.014913399426304671
+            },
+            "elbow_joint": {
+              "mass": 3.576915049469875,
+              "min_eig": -0.06479936065994295
+            },
+            "wrist_1_joint": {
+              "mass": 1.711841569407892,
+              "min_eig": -0.01637111395941404
+            },
+            "wrist_2_joint": {
+              "mass": 1.719917857094166,
+              "min_eig": -0.008376407914258772
+            },
+            "wrist_3_joint": {
+              "mass": 0.23126137397826205,
+              "min_eig": -0.003876560008590963
+            }
+          },
+          "min_eig": -0.06479936065994295,
+          "min_mass": 0.23126137397826205
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.20833495799888624,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9644025671953683,
+            "per_joint": {
+              "shoulder_pan_joint": 0.21596377673955705,
+              "shoulder_lift_joint": 1.9242465742661226,
+              "elbow_joint": 1.3450203321419023,
+              "wrist_1_joint": 0.14528033401908644,
+              "wrist_2_joint": 0.023937684473052185,
+              "wrist_3_joint": 0.017594208531188333
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.18052924232199746,
+            "per_joint": {
+              "shoulder_pan_joint": 0.12961977421668439,
+              "shoulder_lift_joint": 0.3743529743271052,
+              "elbow_joint": 0.1894491597716404,
+              "wrist_1_joint": 0.04452256916464548,
+              "wrist_2_joint": 0.020540550454496365,
+              "wrist_3_joint": 0.017557084849640373
+            }
+          },
+          "train_objective": 12887.302778435811,
+          "train_rmse": 0.9460183755593115,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778002891732608,
+              "min_eig": 0.011078183505176961
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.930077504249372,
+              "min_eig": 0.014924341688311254
+            },
+            "elbow_joint": {
+              "mass": 3.5789007351146553,
+              "min_eig": 1.0994312531421843e-10
+            },
+            "wrist_1_joint": {
+              "mass": 1.7395411168190607,
+              "min_eig": -5.380587194625494e-11
+            },
+            "wrist_2_joint": {
+              "mass": 1.7475368745516104,
+              "min_eig": -1.0528236773938736e-10
+            },
+            "wrist_3_joint": {
+              "mass": 0.236491060659201,
+              "min_eig": -5.924519089492394e-11
+            }
+          },
+          "min_eig": -1.0528236773938736e-10,
+          "min_mass": 0.236491060659201
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.02091133400244871,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.14232675024617217,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_2_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.22322533300030045,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9584971323455547,
+            "per_joint": {
+              "shoulder_pan_joint": 0.21652244145114097,
+              "shoulder_lift_joint": 1.9201019219867141,
+              "elbow_joint": 1.3250056369372392,
+              "wrist_1_joint": 0.1471963769581314,
+              "wrist_2_joint": 0.030275898523471054,
+              "wrist_3_joint": 0.020095185553054135
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.08338802221510892,
+            "per_joint": {
+              "shoulder_pan_joint": 0.11951635021245441,
+              "shoulder_lift_joint": 0.13773505229896635,
+              "elbow_joint": 0.07169377986515421,
+              "wrist_1_joint": 0.0461274097046738,
+              "wrist_2_joint": 0.028186841678391982,
+              "wrist_3_joint": 0.0201006679630601
+            }
+          },
+          "train_objective": 12622.433947586493,
+          "train_rmse": 0.9362461158546034,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.777737971383408,
+              "min_eig": 8.417276681216279e-09
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.92054098509253,
+              "min_eig": 7.627376882807035e-09
+            },
+            "elbow_joint": {
+              "mass": 2.8758729179788456,
+              "min_eig": 5.155877563842484e-09
+            },
+            "wrist_1_joint": {
+              "mass": 1.6439449182075254,
+              "min_eig": -1.8517177243168644e-10
+            },
+            "wrist_2_joint": {
+              "mass": 2.7853594125177223,
+              "min_eig": -1.7929357646087736e-10
+            },
+            "wrist_3_joint": {
+              "mass": 0.04655582363015087,
+              "min_eig": -2.0624258031041133e-10
+            }
+          },
+          "min_eig": -2.0624258031041133e-10,
+          "min_mass": 0.04655582363015087,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.023773250002705026,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.24692958399828058,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9584971323455547,
+            "per_joint": {
+              "shoulder_pan_joint": 0.21652244145114097,
+              "shoulder_lift_joint": 1.9201019219867141,
+              "elbow_joint": 1.3250056369372392,
+              "wrist_1_joint": 0.1471963769581314,
+              "wrist_2_joint": 0.030275898523471054,
+              "wrist_3_joint": 0.020095185553054135
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.08338802221510892,
+            "per_joint": {
+              "shoulder_pan_joint": 0.11951635021245441,
+              "shoulder_lift_joint": 0.13773505229896635,
+              "elbow_joint": 0.07169377986515421,
+              "wrist_1_joint": 0.0461274097046738,
+              "wrist_2_joint": 0.028186841678391982,
+              "wrist_3_joint": 0.0201006679630601
+            }
+          },
+          "train_objective": 12622.433947586493,
+          "train_rmse": 0.9362461158546034,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.777737971383408,
+              "min_eig": 8.417276681216279e-09
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.92054098509253,
+              "min_eig": 7.627376882807035e-09
+            },
+            "elbow_joint": {
+              "mass": 2.8758729179788456,
+              "min_eig": 5.155877563842484e-09
+            },
+            "wrist_1_joint": {
+              "mass": 1.6439449182075254,
+              "min_eig": -1.8517177243168644e-10
+            },
+            "wrist_2_joint": {
+              "mass": 2.7853594125177223,
+              "min_eig": -1.7929357646087736e-10
+            },
+            "wrist_3_joint": {
+              "mass": 0.04655582363015087,
+              "min_eig": -2.0624258031041133e-10
+            }
+          },
+          "min_eig": -2.0624258031041133e-10,
+          "min_mass": 0.04655582363015087,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.66524361247967,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.031473957998969126,
+          "objective": 12622.433947586493,
+          "min_eig": -2.0624258031041133e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.0293870000023162,
+          "objective": 12622.433947586493,
+          "min_eig": -2.0624258031041133e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.03059087500150781,
+          "objective": 12622.433947586493,
+          "min_eig": -2.0624258031041133e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.031173666000540834,
+          "objective": 12622.433947586493,
+          "min_eig": -2.0624258031041133e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.02872916700289352,
+          "objective": 12622.433947586493,
+          "min_eig": -2.0624258031041133e-10,
+          "max_abs_diff_to_reference": 0.0
+        }
+      }
+    },
+    {
+      "noise": "high",
+      "train_seed": 105,
+      "validation_seed": 205,
+      "methods": {
+        "ols": {
+          "status": "ok",
+          "stage": "reconstruction",
+          "pipeline_runtime_s": 0.16253108299861196,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9486738630341071,
+            "per_joint": {
+              "shoulder_pan_joint": 0.24525874955804408,
+              "shoulder_lift_joint": 1.9049230812315021,
+              "elbow_joint": 1.2983981420233341,
+              "wrist_1_joint": 0.15047995205881828,
+              "wrist_2_joint": 0.04689889857301029,
+              "wrist_3_joint": 0.01809234402743027
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.09991081854880507,
+            "per_joint": {
+              "shoulder_pan_joint": 0.16752408728444634,
+              "shoulder_lift_joint": 0.14617492776018678,
+              "elbow_joint": 0.07151406669915507,
+              "wrist_1_joint": 0.055309953193654504,
+              "wrist_2_joint": 0.044409160940576245,
+              "wrist_3_joint": 0.017775669292306027
+            }
+          },
+          "train_objective": 12828.381358299148,
+          "train_rmse": 0.9438532274584451,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.778,
+              "min_eig": -0.002841550918865031
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.93,
+              "min_eig": 0.004231348424790286
+            },
+            "elbow_joint": {
+              "mass": 3.5839420022551005,
+              "min_eig": -0.058531161788865534
+            },
+            "wrist_1_joint": {
+              "mass": 1.7131086387125012,
+              "min_eig": -0.021332452375463034
+            },
+            "wrist_2_joint": {
+              "mass": 1.7211155545156198,
+              "min_eig": -0.021324513801026523
+            },
+            "wrist_3_joint": {
+              "mass": 0.2321611506638729,
+              "min_eig": -0.001549477215028798
+            }
+          },
+          "min_eig": -0.058531161788865534,
+          "min_mass": 0.2321611506638729
+        },
+        "ols_sdp": {
+          "status": "ok",
+          "source": "reconstruction",
+          "stage": "physical consistency (not selectable)",
+          "failed_links": 0,
+          "pipeline_runtime_s": 0.20248474999971222,
+          "heldout_vs_measurement": {
+            "aggregate": 1.0339322332593581,
+            "per_joint": {
+              "shoulder_pan_joint": 0.1946588246260327,
+              "shoulder_lift_joint": 2.067595496999027,
+              "elbow_joint": 1.440537055427793,
+              "wrist_1_joint": 0.1465046938921517,
+              "wrist_2_joint": 0.06528672157557548,
+              "wrist_3_joint": 0.019467696668139658
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.3938214278304848,
+            "per_joint": {
+              "shoulder_pan_joint": 0.09624634795684382,
+              "shoulder_lift_joint": 0.7865859062684132,
+              "elbow_joint": 0.5441889623243036,
+              "wrist_1_joint": 0.04519890915545459,
+              "wrist_2_joint": 0.0635628004598557,
+              "wrist_3_joint": 0.019140453724372772
+            }
+          },
+          "train_objective": 14325.140611808674,
+          "train_rmse": 0.9973969541928569,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.777998195461879,
+              "min_eig": -4.560830879629663e-12
+            },
+            "shoulder_lift_joint": {
+              "mass": 12.929946206430817,
+              "min_eig": 0.0042420637305301155
+            },
+            "elbow_joint": {
+              "mass": 3.5962901044050883,
+              "min_eig": -4.4513551494786607e-10
+            },
+            "wrist_1_joint": {
+              "mass": 1.7750890851152894,
+              "min_eig": -5.997461903730932e-11
+            },
+            "wrist_2_joint": {
+              "mass": 1.7848694491267718,
+              "min_eig": -8.068244738944954e-11
+            },
+            "wrist_3_joint": {
+              "mass": 0.2381416109180481,
+              "min_eig": -2.1021969883903268e-10
+            }
+          },
+          "min_eig": -4.4513551494786607e-10,
+          "min_mass": 0.2381416109180481
+        },
+        "log_cholesky": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.06370337500266032,
+          "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+          "branch": "boundary",
+          "rank": 36,
+          "null_space_dim": 24,
+          "unconstrained_min_eig": -0.18288225416822593,
+          "active_links": {
+            "shoulder_lift_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "elbow_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_1_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_2_joint": [
+              "pseudo_inertia_margin"
+            ],
+            "wrist_3_joint": [
+              "pseudo_inertia_margin",
+              "mass_min"
+            ]
+          },
+          "start_used": false,
+          "interior": null,
+          "pipeline_runtime_s": 0.3209602920032921,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9463946818204673,
+            "per_joint": {
+              "shoulder_pan_joint": 0.24163227746500562,
+              "shoulder_lift_joint": 1.8991510667648257,
+              "elbow_joint": 1.2986100242028162,
+              "wrist_1_joint": 0.14448983555896783,
+              "wrist_2_joint": 0.03188064446800474,
+              "wrist_3_joint": 0.02312461307541573
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.08552965598746036,
+            "per_joint": {
+              "shoulder_pan_joint": 0.16110758501461162,
+              "shoulder_lift_joint": 0.10884103189941041,
+              "elbow_joint": 0.059029883517221014,
+              "wrist_1_joint": 0.03570884661477003,
+              "wrist_2_joint": 0.02841738030476844,
+              "wrist_3_joint": 0.022862890627202207
+            }
+          },
+          "train_objective": 12830.966080704255,
+          "train_rmse": 0.9439485237669843,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.759817234026084,
+              "min_eig": 8.421164529592133e-10
+            },
+            "shoulder_lift_joint": {
+              "mass": 13.281526264032346,
+              "min_eig": 3.5353153634755583e-10
+            },
+            "elbow_joint": {
+              "mass": 5.751770614154331,
+              "min_eig": -1.205206021719325e-10
+            },
+            "wrist_1_joint": {
+              "mass": 0.31192443447514306,
+              "min_eig": -8.959838445229923e-11
+            },
+            "wrist_2_joint": {
+              "mass": 0.5861426848435409,
+              "min_eig": -1.263524391715491e-10
+            },
+            "wrist_3_joint": {
+              "mass": 2.463583228040876,
+              "min_eig": -1.2012646369740059e-10
+            }
+          },
+          "min_eig": -1.263524391715491e-10,
+          "min_mass": 0.31192443447514306,
+          "selected_prediction_gap_nm": 0.0
+        },
+        "direct": {
+          "status": "accepted",
+          "selected_stage": "physical_fit",
+          "solver_status": "optimal",
+          "fit_runtime_s": 0.045038582997221965,
+          "reason": "cvxopt: optimal; all links feasible",
+          "branch": null,
+          "rank": null,
+          "null_space_dim": null,
+          "unconstrained_min_eig": null,
+          "active_links": null,
+          "start_used": null,
+          "interior": null,
+          "pipeline_runtime_s": 0.25359604099503485,
+          "heldout_vs_measurement": {
+            "aggregate": 0.9463946818204673,
+            "per_joint": {
+              "shoulder_pan_joint": 0.24163227746500562,
+              "shoulder_lift_joint": 1.8991510667648257,
+              "elbow_joint": 1.2986100242028162,
+              "wrist_1_joint": 0.14448983555896783,
+              "wrist_2_joint": 0.03188064446800474,
+              "wrist_3_joint": 0.02312461307541573
+            }
+          },
+          "heldout_vs_truth": {
+            "aggregate": 0.08552965598746036,
+            "per_joint": {
+              "shoulder_pan_joint": 0.16110758501461162,
+              "shoulder_lift_joint": 0.10884103189941041,
+              "elbow_joint": 0.059029883517221014,
+              "wrist_1_joint": 0.03570884661477003,
+              "wrist_2_joint": 0.02841738030476844,
+              "wrist_3_joint": 0.022862890627202207
+            }
+          },
+          "train_objective": 12830.966080704255,
+          "train_rmse": 0.9439485237669843,
+          "links": {
+            "shoulder_pan_joint": {
+              "mass": 7.759817234026084,
+              "min_eig": 8.421164529592133e-10
+            },
+            "shoulder_lift_joint": {
+              "mass": 13.281526264032346,
+              "min_eig": 3.5353153634755583e-10
+            },
+            "elbow_joint": {
+              "mass": 5.751770614154331,
+              "min_eig": -1.205206021719325e-10
+            },
+            "wrist_1_joint": {
+              "mass": 0.31192443447514306,
+              "min_eig": -8.959838445229923e-11
+            },
+            "wrist_2_joint": {
+              "mass": 0.5861426848435409,
+              "min_eig": -1.263524391715491e-10
+            },
+            "wrist_3_joint": {
+              "mass": 2.463583228040876,
+              "min_eig": -1.2012646369740059e-10
+            }
+          },
+          "min_eig": -1.263524391715491e-10,
+          "min_mass": 0.31192443447514306,
+          "selected_prediction_gap_nm": 0.0
+        }
+      },
+      "condition_number": 92.6645641978606,
+      "rows": 14400,
+      "eliminated_columns": 11,
+      "starts_auto": {
+        "nominal": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.05531083299865713,
+          "objective": 12830.966080704255,
+          "min_eig": -1.263524391715491e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "repaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.0557718339987332,
+          "objective": 12830.966080704255,
+          "min_eig": -1.263524391715491e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1101": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.053927791996102314,
+          "objective": 12830.966080704255,
+          "min_eig": -1.263524391715491e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "perturbed_1102": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.0524862089951057,
+          "objective": 12830.966080704255,
+          "min_eig": -1.263524391715491e-10,
+          "max_abs_diff_to_reference": 0.0
+        },
+        "unrepaired_ols": {
+          "branch": "boundary",
+          "start_used": false,
+          "solver_status": "optimal",
+          "accepted": true,
+          "converged": true,
+          "stop_reason": null,
+          "nfev": null,
+          "identifiable_rms": null,
+          "exception": null,
+          "runtime_s": 0.05242504199850373,
+          "objective": 12830.966080704255,
+          "min_eig": -1.263524391715491e-10,
+          "max_abs_diff_to_reference": 0.0
+        }
+      }
+    }
+  ],
+  "oracle_interior": {
+    "dataset": {
+      "noise": "none",
+      "train_seed": null,
+      "validation_seed": null
+    },
+    "prior": "truth_parameters.csv (oracle; diagnostic only)",
+    "detected_branch": "interior",
+    "unconstrained_min_eig": 0.00134177606370353,
+    "reference_status": "optimal",
+    "starts": {
+      "nominal": {
+        "branch": "interior",
+        "start_used": true,
+        "solver_status": "optimal",
+        "accepted": true,
+        "converged": true,
+        "stop_reason": "converged",
+        "nfev": 8,
+        "identifiable_rms": 2.2139852176364517e-09,
+        "exception": null,
+        "runtime_s": 0.018328999998630024,
+        "objective": 5.35548736636921e-19,
+        "min_eig": 0.0013417760637035312,
+        "max_abs_diff_to_reference": 6.75359768109729e-12
+      },
+      "repaired_ols": {
+        "branch": "interior",
+        "start_used": true,
+        "solver_status": "optimal",
+        "accepted": true,
+        "converged": true,
+        "stop_reason": "converged",
+        "nfev": 32,
+        "identifiable_rms": 5.7045775305582035e-11,
+        "exception": null,
+        "runtime_s": 0.04348029100219719,
+        "objective": 1.206516904482682e-20,
+        "min_eig": 0.0013417760637035312,
+        "max_abs_diff_to_reference": 1.4268586312482512e-12
+      },
+      "perturbed_1101": {
+        "branch": "interior",
+        "start_used": true,
+        "solver_status": "optimal",
+        "accepted": true,
+        "converged": true,
+        "stop_reason": "converged",
+        "nfev": 43,
+        "identifiable_rms": 8.699390647977601e-14,
+        "exception": null,
+        "runtime_s": 0.047429916994587984,
+        "objective": 2.414330619151493e-24,
+        "min_eig": 0.0013417760637035312,
+        "max_abs_diff_to_reference": 6.8833827526759706e-15
+      },
+      "perturbed_1102": {
+        "branch": "interior",
+        "start_used": true,
+        "solver_status": "optimal",
+        "accepted": true,
+        "converged": true,
+        "stop_reason": "converged",
+        "nfev": 31,
+        "identifiable_rms": 1.524482326914231e-11,
+        "exception": null,
+        "runtime_s": 0.039171542004623916,
+        "objective": 8.68891232506589e-22,
+        "min_eig": 0.0013417760637035312,
+        "max_abs_diff_to_reference": 3.8469227803261674e-13
+      },
+      "unrepaired_ols": {
+        "branch": "interior",
+        "start_used": true,
+        "solver_status": "invalid_start",
+        "accepted": false,
+        "converged": false,
+        "stop_reason": null,
+        "nfev": null,
+        "identifiable_rms": null,
+        "exception": "link 'elbow_joint': pseudo-inertia is not positive definite: min eig -2.604e-02, max eig 3.953e+00 (relative floor 1e-12). The body is physically inconsistent or singular (e.g. a point mass or thin rod); use repair_p10 to lift it explicitly. Pass a physically consistent start or set LogCholeskyOptions(repair_start=True)",
+        "runtime_s": 0.0048165839980356395,
+        "objective": null
+      }
+    }
+  },
+  "gates": {
+    "clean_heldout_rmse": {
+      "value": 5.840370293982185e-06,
+      "limit": 1e-05,
+      "met": true
+    },
+    "noisy_heldout_ratio": {
+      "max_ratio": 0.9987120956491478,
+      "limit": 1.05,
+      "ols_sdp_all_ok": true,
+      "met": true
+    },
+    "feasibility": {
+      "min_eig": -4.154768696311559e-10,
+      "limit": -1e-08,
+      "met": true,
+      "note": "boundary branch constrains P >= 0; the 1e-6 margin is used for branch detection only"
+    },
+    "fit_runtime": {
+      "max_s": 0.06370337500266032,
+      "limit_s": 20.0,
+      "met": true
+    },
+    "gated_starts": {
+      "production_auto": true,
+      "production_start_used": false,
+      "oracle_interior": true,
+      "met": true,
+      "note": "near-boundary (perturbed) and invalid (unrepaired OLS) starts are reported, not gated"
+    },
+    "all_met": true
+  }
+}
