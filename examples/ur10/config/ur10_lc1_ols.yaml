@@ -1,0 +1,13 @@
+# LC1 comparison (#11), linear baseline: base-parameter least squares on
+# unit-weighted rows. The nullspace reconstruction is enabled only to give the
+# fit a standard-parameter representative (closest to the nominal URDF with
+# M theta = phi_base); it predicts exactly what the base fit predicts.
+# Everything else, including the data split, is the unified config's.
+extends: "ur10_unified_config.yaml"
+
+tasks:
+  identification:
+    select_stage: fit
+    reconstruction:
+      enabled: true
+      method: nullspace

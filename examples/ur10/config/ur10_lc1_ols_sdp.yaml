@@ -1,0 +1,12 @@
+# LC1 comparison (#11), corrected OLS+SDP: the linear baseline, then each
+# link's reconstructed inertials projected onto the physically consistent set
+# by an LMI (cvxopt). Since figaroh-plus#163 the projection takes the fit, not
+# the nominal model. Not selectable as a stage: the run reports the base fit
+# and the projection under result["physical consistency"].
+extends: "ur10_lc1_ols.yaml"
+
+tasks:
+  identification:
+    physical_consistency:
+      enabled: true
+      solver: cvxopt

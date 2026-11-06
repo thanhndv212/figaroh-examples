@@ -9,6 +9,14 @@ reloaded URDF predicts the fitted inertials to ``PARITY_TOL``, and that URDF
 stays within ``TRUTH_TOL`` N.m of the noise-free truth effort on the held-out
 split.
 
+``log-cholesky`` (LC1, #11): the same run with
+``config/ur10_lc1_log_cholesky.yaml``, i.e. ``physical_fit.method:
+log_cholesky`` on core's boundary-aware fit (figaroh-plus#25). It shows the
+log-Cholesky stage flowing into selection, prediction, report and export
+under the same gates; the comparison against OLS and OLS+SDP is
+``log_cholesky_benchmark.py``. The case is listed only when core has
+``figaroh.identification.log_cholesky_fit`` (devel >= 21994ed).
+
     python identification_reference.py --case truth      # from examples/ur10
     python identification_reference.py --case all --root /tmp/runs
 
@@ -18,6 +26,7 @@ Shared machinery and limitations: ``examples/identification_reference.py``.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import sys
 from pathlib import Path
 
@@ -34,6 +43,7 @@ from examples.ur10 import identification_truth as truth  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 CONFIG = HERE / "config" / "ur10_truth_reference.yaml"
+LC_CONFIG = HERE / "config" / "ur10_lc1_log_cholesky.yaml"
 PROFILE = HERE / "config" / "truth_reference_acceptance.json"
 # held-out effort of the reloaded export against the noise-free truth, N.m
 TRUTH_TOL = 0.1
@@ -41,13 +51,16 @@ TRUTH_TOL = 0.1
 SEEDS = {"none": (None, None), "low": (101, 201)}
 
 
-def build(args):
-    seed, val_seed = SEEDS[args.noise]
-    ident = truth.identification(
-        noise=args.noise, seed=seed, val_seed=val_seed, config=CONFIG
-    )
-    ref.apply_instance(ident, args)
-    return ident
+def builder(config):
+    def build(args):
+        seed, val_seed = SEEDS[args.noise]
+        ident = truth.identification(
+            noise=args.noise, seed=seed, val_seed=val_seed, config=config
+        )
+        ref.apply_instance(ident, args)
+        return ident
+
+    return build
 
 
 def inputs(args):
@@ -97,18 +110,23 @@ def after_export(args):
                 "scaling": "protocol base_column_rms; N.m",
             },
         }
-        return report, {"heldout_vs_truth_max": float(rmse.max())}
+        observed = {"heldout_vs_truth_max": float(rmse.max())}
+        lc = (ident.result.get("physical_fit") or {}).get("log_cholesky")
+        if lc is not None:
+            report["log_cholesky"] = lc
+            observed["log_cholesky_branch"] = lc["branch"]
+        return report, observed
 
     return check
 
 
-def case_truth(args) -> ref.Case:
+def case_truth(args, name="truth", config=CONFIG, extra=None) -> ref.Case:
     return ref.Case(
         robot="ur10",
-        name="truth",
+        name=name,
         nominal_urdf=truth.URDF,
-        config=CONFIG,
-        build=build,
+        config=config,
+        build=builder(config),
         solve_kwargs={"decimate": False, "plotting": False},
         scope="prediction",
         profile=PROFILE,
@@ -123,9 +141,10 @@ def case_truth(args) -> ref.Case:
             "heldout_vs_truth_max": ("max", TRUTH_TOL),
             "training_disjoint_from_heldout": True,
             "archive_gaps": [],
+            **(extra or {}),
         },
         processing={
-            "command": "ur10/identification_reference.py --case truth",
+            "command": f"ur10/identification_reference.py --case {name}",
             "noise": args.noise,
             "noise_seeds": {
                 "train": SEEDS[args.noise][0],
@@ -141,7 +160,20 @@ def case_truth(args) -> ref.Case:
     )
 
 
+def case_log_cholesky(args) -> ref.Case:
+    # UR10 always takes the boundary branch: the prior anchors 24 null-space
+    # directions and that ridge minimiser is not physical (LC1 doc)
+    return case_truth(
+        args,
+        name="log-cholesky",
+        config=LC_CONFIG,
+        extra={"log_cholesky_branch": "boundary"},
+    )
+
+
 CASES = {"truth": case_truth}
+if importlib.util.find_spec("figaroh.identification.log_cholesky_fit") is not None:
+    CASES["log-cholesky"] = case_log_cholesky
 
 
 def main(argv=None) -> int:
