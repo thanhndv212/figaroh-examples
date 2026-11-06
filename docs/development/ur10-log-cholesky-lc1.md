@@ -102,8 +102,8 @@ the fixture ddq, bit for bit.
 
 The archive is
 `results/ur10-log-cholesky-lc1-pin37.json` and `.md`. It records examples
-`fa18810` with this change uncommitted (`dirty: true`; the script and config
-SHA-256 identify the exact files), core `v1.1.0-21-g21994ed` (`devel`), Python 3.12.5, NumPy 2.4.3,
+`v1.1.0-5-g032affd` (clean tree; the script and config SHA-256 identify the
+exact files), core `v1.1.0-21-g21994ed` (`devel`), Python 3.12.5, NumPy 2.4.3,
 SciPy 1.17.1, Pinocchio 3.7.0, PICOS 2.6.1 and CVXOPT 1.3.2, with single-threaded
 BLAS. It also holds the file hashes of the fixture, URDFs, configs and script.
 **Pinocchio 4.1 was not run**: no 4.1 environment is available on this machine
@@ -130,7 +130,7 @@ physical fit on every dataset; on boundary fits they are the same SDP.
   smallest log-Cholesky eigenvalue is −4.2e-10, inside the 1e-8 oracle tolerance.
 - **Conditioning.** Rank 36, null-space dimension 24, base-regressor condition
   number 92.7, identical for every dataset.
-- **Runtime.** Each fit takes at most 0.064 s (≤20 s gate). A full pipeline run takes
+- **Runtime.** Each fit takes at most 0.046 s (≤20 s gate). A full pipeline run takes
   under 1 s.
 
 ### Finding: UR10 always takes the boundary branch
@@ -184,7 +184,7 @@ Reading a record (`result["physical_fit"]["log_cholesky"]`, or
 | Clean held-out RMSE vs truth | 5.84e-6 N·m | ≤1e-5 | yes |
 | Noisy held-out, log-Cholesky / OLS+SDP (SDP ok on all 10) | max 0.9987 | ≤1.05 | yes |
 | Feasibility, min eig over every link and fit | −4.2e-10 | ≥−1e-8 | yes |
-| Fit runtime | max 0.064 s | ≤20 s | yes |
+| Fit runtime | max 0.046 s | ≤20 s | yes |
 | Nominal and repaired-OLS starts converge and are feasible | production: yes (start unused); oracle interior: yes | all | yes |
 
 Gates not covered here, so **the tracker stays open** for them:

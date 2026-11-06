@@ -2,7 +2,7 @@
 
 > **SIMULATED DATA.** UR10 truth fixture; no hardware validation, no URDF export.
 
-- examples `v1.1.0-2-gfa18810` (fa18810d, dirty), core `v1.1.0-21-g21994ed` (21994ed3)
+- examples `v1.1.0-5-g032affd` (032affdc), core `v1.1.0-21-g21994ed` (21994ed3)
 - python 3.12.5, numpy 2.4.3, scipy 1.17.1, pinocchio 3.7.0, picos 2.6.1, cvxopt 1.3.2
 - minimum core: figaroh-plus devel >= 21994ed (log-Cholesky #235 plus the #234 null-space fix #236); unreleased after 1.1.0
 - joints: shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint; effort unit N·m
@@ -70,16 +70,16 @@ passed: **True**; pipeline ddq is fixture ddq: True
 | noise | seed | J OLS | J OLS+SDP | J LC | min eig OLS | min eig SDP | min eig LC | branch | rank | null | cond | LC fit s |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | none | None | 0.0123546 | 2.3164 | 0.00275929 | -0.026 | 8.8e-10 | 1.94e-08 | boundary | 36 | 24 | 92.7 | 0.022 |
-| low | 101 | 541.288 | 543.49 | 541.278 | -0.0259 | 3.48e-09 | 7.93e-09 | boundary | 36 | 24 | 92.7 | 0.021 |
-| low | 102 | 506.102 | 507.603 | 506.093 | -0.0216 | 5.27e-09 | 1.78e-08 | boundary | 36 | 24 | 92.7 | 0.022 |
-| low | 103 | 545.502 | 557.641 | 545.5 | -0.0329 | -1.53e-10 | -4.55e-11 | boundary | 36 | 24 | 92.7 | 0.024 |
-| low | 104 | 504.862 | 508.212 | 504.852 | -0.0321 | 5.28e-09 | 4.47e-09 | boundary | 36 | 24 | 92.7 | 0.020 |
-| low | 105 | 513.201 | 564.705 | 513.192 | -0.028 | -3.65e-10 | -8.71e-12 | boundary | 36 | 24 | 92.7 | 0.032 |
-| high | 101 | 13530.6 | 14130.7 | 13530.9 | -0.0365 | -1.07e-10 | -1.99e-10 | boundary | 36 | 24 | 92.7 | 0.026 |
-| high | 102 | 12653.6 | 12720.2 | 12654.3 | -0.0426 | -1.88e-10 | -4.15e-10 | boundary | 36 | 24 | 92.7 | 0.044 |
+| low | 101 | 541.288 | 543.49 | 541.278 | -0.0259 | 3.48e-09 | 7.93e-09 | boundary | 36 | 24 | 92.7 | 0.020 |
+| low | 102 | 506.102 | 507.603 | 506.093 | -0.0216 | 5.27e-09 | 1.78e-08 | boundary | 36 | 24 | 92.7 | 0.021 |
+| low | 103 | 545.502 | 557.641 | 545.5 | -0.0329 | -1.53e-10 | -4.55e-11 | boundary | 36 | 24 | 92.7 | 0.019 |
+| low | 104 | 504.862 | 508.212 | 504.852 | -0.0321 | 5.28e-09 | 4.47e-09 | boundary | 36 | 24 | 92.7 | 0.021 |
+| low | 105 | 513.201 | 564.705 | 513.192 | -0.028 | -3.65e-10 | -8.71e-12 | boundary | 36 | 24 | 92.7 | 0.020 |
+| high | 101 | 13530.6 | 14130.7 | 13530.9 | -0.0365 | -1.07e-10 | -1.99e-10 | boundary | 36 | 24 | 92.7 | 0.023 |
+| high | 102 | 12653.6 | 12720.2 | 12654.3 | -0.0426 | -1.88e-10 | -4.15e-10 | boundary | 36 | 24 | 92.7 | 0.042 |
 | high | 103 | 13637.8 | 13881.4 | 13640.2 | -0.0704 | -4.69e-11 | -1.48e-11 | boundary | 36 | 24 | 92.7 | 0.025 |
-| high | 104 | 12622.2 | 12887.3 | 12622.4 | -0.0648 | -1.05e-10 | -2.06e-10 | boundary | 36 | 24 | 92.7 | 0.021 |
-| high | 105 | 12828.4 | 14325.1 | 12831 | -0.0585 | -4.45e-10 | -1.26e-10 | boundary | 36 | 24 | 92.7 | 0.064 |
+| high | 104 | 12622.2 | 12887.3 | 12622.4 | -0.0648 | -1.05e-10 | -2.06e-10 | boundary | 36 | 24 | 92.7 | 0.020 |
+| high | 105 | 12828.4 | 14325.1 | 12831 | -0.0585 | -4.45e-10 | -1.26e-10 | boundary | 36 | 24 | 92.7 | 0.046 |
 
 Per-link mass (kg) and minimum pseudo-inertia eigenvalue, none seed None:
 
@@ -98,40 +98,40 @@ Per-link mass (kg) and minimum pseudo-inertia eigenvalue, none seed None:
 
 | start | auto: status | auto: start used | auto: max |Δθ| | forced interior: stop | nfev | identifiable RMS | s |
 |---|---|---|---|---|---|---|---|
-| nominal | optimal | False | 0 | max_nfev | 2000 | 0.951 | 2.03 |
-| repaired_ols | optimal | False | 0 | max_nfev | 2000 | 5.89 | 2.00 |
-| perturbed_1101 | optimal | False | 0 | max_nfev | 2000 | 18.1 | 1.99 |
-| perturbed_1102 | optimal | False | 0 | max_nfev | 2000 | 18.5 | 1.97 |
-| unrepaired_ols | optimal | False | 0 | invalid_start | — | — | 0.01 |
+| nominal | optimal | False | 0 | max_nfev | 2000 | 0.951 | 2.04 |
+| repaired_ols | optimal | False | 0 | max_nfev | 2000 | 5.89 | 1.93 |
+| perturbed_1101 | optimal | False | 0 | max_nfev | 2000 | 18.1 | 1.92 |
+| perturbed_1102 | optimal | False | 0 | max_nfev | 2000 | 18.5 | 1.90 |
+| unrepaired_ols | optimal | False | 0 | invalid_start | — | — | 0.00 |
 
 **low seed 101**
 
 | start | auto: status | auto: start used | auto: max |Δθ| | forced interior: stop | nfev | identifiable RMS | s |
 |---|---|---|---|---|---|---|---|
-| nominal | optimal | False | 0 | max_nfev | 2000 | 1.09 | 2.08 |
-| repaired_ols | optimal | False | 0 | max_nfev | 2000 | 8.63 | 1.69 |
-| perturbed_1101 | optimal | False | 0 | max_nfev | 2000 | 25.3 | 2.05 |
-| perturbed_1102 | optimal | False | 0 | max_nfev | 2000 | 46.9 | 1.89 |
+| nominal | optimal | False | 0 | max_nfev | 2000 | 1.09 | 1.97 |
+| repaired_ols | optimal | False | 0 | max_nfev | 2000 | 8.63 | 1.64 |
+| perturbed_1101 | optimal | False | 0 | max_nfev | 2000 | 25.3 | 1.96 |
+| perturbed_1102 | optimal | False | 0 | max_nfev | 2000 | 46.9 | 1.78 |
 | unrepaired_ols | optimal | False | 0 | invalid_start | — | — | 0.00 |
 
 **high seed 101**
 
 | start | auto: status | auto: start used | auto: max |Δθ| | forced interior: stop | nfev | identifiable RMS | s |
 |---|---|---|---|---|---|---|---|
-| nominal | optimal | False | 0 | max_nfev | 2000 | 1.35 | 1.72 |
-| repaired_ols | optimal | False | 0 | max_nfev | 2000 | 23.2 | 2.04 |
-| perturbed_1101 | optimal | False | 0 | max_nfev | 2000 | 45.8 | 2.01 |
-| perturbed_1102 | optimal | False | 0 | max_nfev | 2000 | 42.6 | 1.84 |
+| nominal | optimal | False | 0 | max_nfev | 2000 | 1.35 | 1.70 |
+| repaired_ols | optimal | False | 0 | max_nfev | 2000 | 23.2 | 1.94 |
+| perturbed_1101 | optimal | False | 0 | max_nfev | 2000 | 45.8 | 1.94 |
+| perturbed_1102 | optimal | False | 0 | max_nfev | 2000 | 42.6 | 1.75 |
 | unrepaired_ols | optimal | False | 0 | invalid_start | — | — | 0.00 |
 
 **Oracle interior check** (prior = truth, noise-free; solver diagnostic only): detected branch interior, unconstrained min eig 0.00134
 
 | start | status | stop | nfev | identifiable RMS | max |Δθ| to truth | s |
 |---|---|---|---|---|---|---|
-| nominal | optimal | converged | 8 | 2.21e-09 | 6.75e-12 | 0.02 |
-| repaired_ols | optimal | converged | 32 | 5.7e-11 | 1.43e-12 | 0.04 |
-| perturbed_1101 | optimal | converged | 43 | 8.7e-14 | 6.88e-15 | 0.05 |
-| perturbed_1102 | optimal | converged | 31 | 1.52e-11 | 3.85e-13 | 0.04 |
+| nominal | optimal | converged | 8 | 2.21e-09 | 6.75e-12 | 0.01 |
+| repaired_ols | optimal | converged | 32 | 5.7e-11 | 1.43e-12 | 0.03 |
+| perturbed_1101 | optimal | converged | 43 | 8.7e-14 | 6.88e-15 | 0.04 |
+| perturbed_1102 | optimal | converged | 31 | 1.52e-11 | 3.85e-13 | 0.03 |
 | unrepaired_ols | invalid_start | None | — | — | — | 0.00 |
 
 ## Decision-record gates
@@ -141,7 +141,7 @@ Per-link mass (kg) and minimum pseudo-inertia eigenvalue, none seed None:
 | clean held-out RMSE vs truth (N·m) | 5.84e-06 | ≤ 1e-05 | True |
 | noisy held-out LC / OLS+SDP (SDP ok: True) | 0.9987 | ≤ 1.05 | True |
 | log-Cholesky min pseudo-inertia eig, every link and fit | -4.15e-10 | ≥ -1e-08 | True |
-| log-Cholesky fit time (s) | 0.064 | ≤ 20 | True |
+| log-Cholesky fit time (s) | 0.046 | ≤ 20 | True |
 | nominal + repaired-OLS starts converge, feasible (production / oracle interior) | True / True | all | True |
 
 All gates met: **True**. near-boundary (perturbed) and invalid (unrepaired OLS) starts are reported, not gated.
