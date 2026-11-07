@@ -30,12 +30,15 @@ Measured on core `devel` 658fe99, single-threaded BLAS, `figaroh-dev`.
 | Case | Config overlay | Scope | Expected |
 |---|---|---|---|
 | `ur10 truth` | `ur10/config/ur10_truth_reference.yaml` | prediction | `physical_fit` accepted ("cvxopt: optimal; all links feasible"); every joint's held-out RMSE within `config/truth_reference_acceptance.json`; export reloads to the fit within 1e-6 N·m; reloaded URDF within 0.1 N·m of the noise-free truth effort on the held-out split; archive audit complete |
+| `ur10 log-cholesky` | `ur10/config/ur10_lc1_log_cholesky.yaml` | prediction | as `ur10 truth`, with `physical_fit.method: log_cholesky`; `physical_fit.log_cholesky.branch` is `boundary` (LC1, [note](ur10-log-cholesky-lc1.md)); listed only on core `devel` ≥ 21994ed |
 | `tiago physical-fit` | `tiago/config/tiago_reference_physical_fit.yaml` | execution | `physical_fit` accepted, cvxopt optimal; execution check passes; export reloads to the fit within 1e-6 N·m; archive audit complete; held-out RMSE reported, not gated |
 | `tiago reject` | `tiago/config/tiago_reference_reject.yaml` | execution | `reconstruction` requested and rejected (infeasible links); `selected_stage` is `none`; the verdict fails; `export_urdf` raises; the run directory has `fit_parameters.csv` and no `parameters.csv`; the audit's only gap is `export` |
 
 The overlays `extends` the unified config and set only
 `tasks.identification.select_stage`, so the config hash in the provenance
-record is the overlay's and the rest stays the robot's own.
+record is the overlay's and the rest stays the robot's own. The exception is
+`ur10_lc1_log_cholesky.yaml`, which also sets the `physical_fit` method and
+options, and the reconstruction it shares with the LC1 baselines.
 
 ### UR10 truth (`--noise low`, default)
 

@@ -1,0 +1,23 @@
+# LC1 comparison (#11) on recorded TIAGo data, log-Cholesky: the
+# boundary-aware fit as the selected physical_fit stage (figaroh-plus#25,
+# devel 21994ed or later), same rows, weights and nominal prior as the direct
+# fit. Options are the core defaults, written out so the run records them.
+# A fit that does not converge is rejected and the base fit stays reported.
+extends: "tiago_lc1_ols.yaml"
+
+tasks:
+  identification:
+    select_stage: physical_fit
+    physical_fit:
+      method: log_cholesky
+      solver: cvxopt
+      mass_min: 1.0e-6
+      prior_weight: 1.0e-6
+      log_cholesky:
+        branch: auto
+        rank_rtol: 1.0e-10
+        eigenvalue_margin: 1.0e-6
+        stop_rms: 1.0e-7
+        max_nfev: 2000
+        max_seconds: 60.0
+        repair_start: false

@@ -1,0 +1,14 @@
+# LC1 comparison (#11) on recorded TIAGo data, linear baseline: base-parameter
+# least squares on the frozen cross-run split (train dynamic/ rows
+# [921, 6791), held-out calibration_slow/). The nullspace reconstruction only
+# gives the fit a standard-parameter representative (closest to the nominal
+# URDF); it predicts exactly what the base fit predicts. Everything else is
+# the unified config's.
+extends: "tiago_unified_config.yaml"
+
+tasks:
+  identification:
+    select_stage: fit
+    reconstruction:
+      enabled: true
+      method: nullspace

@@ -29,6 +29,9 @@ What it writes, the reference result and its limitations:
 Dynamic identification (`identification_reference.py`: `physical-fit` and
 `reject` cases, exported and reloaded URDF, held-out report):
 [identification reference workflow](../../docs/development/identification-reference-workflow.md).
+Log-Cholesky against OLS and OLS+SDP on the same recorded sessions
+(`log_cholesky_benchmark.py`, core `devel` ≥ 21994ed):
+[LC1 on TIAGo](../../docs/development/tiago-log-cholesky-lc1.md).
 `calibration.py` below is the interactive tool (plots, 3D viewer, saved
 results, separate export).
 

@@ -36,6 +36,7 @@ robots:
       - tests/test_ur10_hand_eye_reference_run.py
       - tests/test_ur10_hand_eye_truth.py
       - tests/test_ur10_identification_truth.py
+      - tests/test_ur10_log_cholesky_benchmark.py
       - tests/test_ur10_physical_comparison.py
       - tests/test_ur10_signal_processing.py
     golden_ids: ["ur10/"]
@@ -70,6 +71,7 @@ robots:
       - tests/test_tiago_identification_datasets.py
       - tests/test_tiago_identification_inputs_audit.py
       - tests/test_tiago_introspection_extraction.py
+      - tests/test_tiago_log_cholesky_benchmark.py
       - tests/test_tiago_mocap_2021_10_26.py
       - tests/test_tiago_mocap_baseline.py
       - tests/test_tiago_mocap_extraction.py

@@ -1073,6 +1073,7 @@ def identification(
     seed: int | None = None,
     val_seed: int | None = None,
     config: str | Path | None = None,
+    train: dict | None = None,
 ):
     """An initialized ``UR10Identification`` that reads the fixture.
 
@@ -1082,6 +1083,9 @@ def identification(
     The fixture's derivatives are used as given (no filter): call
     ``solve(decimate=False)``. ``config`` replaces the unified config (an
     overlay that ``extends`` it, e.g. ``config/ur10_truth_reference.yaml``).
+    ``train`` replaces the training split with a derived one (keys ``t``,
+    ``q``, ``dq``, ``ddq``, ``tau``; e.g. the LC1 weak-excitation set); the
+    fixture files are not modified and validation is unchanged.
     """
     from figaroh.tools.robot import load_robot
 
@@ -1089,8 +1093,11 @@ def identification(
 
     class FixtureIdentification(UR10Identification):
         def load_trajectory_data(self, data_source=None):
-            split = Path(data_source).stem if data_source else "train"
-            d = load_split(split, derivatives, noise, val_seed if data_source else seed)
+            if train is not None and not data_source:
+                d = train
+            else:
+                split = Path(data_source).stem if data_source else "train"
+                d = load_split(split, derivatives, noise, val_seed if data_source else seed)
             return {
                 "timestamps": d["t"].reshape(-1, 1),
                 "positions": d["q"],
