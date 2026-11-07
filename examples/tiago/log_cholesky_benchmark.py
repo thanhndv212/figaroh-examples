@@ -352,9 +352,16 @@ def starts(p, theta_ols, smoke: bool) -> dict:
         repaired[cols] = repair_p10(repaired[cols], min_eig=REPAIR_MIN_EIG).p10
     out = {"nominal": nominal, "repaired_ols": repaired}
     if not smoke:
+        # The nominal Hey5 URDF's arm_1 link is itself slightly non-physical
+        # (min eig about -1.2e-4), and log-Cholesky coordinates exist only for
+        # positive-definite links, so the perturbations start from a repaired
+        # copy. The raw nominal start above is kept as is.
+        base = nominal.copy()
+        for cols in blocks:
+            base[cols] = repair_p10(base[cols], min_eig=REPAIR_MIN_EIG).p10
         for s in PERTURB_SEEDS:
             rng = np.random.default_rng(s)
-            th = nominal.copy()
+            th = base.copy()
             for cols in blocks:
                 z = log_cholesky_from_p10(th[cols]) + PERTURB_SIGMA * rng.standard_normal(10)
                 th[cols] = p10_from_log_cholesky(z)
@@ -426,6 +433,7 @@ def run(args, lcf) -> dict:
     worst = [j for j in sorted(links["ols"], key=lambda j: links["ols"][j]["min_eig"])
              if j not in arm][:2]
     nominal = feasibility(p, p.theta_prior)
+    out["nominal_infeasible_links"] = {j: v["min_eig"] for j, v in nominal.items() if not v["ok"]}
     out["links"] = {j: {"nominal_mass": nominal[j]["mass"], **{m: links[m][j] for m in METHODS}}
                     for j in [*arm, *worst]}
     out["mass_plausibility"] = mass_plausibility(out["links"])
@@ -548,6 +556,9 @@ def markdown(out) -> str:
     for j, row in out["links"].items():
         L.append(f"| {j} | {row['nominal_mass']:.4g} | " + " | ".join(
             f"{row[k]['mass']:.4g} | {row[k]['min_eig']:.3g}" for k in METHODS) + " |")
+    bad = out["nominal_infeasible_links"]
+    L += ["", "Nominal URDF (the prior) non-physical links: " + (", ".join(
+        f"{j} (min eig {v:.3g})" for j, v in bad.items()) or "none") + "."]
     mp = out["mass_plausibility"]
     L += ["", "Largest identified / nominal mass ratio (reported, not gated; feasibility "
           "does not bound drift from the prior on a weakly observed link): " + ", ".join(
