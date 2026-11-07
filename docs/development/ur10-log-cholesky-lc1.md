@@ -1,5 +1,7 @@
 # LC1: log-Cholesky against OLS and OLS+SDP on UR10 (simulated)
 
+The recorded-data counterpart, on TIAGo, is [tiago-log-cholesky-lc1.md](tiago-log-cholesky-lc1.md).
+
 Issue: [figaroh-examples #11](https://github.com/thanhndv212/figaroh-examples/issues/11).
 Core: [figaroh-plus#25](https://github.com/thanhndv212/figaroh-plus/issues/25)
 (decision record `docs/decisions/log-cholesky-boundary-aware.md`, **go**),
@@ -29,15 +31,27 @@ The overlay config does not load on an older core, which rejects the unknown met
 From `examples/ur10`, in `figaroh-dev`:
 
 ```bash
-# full grid: noise-free, low x 5 seeds, high x 5 seeds (about 5 min)
+# full grid: noise-free, low x 5 seeds, high x 5 seeds, weak none + low (about 5 min)
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 MPLBACKEND=Agg \
   python log_cholesky_benchmark.py --output-dir /tmp/lc1
 
-# bounded smoke run (low noise seed 101; nominal, repaired-OLS and unrepaired-OLS starts; ~20 s)
+# bounded smoke run (full and weak, low noise seed 101; nominal, repaired-OLS and unrepaired-OLS starts; ~30 s)
 MPLBACKEND=Agg python log_cholesky_benchmark.py --smoke --output-dir /tmp/lc1-smoke
 
 # the log-Cholesky stage through selection, verification, report and URDF export
 python identification_reference.py --case log-cholesky --root /tmp/runs
+```
+
+The Pinocchio 4.1 profile is a pip venv on the `figaroh-dev` interpreter,
+pinned by core's `ci/pinocchio-4.1.0.txt`:
+
+```bash
+$(conda run -n figaroh-dev which python) -m venv ~/.venvs/figaroh-pin41
+~/.venvs/figaroh-pin41/bin/pip install -r ../../../figaroh/ci/pinocchio-4.1.0.txt \
+  numpy scipy picos cvxopt matplotlib pyyaml pandas numdifftools rospkg pytest meshcat
+~/.venvs/figaroh-pin41/bin/pip install --no-deps -e ../../../figaroh
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 MPLBACKEND=Agg \
+  ~/.venvs/figaroh-pin41/bin/python log_cholesky_benchmark.py --output-dir /tmp/lc1-pin41
 ```
 
 The benchmark reads the fixture files only and writes `<stem>.json` and
@@ -72,7 +86,8 @@ share one training split, the unweighted rows, the nominal-URDF prior and
 | Held-out | `validation.csv`: an independent 8 s Fourier trajectory, 800 rows. It is never used in a fit |
 | Derivatives | Analytic q/dq/ddq, unfiltered and undecimated |
 | Torque provenance | RNEA on the truth model. The `low`/`high` levels add seeded Gaussian effort noise and position noise (`protocol.yaml`) |
-| Datasets | `none`; `low` and `high` × training seeds 101–105, paired with held-out seeds 201–205 |
+| Datasets | `none`; `low` and `high` × training seeds 101–105, paired with held-out seeds 201–205; weak excitation `none` and `low` (seed 101/201) |
+| Weak excitation | Derived in memory from `train.csv` (fixture v1 is frozen): only `shoulder_pan_joint` moves, with the fixture's analytic q/dq/ddq; the other joints hold the centre posture (0, −π/2, π/2, −π/2, −π/2, 0) rad. Effort is truth RNEA plus the same seeded noise model. Scored on the same full held-out trajectory |
 | Perturbed starts | Nominal plus N(0, 0.2²) in log-Cholesky coordinates, seeds 1101 and 1102 |
 | Rank | 36 of 60. 11 zero columns are eliminated, and 24 directions are null in the regressor |
 
@@ -98,16 +113,31 @@ On both splits, and for every active coordinate, it checks:
 It also checks that the accelerations the pipeline hands to the regressor are
 the fixture ddq, bit for bit.
 
-## Results (Pinocchio 3.7, archived)
+## Results (Pinocchio 3.7 and 4.1, archived)
 
-The archive is
-`results/ur10-log-cholesky-lc1-pin37.json` and `.md`. It records examples
-`v1.1.0-5-g032affd` (clean tree; the script and config SHA-256 identify the
-exact files), core `v1.1.0-21-g21994ed` (`devel`), Python 3.12.5, NumPy 2.4.3,
-SciPy 1.17.1, Pinocchio 3.7.0, PICOS 2.6.1 and CVXOPT 1.3.2, with single-threaded
-BLAS. It also holds the file hashes of the fixture, URDFs, configs and script.
-**Pinocchio 4.1 was not run**: no 4.1 environment is available on this machine
-(the 4.1 profile from the D4 note was a read-only clone env).
+The archives are `results/ur10-log-cholesky-lc1-pin37.*` and
+`results/ur10-log-cholesky-lc1-pin41.*`. Both were run from a clean worktree at
+examples `v1.1.0-7-gce2628b`, core `v1.1.0-21-g21994ed` (`devel`), Python
+3.12.11, PICOS 2.6.1 and CVXOPT 1.3.2, with single-threaded BLAS. The
+profiles differ in more than Pinocchio:
+
+| Profile | Pinocchio | NumPy | SciPy |
+|---|---|---|---|
+| `figaroh-dev` (conda) | 3.7.0 | 2.3.4 | 1.16.1 |
+| `figaroh-pin41` (pip venv) | 4.1.0 | 2.4.3 | 1.17.1 |
+
+Each archive also holds the file hashes of the fixture, URDFs, configs and
+script.
+
+**3.7 against 4.1.** Every gate is met on both, with the same branches, ranks,
+statuses and accepted stages. Held-out RMSE agrees to 1e-6 relative on every
+dataset and method except two: the noise-free OLS residual (3.2e-14 against
+2.1e-14 N·m, round-off), and weak/low log-Cholesky (49.31 against 49.20 N·m,
+0.2 %). In that rank-27 problem (condition number about 7e6) the two SDP
+solutions have the same training objective to eight digits, so they differ
+along nearly flat directions that the held-out trajectory excites. The
+forced-interior diagnostic (below) differs in stop reason and evaluation
+count on some starts. It is a nonconverging run either way.
 
 Held-out aggregate RMSE (N·m):
 
@@ -127,10 +157,10 @@ physical fit on every dataset; on boundary fits they are the same SDP.
 - **Feasibility.** The OLS reconstruction is non-physical on every dataset: its
   min pseudo-inertia eigenvalue ranges from −0.07 to −0.02, on 1–5 links,
   always including the elbow. OLS+SDP and log-Cholesky are feasible on every link; the
-  smallest log-Cholesky eigenvalue is −4.2e-10, inside the 1e-8 oracle tolerance.
+  smallest log-Cholesky eigenvalue is −2.7e-10 (3.7) and −4.2e-10 (4.1), inside the 1e-8 oracle tolerance.
 - **Conditioning.** Rank 36, null-space dimension 24, base-regressor condition
   number 92.7, identical for every dataset.
-- **Runtime.** Each fit takes at most 0.046 s (≤20 s gate). A full pipeline run takes
+- **Runtime.** Each fit takes at most 0.055 s on 3.7 and 0.049 s on 4.1 (≤20 s gate). A full pipeline run takes
   under 1 s.
 
 ### Finding: UR10 always takes the boundary branch
@@ -158,6 +188,36 @@ by the 1e-7 N·m identifiable-residual rule after 8–43 evaluations, within
 1e-11 of the truth. Even the truth prior lands on the boundary once low noise
 is added, because the wrist links have small margins.
 
+### Weak excitation
+
+Only the shoulder pan moves, so the regressor loses rank: 15 of 60 on
+noise-free data and 27 with noise (noise lifts small singular values above the rank tolerance), against 36 on
+the full trajectory. Held-out aggregate RMSE (N·m), identical on 3.7 and 4.1
+except as noted:
+
+| Data | OLS | OLS+SDP | Log-Cholesky | LC / SDP | OLS min eig |
+|---|---|---|---|---|---|
+| weak/none | 1.512 | 1.577 | 1.787 | 1.13 | −0.019 |
+| weak/low | 373.3 | 233.5 | 49.31 (4.1: 49.20) | 0.21 | −769 |
+
+- **Noisy.** OLS fits noise in the directions the motion barely excites, and
+  is non-physical (min eig −769). The per-link projection makes it physical
+  but cannot see the torques: its training objective is 5.3e8 N²·m² against
+  543 for log-Cholesky. Log-Cholesky's prior keeps the weak directions near
+  nominal, so it is 4.7× better than OLS+SDP held out.
+- **Noise-free.** Log-Cholesky is 13 % worse than OLS+SDP held out, although
+  its training objective is 0.0023 against 174. With only 15 identifiable
+  directions, the prior sets the other 45, at nominal plus what the fit needs
+  to be physical. The held-out trajectory moves every joint, and there the
+  prior's values predict worse than the projected OLS fit's. This is the
+  cost of a prior on a nearly unidentifiable problem, not a solver failure.
+- Both weak problems take the boundary branch. Every start converges on the
+  production path and the fit is feasible on every link. Forced interior
+  does not converge from any valid start, as on the full trajectory.
+
+The decision record gates weak excitation on convergence and feasibility
+only; held-out accuracy is reported, not gated.
+
 ### Initialization sensitivity and nonconvergence
 
 The benchmark forces `branch: interior` on the first dataset of each noise
@@ -183,16 +243,18 @@ Reading a record (`result["physical_fit"]["log_cholesky"]`, or
 |---|---|---|---|
 | Clean held-out RMSE vs truth | 5.84e-6 N·m | ≤1e-5 | yes |
 | Noisy held-out, log-Cholesky / OLS+SDP (SDP ok on all 10) | max 0.9987 | ≤1.05 | yes |
-| Feasibility, min eig over every link and fit | −4.2e-10 | ≥−1e-8 | yes |
-| Fit runtime | max 0.046 s | ≤20 s | yes |
+| Feasibility, min eig over every link and fit | −2.7e-10 / −4.2e-10 | ≥−1e-8 | yes |
+| Fit runtime | max 0.055 s / 0.049 s | ≤20 s | yes |
 | Nominal and repaired-OLS starts converge and are feasible | production: yes (start unused); oracle interior: yes | all | yes |
+| Weak excitation: converges, feasible (ranks 15 and 27) | yes | all | yes |
 
-Gates not covered here, so **the tracker stays open** for them:
+Values are for Pinocchio 3.7 / 4.1 where they differ. Both profiles meet
+every gate.
 
-- **Pinocchio 4.1.** The decision record requires both profiles; only 3.7 was run.
-- **Weak excitation.** The fixture has one well-excited training trajectory,
-  with no weak-excitation case.
-- **Hardware.** No recorded robot data is used.
+Recorded data is covered separately, on TIAGo
+([tiago-log-cholesky-lc1.md](tiago-log-cholesky-lc1.md)), where the truth
+gates do not apply. Hardware validation of identified parameters (predicting
+a new motion on the robot, then exporting) is not part of this benchmark.
 
 The near-boundary (perturbed) and invalid starts are reported, not gated.
 
@@ -215,7 +277,8 @@ The near-boundary (perturbed) and invalid starts are reported, not gated.
 - the overlay layout;
 - config parsing through the pipeline;
 - the smoke run into `tmp_path` (gates, preflight, the boundary branch, prediction
-  flow, forced-interior nonconvergence, `invalid_start`, oracle convergence);
+  flow, forced-interior nonconvergence, `invalid_start`, oracle convergence, and
+  the weak-excitation rank loss and feasibility);
 - the `log-cholesky` reference case.
 
 The core-dependent tests skip on an older core. `validate.py` also runs the
