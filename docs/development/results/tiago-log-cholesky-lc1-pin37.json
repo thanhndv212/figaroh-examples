@@ -1,0 +1,773 @@
+{
+  "title": "LC1 log-Cholesky comparison (#11): RECORDED TIAGo data",
+  "smoke": false,
+  "provenance": {
+    "data": "RECORDED: TIAGo 2021-07-01 sessions, frozen cross-run protocol v1",
+    "torque_provenance": "PAL controller effort converted by the example's reduction ratio and motor constants (#68: arm_2-arm_4 read 10-20 % low, arm_1 scale unidentifiable); not a calibrated torque sensor",
+    "hardware_validated": false,
+    "urdf_exported": false,
+    "examples": {
+      "commit": "1fd64fa4fb4b1f513fa6f4be9edece558a61bac1",
+      "describe": "v1.1.0-10-g1fd64fa",
+      "branch": "HEAD",
+      "dirty": false
+    },
+    "core": {
+      "commit": "21994ed396eb91b1f09988098a2ef8725b514dad",
+      "describe": "v1.1.0-21-g21994ed",
+      "branch": "devel",
+      "dirty": false
+    },
+    "core_version": "1.1.0",
+    "minimum_core": "figaroh-plus devel >= 21994ed; unreleased after 1.1.0",
+    "versions": {
+      "python": "3.12.11",
+      "numpy": "2.3.4",
+      "scipy": "1.16.1",
+      "pinocchio": "3.7.0",
+      "picos": "2.6.1",
+      "cvxopt": "1.3.2"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "threads": {
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "model": {
+      "nominal_prior_urdf": "examples/tiago/urdf/tiago_48_hey5.urdf",
+      "active_joints": [
+        "torso_lift_joint",
+        "arm_1_joint",
+        "arm_2_joint",
+        "arm_3_joint",
+        "arm_4_joint",
+        "arm_5_joint",
+        "arm_6_joint",
+        "arm_7_joint"
+      ],
+      "fitted_joints": [
+        "arm_1_joint",
+        "arm_2_joint",
+        "arm_3_joint",
+        "arm_4_joint"
+      ],
+      "n_standard_parameters": 812,
+      "extras": "friction (viscous, Coulomb), joint offset, actuator inertia: free"
+    },
+    "split": {
+      "train": "dynamic/ (session 2021-07-01-1302), rows [921, 6791)",
+      "heldout": "data/identification/calibration_slow (session 2021-07-01-1257, role validation), all rows",
+      "processing": "velocity from positions, automatic lag, core filtering, decimate=True, wls=False"
+    },
+    "units": {
+      "torso_lift_joint": "N",
+      "arm_*": "N\u00b7m"
+    },
+    "inputs": {
+      "protocol": {
+        "path": "/private/tmp/lc1-archive/examples/tiago/data/identification/protocol.yaml",
+        "sha256": "c0e509e89555e549802831864a7d2f2fa03729cebdefb40ccdfe841f2aff57eb"
+      },
+      "train_position": {
+        "path": "/private/tmp/lc1-archive/examples/tiago/data/identification/dynamic/tiago_position.csv",
+        "sha256": "4297a60d434ee89f1f424ad0da8ec65bc00072ac57eb06b94966c0819fc2786d",
+        "rows": 8022,
+        "truncate": [
+          921,
+          6791
+        ]
+      },
+      "train_velocity": {
+        "path": "/private/tmp/lc1-archive/examples/tiago/data/identification/dynamic/tiago_velocity.csv",
+        "sha256": "269f681ca7a9511ac1698bf027ddf601e3fdb49d7d397af4810ec839f136cd69",
+        "rows": 8022,
+        "truncate": [
+          921,
+          6791
+        ]
+      },
+      "train_effort": {
+        "path": "/private/tmp/lc1-archive/examples/tiago/data/identification/dynamic/tiago_effort.csv",
+        "sha256": "12c635987705efade603426a600f5b315add7f580c720a4b84609dadb9d0a2e9",
+        "rows": 8022,
+        "truncate": [
+          921,
+          6791
+        ]
+      },
+      "heldout_position": {
+        "path": "data/identification/calibration_slow/tiago_position.csv",
+        "sha256": "6da32810214297de2cf4c7c348bede8c1b276f84043aef47540fb65ad801b1cc",
+        "rows": 14163
+      },
+      "heldout_velocity": {
+        "path": "data/identification/calibration_slow/tiago_velocity.csv",
+        "sha256": "1397f84447c2c5bc3cfed53ca7caa0f858729e420c53128a486cf0cb3afc7f25",
+        "rows": 14163
+      },
+      "heldout_effort": {
+        "path": "data/identification/calibration_slow/tiago_effort.csv",
+        "sha256": "01edf8f95f69a7c8a19c4451a5091c246587861535898dcfd4314c85f582bbd4",
+        "rows": 14163
+      }
+    },
+    "hashes": {
+      "protocol.yaml": "c0e509e89555e549802831864a7d2f2fa03729cebdefb40ccdfe841f2aff57eb",
+      "tiago_unified_config.yaml": "2748b0f6600123769163457dca48bf3ad8275469948b87abb1b4e57f781a1434",
+      "tiago_lc1_ols.yaml": "bfda6627dab8140a613e3b80889977ba9dd76c5c30a7b64d94cb186dfd7a055f",
+      "tiago_lc1_ols_sdp.yaml": "123d7c36608a536d2e2848e8237850656095ff2e7ba52693ef30e1700389b39d",
+      "tiago_lc1_log_cholesky.yaml": "833c8b1f49954665bed628f6a1c360184d00859b5a940d41345085526d124068",
+      "log_cholesky_benchmark.py": "1ef164d9131c009a31e263b0ad9374d6d390a907079b42ce83f48d6a8c6ca151"
+    },
+    "seeds": {
+      "perturbation_seeds": [
+        1101,
+        1102
+      ],
+      "perturbation_sigma": 0.2
+    }
+  },
+  "preflight": {
+    "train": {
+      "rows": 5870,
+      "ddq_rms": {
+        "torso_lift_joint": 0.0759906200208124,
+        "arm_1_joint": 0.30122304470779493,
+        "arm_2_joint": 0.4690436459640447,
+        "arm_3_joint": 0.5477684661938195,
+        "arm_4_joint": 0.42742176628390194,
+        "arm_5_joint": 0.5686485067105683,
+        "arm_6_joint": 0.5101012443449364,
+        "arm_7_joint": 0.3960775002335109
+      },
+      "finite": true
+    },
+    "heldout": {
+      "rows": 14163,
+      "ddq_rms": {
+        "torso_lift_joint": 0.032553716806121465,
+        "arm_1_joint": 0.1338488343513268,
+        "arm_2_joint": 0.20664240247503624,
+        "arm_3_joint": 0.24698796291001032,
+        "arm_4_joint": 0.17239607293177103,
+        "arm_5_joint": 0.2481861620677668,
+        "arm_6_joint": 0.21348838505999657,
+        "arm_7_joint": 0.17479963043335117
+      },
+      "finite": true
+    },
+    "heldout_session": "2021-07-01-1257",
+    "heldout_role": "validation",
+    "failures": [],
+    "passed": true
+  },
+  "methods": {
+    "ols": {
+      "status": "ok",
+      "stage": "reconstruction",
+      "pipeline_runtime_s": 13.985676708005485,
+      "heldout": {
+        "aggregate": 1.7218680328387883,
+        "per_joint": {
+          "arm_1_joint": 1.3098873925998025,
+          "arm_2_joint": 2.5396605633959966,
+          "arm_3_joint": 1.4711189375059552,
+          "arm_4_joint": 1.2367078891957652
+        },
+        "nrmse": {
+          "arm_1_joint": 0.4198525347170386,
+          "arm_2_joint": 0.42058540471690764,
+          "arm_3_joint": 0.3722184405360673,
+          "arm_4_joint": 0.259468128280109
+        },
+        "correlation_normalised": 0.9282985828516368,
+        "pooled_arm2_4": 1.8387960833796086,
+        "arm1_rmse": 1.3098873925998025,
+        "arm1_relative": 0.4198525347170386,
+        "n_samples": 14163
+      },
+      "train_objective": 1838.4911631437683,
+      "train_rmse": 0.8843263226837097,
+      "min_eig": -3.6730043923476376,
+      "min_mass": 0.0012100478802279328,
+      "infeasible_links": [
+        "arm_1_joint",
+        "arm_2_joint",
+        "arm_3_joint",
+        "arm_4_joint",
+        "arm_5_joint",
+        "arm_6_joint",
+        "arm_7_joint",
+        "hand_index_abd_joint",
+        "hand_index_flex_1_joint",
+        "hand_index_flex_2_joint",
+        "hand_index_flex_3_joint",
+        "hand_index_joint",
+        "hand_index_virtual_1_joint",
+        "hand_index_virtual_2_joint",
+        "hand_index_virtual_3_joint",
+        "hand_little_abd_joint",
+        "hand_little_flex_1_joint",
+        "hand_little_flex_2_joint",
+        "hand_little_flex_3_joint",
+        "hand_little_virtual_1_joint",
+        "hand_little_virtual_2_joint",
+        "hand_little_virtual_3_joint",
+        "hand_middle_abd_joint",
+        "hand_middle_flex_1_joint",
+        "hand_middle_flex_2_joint",
+        "hand_middle_flex_3_joint",
+        "hand_middle_virtual_1_joint",
+        "hand_middle_virtual_2_joint",
+        "hand_middle_virtual_3_joint",
+        "hand_mrl_joint",
+        "hand_ring_abd_joint",
+        "hand_ring_flex_1_joint",
+        "hand_ring_flex_2_joint",
+        "hand_ring_flex_3_joint",
+        "hand_ring_virtual_1_joint",
+        "hand_ring_virtual_2_joint",
+        "hand_ring_virtual_3_joint",
+        "hand_thumb_abd_joint",
+        "hand_thumb_flex_1_joint",
+        "hand_thumb_flex_2_joint",
+        "hand_thumb_joint",
+        "hand_thumb_virtual_1_joint",
+        "hand_thumb_virtual_2_joint"
+      ],
+      "n_links": 58
+    },
+    "ols_sdp": {
+      "status": "ok",
+      "source": "reconstruction",
+      "stage": "physical consistency (not selectable)",
+      "failed_links": 0,
+      "pipeline_runtime_s": 13.154736958997091,
+      "heldout": {
+        "aggregate": 1.732940827853392,
+        "per_joint": {
+          "arm_1_joint": 1.3584110544264398,
+          "arm_2_joint": 2.5394820834182497,
+          "arm_3_joint": 1.4396012843535673,
+          "arm_4_joint": 1.282822648951175
+        },
+        "nrmse": {
+          "arm_1_joint": 0.4354056139563396,
+          "arm_2_joint": 0.42055584719463224,
+          "arm_3_joint": 0.36424393119719134,
+          "arm_4_joint": 0.269143258926849
+        },
+        "correlation_normalised": 0.9268731004746874,
+        "pooled_arm2_4": 1.8409286658800628,
+        "arm1_rmse": 1.3584110544264398,
+        "arm1_relative": 0.4354056139563396,
+        "n_samples": 14163
+      },
+      "train_objective": 2162.8956685128937,
+      "train_rmse": 0.959718391883422,
+      "min_eig": -1.1367701239834195e-09,
+      "min_mass": 0.00131836737750194,
+      "infeasible_links": [],
+      "n_links": 58
+    },
+    "log_cholesky": {
+      "status": "accepted",
+      "selected_stage": "physical_fit",
+      "solver_status": "optimal",
+      "fit_runtime_s": 2.450238541001454,
+      "reason": "log_cholesky boundary branch (cvxopt SDP): optimal; all links feasible",
+      "branch": "boundary",
+      "rank": 57,
+      "null_space_dim": 755,
+      "unconstrained_min_eig": -50.4839591255635,
+      "start_used": false,
+      "pipeline_runtime_s": 17.747339875000762,
+      "heldout": {
+        "aggregate": 1.7130887039650144,
+        "per_joint": {
+          "arm_1_joint": 1.3029854053738328,
+          "arm_2_joint": 2.5387352686274776,
+          "arm_3_joint": 1.4463181156172318,
+          "arm_4_joint": 1.2263391897257905
+        },
+        "nrmse": {
+          "arm_1_joint": 0.41764027063405007,
+          "arm_2_joint": 0.4204321694852751,
+          "arm_3_joint": 0.36594340524688557,
+          "arm_4_joint": 0.2572927180092787
+        },
+        "correlation_normalised": 0.9292912546770592,
+        "pooled_arm2_4": 1.8294735730980938,
+        "arm1_rmse": 1.3029854053738328,
+        "arm1_relative": 0.41764027063405007,
+        "n_samples": 14163
+      },
+      "train_objective": 1912.0018433683033,
+      "train_rmse": 0.9020093477358563,
+      "min_eig": -1.1843919465121397e-09,
+      "min_mass": 0.001414403459867734,
+      "infeasible_links": [],
+      "n_links": 58,
+      "selected_prediction_gap_nm": 0.0
+    },
+    "direct": {
+      "status": "accepted",
+      "selected_stage": "physical_fit",
+      "solver_status": "optimal",
+      "fit_runtime_s": 2.328511499988963,
+      "reason": "cvxopt: optimal; all links feasible",
+      "branch": null,
+      "rank": null,
+      "null_space_dim": null,
+      "unconstrained_min_eig": null,
+      "start_used": null,
+      "pipeline_runtime_s": 16.115090749997762,
+      "heldout": {
+        "aggregate": 1.7130887039650144,
+        "per_joint": {
+          "arm_1_joint": 1.3029854053738328,
+          "arm_2_joint": 2.5387352686274776,
+          "arm_3_joint": 1.4463181156172318,
+          "arm_4_joint": 1.2263391897257905
+        },
+        "nrmse": {
+          "arm_1_joint": 0.41764027063405007,
+          "arm_2_joint": 0.4204321694852751,
+          "arm_3_joint": 0.36594340524688557,
+          "arm_4_joint": 0.2572927180092787
+        },
+        "correlation_normalised": 0.9292912546770592,
+        "pooled_arm2_4": 1.8294735730980938,
+        "arm1_rmse": 1.3029854053738328,
+        "arm1_relative": 0.41764027063405007,
+        "n_samples": 14163
+      },
+      "train_objective": 1912.0018433683033,
+      "train_rmse": 0.9020093477358563,
+      "min_eig": -1.1843919465121397e-09,
+      "min_mass": 0.001414403459867734,
+      "infeasible_links": [],
+      "n_links": 58
+    }
+  },
+  "conditioning": {
+    "condition_number": 1303.8459928312311,
+    "train_rows": 2348,
+    "eliminated_columns": 352,
+    "base_parameters": 57
+  },
+  "nominal_infeasible_links": {
+    "arm_1_joint": -0.00012019301687078895
+  },
+  "links": {
+    "torso_lift_joint": {
+      "nominal_mass": 6.93198,
+      "ols": {
+        "mass": 6.93198,
+        "min_eig": 0.04176518440914945,
+        "ok": true
+      },
+      "ols_sdp": {
+        "mass": 6.931920710675437,
+        "min_eig": 0.04176541451448313,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 7.262733364787374,
+        "min_eig": 0.09573379000776852,
+        "ok": true
+      },
+      "direct": {
+        "mass": 7.262733364787374,
+        "min_eig": 0.09573379000776852,
+        "ok": true
+      }
+    },
+    "arm_1_joint": {
+      "nominal_mass": 1.563428,
+      "ols": {
+        "mass": 1.563428,
+        "min_eig": -0.2183861241770389,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 1.5859297997264516,
+        "min_eig": -1.3182377580726692e-10,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 1.6529725597589071,
+        "min_eig": 0.0016089001812240118,
+        "ok": true
+      },
+      "direct": {
+        "mass": 1.6529725597589071,
+        "min_eig": 0.0016089001812240118,
+        "ok": true
+      }
+    },
+    "arm_2_joint": {
+      "nominal_mass": 1.800397,
+      "ols": {
+        "mass": 1.7933706161884564,
+        "min_eig": -2.723073834948943,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 1.7943325962134284,
+        "min_eig": -4.907610495622149e-10,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 3.798559089463392,
+        "min_eig": 1.6705291816064695e-08,
+        "ok": true
+      },
+      "direct": {
+        "mass": 3.798559089463392,
+        "min_eig": 1.6705291816064695e-08,
+        "ok": true
+      }
+    },
+    "arm_3_joint": {
+      "nominal_mass": 1.8,
+      "ols": {
+        "mass": 1.7807781046469733,
+        "min_eig": -3.6730043923476376,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 1.782779939824725,
+        "min_eig": -1.5877942619313313e-11,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 88.79590561269559,
+        "min_eig": -6.896960810308549e-10,
+        "ok": true
+      },
+      "direct": {
+        "mass": 88.79590561269559,
+        "min_eig": -6.896960810308549e-10,
+        "ok": true
+      }
+    },
+    "arm_4_joint": {
+      "nominal_mass": 1.432697,
+      "ols": {
+        "mass": 1.4360974422505517,
+        "min_eig": -1.720414483114823,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 1.4524408297335727,
+        "min_eig": -3.6154544432041626e-10,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 11.591906739293588,
+        "min_eig": 1.6057804550449377e-09,
+        "ok": true
+      },
+      "direct": {
+        "mass": 11.591906739293588,
+        "min_eig": 1.6057804550449377e-09,
+        "ok": true
+      }
+    },
+    "arm_5_joint": {
+      "nominal_mass": 1.655819,
+      "ols": {
+        "mass": 1.6631209327747571,
+        "min_eig": -1.4074995626489881,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 1.669990291785828,
+        "min_eig": -1.1367701239834195e-09,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 2.3537924224190303,
+        "min_eig": -2.016448208938454e-11,
+        "ok": true
+      },
+      "direct": {
+        "mass": 2.3537924224190303,
+        "min_eig": -2.016448208938454e-11,
+        "ok": true
+      }
+    },
+    "arm_6_joint": {
+      "nominal_mass": 0.370063,
+      "ols": {
+        "mass": 0.361755522505527,
+        "min_eig": -1.5066473938981664,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 0.36237713856529447,
+        "min_eig": -2.7221510761060825e-10,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 0.18197670210151837,
+        "min_eig": -1.1239808249407074e-09,
+        "ok": true
+      },
+      "direct": {
+        "mass": 0.18197670210151837,
+        "min_eig": -1.1239808249407074e-09,
+        "ok": true
+      }
+    },
+    "arm_7_joint": {
+      "nominal_mass": 0.934452,
+      "ols": {
+        "mass": 0.9261445225057773,
+        "min_eig": -0.030631563507629526,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 0.9711657141131839,
+        "min_eig": -5.4581606566095854e-11,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 0.25300838778734536,
+        "min_eig": -1.141267565231995e-09,
+        "ok": true
+      },
+      "direct": {
+        "mass": 0.25300838778734536,
+        "min_eig": -1.141267565231995e-09,
+        "ok": true
+      }
+    },
+    "hand_index_flex_3_joint": {
+      "nominal_mass": 0.015,
+      "ols": {
+        "mass": 0.0074553574662252955,
+        "min_eig": -0.03301078589842678,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 0.007582606820792188,
+        "min_eig": -4.371808467028102e-11,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 0.003150040092061079,
+        "min_eig": -1.1819339347755577e-09,
+        "ok": true
+      },
+      "direct": {
+        "mass": 0.003150040092061079,
+        "min_eig": -1.1819339347755577e-09,
+        "ok": true
+      }
+    },
+    "hand_index_virtual_3_joint": {
+      "nominal_mass": 0.01,
+      "ols": {
+        "mass": 0.002450092687501516,
+        "min_eig": -0.03299278502993625,
+        "ok": false
+      },
+      "ols_sdp": {
+        "mass": 0.0025330202136530033,
+        "min_eig": -2.6887446949219314e-11,
+        "ok": true
+      },
+      "log_cholesky": {
+        "mass": 0.003665685051135986,
+        "min_eig": -1.1819729193481085e-09,
+        "ok": true
+      },
+      "direct": {
+        "mass": 0.003665685051135986,
+        "min_eig": -1.1819729193481085e-09,
+        "ok": true
+      }
+    }
+  },
+  "mass_plausibility": {
+    "ols": {
+      "link": "hand_index_virtual_3_joint",
+      "ratio": 0.24500926875015158
+    },
+    "ols_sdp": {
+      "link": "hand_index_virtual_3_joint",
+      "ratio": 0.25330202136530033
+    },
+    "log_cholesky": {
+      "link": "arm_3_joint",
+      "ratio": 49.331058673719774
+    },
+    "direct": {
+      "link": "arm_3_joint",
+      "ratio": 49.331058673719774
+    }
+  },
+  "starts_auto": {
+    "nominal": {
+      "branch": "boundary",
+      "start_used": false,
+      "solver_status": "optimal",
+      "accepted": true,
+      "converged": true,
+      "stop_reason": null,
+      "nfev": null,
+      "identifiable_rms": null,
+      "runtime_s": 2.579296374999103,
+      "objective": 1912.0018433683033,
+      "min_eig": -1.1843919465121397e-09,
+      "max_abs_diff_to_reference": 0.0
+    },
+    "repaired_ols": {
+      "branch": "boundary",
+      "start_used": false,
+      "solver_status": "optimal",
+      "accepted": true,
+      "converged": true,
+      "stop_reason": null,
+      "nfev": null,
+      "identifiable_rms": null,
+      "runtime_s": 2.4936619580112165,
+      "objective": 1912.0018433683033,
+      "min_eig": -1.1843919465121397e-09,
+      "max_abs_diff_to_reference": 0.0
+    },
+    "perturbed_1101": {
+      "branch": "boundary",
+      "start_used": false,
+      "solver_status": "optimal",
+      "accepted": true,
+      "converged": true,
+      "stop_reason": null,
+      "nfev": null,
+      "identifiable_rms": null,
+      "runtime_s": 2.481159083006787,
+      "objective": 1912.0018433683033,
+      "min_eig": -1.1843919465121397e-09,
+      "max_abs_diff_to_reference": 0.0
+    },
+    "perturbed_1102": {
+      "branch": "boundary",
+      "start_used": false,
+      "solver_status": "optimal",
+      "accepted": true,
+      "converged": true,
+      "stop_reason": null,
+      "nfev": null,
+      "identifiable_rms": null,
+      "runtime_s": 2.4692664169997443,
+      "objective": 1912.0018433683033,
+      "min_eig": -1.1843919465121397e-09,
+      "max_abs_diff_to_reference": 0.0
+    },
+    "unrepaired_ols": {
+      "branch": "boundary",
+      "start_used": false,
+      "solver_status": "optimal",
+      "accepted": true,
+      "converged": true,
+      "stop_reason": null,
+      "nfev": null,
+      "identifiable_rms": null,
+      "runtime_s": 2.471200708998367,
+      "objective": 1912.0018433683033,
+      "min_eig": -1.1843919465121397e-09,
+      "max_abs_diff_to_reference": 0.0
+    }
+  },
+  "starts_forced_interior": {
+    "nominal": {
+      "branch": "interior",
+      "start_used": true,
+      "solver_status": "invalid_start",
+      "accepted": false,
+      "converged": false,
+      "stop_reason": null,
+      "nfev": null,
+      "identifiable_rms": null,
+      "runtime_s": 0.17327666700293776,
+      "objective": null
+    },
+    "repaired_ols": {
+      "branch": "interior",
+      "start_used": true,
+      "solver_status": "time_budget",
+      "accepted": false,
+      "converged": false,
+      "stop_reason": "time_budget",
+      "nfev": 271,
+      "identifiable_rms": null,
+      "runtime_s": 60.32177470800525,
+      "objective": null
+    },
+    "perturbed_1101": {
+      "branch": "interior",
+      "start_used": true,
+      "solver_status": "time_budget",
+      "accepted": false,
+      "converged": false,
+      "stop_reason": "time_budget",
+      "nfev": 291,
+      "identifiable_rms": null,
+      "runtime_s": 60.22717770798772,
+      "objective": null
+    },
+    "perturbed_1102": {
+      "branch": "interior",
+      "start_used": true,
+      "solver_status": "time_budget",
+      "accepted": false,
+      "converged": false,
+      "stop_reason": "time_budget",
+      "nfev": 300,
+      "identifiable_rms": null,
+      "runtime_s": 60.24421441699087,
+      "objective": null
+    },
+    "unrepaired_ols": {
+      "branch": "interior",
+      "start_used": true,
+      "solver_status": "invalid_start",
+      "accepted": false,
+      "converged": false,
+      "stop_reason": null,
+      "nfev": null,
+      "identifiable_rms": null,
+      "runtime_s": 0.1890138750022743,
+      "objective": null
+    }
+  },
+  "gates": {
+    "heldout_ratio": {
+      "ratio": 0.9885442575018741,
+      "limit": 1.05,
+      "ols_sdp_ok": true,
+      "met": true,
+      "note": "measured effort of the independent session; no truth"
+    },
+    "feasibility": {
+      "min_eig": -1.1843919465121397e-09,
+      "limit": -1e-08,
+      "met": true
+    },
+    "fit_runtime": {
+      "s": 2.450238541001454,
+      "limit_s": 20.0,
+      "met": true
+    },
+    "gated_starts": {
+      "met": true,
+      "start_used": false,
+      "note": "production (auto) branch; perturbed and unrepaired-OLS starts are reported, not gated"
+    },
+    "not_applicable": "clean held-out RMSE vs truth and the oracle interior check need a truth model; recorded data has none",
+    "all_met": true
+  }
+}
