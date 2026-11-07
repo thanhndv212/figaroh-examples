@@ -93,7 +93,7 @@ def test_smoke_meets_the_gates_and_archives_both_reports(smoke):
     assert report["preflight"]["pipeline_ddq_is_fixture_ddq"]
     g = report["gates"]
     assert g["noisy_heldout_ratio"]["met"] and g["fit_runtime"]["met"]
-    assert g["gated_starts"]["met"]
+    assert g["gated_starts"]["met"] and g["weak_excitation"]["met"]
     assert g["clean_heldout_rmse"]["met"] is None  # smoke has no noise-free run
 
 
@@ -101,7 +101,8 @@ def test_smoke_meets_the_gates_and_archives_both_reports(smoke):
 def test_smoke_methods_and_diagnostics(smoke):
     _, out = smoke
     report = json.loads((out / "lc1_benchmark.json").read_text())
-    (row,) = report["datasets"]
+    row, weak = report["datasets"]
+    assert (row["excitation"], weak["excitation"]) == ("full", "weak")
     m = row["methods"]
     lc, direct, sdp = m["log_cholesky"], m["direct"], m["ols_sdp"]
     assert lc["branch"] == "boundary" and lc["status"] == "accepted"
@@ -144,3 +145,23 @@ def test_reference_case_selects_exports_and_reports_log_cholesky(tmp_path):
     assert report["physical"]["status"] == "accepted"
     assert (run / "identified.urdf").is_file()
     assert "log_cholesky" in (run / "report.html").read_text()
+
+
+@needs_lc
+def test_smoke_weak_excitation_is_rank_deficient_and_stays_physical(smoke):
+    """Weak excitation is gated on convergence and feasibility only."""
+    _, out = smoke
+    report = json.loads((out / "lc1_benchmark.json").read_text())
+    full, weak = report["datasets"]
+    assert report["weak_excitation"]["active_joints"] == ["shoulder_pan_joint"]
+    frozen = [v for k, v in report["weak_excitation"]["ddq_rms"].items()
+              if k != "shoulder_pan_joint"]
+    assert frozen == [0.0] * 5
+    m = weak["methods"]
+    lc = m["log_cholesky"]
+    assert lc["rank"] < full["methods"]["log_cholesky"]["rank"]
+    assert lc["status"] == "accepted" and lc["min_eig"] >= -1e-8
+    assert m["ols"]["min_eig"] < 0  # the linear fit is not physical here
+    for start in ("nominal", "repaired_ols"):
+        s = weak["starts_auto"][start]
+        assert s["converged"] and s["accepted"]

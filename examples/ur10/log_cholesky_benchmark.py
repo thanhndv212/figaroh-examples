@@ -21,14 +21,22 @@ method is scored the same way: the 60-column regressor of the held-out
 trajectory, times theta. It is scored against the noisy measurement and
 against the noise-free truth effort.
 
+Weak excitation (decision record: gated on convergence and feasibility
+only) is derived in memory from ``train.csv``: ``shoulder_pan_joint`` keeps
+its motion, the other joints hold the fixture's centre posture, and effort is
+truth RNEA on those rows (plus the same seeded noise). It is a separate
+training set, not a fixture revision; validation is the usual held-out split.
+
 Run from ``examples/ur10``::
 
     python log_cholesky_benchmark.py --output-dir /tmp/lc1          # full grid
     python log_cholesky_benchmark.py --smoke --output-dir /tmp/lc1  # bounded
 
 The output is ``<stem>.json`` and ``<stem>.md`` (``--stem``, default
-``lc1_benchmark``). The archived run is
-``docs/development/results/ur10-log-cholesky-lc1-pin37.*``. The fixture
+``lc1_benchmark``). The archived runs are
+``docs/development/results/ur10-log-cholesky-lc1-pin{37,41}.*`` (Pinocchio
+3.7 in ``figaroh-dev``, 4.1 in a pip venv from core
+``ci/pinocchio-4.1.0.txt``). The fixture
 files are read only. The exit code is 0 when every gate is met. It is 1
 when a gate is unmet (the report lists which ones), 2 when the preflight
 fails, and 3 when core has no log-Cholesky fit.
@@ -82,6 +90,7 @@ FEAS_TOL = -1e-8  # #22 feasibility oracle: min eig(P) >= -1e-8 on every link
 DERIV_TOL = 1e-6
 DYN_TOL = 1e-8
 DDQ_RMS_MIN = 1e-2  # rad/s², every active coordinate must be excited
+WEAK_ACTIVE = ("shoulder_pan_joint",)  # the only moving joint of the weak set
 
 PERTURB_SEEDS = (1101, 1102)
 PERTURB_SIGMA = 0.2  # in log-Cholesky coordinates
@@ -231,6 +240,45 @@ def preflight() -> dict:
     return report
 
 
+def weak_split(noise: str, seed) -> dict:
+    """Weak-excitation training rows (see the module docstring).
+
+    The moving joint keeps the fixture's q/dq/ddq, which the preflight has
+    verified; the frozen joints have dq = ddq = 0 exactly.
+    """
+    d = truth.read_split("train")
+    n = len(d["t"])
+    q = np.tile(np.asarray(truth.CENTER, dtype=float), (n, 1))
+    dq, ddq = np.zeros_like(q), np.zeros_like(q)
+    for j in (truth.JOINTS.index(name) for name in WEAK_ACTIVE):
+        q[:, j], dq[:, j], ddq[:, j] = d["q"][:, j], d["dq"][:, j], d["ddq"][:, j]
+    tau_true = truth.rnea(truth.truth_model(), q, dq, ddq)
+    tau = tau_true.copy()
+    if noise != "none":
+        if seed not in truth.NOISE_SEEDS["train"]:
+            raise ValueError(f"weak: noise seed must be one of {truth.NOISE_SEEDS['train']}")
+        e, pos = truth.standard_draws(seed, n)
+        sigma = truth.protocol()["noise"]["effort_sigma_nm"][noise]
+        tau = tau + e * np.array([sigma[j] for j in truth.JOINTS])
+        q = q + pos * truth.NOISE_LEVELS[noise]["position_rad"]
+    return {"t": d["t"], "q": q, "dq": dq, "ddq": ddq, "tau": tau, "tau_true": tau_true}
+
+
+def weak_summary() -> dict:
+    w = weak_split("none", None)
+    return {
+        "active_joints": list(WEAK_ACTIVE),
+        "frozen_posture_rad": list(map(float, truth.CENTER)),
+        "ddq_rms": dict(zip(truth.JOINTS,
+                            np.sqrt(np.mean(w["ddq"] ** 2, axis=0)).tolist())),
+        "effort_rms_nm": dict(zip(truth.JOINTS,
+                                  np.sqrt(np.mean(w["tau"] ** 2, axis=0)).tolist())),
+        "rows": int(len(w["t"])),
+        "note": "derived in memory from train.csv; the active joint's "
+                "derivatives are the fixture's (preflight-verified)",
+    }
+
+
 # --- scoring --------------------------------------------------------------
 
 
@@ -317,9 +365,11 @@ def problem(ident, prior=None):
 # --- methods --------------------------------------------------------------
 
 
-def run_pipeline(method: str, noise: str, seed, val_seed):
+def run_pipeline(method: str, noise: str, seed, val_seed, excitation: str = "full"):
     config = CONFIGS["log_cholesky" if method == "direct" else method]
-    ident = truth.identification(noise=noise, seed=seed, val_seed=val_seed, config=config)
+    train = weak_split(noise, seed) if excitation == "weak" else None
+    ident = truth.identification(noise=noise, seed=seed, val_seed=val_seed,
+                                 config=config, train=train)
     if method == "direct":
         pf = ident.identif_config["physical_fit"]
         pf["method"] = "direct"
@@ -460,13 +510,19 @@ def run_starts(p, candidates, lcf, branch, opts_kw, ref_theta=None) -> dict:
 
 
 def datasets(smoke: bool) -> list:
+    """(excitation, noise, train seed, validation seed) per dataset."""
     if smoke:
-        return [("low", 101, 201)]
-    grid = [("none", None, None)]
+        return [("full", "low", 101, 201), ("weak", "low", 101, 201)]
+    grid = [("full", "none", None, None)]
     for noise in ("low", "high"):
-        grid += list(zip([noise] * 5, truth.NOISE_SEEDS["train"],
-                         truth.NOISE_SEEDS["validation"]))
+        grid += [("full", noise, s, v) for s, v in
+                 zip(truth.NOISE_SEEDS["train"], truth.NOISE_SEEDS["validation"])]
+    grid += [("weak", "none", None, None), ("weak", "low", 101, 201)]
     return grid
+
+
+def label(r) -> str:
+    return r["noise"] if r.get("excitation", "full") == "full" else f"weak/{r['noise']}"
 
 
 def lc_options(ident) -> dict:
@@ -478,7 +534,8 @@ def lc_options(ident) -> dict:
 def run(args, lcf) -> dict:
     grid = datasets(args.smoke)
     seeds = {
-        "datasets": [{"noise": n, "train_seed": s, "validation_seed": v} for n, s, v in grid],
+        "datasets": [{"excitation": x, "noise": n, "train_seed": s, "validation_seed": v}
+                     for x, n, s, v in grid],
         "perturbation_seeds": list(PERTURB_SEEDS),
         "perturbation_sigma": PERTURB_SIGMA,
     }
@@ -488,12 +545,14 @@ def run(args, lcf) -> dict:
     out["preflight"] = pre
     if not pre["passed"]:
         return out
+    out["weak_excitation"] = weak_summary()
 
     rows = []
-    for n, (noise, seed, vseed) in enumerate(grid):
+    for n, (exc, noise, seed, vseed) in enumerate(grid):
         held = heldout_split(noise, vseed)
-        entry = {"noise": noise, "train_seed": seed, "validation_seed": vseed, "methods": {}}
-        idents = {m: run_pipeline(m, noise, seed, vseed) for m in METHODS}
+        entry = {"excitation": exc, "noise": noise, "train_seed": seed,
+                 "validation_seed": vseed, "methods": {}}
+        idents = {m: run_pipeline(m, noise, seed, vseed, exc) for m in METHODS}
         lc_ident = idents["log_cholesky"][0]
         p = problem(lc_ident)  # same training rows, weights and prior for all
         thetas = {}
@@ -503,18 +562,18 @@ def run(args, lcf) -> dict:
         entry["rows"] = int(p.Y.shape[0])
         entry["eliminated_columns"] = len(lc_ident._idx_eliminated or [])
         # every start, production branch (cheap) and forced interior (first
-        # dataset of each noise level, or every run in smoke mode)
+        # dataset of each excitation/noise pair, or every run in smoke mode)
         cands = starts(p.theta_prior, thetas["ols"])
         if args.smoke:
             cands = {k: cands[k] for k in ("nominal", "repaired_ols", "unrepaired_ols")}
         opts = lc_options(lc_ident)
         entry["starts_auto"] = run_starts(p, cands, lcf, "auto", opts,
                                           ref_theta=thetas["log_cholesky"])
-        first = n == 0 or grid[n - 1][0] != noise
+        first = n == 0 or grid[n - 1][:2] != (exc, noise)
         if first:
             entry["starts_forced_interior"] = run_starts(p, cands, lcf, "interior", opts)
         rows.append(entry)
-        print(f"  {noise:5s} seed {seed}: log-Cholesky held-out "
+        print(f"  {label(entry):8s} seed {seed}: log-Cholesky held-out "
               f"{entry['methods']['log_cholesky']['heldout_vs_measurement']['aggregate']:.4g} N·m, "
               f"OLS+SDP {entry['methods']['ols_sdp']['heldout_vs_measurement']['aggregate']:.4g}")
     out["datasets"] = rows
@@ -559,7 +618,9 @@ def oracle_interior(lcf, smoke: bool) -> dict:
 
 def gates(rows, oracle) -> dict:
     g = {}
-    clean = [r for r in rows if r["noise"] == "none"]
+    full = [r for r in rows if r["excitation"] == "full"]
+    weak = [r for r in rows if r["excitation"] == "weak"]
+    clean = [r for r in full if r["noise"] == "none"]
     if clean:
         v = clean[0]["methods"]["log_cholesky"]["heldout_vs_truth"]["aggregate"]
         g["clean_heldout_rmse"] = {"value": v, "limit": CLEAN_RMSE_MAX,
@@ -567,7 +628,7 @@ def gates(rows, oracle) -> dict:
     else:
         g["clean_heldout_rmse"] = {"met": None, "note": "not run (smoke)"}
     ratios, sdp_ok = [], True
-    for r in rows:
+    for r in full:
         if r["noise"] == "none":
             continue
         m = r["methods"]
@@ -589,6 +650,19 @@ def gates(rows, oracle) -> dict:
     orc = oracle["detected_branch"] == "interior" and all(
         oracle["starts"][k]["converged"] and oracle["starts"][k]["accepted"]
         and oracle["starts"][k]["start_used"] for k in gated)
+    if weak:
+        ok = all(r["methods"]["log_cholesky"]["status"] == "accepted"
+                 and r["methods"]["log_cholesky"]["min_eig"] >= FEAS_TOL
+                 and all(r["starts_auto"][k]["converged"] and r["starts_auto"][k]["accepted"]
+                         for k in gated)
+                 for r in weak)
+        g["weak_excitation"] = {
+            "datasets": [label(r) for r in weak],
+            "rank": sorted({r["methods"]["log_cholesky"]["rank"] for r in weak}),
+            "met": bool(ok),
+            "note": "gated on convergence and feasibility only; held-out "
+                    "accuracy is reported, not gated",
+        }
     g["gated_starts"] = {
         "production_auto": prod,
         "production_start_used": any(r["starts_auto"][k]["start_used"]
@@ -633,23 +707,27 @@ def markdown(out) -> str:
     if pre["failures"]:
         L += ["", "Failures: " + "; ".join(pre["failures"])]
         return "\n".join(L) + "\n"
+    w = out["weak_excitation"]
+    L += ["", f"Weak excitation: only {', '.join(w['active_joints'])} moves "
+          f"({w['rows']} rows); the others hold {w['frozen_posture_rad']} rad. "
+          f"{w['note']}."]
     L += ["", "## Held-out RMSE (aggregate, N·m)", "",
-          "| noise | seed | OLS | OLS+SDP | log-Cholesky | direct | LC vs truth | LC/SDP |",
+          "| data | seed | OLS | OLS+SDP | log-Cholesky | direct | LC vs truth | LC/SDP |",
           "|---|---|---|---|---|---|---|---|"]
     for r in out["datasets"]:
         m = r["methods"]
         h = {k: m[k]["heldout_vs_measurement"]["aggregate"] for k in METHODS}
-        L.append(f"| {r['noise']} | {r['train_seed']} | " + " | ".join(
+        L.append(f"| {label(r)} | {r['train_seed']} | " + " | ".join(
             _fmt(h[k], ".5g") for k in METHODS) +
             f" | {_fmt(m['log_cholesky']['heldout_vs_truth']['aggregate'], '.3g')}"
             f" | {h['log_cholesky'] / h['ols_sdp']:.4f} |")
-    L += ["", "## Per-joint held-out RMSE, first dataset of each noise level (N·m)", ""]
+    L += ["", "## Per-joint held-out RMSE, first dataset of each kind (N·m)", ""]
     seen = set()
     for r in out["datasets"]:
-        if r["noise"] in seen:
+        if label(r) in seen:
             continue
-        seen.add(r["noise"])
-        L += [f"**{r['noise']}** (seed {r['train_seed']})", "",
+        seen.add(label(r))
+        L += [f"**{label(r)}** (seed {r['train_seed']})", "",
               "| joint | " + " | ".join(METHODS) + " |", "|---" * (len(METHODS) + 1) + "|"]
         for j in truth.JOINTS:
             L.append(f"| {j} | " + " | ".join(
@@ -657,14 +735,14 @@ def markdown(out) -> str:
                 for k in METHODS) + " |")
         L.append("")
     L += ["## Training objective, physical consistency, conditioning", "",
-          "| noise | seed | J OLS | J OLS+SDP | J LC | min eig OLS | min eig SDP | "
+          "| data | seed | J OLS | J OLS+SDP | J LC | min eig OLS | min eig SDP | "
           "min eig LC | branch | rank | null | cond | LC fit s |",
           "|---" * 13 + "|"]
     for r in out["datasets"]:
         m = r["methods"]
         lc = m["log_cholesky"]
         L.append(
-            f"| {r['noise']} | {r['train_seed']} | {m['ols']['train_objective']:.6g} | "
+            f"| {label(r)} | {r['train_seed']} | {m['ols']['train_objective']:.6g} | "
             f"{m['ols_sdp']['train_objective']:.6g} | {lc['train_objective']:.6g} | "
             f"{m['ols']['min_eig']:.3g} | {m['ols_sdp']['min_eig']:.3g} | "
             f"{lc['min_eig']:.3g} | {lc['branch']} | {lc['rank']} | "
@@ -672,7 +750,7 @@ def markdown(out) -> str:
             f"{lc['fit_runtime_s']:.3f} |")
     first = out["datasets"][0]
     L += ["", f"Per-link mass (kg) and minimum pseudo-inertia eigenvalue, "
-          f"{first['noise']} seed {first['train_seed']}:", "",
+          f"{label(first)} seed {first['train_seed']}:", "",
           "| link | " + " | ".join(f"{k} mass | {k} min eig" for k in METHODS) + " |",
           "|---" * (2 * len(METHODS) + 1) + "|"]
     for j in truth.JOINTS:
@@ -683,7 +761,7 @@ def markdown(out) -> str:
     for r in out["datasets"]:
         if "starts_forced_interior" not in r:
             continue
-        L += [f"**{r['noise']} seed {r['train_seed']}**", "",
+        L += [f"**{label(r)} seed {r['train_seed']}**", "",
               "| start | auto: status | auto: start used | auto: max |Δθ| | "
               "forced interior: stop | nfev | identifiable RMS | s |",
               "|---" * 8 + "|"]
@@ -720,6 +798,10 @@ def markdown(out) -> str:
           f"| nominal + repaired-OLS starts converge, feasible (production / oracle "
           f"interior) | {g['gated_starts']['production_auto']} / "
           f"{g['gated_starts']['oracle_interior']} | all | {g['gated_starts']['met']} |",
+          *([f"| weak excitation ({', '.join(g['weak_excitation']['datasets'])}; rank "
+             f"{g['weak_excitation']['rank']}): accepted, feasible, starts converge | "
+             f"{g['weak_excitation']['met']} | all | {g['weak_excitation']['met']} |"]
+            if "weak_excitation" in g else []),
           "", f"All gates met: **{g['all_met']}**. {g['gated_starts']['note']}.", ""]
     return "\n".join(L)
 
@@ -740,7 +822,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--output-dir", required=True, help="where to write the report")
     ap.add_argument("--smoke", action="store_true",
-                    help="one low-noise dataset (seed 101), three starts")
+                    help="low-noise seed 101, full and weak excitation, three starts")
     ap.add_argument("--stem", default="lc1_benchmark", help="output file name stem")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args(argv)
