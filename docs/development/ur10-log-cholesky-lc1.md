@@ -15,10 +15,9 @@ implemented in figaroh-plus#235 with the null-space fix #236 (#234).
 ## Minimum core dependency
 
 `figaroh.identification.log_cholesky_fit` and `physical_fit.method:
-log_cholesky` are on figaroh-plus **`devel` ≥ `21994ed`** (#235 and #236). They are
-unreleased: the 1.1.0 release does not have them, and they are listed under
-`[Unreleased]` in core's CHANGELOG. The examples README still pins
-`figaroh>=1.1,<1.2`. On an older core:
+log_cholesky` need figaroh **1.2.0** or later (figaroh-plus `devel` ≥ `21994ed`,
+#235 and #236). The 1.1.0 release does not have them. The examples pin is
+`figaroh>=1.2,<1.3`. On an older core:
 
 - `log_cholesky_benchmark.py` prints a skip and exits 3.
 - The `log-cholesky` reference case is not listed.
