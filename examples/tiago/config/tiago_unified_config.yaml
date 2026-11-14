@@ -168,7 +168,11 @@ tasks:
       validation_data_file: "data/identification/calibration_slow"
 
     problem:
-      include_external_forces: true  # TIAGo has F/T sensors
+      # Joint torques are fitted. External-wrench mode runs only with
+      # use_joint_torques: false, and then needs friction, joint_offset and
+      # actuator_inertia off and force_torque_sensors as a list of wrench
+      # components (Fx, Fy, Fz, Mx, My, Mz), not sensor names.
+      include_external_forces: false
       use_joint_torques: true
       force_torque_sensors: ["wrist_ft_sensor"]
       wls: false  # Refine OLS estimate with weighted least squares (Gautier, 1997)

@@ -49,7 +49,15 @@ tasks:
     enabled: true
 
     problem:
-      include_external_forces: true   # Humanoids often have F/T sensors
+      # Joint torques are fitted by default. To fit base wrenches from a
+      # force/torque sensor instead (floating-base robots), set
+      # include_external_forces: true and use_joint_torques: false, turn
+      # friction, joint_offset and actuator_inertia off under
+      # model_components, and list the wrench components to fit in
+      # force_torque_sensors, e.g. ["Fx", "Fy", "Fz", "Mx", "My", "Mz"].
+      # With both settings true the joint-torque regressor is built and
+      # include_external_forces has no effect.
+      include_external_forces: false
       use_joint_torques: true
 
     # Humanoids often need higher sampling rates due to complexity
