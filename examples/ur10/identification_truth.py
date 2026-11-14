@@ -1074,6 +1074,7 @@ def identification(
     val_seed: int | None = None,
     config: str | Path | None = None,
     train: dict | None = None,
+    joints: list | None = None,
 ):
     """An initialized ``UR10Identification`` that reads the fixture.
 
@@ -1086,7 +1087,15 @@ def identification(
     ``train`` replaces the training split with a derived one (keys ``t``,
     ``q``, ``dq``, ``ddq``, ``tau``; e.g. the LC1 weak-excitation set); the
     fixture files are not modified and validation is unchanged.
+    ``joints`` restricts the active joints to these names (default: all
+    six); the effort columns of the other joints are then left out of the
+    fit and of the validation metrics. Every joint still moves as recorded.
     """
+    active = list(joints) if joints is not None else list(JOINTS)
+    unknown = [j for j in active if j not in JOINTS]
+    if unknown or not active:
+        raise ValueError(f"joints must be a non-empty subset of {JOINTS}: {active}")
+    effort_columns = [JOINTS.index(j) for j in active]
     from figaroh.tools.robot import load_robot
 
     from examples.ur10.utils.ur10_tools import UR10Identification
@@ -1097,13 +1106,15 @@ def identification(
                 d = train
             else:
                 split = Path(data_source).stem if data_source else "train"
-                d = load_split(split, derivatives, noise, val_seed if data_source else seed)
+                d = load_split(
+                    split, derivatives, noise, val_seed if data_source else seed
+                )
             return {
                 "timestamps": d["t"].reshape(-1, 1),
                 "positions": d["q"],
                 "velocities": d["dq"],
                 "accelerations": d["ddq"],
-                "torques": d["tau"],
+                "torques": d["tau"][:, effort_columns],
             }
 
         def process_kinematics_data(self, filter_config=None):
@@ -1111,6 +1122,14 @@ def identification(
                 k: self.raw_data[k]
                 for k in ("timestamps", "positions", "velocities", "accelerations")
             }
+
+        def _build_full_configuration(self):
+            # The fixture gives the motion of every joint, so there is
+            # nothing to expand: core would otherwise hold the joints that
+            # are not active at zero, which is not the motion that produced
+            # the fixture's effort.
+            if len(active) == len(JOINTS):
+                super()._build_full_configuration()
 
     robot = load_robot(
         str(URDF), package_dirs=str(HERE.parents[1] / "models"), load_by_urdf=True
@@ -1120,7 +1139,7 @@ def identification(
     )
     ps = ident.identif_config
     ps["ts"] = 1.0 / SAMPLE_RATE_HZ
-    ps["act_Jid"] = [ident.model.getJointId(j) for j in JOINTS]
+    ps["act_Jid"] = [ident.model.getJointId(j) for j in active]
     ps["act_J"] = [ident.model.joints[j] for j in ps["act_Jid"]]
     ps["act_idxq"] = [J.idx_q for J in ps["act_J"]]
     ps["act_idxv"] = [J.idx_v for J in ps["act_J"]]
