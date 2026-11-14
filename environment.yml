@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.8
+  - python>=3.10  # floor of the pinned core (requires-python >=3.10)
   - pip
 
   # Core scientific computing - used extensively in examples
