@@ -75,4 +75,17 @@ jobs:
           cd figaroh-examples
           # slow tests (golden and multi-method studies, tens of minutes)
           # run weekly by slow.yml, or locally: python -m pytest tests/ -m slow
-          python -m pytest tests/ -v --durations=15 -m "not slow"
+          # Coverage of the example code by its tests, on one leg; reported,
+          # not gated. pytest-cov comes with the core's dev extra.
+          if [ "${{ matrix.pinocchio }}" = "4.1.0" ]; then
+            COVERAGE_ARGS="--cov=examples --cov-report=xml:coverage.xml --cov-report=term:skip-covered"
+          fi
+          python -m pytest tests/ -v --durations=15 -m "not slow" ${COVERAGE_ARGS:-}
+
+      - name: Upload coverage report
+        if: always() && matrix.pinocchio == '4.1.0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-examples
+          path: figaroh-examples/coverage.xml
+          if-no-files-found: warn

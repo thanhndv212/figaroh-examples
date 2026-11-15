@@ -96,3 +96,9 @@ examples/talos/data/optimal_configs/
 
 # Third-party mesh packages fetched at pinned revisions by scripts/fetch_models.py
 models/external/
+
+# Coverage output (python -m pytest --cov)
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
