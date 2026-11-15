@@ -188,6 +188,43 @@ def test_core_pipeline_recovers_truth():
     assert metrics["rmse_identified"] < 1e-4 < metrics["rmse_nominal"]
 
 
+def test_core_pipeline_recovers_truth_from_a_joint_subset():
+    """Efforts of four of the six joints, not the first four (#184).
+
+    Core up to 1.2.0 failed here with a size mismatch and read other
+    joints' rows for the reference torque (figaroh-plus#245).
+    """
+    import pinocchio as pin
+
+    picked = [0, 1, 3, 5]
+    joints = [it.JOINTS[i] for i in picked]
+    with contextlib.redirect_stdout(io.StringIO()):
+        ident = it.identification(joints=joints)
+        ident.solve(decimate=False, plotting=False)
+        metrics = ident._compute_validation_metrics()
+    train = it.read_split("train")
+    n = len(train["t"])
+    assert ident.identif_config["act_idxv"] == picked
+    assert ident.dynamic_regressor_base.shape[0] == len(picked) * n
+
+    def effort(model):
+        data = model.createData()
+        tau = [
+            pin.rnea(model, data, q, dq, ddq)
+            for q, dq, ddq in zip(train["q"], train["dq"], train["ddq"])
+        ]
+        return np.array(tau)[:, picked].T.ravel()
+
+    # the reference torque is the nominal model's, for the picked joints
+    np.testing.assert_allclose(ident.tau_ref, effort(it.nominal_model()), atol=1e-9)
+    # the estimate reproduces the truth model's effort on those joints
+    fitted = ident.dynamic_regressor_base @ np.asarray(ident.phi_base)
+    assert np.abs(fitted - effort(it.truth_model())).max() < 1e-4
+    assert metrics["validation_source"] == "validation_data"
+    assert metrics["n_val_samples"] == 800
+    assert metrics["rmse_identified"] < 1e-4 < metrics["rmse_nominal"]
+
+
 def test_nominal_model_unchanged():
     # the fixture's truth is a perturbation of this URDF
     assert (

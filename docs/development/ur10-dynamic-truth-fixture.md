@@ -13,7 +13,9 @@ independent validation trajectory, and is frozen for the D4 comparison
 - Generator and loaders: `examples/ur10/identification_truth.py`.
 - Fixture: `examples/ur10/data/truth/` (1.7 MB).
 - Frozen protocol: `examples/ur10/data/truth/protocol.yaml` (v1).
-- Tests: `tests/test_ur10_identification_truth.py` (13 tests, about 40 s).
+- Tests: `tests/test_ur10_identification_truth.py` (14 tests, about 40 s).
+  One of them fits the efforts of four joints out of six through the core
+  pipeline (#184); it needs figaroh 1.2.1 or later (figaroh-plus#245).
 
 ```bash
 cd examples/ur10
