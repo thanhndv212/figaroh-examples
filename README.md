@@ -36,6 +36,7 @@ unreleased core changes; to use a released core, check out the matching tag.
 
 | Examples tag | figaroh (PyPI) | Validated pair |
 |---|---|---|
+| `v1.2.1` | `>=1.2.1,<1.3` | core `v1.2.1` + examples `v1.2.1` (evidence on core `0c830dc` + examples `774b58f`, #192; one accepted timeout, `tiago/optimal_trajectory.py` at the 600 s cap) |
 | `v1.2.0` | `>=1.2,<1.3` | core `v1.2.0` + examples `v1.2.0` (evidence on core `b981c44` + examples `9e2ecfd`, figaroh-plus#240) |
 | `v1.1.0` | `>=1.1,<1.2` | core `v1.1.0` + examples `v1.1.0` (evidence on core `97e298f` + examples `c620d2c`, figaroh-plus#228) |
 | `v1.0.0` | `>=1.0,<1.1` | core `v1.0.0` + examples `v1.0.0` (evidence on core `56ca51c` + examples `86ef28d`, figaroh-plus#192) |
