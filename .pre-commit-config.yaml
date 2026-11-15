@@ -7,7 +7,7 @@ repos:
     -   id: black
         language_version: python3
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
     -   id: check-added-large-files
         args: ['--maxkb=100000']
@@ -27,7 +27,7 @@ repos:
     -   id: debug-statements
     -   id: trailing-whitespace
 -   repo: https://github.com/PyCQA/flake8
-    rev: 7.1.1
+    rev: 7.5.0
     hooks:
     -   id: flake8
         # --extend-ignore, not --ignore: the latter REPLACES flake8's default
